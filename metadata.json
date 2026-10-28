@@ -1,0 +1,6 @@
+{
+  "name": "TANSHU ONLINE - Digital Public Tools & Services Portal",
+  "description": "Discover useful digital utilities, passport photo makers, PVC & ID card print layouts, document scanners, Indian government service information, schemes, and video tutorials.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
