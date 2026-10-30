@@ -36,6 +36,8 @@ export interface GovernmentService {
   requiredDocuments: string[];
   steps: string[];
   trackUrl?: string;
+  jurisdiction?: 'central' | 'bihar';
+  serviceType?: 'identity' | 'revenue' | 'land' | 'welfare' | 'transport' | 'utility';
 }
 
 export interface GovernmentScheme {
@@ -50,6 +52,8 @@ export interface GovernmentScheme {
   documentsRequired: string[];
   howToApply: string[];
   officialPortal: string;
+  jurisdiction?: 'central' | 'bihar';
+  category?: 'farmer' | 'women' | 'youth' | 'health' | 'housing' | 'employment';
 }
 
 export interface VideoGuide {
