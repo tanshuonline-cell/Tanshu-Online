@@ -108,6 +108,13 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     });
   }
 
+  if (!env.DB) {
+    return new Response(JSON.stringify({ success: false, error: 'D1 database binding is not active. Video was not saved. Check the Preview DB binding.' }), {
+      status: 503,
+      headers: corsHeaders,
+    });
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const {
