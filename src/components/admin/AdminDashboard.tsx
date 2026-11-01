@@ -25,7 +25,6 @@ import {
   BookOpen
 } from 'lucide-react';
 import { VideoGuide, AdminUser, CustomerPurchaseRecord } from '../../types';
-import { LATEST_VIDEOS } from '../../data/videosData';
 
 interface Props {
   adminUser: AdminUser;
@@ -35,7 +34,7 @@ interface Props {
 
 export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToSite }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases'>('overview');
-  const [videos, setVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
+  const [videos, setVideos] = useState<VideoGuide[]>([]);
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
