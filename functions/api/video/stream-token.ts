@@ -190,28 +190,38 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Step 2b: If D1 Database is available, verify unrevoked database entitlement
-    if (env.DB) {
-      try {
-        const accessRecord = await env.DB.prepare(
-          `SELECT id, is_revoked, expires_at FROM customer_video_access
-           WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0 AND expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP`
-        )
-          .bind(sanitizedPhone, videoId)
-          .first();
+    // Step 2b: D1 is mandatory for premium entitlements; fail closed if unavailable.
+    if (!env.DB) {
+      return new Response(
+        JSON.stringify({ authorized: false, error: 'Purchase verification is temporarily unavailable. Please try again later.' }),
+        { status: 503, headers: corsHeaders }
+      );
+    }
 
-        if (!accessRecord) {
-          return new Response(
-            JSON.stringify({
-              authorized: false,
-              error: 'Access denied. Your 30-day access has expired, you have not purchased this video, or access was revoked.',
-            }),
-            { status: 403, headers: corsHeaders }
-          );
-        }
-      } catch (dbErr) {
-        console.warn('D1 access check warning:', dbErr);
+    try {
+      const accessRecord = await env.DB.prepare(
+        `SELECT id FROM customer_video_access
+         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0
+           AND expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP`
+      )
+        .bind(sanitizedPhone, videoId)
+        .first();
+
+      if (!accessRecord) {
+        return new Response(
+          JSON.stringify({
+            authorized: false,
+            error: 'Access denied. Your 30-day access has expired, you have not purchased this video, or access was revoked.',
+          }),
+          { status: 403, headers: corsHeaders }
+        );
       }
+    } catch (dbErr) {
+      console.error('D1 access verification failed:', dbErr);
+      return new Response(
+        JSON.stringify({ authorized: false, error: 'Purchase verification is temporarily unavailable. Please try again later.' }),
+        { status: 503, headers: corsHeaders }
+      );
     }
 
     // YouTube Unlisted playback is gated by the same verified purchase/session checks above.
