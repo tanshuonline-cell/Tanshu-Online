@@ -214,6 +214,17 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       }
     }
 
+    // YouTube Unlisted playback is gated by the same verified purchase/session checks above.
+    // Note: Unlisted YouTube URLs can still be shared outside this website.
+    if (youtubeUrl) {
+      return new Response(JSON.stringify({
+        authorized: true,
+        accessType: 'premium',
+        videoId,
+        youtubeUrl,
+      }), { status: 200, headers: corsHeaders });
+    }
+
     // Step 3: Video is verified! Validate Cloudflare Stream credentials & video asset
     const accountId = env.CLOUDFLARE_STREAM_ACCOUNT_ID;
     const apiToken = env.CLOUDFLARE_STREAM_API_TOKEN;
