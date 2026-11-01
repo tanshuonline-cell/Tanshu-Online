@@ -20,7 +20,6 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
-import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
@@ -317,7 +316,6 @@ export default function App() {
         {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
         <VideoLearningCenter
           videos={catalogVideos}
-          onOpenCatalog={() => navigateTo('videos', '/videos')}
           onSelectVideo={navigateToVideoDetail}
         />
 
