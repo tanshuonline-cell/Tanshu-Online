@@ -242,6 +242,13 @@ export async function onRequestDelete(context: { request: Request; env: Env }): 
     });
   }
 
+  if (!env.DB) {
+    return new Response(JSON.stringify({ success: false, error: 'D1 database binding is not active. No video was changed.' }), {
+      status: 503,
+      headers: corsHeaders,
+    });
+  }
+
   const url = new URL(request.url);
   const videoId = url.searchParams.get('id');
 
