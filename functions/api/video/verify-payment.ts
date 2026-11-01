@@ -193,10 +193,12 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
         // Idempotent access grant: Insert or update
         await env.DB.prepare(
-          `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
-           VALUES (?, ?, ?, ?, ?, 0)
+          `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, granted_at, expires_at, is_revoked)
+           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, datetime('now', '+30 days'), 0)
            ON CONFLICT(customer_phone, video_id) DO UPDATE SET
              order_id = excluded.order_id,
+             granted_at = CURRENT_TIMESTAMP,
+             expires_at = datetime('now', '+30 days'),
              is_revoked = 0,
              updated_at = CURRENT_TIMESTAMP`
         )
