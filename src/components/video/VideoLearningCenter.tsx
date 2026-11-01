@@ -5,13 +5,11 @@ import { useLanguage } from '../../context/LanguageContext';
 import { FreeGuideDetailsModal } from './FreeGuideDetailsModal';
 
 interface Props {
-  onOpenCatalog: () => void;
   onSelectVideo: (video: VideoGuide) => void;
   videos?: VideoGuide[];
 }
 
 export const VideoLearningCenter: React.FC<Props> = ({
-  onOpenCatalog,
   onSelectVideo,
   videos = [],
 }) => {
