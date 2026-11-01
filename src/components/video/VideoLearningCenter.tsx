@@ -19,21 +19,20 @@ export const VideoLearningCenter: React.FC<Props> = ({
   const { t, isHindi } = useLanguage();
   const [selectedFreeGuide, setSelectedFreeGuide] = useState<VideoGuide | null>(null);
 
-  // Requirement: Display a maximum of four cards in this exact sequence: Free, Premium, Free, Premium.
-  // Using actual configured video records and their real Free/Premium status.
+  // Show active premium tutorials first, ordered from lowest price to highest.
+  // This lets newly added admin videos (for example ₹49, then ₹99) appear
+  // on the homepage automatically without changing the homepage code again.
   const freeVideos = videos.filter((v) => !v.isPremium && v.accessType !== 'premium' && v.isActive !== false);
-  const premiumVideos = videos.filter((v) => (v.isPremium || v.accessType === 'premium') && v.isActive !== false);
+  const premiumVideos = videos
+    .filter((v) => (v.isPremium || v.accessType === 'premium') && v.isActive !== false)
+    .sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER));
 
+  // Keep the homepage section compact (maximum four cards); fill any remaining
+  // slots with the existing free guides after all active premium videos.
   const homepageVideos: VideoGuide[] = [
-    // 1. Free
-    freeVideos.find((v) => v.id === 'pvc-card-printing-guide') || freeVideos[0],
-    // 2. Premium
-    premiumVideos.find((v) => v.id === 'premium-photoshop-pvc-batch') || premiumVideos[0],
-    // 3. Free
-    freeVideos.find((v) => v.id === 'ration-card-online-apply') || freeVideos[1],
-    // 4. Premium
-    premiumVideos.find((v) => v.id === 'premium-csc-mastery-2026') || premiumVideos[1],
-  ].filter(Boolean);
+    ...premiumVideos,
+    ...freeVideos.filter((video) => !premiumVideos.some((premium) => premium.id === video.id)),
+  ].slice(0, 4);
 
   return (
     <section id="video-learning-center" className="py-10 bg-slate-50 border-b border-slate-200">
