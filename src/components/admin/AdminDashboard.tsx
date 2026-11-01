@@ -79,7 +79,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       });
       if (resp.ok) {
         const data = await resp.json();
-        if (data.success && Array.isArray(data.videos) && data.videos.length > 0) {
+        if (data.success && Array.isArray(data.videos)) {
           setVideos(data.videos);
         }
       }
@@ -275,6 +275,31 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       }
     } catch (e: any) {
       showNotification('error', e.message || 'Error communicating with server.');
+    }
+  };
+
+  const handleHomepageOrderChange = async (videoId: string, value: string) => {
+    const homepageOrder = value === '0' ? null : Number(value);
+    try {
+      const response = await fetch('/api/admin/videos', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homepageOrderOnly: true, id: videoId, homepageOrder }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setVideos((prev) => prev.map((video) => {
+          if (video.id === videoId) return { ...video, homepageOrder };
+          if (homepageOrder !== null && video.homepageOrder === homepageOrder) return { ...video, homepageOrder: null };
+          return video;
+        }));
+        showNotification('success', homepageOrder === null ? 'Video removed from Homepage.' : `Video set to Homepage position ${homepageOrder}.`);
+      } else {
+        showNotification('error', data.error || 'Could not save Homepage selection.');
+      }
+    } catch (error: any) {
+      showNotification('error', error.message || 'Error saving Homepage selection.');
     }
   };
 
@@ -525,6 +550,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                       <th className="py-3 px-4">Type & Price</th>
                       <th className="py-3 px-4">Hosting / ID</th>
                       <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Homepage</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -585,6 +611,21 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                                 INACTIVE
                               </span>
                             )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <select
+                              aria-label={`Homepage position for ${v.title}`}
+                              value={v.homepageOrder ?? 0}
+                              onChange={(e) => handleHomepageOrderChange(v.id, e.target.value)}
+                              disabled={!isActive}
+                              className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-[11px] outline-none focus:border-blue-500 disabled:opacity-40"
+                            >
+                              <option value={0}>Not on Homepage</option>
+                              <option value={1}>Position 1</option>
+                              <option value={2}>Position 2</option>
+                              <option value={3}>Position 3</option>
+                              <option value={4}>Position 4</option>
+                            </select>
                           </td>
                           <td className="py-3.5 px-4 text-right space-x-2">
                             <button
