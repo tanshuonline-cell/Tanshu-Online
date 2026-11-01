@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Play, Lock, Clock, ArrowRight, Sparkles, GraduationCap, Info } from 'lucide-react';
+import { Play, Lock, Clock, GraduationCap, Info } from 'lucide-react';
 import { VideoGuide } from '../../types';
-import { LATEST_VIDEOS } from '../../data/videosData';
 import { useLanguage } from '../../context/LanguageContext';
 import { FreeGuideDetailsModal } from './FreeGuideDetailsModal';
 
@@ -14,25 +13,15 @@ interface Props {
 export const VideoLearningCenter: React.FC<Props> = ({
   onOpenCatalog,
   onSelectVideo,
-  videos = LATEST_VIDEOS,
+  videos = [],
 }) => {
   const { t, isHindi } = useLanguage();
   const [selectedFreeGuide, setSelectedFreeGuide] = useState<VideoGuide | null>(null);
 
-  // Show active premium tutorials first, ordered from lowest price to highest.
-  // This lets newly added admin videos (for example ₹49, then ₹99) appear
-  // on the homepage automatically without changing the homepage code again.
-  const freeVideos = videos.filter((v) => !v.isPremium && v.accessType !== 'premium' && v.isActive !== false);
-  const premiumVideos = videos
-    .filter((v) => (v.isPremium || v.accessType === 'premium') && v.isActive !== false)
-    .sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER));
-
-  // Keep the homepage section compact (maximum four cards); fill any remaining
-  // slots with the existing free guides after all active premium videos.
-  const homepageVideos: VideoGuide[] = [
-    ...premiumVideos,
-    ...freeVideos.filter((video) => !premiumVideos.some((premium) => premium.id === video.id)),
-  ].slice(0, 4);
+  // Homepage placement is explicitly selected in Admin and never depends on price.
+  const homepageVideos: VideoGuide[] = videos
+    .filter((video) => video.isActive !== false && Number.isInteger(video.homepageOrder) && (video.homepageOrder ?? 0) >= 1 && (video.homepageOrder ?? 0) <= 4)
+    .sort((a, b) => (a.homepageOrder ?? 99) - (b.homepageOrder ?? 99));
 
   return (
     <section id="video-learning-center" className="py-10 bg-slate-50 border-b border-slate-200">
@@ -48,21 +37,9 @@ export const VideoLearningCenter: React.FC<Props> = ({
               {t('vlc.title', 'Video Learning Center')}
             </h2>
           </div>
-          <div className="flex items-center gap-3">
-            <p className="text-xs text-slate-500 hidden md:block max-w-sm">
-              {t(
-                'vlc.desc',
-                'Step-by-step video masterclasses and quick guides for daily cyber cafe operations and government portals.'
-              )}
-            </p>
-            <button
-              onClick={onOpenCatalog}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 bg-white border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg shadow-2xs hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer shrink-0"
-            >
-              <span>{t('vlc.viewAll', 'View All Videos')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <p className="text-xs text-slate-500 hidden md:block max-w-sm">
+            {t('vlc.desc', 'Step-by-step video masterclasses and quick guides for daily cyber cafe operations and government portals.')}
+          </p>
         </div>
 
         {/* Responsive Grid: 4 cards on desktop (lg:grid-cols-4), 3 on tablet (md:grid-cols-3), 2 on mobile (grid-cols-2) */}
@@ -205,16 +182,7 @@ export const VideoLearningCenter: React.FC<Props> = ({
           })}
         </div>
 
-        {/* Mobile View All CTA */}
-        <div className="mt-4 text-center sm:hidden">
-          <button
-            onClick={onOpenCatalog}
-            className="w-full py-2 bg-white border border-slate-300 text-xs font-bold text-blue-700 rounded-lg shadow-2xs flex items-center justify-center gap-1 hover:bg-slate-50 transition-colors"
-          >
-            <span>{isHindi ? 'सभी वीडियो देखें' : 'View All Videos'}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+
       </div>
 
       {/* Free Guide Bilingual Information Modal */}
