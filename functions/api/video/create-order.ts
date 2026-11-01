@@ -50,50 +50,48 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Check if customer already has unrevoked access in D1
-    if (env.DB) {
-      try {
-        const existingAccess = await env.DB.prepare(
-          'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0 AND expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP'
-        )
-          .bind(sanitizedPhone, videoId)
-          .first();
-
-        if (existingAccess) {
-          return new Response(
-            JSON.stringify({
-              success: true,
-              alreadyPurchased: true,
-              message: 'You already have active access to this premium video.',
-              videoId,
-            }),
-            { status: 200, headers: corsHeaders }
-          );
-        }
-      } catch (dbErr) {
-        console.warn('D1 lookup warning:', dbErr);
-      }
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, error: 'Purchase records are temporarily unavailable. Please try again later.' }), { status: 503, headers: corsHeaders });
     }
 
-    // Resolve video price (lookup in D1 or standard catalog fallback)
-    let videoPrice = 99; // Default price in INR
-    let videoTitle = 'Tanshu Online Premium Training Video';
+    // Read the active catalog entry from D1; never create an order from fallback pricing.
+    let videoRecord: any;
+    try {
+      videoRecord = await env.DB.prepare(
+        'SELECT title, price, is_premium, access_type FROM videos WHERE id = ? AND is_active = 1'
+      ).bind(videoId).first();
+    } catch (dbErr) {
+      console.warn('D1 video lookup failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, error: 'Video purchase details are temporarily unavailable. Please try again shortly.' }), { status: 503, headers: corsHeaders });
+    }
 
-    if (env.DB) {
-      try {
-        const videoRecord = await env.DB.prepare(
-          'SELECT title, price, is_premium FROM videos WHERE id = ? AND is_active = 1'
-        )
-          .bind(videoId)
-          .first();
+    if (!videoRecord) {
+      return new Response(JSON.stringify({ success: false, error: 'This video is not available for purchase.' }), { status: 404, headers: corsHeaders });
+    }
+    const isPremium = videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium);
+    const videoPrice = Number(videoRecord.price);
+    if (!isPremium || !Number.isFinite(videoPrice) || videoPrice <= 0) {
+      return new Response(JSON.stringify({ success: false, error: 'This video is not configured as a paid premium video.' }), { status: 400, headers: corsHeaders });
+    }
+    const videoTitle = videoRecord.title || 'Tanshu Online Premium Training Video';
 
-        if (videoRecord) {
-          videoPrice = Number(videoRecord.price) || 99;
-          videoTitle = videoRecord.title || videoTitle;
-        }
-      } catch (dbErr) {
-        console.warn('D1 video lookup warning:', dbErr);
+    // Do not charge a customer who already has current access.
+    try {
+      const existingAccess = await env.DB.prepare(
+        'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0 AND expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP'
+      ).bind(sanitizedPhone, videoId).first();
+
+      if (existingAccess) {
+        return new Response(JSON.stringify({
+          success: true,
+          alreadyPurchased: true,
+          message: 'You already have active access to this premium video.',
+          videoId,
+        }), { status: 200, headers: corsHeaders });
       }
+    } catch (dbErr) {
+      console.warn('D1 entitlement lookup failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, error: 'Your purchase status could not be checked. Please try again shortly.' }), { status: 503, headers: corsHeaders });
     }
 
     // Generate unique order ID
@@ -161,26 +159,20 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       paymentSessionId = `mock_session_${orderId}`;
     }
 
-    // Persist pending order in D1 if available
-    if (env.DB) {
-      try {
-        await env.DB.prepare(
-          `INSERT INTO payment_orders (order_id, cf_order_id, video_id, order_amount, order_currency, customer_phone, customer_email, payment_session_id, order_status)
-           VALUES (?, ?, ?, ?, 'INR', ?, ?, ?, 'PENDING')`
-        )
-          .bind(
-            orderId,
-            cfOrderId,
-            videoId,
-            videoPrice,
-            sanitizedPhone,
-            customerEmail || null,
-            paymentSessionId
-          )
-          .run();
-      } catch (dbErr) {
-        console.warn('D1 insert order warning:', dbErr);
-      }
+    // Persist the order before returning payment details to the browser.
+    try {
+      await env.DB.prepare(
+        `INSERT INTO payment_orders (order_id, cf_order_id, video_id, order_amount, order_currency, customer_phone, customer_email, payment_session_id, order_status)
+         VALUES (?, ?, ?, ?, 'INR', ?, ?, ?, 'PENDING')`
+      )
+        .bind(orderId, cfOrderId, videoId, videoPrice, sanitizedPhone, customerEmail || null, paymentSessionId)
+        .run();
+    } catch (dbErr) {
+      console.error('D1 order persistence failed:', dbErr);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Payment order could not be saved. No payment session was issued; please try again or contact support.',
+      }), { status: 503, headers: corsHeaders });
     }
 
     return new Response(
