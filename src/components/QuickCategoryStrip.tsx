@@ -194,8 +194,8 @@ export const QuickCategoryStrip: React.FC<Props> = ({ onSelectCategory }) => {
     },
     {
       id: 'videos',
-      title: 'YouTube Videos',
-      hindi: 'सीखें और आगे बढ़ें',
+      title: 'Video Learning Center',
+      hindi: 'वीडियो लर्निंग सेंटर',
       iconBg: 'bg-[#DC2626]', // Red
       action: 'section-videos',
       icon: (
@@ -226,7 +226,7 @@ export const QuickCategoryStrip: React.FC<Props> = ({ onSelectCategory }) => {
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.action)}
-              className="group p-3 sm:p-2.5 xl:p-3.5 flex flex-col items-center text-center justify-start hover:bg-slate-50/80 transition-colors cursor-pointer"
+              className="group p-3 sm:p-2.5 xl:p-3.5 flex flex-col items-center text-center justify-start hover:bg-slate-50/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer rounded-lg select-none"
             >
               {/* Rounded-square icon badge with consistent dimensions */}
               <div

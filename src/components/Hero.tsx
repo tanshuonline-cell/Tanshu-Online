@@ -1,20 +1,30 @@
-import React, { useState } from 'react';
-import { Search, ArrowRight, Sparkles } from 'lucide-react';
+import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { AnimatedHeroBackground } from './AnimatedHeroBackground';
+import { UniversalSmartSearch } from './UniversalSmartSearch';
+import { ToolItem, GovernmentService, GovernmentScheme, VideoGuide } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   onSearch: (query: string) => void;
   onExploreTools: () => void;
   onExploreSchemes: () => void;
+  onSelectTool: (tool: ToolItem) => void;
+  onSelectService: (service: GovernmentService) => void;
+  onSelectScheme: (scheme: GovernmentScheme) => void;
+  onSelectVideo: (video: VideoGuide) => void;
 }
 
-export const Hero: React.FC<Props> = ({ onSearch, onExploreTools, onExploreSchemes }) => {
-  const [searchInput, setSearchInput] = useState('');
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch(searchInput);
-  };
+export const Hero: React.FC<Props> = ({
+  onSearch,
+  onExploreTools,
+  onExploreSchemes,
+  onSelectTool,
+  onSelectService,
+  onSelectScheme,
+  onSelectVideo,
+}) => {
+  const { t, isHindi } = useLanguage();
 
   return (
     <section id="home" className="relative w-full overflow-hidden bg-slate-100 border-b border-slate-200">
@@ -37,13 +47,13 @@ export const Hero: React.FC<Props> = ({ onSearch, onExploreTools, onExploreSchem
 
           {/* Small Navigation-style Tagline */}
           <div className="inline-flex items-center gap-2 sm:gap-3 px-4 py-1.5 rounded-full bg-white/90 border border-slate-200/90 shadow-xs text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-widest my-3 backdrop-blur-xs">
-            <span>TOOLS</span>
+            <span>{t('hero.tools', 'TOOLS')}</span>
             <span className="text-slate-300">|</span>
-            <span>SERVICES</span>
+            <span>{t('hero.services', 'SERVICES')}</span>
             <span className="text-slate-300">|</span>
-            <span>SCHEMES</span>
+            <span>{t('hero.schemes', 'SCHEMES')}</span>
             <span className="text-slate-300">|</span>
-            <span>VIDEOS</span>
+            <span>{t('hero.videos', 'VIDEOS')}</span>
           </div>
 
           {/* Main Hindi Heading: "आपकी हर Digital ज़रूरत, एक ही जगह" */}
@@ -63,32 +73,20 @@ export const Hero: React.FC<Props> = ({ onSearch, onExploreTools, onExploreSchem
 
           {/* Supporting Bilingual Text */}
           <p className="text-sm sm:text-base text-slate-700 max-w-2xl mx-auto leading-relaxed font-medium mt-2 mb-6">
-            PDF, फोटो, सिग्नेचर, ऑनलाइन टूल्स और सरकारी योजनाओं की जानकारी — आसान और व्यवस्थित तरीके से।
+            {t(
+              'hero.subtitle',
+              'PDF, फोटो, सिग्नेचर, ऑनलाइन टूल्स और सरकारी योजनाओं की जानकारी — आसान और व्यवस्थित तरीके से।'
+            )}
           </p>
 
-          {/* Wide Rounded Search Bar */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className="w-full max-w-2xl relative mb-6 shadow-md rounded-full bg-white border-2 border-slate-200 hover:border-blue-500 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 transition-all p-1.5 sm:p-2 flex items-center"
-          >
-            <div className="pl-3 sm:pl-4 pr-2 text-slate-400 flex items-center">
-              <Search className="w-5 h-5 text-slate-500" />
-            </div>
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search tools, services & schemes..."
-              className="flex-1 w-full bg-transparent text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none px-2 font-medium"
-            />
-            <button
-              type="submit"
-              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#0B1A3D] hover:bg-[#13285C] text-white rounded-full text-xs sm:text-sm font-bold tracking-wide transition-all cursor-pointer shadow-sm flex items-center gap-1.5 shrink-0"
-            >
-              <span>Search</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
+          {/* Premium Universal Smart Search Bar with live autocomplete popover */}
+          <UniversalSmartSearch
+            onSelectTool={onSelectTool}
+            onSelectService={onSelectService}
+            onSelectScheme={onSelectScheme}
+            onSelectVideo={onSelectVideo}
+            onDefaultSearch={onSearch}
+          />
 
           {/* Two Prominent Rounded Buttons: Explore Tools & View Schemes */}
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -96,7 +94,7 @@ export const Hero: React.FC<Props> = ({ onSearch, onExploreTools, onExploreSchem
               onClick={onExploreTools}
               className="px-7 py-3 bg-[#0B1A3D] hover:bg-[#162a5b] text-white rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center gap-2 hover:-translate-y-0.5"
             >
-              <span>Explore Tools</span>
+              <span>{t('btn.exploreTools', 'Explore Tools')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -104,7 +102,7 @@ export const Hero: React.FC<Props> = ({ onSearch, onExploreTools, onExploreSchem
               onClick={onExploreSchemes}
               className="px-7 py-3 bg-[#138808] hover:bg-[#0f6f06] text-white rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center gap-2 hover:-translate-y-0.5"
             >
-              <span>View Schemes</span>
+              <span>{t('hero.viewSchemes', 'View Schemes')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

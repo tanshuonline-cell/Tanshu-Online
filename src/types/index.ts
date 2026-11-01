@@ -26,15 +26,24 @@ export interface ToolItem {
 export interface GovernmentService {
   id: string;
   title: string;
+  hindiTitle?: string;
   category: string;
+  hindiCategory?: string;
   summary: string;
+  hindiSummary?: string;
   officialPortal: string;
   officialPortalName: string;
+  hindiOfficialPortalName?: string;
   processingTime: string;
+  hindiProcessingTime?: string;
   estimatedFee: string;
+  hindiEstimatedFee?: string;
   eligibility: string[];
+  hindiEligibility?: string[];
   requiredDocuments: string[];
+  hindiRequiredDocuments?: string[];
   steps: string[];
+  hindiSteps?: string[];
   trackUrl?: string;
   jurisdiction?: 'central' | 'bihar';
   serviceType?: 'identity' | 'revenue' | 'land' | 'welfare' | 'transport' | 'utility';
@@ -45,16 +54,26 @@ export interface GovernmentScheme {
   name: string;
   hindiName?: string;
   ministry: string;
+  hindiMinistry?: string;
   targetBeneficiaries: string;
+  hindiTargetBeneficiaries?: string;
   financialBenefit: string;
+  hindiFinancialBenefit?: string;
   summary: string;
+  hindiSummary?: string;
   eligibility: string[];
+  hindiEligibility?: string[];
   documentsRequired: string[];
+  hindiDocumentsRequired?: string[];
   howToApply: string[];
+  hindiHowToApply?: string[];
   officialPortal: string;
+  officialPortalName?: string;
   jurisdiction?: 'central' | 'bihar';
   category?: 'farmer' | 'women' | 'youth' | 'health' | 'housing' | 'employment';
 }
+
+export type VideoAccessType = 'free' | 'premium';
 
 export interface VideoGuide {
   id: string;
@@ -65,7 +84,104 @@ export interface VideoGuide {
   instructor: string;
   description: string;
   topics: string[];
-  videoId: string; // for embedding
+  videoId: string; // for embedding (YouTube ID for free videos or local guide reference)
+  // Premium Video System extensions (backward-compatible)
+  accessType?: VideoAccessType;
+  isPremium?: boolean;
+  price?: number; // Price in INR (e.g. 99, 149)
+  currency?: string; // e.g. 'INR'
+  streamVideoId?: string; // Cloudflare Stream Video UID for secure playback
+  youtubeUrl?: string;
+  level?: 'Beginner' | 'Intermediate' | 'Advanced';
+  isSample?: boolean; // Indicates sample catalog entry awaiting media upload in Cloudflare Stream
+  isActive?: boolean; // Admin active/inactive status flag
+  // Bilingual Guide Details
+  hindiTitle?: string;
+  hindiDescription?: string;
+  aboutEn?: string; // Short, professional About summary (what is learned, key guidance, who it's for, expectations)
+  aboutHi?: string; // Hindi translation of the About section
+  requiredDocuments?: string[];
+  hindiRequiredDocuments?: string[];
+  stepsSummary?: string[];
+  hindiStepsSummary?: string[];
+  targetAudience?: string;
+  hindiTargetAudience?: string;
+}
+
+export interface AdminUser {
+  username: string;
+  role: 'superadmin' | 'admin';
+  lastLogin?: string;
+}
+
+export interface CustomerPurchaseRecord {
+  id: string;
+  customerPhone: string;
+  customerEmail?: string;
+  videoId: string;
+  videoTitle?: string;
+  orderId: string;
+  amountPaid: number;
+  paymentStatus: PaymentStatus;
+  grantedAt: string;
+  isRevoked: boolean;
+}
+
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'USER_DROPPED' | 'CANCELLED';
+
+export interface VideoPaymentOrder {
+  orderId: string;
+  videoId: string;
+  videoTitle: string;
+  orderAmount: number;
+  orderCurrency: string;
+  customerPhone: string;
+  customerEmail?: string;
+  paymentSessionId?: string;
+  orderStatus: PaymentStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CashfreeOrderResponse {
+  cfOrderId: string;
+  orderId: string;
+  paymentSessionId: string;
+  orderStatus: PaymentStatus;
+  orderAmount: number;
+  orderCurrency: string;
+}
+
+export interface PaymentVerificationRequest {
+  orderId: string;
+  customerPhone: string;
+  videoId: string;
+}
+
+export interface PaymentVerificationResult {
+  success: boolean;
+  orderId: string;
+  videoId: string;
+  orderStatus: PaymentStatus;
+  accessToken?: string;
+  message: string;
+}
+
+export interface VideoPlaybackAuthorization {
+  videoId: string;
+  authorized: boolean;
+  playbackToken?: string; // Cloudflare Stream signed playback token
+  streamUrl?: string; // Cloudflare Stream embed URL with signed token
+  expiresAt?: string;
+  message?: string;
+}
+
+export interface CustomerVideoAccess {
+  customerPhone: string;
+  customerEmail?: string;
+  purchasedVideoIds: string[];
+  orderIds: string[];
+  lastPurchasedAt: string;
 }
 
 export interface PinCodeEntry {

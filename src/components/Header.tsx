@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, ArrowRight, User, ShieldCheck } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+
+export const TANSHU_PROFILE_PHOTO = '/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg';
 
 interface Props {
   onNavigate: (sectionId: string) => void;
   activeSection: string;
+  onOpenCustomerAuth?: () => void;
 }
 
-export const Header: React.FC<Props> = ({ onNavigate, activeSection }) => {
+export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCustomerAuth }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { language, setLanguage, t } = useLanguage();
 
   const navLinks = [
-    { id: 'home', label: 'Home' },
-    { id: 'all-tools', label: 'All Tools' },
-    { id: 'services', label: 'Government Services' },
-    { id: 'schemes', label: 'Government Schemes' },
-    { id: 'videos', label: 'Latest Videos' },
-    { id: 'about', label: 'About' },
+    { id: 'home', label: t('nav.home', 'Home') },
+    { id: 'all-tools', label: t('nav.allTools', 'All Tools') },
+    { id: 'services', label: t('nav.services', 'Government Services') },
+    { id: 'schemes', label: t('nav.schemes', 'Government Schemes') },
+    { id: 'videos', label: t('nav.videos', 'Latest Videos') },
+    { id: 'about', label: t('nav.about', 'About') },
   ];
 
   const handleLinkClick = (id: string) => {
@@ -25,42 +30,59 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection }) => {
 
   return (
     <div className="sticky top-0 z-40 w-full shadow-xs">
-      {/* 2. Top Announcement Bar: Slim dark navy strip */}
-      <div className="bg-[#0A1324] text-slate-300 px-4 py-1.5 text-[11px] sm:text-xs text-center border-b border-slate-800/80 flex items-center justify-center gap-2 font-medium tracking-wide">
-        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-xs" />
-        <span className="truncate">
-          Independent Citizen Utility &amp; Cyber Cafe Toolkit · Not affiliated with UIDAI, ECI, or any government department.
-        </span>
-      </div>
-
-      {/* 3. Navigation Header: Clean White Bar */}
-      <header className="bg-white/98 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
-          {/* Left: TANSHU ONLINE Logo */}
+      {/* 1. UPPER DARK HEADER AREA: Main Branding + Profile Photo + Citizen Disclaimer */}
+      <div className="bg-[#0A1324] text-white border-b border-slate-800/90 px-3 sm:px-6 lg:px-8 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          {/* Left: Original Profile Photo + Branding: "TANSHU ONLINE" */}
           <div
             onClick={() => handleLinkClick('home')}
-            className="flex items-center gap-2.5 cursor-pointer select-none shrink-0"
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none shrink-0 group"
           >
-            {/* Blue square with letter T */}
-            <div className="w-9 h-9 rounded-lg bg-blue-700 flex items-center justify-center text-white font-extrabold text-base tracking-wider shadow-sm relative overflow-hidden">
-              <span>T</span>
-              {/* Subtle tricolor line at bottom of logo mark */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 flex">
-                <span className="flex-1 bg-amber-500" />
-                <span className="flex-1 bg-white" />
-                <span className="flex-1 bg-emerald-600" />
-              </div>
+            {/* Small circular profile photo using exact original image */}
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-blue-500/70 shadow-xs shrink-0 bg-slate-800">
+              <img
+                src={TANSHU_PROFILE_PHOTO}
+                alt="Tanshu Online Founder & Instructor"
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                style={{ borderRadius: '50%' }}
+                loading="eager"
+              />
             </div>
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1">
-                <span className="text-lg font-black tracking-tight text-slate-950">TANSHU</span>
-                <span className="text-lg font-black tracking-tight text-blue-600">ONLINE</span>
-              </div>
+            {/* Branding text: TANSHU in white, ONLINE in blue */}
+            <div className="flex items-center gap-1 font-sans tracking-tight">
+              <span className="text-sm sm:text-base font-black text-white tracking-wide">
+                TANSHU
+              </span>
+              <span className="text-sm sm:text-base font-black text-blue-400 tracking-wide">
+                ONLINE
+              </span>
             </div>
           </div>
 
-          {/* Center Navigation Links (Desktop) */}
+          {/* Right: Preserved Independent Citizen Disclaimer & Toolkit Tagline */}
+          <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-300 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+            <span className="truncate max-w-xl">
+              {t(
+                'announcement',
+                'Independent Citizen Utility & Cyber Cafe Toolkit · Not affiliated with UIDAI, ECI, or any government department.'
+              )}
+            </span>
+          </div>
+
+          {/* Mobile Right: Compact Citizen Badge */}
+          <div className="flex md:hidden items-center gap-1 text-[10px] text-emerald-400 font-semibold bg-emerald-950/70 border border-emerald-800/80 px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+            <span>Citizen Toolkit</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. MAIN NAVIGATION BAR: Clean White Bar (No duplicated branding) */}
+      <header className="bg-white/98 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+          {/* Navigation Links (Desktop) */}
           <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-700">
             {navLinks.map((link) => {
               const isActive = activeSection === link.id;
@@ -78,13 +100,66 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection }) => {
             })}
           </nav>
 
-          {/* Right: Explore Tools Action + Mobile Toggle */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Left on Mobile / Tablet: Quick section label */}
+          <div className="lg:hidden flex items-center gap-1.5 text-xs font-bold text-slate-800">
+            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+            <span className="truncate">Digital Public Services Hub</span>
+          </div>
+
+          {/* Right: Language Switcher ("हिंदी | English") + Customer Access + Explore Tools Action */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Prominent Language Switcher showing both "हिंदी | English" */}
+            <div
+              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
+              title="भाषा बदलें / Switch Language"
+              aria-label="Language selection"
+            >
+              <button
+                type="button"
+                onClick={() => setLanguage('hi')}
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
+                  language === 'hi'
+                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                हिंदी
+              </button>
+              <span className="text-slate-300 px-0.5">|</span>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
+                  language === 'en'
+                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                English
+              </button>
+            </div>
+
+            {/* Customer Access / Login Trigger */}
+            {onOpenCustomerAuth && (
+              <button
+                type="button"
+                onClick={onOpenCustomerAuth}
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                title={language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Access'}
+              >
+                <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="hidden sm:inline">
+                  {language === 'hi' ? 'ग्राहक लॉगिन' : 'Customer Access'}
+                </span>
+              </button>
+            )}
+
+            {/* Explore Tools Action */}
             <button
               onClick={() => handleLinkClick('all-tools')}
-              className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-sm whitespace-nowrap"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-xs whitespace-nowrap"
             >
-              <span>Explore Tools</span>
+              <span>{t('btn.exploreTools', 'Explore Tools')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
 
@@ -107,25 +182,43 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection }) => {
                 key={link.id}
                 onClick={() => handleLinkClick(link.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer block ${
-                  activeSection === link.id ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50'
+                  activeSection === link.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 {link.label}
               </button>
             ))}
-            <div className="pt-2 border-t border-slate-100">
+
+            {/* Mobile Customer Access Trigger */}
+            {onOpenCustomerAuth && (
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenCustomerAuth();
+                  }}
+                  className="w-full py-2 px-3 border border-slate-200 bg-slate-50 hover:bg-blue-50 rounded-lg text-xs font-bold text-slate-800 hover:text-blue-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <User className="w-4 h-4 text-blue-600" />
+                  <span>{language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Video Access / Sign In'}</span>
+                </button>
+              </div>
+            )}
+
+            <div className="pt-1">
               <button
                 onClick={() => handleLinkClick('all-tools')}
-                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold text-center block shadow-sm"
+                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold text-center block shadow-sm cursor-pointer"
               >
-                Explore All 18 Tools
+                {t('btn.exploreAllTools', 'Explore All 89 Tools')}
               </button>
             </div>
           </div>
         )}
 
-        {/* Thin saffron-white-green decorative strip directly below the header */}
-        <div className="h-[3px] w-full flex">
+        {/* Thin saffron-white-green decorative strip directly below navigation */}
+        <div className="h-[2.5px] w-full flex">
           <div className="flex-1 bg-[#FF9933]" />
           <div className="flex-1 bg-white border-t border-b border-slate-200/50" />
           <div className="flex-1 bg-[#138808]" />

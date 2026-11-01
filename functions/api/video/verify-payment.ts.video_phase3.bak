@@ -1,0 +1,201 @@
+// Cloudflare Pages Function: /api/video/verify-payment
+// Purpose: Server-side verification of payment with Cashfree API and customer entitlement granting
+
+interface Env {
+  DB?: any;
+  CASHFREE_APP_ID?: string;
+  CASHFREE_SECRET_KEY?: string;
+  CASHFREE_ENVIRONMENT?: string; // 'SANDBOX' or 'PRODUCTION'
+  [key: string]: any;
+}
+
+export async function onRequestPost(context: { request: Request; env: Env }): Promise<Response> {
+  const { request, env } = context;
+
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Content-Type': 'application/json',
+  };
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { orderId, customerPhone, customerEmail, videoId } = body as {
+      orderId?: string;
+      customerPhone?: string;
+      customerEmail?: string;
+      videoId?: string;
+    };
+
+    if (!orderId || !customerPhone || !videoId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          isPaid: false,
+          error: 'Missing required parameters: orderId, customerPhone, and videoId are required.',
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
+
+    const appId = env.CASHFREE_APP_ID;
+    const secretKey = env.CASHFREE_SECRET_KEY;
+    const isProd = env.CASHFREE_ENVIRONMENT === 'PRODUCTION';
+    const cashfreeBaseUrl = isProd
+      ? `https://api.cashfree.com/pg/orders/${orderId}`
+      : `https://sandbox.cashfree.com/pg/orders/${orderId}`;
+
+    let isPaid = false;
+    let cfPaymentId: string | undefined;
+    let paymentMethod: string | undefined;
+    let rawVerification: any = null;
+
+    if (appId && secretKey) {
+      // Query Cashfree Server-to-Server API
+      const cfResponse = await fetch(cashfreeBaseUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-version': '2023-08-01',
+          'x-client-id': appId,
+          'x-client-secret': secretKey,
+        },
+      });
+
+      const cfData = await cfResponse.json();
+      rawVerification = cfData;
+
+      if (!cfResponse.ok) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            isPaid: false,
+            error: cfData.message || 'Could not query Cashfree order status',
+          }),
+          { status: cfResponse.status, headers: corsHeaders }
+        );
+      }
+
+      if (cfData.order_status === 'PAID') {
+        isPaid = true;
+        cfPaymentId = cfData.cf_payment_id ? String(cfData.cf_payment_id) : undefined;
+      } else {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            isPaid: false,
+            orderStatus: cfData.order_status,
+            message: `Order status is currently ${cfData.order_status}. Video remains locked until payment is confirmed.`,
+          }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+    } else {
+      // If gateway credentials are not yet set in production, allow verified testing if test order is flagged
+      if (orderId.startsWith('TEST_') || orderId.includes('MOCK')) {
+        isPaid = true;
+        rawVerification = { note: 'Sandbox test verification mode without active API key' };
+      } else {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            isPaid: false,
+            error: 'Cashfree API keys are not configured on the server. Please configure CASHFREE_APP_ID and CASHFREE_SECRET_KEY.',
+          }),
+          { status: 503, headers: corsHeaders }
+        );
+      }
+    }
+
+    if (!isPaid) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          isPaid: false,
+          error: 'Payment verification failed: Order is not marked as PAID.',
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
+    // Persist and grant access in D1 database
+    const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    if (env.DB) {
+      try {
+        // Update payment order status to PAID
+        await env.DB.prepare(
+          `UPDATE payment_orders
+           SET order_status = 'PAID',
+               cf_payment_id = ?,
+               payment_method = ?,
+               raw_verification_json = ?,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE order_id = ?`
+        )
+          .bind(
+            cfPaymentId || null,
+            paymentMethod || 'UPI/Card/Netbanking',
+            JSON.stringify(rawVerification),
+            orderId
+          )
+          .run();
+
+        // Idempotent access grant: Insert or ignore duplicate
+        await env.DB.prepare(
+          `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
+           VALUES (?, ?, ?, ?, ?, 0)
+           ON CONFLICT(customer_phone, video_id) DO UPDATE SET
+             order_id = excluded.order_id,
+             is_revoked = 0,
+             updated_at = CURRENT_TIMESTAMP`
+        )
+          .bind(
+            accessId,
+            sanitizedPhone,
+            customerEmail || null,
+            videoId,
+            orderId
+          )
+          .run();
+      } catch (dbErr) {
+        console.warn('D1 verification update warning:', dbErr);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        isPaid: true,
+        orderId,
+        videoId,
+        customerPhone: sanitizedPhone,
+        message: 'Payment confirmed. Access unlocked successfully.',
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        isPaid: false,
+        error: err.message || 'Internal server error while verifying payment',
+      }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+
+export async function onRequestOptions(): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}

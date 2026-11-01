@@ -1,0 +1,223 @@
+// Cloudflare Pages Function: /api/admin/videos
+// Purpose: Secure admin CRUD management for video catalog (free & premium)
+
+interface Env {
+  DB?: any;
+  ADMIN_SECRET_TOKEN?: string;
+  [key: string]: any;
+}
+
+function verifyAdmin(request: Request, env: Env): boolean {
+  const authHeader = request.headers.get('Authorization') || '';
+  const xAdminToken = request.headers.get('x-admin-token') || '';
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  const configuredToken = env.ADMIN_SECRET_TOKEN || 'admin_tanshu_secure_2025';
+  return bearerToken === configuredToken || xAdminToken === configuredToken;
+}
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-token',
+  'Content-Type': 'application/json',
+};
+
+// GET: Retrieve all videos with access metrics for admin dashboard
+export async function onRequestGet(context: { request: Request; env: Env }): Promise<Response> {
+  const { request, env } = context;
+
+  if (!verifyAdmin(request, env)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized admin access.' }), {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  if (!env.DB) {
+    return new Response(
+      JSON.stringify({
+        success: true,
+        videos: [],
+        message: 'D1 database binding not active; returning empty admin list.',
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+  }
+
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT v.*, 
+       (SELECT COUNT(*) FROM customer_video_access a WHERE a.video_id = v.id AND a.is_revoked = 0) as active_subscribers_count
+       FROM videos v ORDER BY created_at DESC`
+    ).all();
+
+    return new Response(JSON.stringify({ success: true, videos: results }), {
+      status: 200,
+      headers: corsHeaders,
+    });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ success: false, error: err.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
+}
+
+// POST: Create or Update a video
+export async function onRequestPost(context: { request: Request; env: Env }): Promise<Response> {
+  const { request, env } = context;
+
+  if (!verifyAdmin(request, env)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized admin access.' }), {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const {
+      id,
+      title,
+      duration,
+      category,
+      instructor,
+      description,
+      topics,
+      accessType,
+      isPremium,
+      price,
+      currency,
+      streamVideoId,
+      youtubeUrl,
+      level,
+      thumbnailUrl,
+      isActive,
+    } = body as any;
+
+    if (!title || !category || !instructor) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Title, category and instructor are required.' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const videoId = id || `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const finalAccessType = accessType || (isPremium ? 'premium' : 'free');
+    const finalIsPremium = finalAccessType === 'premium' ? 1 : 0;
+    const finalPrice = finalIsPremium ? (Number(price) || 99) : 0;
+    const topicsJson = JSON.stringify(Array.isArray(topics) ? topics : []);
+
+    if (env.DB) {
+      await env.DB.prepare(
+        `INSERT INTO videos (
+           id, title, duration, category, instructor, description, topics_json,
+           access_type, is_premium, price, currency, stream_video_id, youtube_url,
+           level, thumbnail_url, is_active, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(id) DO UPDATE SET
+           title = excluded.title,
+           duration = excluded.duration,
+           category = excluded.category,
+           instructor = excluded.instructor,
+           description = excluded.description,
+           topics_json = excluded.topics_json,
+           access_type = excluded.access_type,
+           is_premium = excluded.is_premium,
+           price = excluded.price,
+           currency = excluded.currency,
+           stream_video_id = excluded.stream_video_id,
+           youtube_url = excluded.youtube_url,
+           level = excluded.level,
+           thumbnail_url = excluded.thumbnail_url,
+           is_active = excluded.is_active,
+           updated_at = CURRENT_TIMESTAMP`
+      )
+        .bind(
+          videoId,
+          title,
+          duration || '10 min',
+          category,
+          instructor,
+          description || '',
+          topicsJson,
+          finalAccessType,
+          finalIsPremium,
+          finalPrice,
+          currency || 'INR',
+          streamVideoId || null,
+          youtubeUrl || null,
+          level || 'Beginner',
+          thumbnailUrl || null,
+          isActive === false ? 0 : 1
+        )
+        .run();
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        videoId,
+        message: 'Video saved successfully in catalog.',
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (err: any) {
+    return new Response(JSON.stringify({ success: false, error: err.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
+}
+
+// DELETE: Deactivate video
+export async function onRequestDelete(context: { request: Request; env: Env }): Promise<Response> {
+  const { request, env } = context;
+
+  if (!verifyAdmin(request, env)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized admin access.' }), {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  const url = new URL(request.url);
+  const videoId = url.searchParams.get('id');
+
+  if (!videoId) {
+    return new Response(JSON.stringify({ error: 'Video ID parameter is required.' }), {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  if (env.DB) {
+    try {
+      await env.DB.prepare('UPDATE videos SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(videoId)
+        .run();
+    } catch (err: any) {
+      return new Response(JSON.stringify({ success: false, error: err.message }), {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: `Video ${videoId} deactivated successfully.` }),
+    { status: 200, headers: corsHeaders }
+  );
+}
+
+export async function onRequestOptions(): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-token',
+    },
+  });
+}

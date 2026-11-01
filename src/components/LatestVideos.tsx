@@ -1,134 +1,388 @@
-import React, { useState } from 'react';
-import { Play, Clock, Video, BookOpen, X, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, Clock, Video, BookOpen, X, Check, Lock, Shield, Sparkles, CheckCircle, Smartphone } from 'lucide-react';
 import { LATEST_VIDEOS } from '../data/videosData';
 import { VideoGuide } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { CashfreeCheckoutModal } from './video/CashfreeCheckoutModal';
+import { PremiumVideoPlayer } from './video/PremiumVideoPlayer';
 
-export const LatestVideos: React.FC = () => {
-  const [activeVideo, setActiveVideo] = useState<VideoGuide | null>(null);
+interface Props {
+  selectedVideoModal?: VideoGuide | null;
+  onCloseModal?: () => void;
+}
+
+interface PurchasedRecord {
+  phone: string;
+  sessionToken?: string;
+  unlockedAt: string;
+}
+
+export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal }) => {
+  const { t } = useLanguage();
+  const [filterType, setFilterType] = useState<'all' | 'free' | 'premium'>('all');
+
+  // Video playback & modal states
+  const [activeFreeVideo, setActiveFreeVideo] = useState<VideoGuide | null>(null);
+  const [activePremiumVideo, setActivePremiumVideo] = useState<VideoGuide | null>(null);
+  const [checkoutVideo, setCheckoutVideo] = useState<VideoGuide | null>(null);
+
+  // Multi-video customer purchase registry (maps videoId -> PurchasedRecord)
+  const [purchasedVideos, setPurchasedVideos] = useState<Record<string, PurchasedRecord>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('tanshu_purchased_videos_v1');
+        return saved ? JSON.parse(saved) : {};
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
+
+  // Persist purchased videos registry in localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('tanshu_purchased_videos_v1', JSON.stringify(purchasedVideos));
+    } catch (e) {
+      console.warn('Could not save purchased videos to storage', e);
+    }
+  }, [purchasedVideos]);
+
+  // Handle external selection from search or category clicks
+  useEffect(() => {
+    if (selectedVideoModal) {
+      handleVideoClick(selectedVideoModal);
+      const element = document.getElementById(`video-${selectedVideoModal.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [selectedVideoModal]);
+
+  // Handle video card click
+  const handleVideoClick = (video: VideoGuide) => {
+    if (video.isPremium || video.accessType === 'premium') {
+      // Check if this particular video has been purchased
+      const existingPurchase = purchasedVideos[video.id];
+      if (existingPurchase) {
+        setActivePremiumVideo(video);
+      } else {
+        // Unpurchased: Open Cashfree checkout / unlock modal
+        setCheckoutVideo(video);
+      }
+    } else {
+      // Free YouTube / Portal Tutorial
+      setActiveFreeVideo(video);
+    }
+  };
+
+  // Called when payment verification succeeds for a specific video
+  const handlePaymentSuccess = (videoId: string, phone: string, sessionToken?: string) => {
+    const newRecord: PurchasedRecord = {
+      phone,
+      sessionToken,
+      unlockedAt: new Date().toISOString(),
+    };
+
+    setPurchasedVideos((prev) => ({
+      ...prev,
+      [videoId]: newRecord,
+    }));
+
+    setCheckoutVideo(null);
+
+    // Automatically open the verified player for this video
+    const video = LATEST_VIDEOS.find((v) => v.id === videoId);
+    if (video) {
+      setActivePremiumVideo(video);
+    }
+  };
+
+  const handleCloseFreeModal = () => {
+    setActiveFreeVideo(null);
+    if (onCloseModal) onCloseModal();
+  };
+
+  const handleClosePremiumModal = () => {
+    setActivePremiumVideo(null);
+    if (onCloseModal) onCloseModal();
+  };
+
+  // Filter video list based on active tab
+  const displayedVideos = LATEST_VIDEOS.filter((video) => {
+    if (filterType === 'free') return !video.isPremium && video.accessType !== 'premium';
+    if (filterType === 'premium') return video.isPremium || video.accessType === 'premium';
+    return true;
+  });
 
   return (
     <section id="videos" className="py-16 bg-slate-50 border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">
-              Practical Video Tutorials & Masterclasses
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1 flex items-center gap-1.5">
+              <span>{t('videos.kicker', 'Practical Video Tutorials & Masterclasses')}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              <span className="text-amber-600 font-bold">Cloudflare Stream Token-Signed Playback & Dynamic Watermarking</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Latest Videos & Guides
+              {t('videos.title', 'Latest Videos & Masterclasses')}
             </h2>
           </div>
-          <p className="text-xs text-slate-500 max-w-lg">
-            Master photo paper printing, PVC card printer tray calibrations, exam form dimension adjustments, and cyber cafe customer management.
+          <p className="text-xs text-slate-500 max-w-lg leading-relaxed">
+            {t(
+              'videos.desc',
+              'Master cyber cafe operations, PVC card tray calibrations, exam form dimension adjustments, and specialized high-earning CSC masterclasses.'
+            )}
           </p>
         </div>
 
-        {/* Video Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {LATEST_VIDEOS.map((video) => (
-            <div
-              key={video.id}
-              className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md hover:border-blue-400 transition-all flex flex-col justify-between group"
+        {/* Filter Navigation Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-2 border-b border-slate-200">
+          <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterType === 'all'
+                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <div>
-                {/* Video Mock Thumbnail / Player Banner */}
-                <div
-                  onClick={() => setActiveVideo(video)}
-                  className="relative aspect-video bg-slate-900 flex items-center justify-center cursor-pointer overflow-hidden"
-                >
-                  {/* Subtle gradient pattern */}
-                  <div className="absolute inset-0 bg-linear-to-br from-blue-950 via-slate-900 to-slate-950 opacity-90 group-hover:scale-105 transition-transform duration-300" />
-                  
-                  {/* Center Play Button */}
-                  <div className="relative z-10 w-12 h-12 rounded-full bg-blue-600/90 text-white flex items-center justify-center shadow-lg group-hover:bg-blue-500 group-hover:scale-110 transition-all">
-                    <Play className="w-5 h-5 fill-current ml-0.5" />
-                  </div>
+              All Videos ({LATEST_VIDEOS.length})
+            </button>
+            <button
+              onClick={() => setFilterType('free')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterType === 'free'
+                  ? 'bg-white text-emerald-800 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Free Tutorials ({LATEST_VIDEOS.filter((v) => !v.isPremium).length})
+            </button>
+            <button
+              onClick={() => setFilterType('premium')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                filterType === 'premium'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-2xs font-black'
+                  : 'text-amber-800 hover:text-amber-950'
+              }`}
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Premium Masterclasses ({LATEST_VIDEOS.filter((v) => v.isPremium).length})</span>
+            </button>
+          </div>
 
-                  {/* Duration Badge */}
-                  <div className="absolute bottom-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/75 rounded text-[11px] font-mono font-medium text-white flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-300" />
-                    <span>{video.duration}</span>
-                  </div>
-
-                  {/* Category */}
-                  <div className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 bg-blue-950/80 border border-blue-800/60 rounded text-[10px] font-medium text-blue-200">
-                    {video.category}
-                  </div>
-                </div>
-
-                <div className="p-5">
-                  <div className="text-[11px] font-medium text-slate-500 mb-1">
-                    By {video.instructor}
-                  </div>
-
-                  <h3
-                    onClick={() => setActiveVideo(video)}
-                    className="text-sm font-bold text-slate-900 tracking-tight mb-2 group-hover:text-blue-700 transition-colors cursor-pointer line-clamp-2"
-                  >
-                    {video.title}
-                  </h3>
-
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                    {video.description}
-                  </p>
-
-                  {/* Topics Pills (Zero-Pill discipline: unboxed text with bullets) */}
-                  <div className="pt-3 border-t border-slate-100">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">
-                      Key Takeaways:
-                    </span>
-                    <ul className="space-y-1 text-[11px] text-slate-600">
-                      {video.topics.slice(0, 2).map((top, idx) => (
-                        <li key={idx} className="flex items-center gap-1.5 truncate">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                          <span className="truncate">{top}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-5 pb-5 pt-0">
-                <button
-                  onClick={() => setActiveVideo(video)}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-slate-900 hover:bg-blue-600 text-white rounded-lg text-xs font-semibold tracking-wide transition-colors cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Watch Tutorial</span>
-                </button>
-              </div>
-            </div>
-          ))}
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+            <Shield className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Server-Verified Cashfree UPI & Cards • Dynamic Watermarking</span>
+          </div>
         </div>
 
-        {/* Video Player & Notes Modal */}
-        {activeVideo && (
+        {/* Video Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-5">
+          {displayedVideos.map((video) => {
+            const isPremium = Boolean(video.isPremium || video.accessType === 'premium');
+            const isPurchased = Boolean(purchasedVideos[video.id]);
+            const price = video.price || 99;
+
+            return (
+              <div
+                key={video.id}
+                id={`video-${video.id}`}
+                className={`bg-white border rounded-2xl overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 ease-out flex flex-col justify-between group select-none ${
+                  isPurchased
+                    ? 'border-emerald-300 ring-2 ring-emerald-500/10'
+                    : isPremium
+                    ? 'border-amber-200/90 hover:border-amber-400'
+                    : 'border-slate-200/90 hover:border-blue-400'
+                }`}
+              >
+                <div>
+                  {/* Video Thumbnail Area — Strictly Thumbnail Only, NO preview playback */}
+                  <div
+                    onClick={() => handleVideoClick(video)}
+                    className="relative aspect-video bg-slate-950 flex items-center justify-center cursor-pointer overflow-hidden group/thumb"
+                  >
+                    {/* Background Pattern / Gradient */}
+                    <div
+                      className={`absolute inset-0 opacity-90 group-hover/thumb:scale-105 transition-transform duration-500 ${
+                        isPurchased
+                          ? 'bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950'
+                          : isPremium
+                          ? 'bg-gradient-to-br from-amber-950/80 via-slate-900 to-slate-950'
+                          : 'bg-gradient-to-br from-blue-950/70 via-slate-900 to-slate-950'
+                      }`}
+                    />
+
+                    {/* Center Icon */}
+                    <div
+                      className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover/thumb:scale-110 ${
+                        isPurchased
+                          ? 'bg-emerald-600 text-white'
+                          : isPremium
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950'
+                          : 'bg-blue-600 text-white'
+                      }`}
+                    >
+                      {isPurchased ? (
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      ) : isPremium ? (
+                        <Lock className="w-5 h-5 text-slate-950" />
+                      ) : (
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      )}
+                    </div>
+
+                    {/* Duration Badge */}
+                    <div className="absolute bottom-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/85 backdrop-blur-xs rounded text-[10px] font-mono font-medium text-white flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 text-slate-300" />
+                      <span>{video.duration}</span>
+                    </div>
+
+                    {/* Access / Price Badge (Top Left) */}
+                    <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
+                      {isPurchased ? (
+                        <div className="px-2.5 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>PURCHASED</span>
+                        </div>
+                      ) : isPremium ? (
+                        <div className="flex items-center gap-1">
+                          <div className="px-2.5 py-0.5 bg-amber-500 text-slate-950 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                            <Lock className="w-2.5 h-2.5 text-slate-950" />
+                            <span>PREMIUM • ₹{price}</span>
+                          </div>
+                          {video.isSample && (
+                            <div className="px-1.5 py-0.5 bg-indigo-950/90 text-indigo-300 border border-indigo-500/40 rounded text-[9px] font-bold tracking-wider">
+                              SAMPLE
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="px-2 py-0.5 bg-slate-900/90 text-emerald-400 border border-slate-700/60 rounded text-[10px] font-bold">
+                          FREE
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Category (Top Right) */}
+                    <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
+                      {video.category}
+                    </div>
+                  </div>
+
+                  {/* Card Content Details */}
+                  <div className="p-4 sm:p-5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                      <span>By {video.instructor}</span>
+                      {video.level && (
+                        <span className="text-[10px] uppercase font-bold text-slate-400">
+                          {video.level}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3
+                      onClick={() => handleVideoClick(video)}
+                      className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight mb-2 hover:text-blue-700 transition-colors cursor-pointer line-clamp-2 leading-snug"
+                    >
+                      {video.title}
+                    </h3>
+
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
+                      {video.description}
+                    </p>
+
+                    {/* Key Chapters / Topics Covered */}
+                    <div className="pt-2.5 border-t border-slate-100 mb-2">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                        Key Curriculum Chapters:
+                      </span>
+                      <ul className="space-y-1 text-xs text-slate-700">
+                        {video.topics.slice(0, 3).map((topic, idx) => (
+                          <li key={idx} className="flex items-center gap-2 truncate">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                isPurchased
+                                  ? 'bg-emerald-600'
+                                  : isPremium
+                                  ? 'bg-amber-500'
+                                  : 'bg-blue-600'
+                              }`}
+                            />
+                            <span className="truncate">{topic}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Action Button */}
+                <div className="p-4 sm:p-5 pt-0">
+                  {isPurchased ? (
+                    <button
+                      onClick={() => handleVideoClick(video)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-sm"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Watch Unlocked Masterclass</span>
+                    </button>
+                  ) : isPremium ? (
+                    <button
+                      onClick={() => handleVideoClick(video)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:shadow-lg"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Unlock Masterclass • ₹{price}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleVideoClick(video)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-slate-900 hover:bg-blue-700 text-white rounded-xl text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-sm"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Watch Free Tutorial</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Free Video Player & Synopsis Modal */}
+        {activeFreeVideo && (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
               {/* Top Header */}
               <div className="p-4 px-6 border-b border-slate-200 flex justify-between items-center bg-white">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-blue-700">{activeVideo.category}</span>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">
+                    FREE TUTORIAL
+                  </span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-xs text-slate-500 font-mono">{activeVideo.duration}</span>
+                  <span className="text-xs font-semibold text-blue-700">{activeFreeVideo.category}</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-xs text-slate-500 font-mono">{activeFreeVideo.duration}</span>
                 </div>
                 <button
-                  onClick={() => setActiveVideo(null)}
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                  onClick={handleCloseFreeModal}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Video Player Simulator */}
+              {/* Free Video Streaming Player */}
               <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative p-6">
                 <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center shadow-lg mb-4 animate-pulse">
                   <Play className="w-7 h-7 fill-current ml-1" />
                 </div>
-                <h4 className="text-base font-bold text-center max-w-lg mb-1">{activeVideo.title}</h4>
-                <p className="text-xs text-slate-400 text-center">Interactive Tutorial Streaming Stream (1080p HD)</p>
+                <h4 className="text-base font-bold text-center max-w-lg mb-1">{activeFreeVideo.title}</h4>
+                <p className="text-xs text-slate-400 text-center">Free High-Definition Tutorial Stream (1080p)</p>
 
                 {/* Progress bar */}
                 <div className="absolute inset-x-0 bottom-0 h-1.5 bg-slate-800">
@@ -139,8 +393,8 @@ export const LatestVideos: React.FC = () => {
               {/* Notes & Transcript */}
               <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-700">
                 <div>
-                  <h5 className="font-bold text-slate-900 text-sm mb-1">Guide Synopsis</h5>
-                  <p className="leading-relaxed text-slate-600">{activeVideo.description}</p>
+                  <h5 className="font-bold text-slate-900 text-sm mb-1">Tutorial Synopsis</h5>
+                  <p className="leading-relaxed text-slate-600">{activeFreeVideo.description}</p>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -148,7 +402,7 @@ export const LatestVideos: React.FC = () => {
                     Step-by-Step Chapters Covered
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {activeVideo.topics.map((t, idx) => (
+                    {activeFreeVideo.topics.map((t, idx) => (
                       <div key={idx} className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
                         <span className="font-mono text-blue-700 font-bold">0{idx + 1}.</span>
                         <span className="text-slate-700">{t}</span>
@@ -161,7 +415,7 @@ export const LatestVideos: React.FC = () => {
               {/* Footer */}
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
                 <button
-                  onClick={() => setActiveVideo(null)}
+                  onClick={handleCloseFreeModal}
                   className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer"
                 >
                   Close Player
@@ -169,6 +423,29 @@ export const LatestVideos: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Cashfree Checkout & Unlock Modal */}
+        {checkoutVideo && (
+          <CashfreeCheckoutModal
+            video={checkoutVideo}
+            onClose={() => setCheckoutVideo(null)}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
+        )}
+
+        {/* Premium Cloudflare Stream Verified Video Player */}
+        {activePremiumVideo && (
+          <PremiumVideoPlayer
+            video={activePremiumVideo}
+            customerPhone={purchasedVideos[activePremiumVideo.id]?.phone || ''}
+            sessionToken={purchasedVideos[activePremiumVideo.id]?.sessionToken}
+            onClose={handleClosePremiumModal}
+            onPurchaseAgain={() => {
+              setActivePremiumVideo(null);
+              setCheckoutVideo(activePremiumVideo);
+            }}
+          />
         )}
       </div>
     </section>
