@@ -19,7 +19,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   if (env.DB) {
     try {
       const { results } = await env.DB.prepare(
-        'SELECT * FROM videos WHERE is_active = 1 ORDER BY created_at DESC'
+        'SELECT * FROM videos WHERE is_active = 1 ORDER BY CASE WHEN homepage_order BETWEEN 1 AND 4 THEN 0 ELSE 1 END, homepage_order ASC, created_at DESC'
       ).all();
 
       if (results && results.length > 0) {
@@ -47,6 +47,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
           level: row.level || 'Beginner',
           thumbnailUrl: row.thumbnail_url || undefined,
           isActive: Boolean(row.is_active),
+          homepageOrder: row.homepage_order == null ? null : Number(row.homepage_order),
         }));
 
         return new Response(JSON.stringify({ success: true, videos: formatted }), {
