@@ -24,7 +24,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToSite }) =>
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/api/admin/auth/login', {
+      const response = await fetch('/api/admin/auth', {
         method: 'POST',
         credentials: 'include',
         headers: {
