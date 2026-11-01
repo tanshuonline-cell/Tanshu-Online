@@ -79,7 +79,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
   try {
     const { results } = await env.DB.prepare(
-      `SELECT v.*, 
+      `SELECT v.*, v.homepage_order as homepageOrder,
        (SELECT COUNT(*) FROM customer_video_access a WHERE a.video_id = v.id AND a.is_revoked = 0) as active_subscribers_count
        FROM videos v ORDER BY created_at DESC`
     ).all();
@@ -117,6 +117,29 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
   try {
     const body = await request.json().catch(() => ({}));
+
+    // Dedicated, price-independent Homepage placement update.
+    if ((body as any).homepageOrderOnly === true) {
+      const videoId = String((body as any).id || '');
+      const rawOrder = (body as any).homepageOrder;
+      const homepageOrder = rawOrder === null || rawOrder === 0 || rawOrder === '' ? null : Number(rawOrder);
+      if (!videoId || (homepageOrder !== null && (!Number.isInteger(homepageOrder) || homepageOrder < 1 || homepageOrder > 4))) {
+        return new Response(JSON.stringify({ success: false, error: 'Choose Homepage position 1–4 or Not on Homepage.' }), { status: 400, headers: corsHeaders });
+      }
+      try {
+        if (homepageOrder !== null) {
+          await env.DB.prepare('UPDATE videos SET homepage_order = NULL WHERE homepage_order = ?').bind(homepageOrder).run();
+        }
+        const result = await env.DB.prepare('UPDATE videos SET homepage_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(homepageOrder, videoId).run();
+        if (!result.meta?.changes) {
+          return new Response(JSON.stringify({ success: false, error: 'Video record was not found.' }), { status: 404, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify({ success: true, message: 'Homepage selection saved.' }), { status: 200, headers: corsHeaders });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ success: false, error: 'Homepage selection needs the Preview database migration first. ' + err.message }), { status: 503, headers: corsHeaders });
+      }
+    }
+
     const {
       id,
       title,
