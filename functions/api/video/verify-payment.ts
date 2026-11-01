@@ -210,8 +210,19 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       }), { status: 503, headers: corsHeaders });
     }
 
+    // A dedicated server-side secret is mandatory for signing customer sessions.
+    const signingKey = env.ADMIN_SECRET_TOKEN;
+    if (!signingKey || signingKey.length < 32) {
+      return new Response(JSON.stringify({
+        success: false,
+        isPaid: true,
+        accessGranted: false,
+        error: 'Payment is confirmed, but secure video access is not configured. Please contact support with your order ID. Do not pay again.',
+        orderId,
+      }), { status: 503, headers: corsHeaders });
+    }
+
     // Generate secure customer session token specifically for this (phone, videoId)
-    const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
     const payloadStr = JSON.stringify({
       p: sanitizedPhone,
       v: videoId,
