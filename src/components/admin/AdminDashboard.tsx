@@ -52,6 +52,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const [formPrice, setFormPrice] = useState<number>(99);
   const [formYoutubeUrl, setFormYoutubeUrl] = useState<string>('');
   const [formStreamVideoId, setFormStreamVideoId] = useState<string>('');
+  const [formVideoHost, setFormVideoHost] = useState<'cloudflare' | 'youtube'>('cloudflare');
   const [formIsActive, setFormIsActive] = useState<boolean>(true);
   const [formTopics, setFormTopics] = useState<string>('');
   const [formAboutHi, setFormAboutHi] = useState<string>('');
@@ -131,6 +132,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     setFormPrice(99);
     setFormYoutubeUrl('');
     setFormStreamVideoId('');
+    setFormVideoHost('cloudflare');
     setFormIsActive(true);
     setFormTopics('Portal registration\nDocument upload\nTroubleshooting errors');
     setActiveTab('add');
@@ -153,6 +155,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     setFormPrice(video.price || 99);
     setFormYoutubeUrl(video.youtubeUrl || '');
     setFormStreamVideoId(video.streamVideoId || '');
+    setFormVideoHost(video.youtubeUrl ? 'youtube' : 'cloudflare');
     setFormIsActive(video.isActive !== false);
     setFormTopics(video.topics ? video.topics.join('\n') : '');
     setActiveTab('add');
@@ -166,15 +169,24 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       return;
     }
 
-    // Validation rule: If activating a Premium video, must have a real Cloudflare Stream UID
+    // Active premium videos must use exactly one supported hosting source.
     if (formIsPremium && formIsActive) {
-      const cleanStreamId = formStreamVideoId.trim();
-      if (!cleanStreamId || cleanStreamId.startsWith('cf_stream_') || cleanStreamId.startsWith('mock_') || cleanStreamId.startsWith('stream-')) {
-        showNotification(
-          'error',
-          'Validation failed: A genuine Cloudflare Stream Video UID is required before activating a Premium video. Sample placeholder IDs cannot be active.'
-        );
-        return;
+      if (formVideoHost === 'cloudflare') {
+        const cleanStreamId = formStreamVideoId.trim();
+        if (!cleanStreamId || cleanStreamId.startsWith('cf_stream_') || cleanStreamId.startsWith('mock_') || cleanStreamId.startsWith('stream-')) {
+          showNotification('error', 'Enter a genuine Cloudflare Stream Video UID, or choose YouTube Unlisted hosting.');
+          return;
+        }
+      } else {
+        try {
+          const parsed = new URL(formYoutubeUrl.trim());
+          const hostOk = ['youtube.com', 'www.youtube.com', 'youtu.be', 'm.youtube.com'].includes(parsed.hostname);
+          const id = parsed.hostname === 'youtu.be' ? parsed.pathname.split('/').filter(Boolean)[0] : (parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).slice(-1)[0]);
+          if (!hostOk || !id) throw new Error('Invalid URL');
+        } catch {
+          showNotification('error', 'Enter a valid YouTube video URL.');
+          return;
+        }
       }
     }
 
@@ -204,8 +216,8 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       accessType: formIsPremium ? 'premium' : 'free',
       price: formIsPremium ? Math.max(0, Math.floor(formPrice)) : 0,
       currency: 'INR',
-      youtubeUrl: !formIsPremium ? formYoutubeUrl.trim() : undefined,
-      streamVideoId: formIsPremium ? formStreamVideoId.trim() : undefined,
+      youtubeUrl: (!formIsPremium || formVideoHost === 'youtube') ? formYoutubeUrl.trim() : undefined,
+      streamVideoId: formIsPremium && formVideoHost === 'cloudflare' ? formStreamVideoId.trim() : undefined,
       isActive: formIsActive,
       topics: topicsArray,
     };
@@ -816,71 +828,43 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 {formIsPremium ? (
                   <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="block text-xs font-bold text-amber-400">
-                        Custom Price in INR (₹)
-                      </label>
+                      <label className="block text-xs font-bold text-amber-400">Custom Price in INR (₹)</label>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] text-slate-500">Suggested Presets:</span>
                         {pricingPresets.map((p) => (
-                          <button
-                            key={p.amount}
-                            type="button"
-                            onClick={() => setFormPrice(p.amount)}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
-                              formPrice === p.amount
-                                ? 'bg-amber-500 text-slate-950'
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                            }`}
-                          >
-                            ₹{p.amount}
-                          </button>
+                          <button key={p.amount} type="button" onClick={() => setFormPrice(p.amount)} className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${formPrice === p.amount ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>₹{p.amount}</button>
                         ))}
                       </div>
                     </div>
-
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-xs text-slate-400">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        required={formIsPremium}
-                        value={formPrice}
-                        onChange={(e) => setFormPrice(Number(e.target.value))}
-                        placeholder="99"
-                        className="w-full pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-xs font-mono font-bold text-white outline-hidden"
-                      />
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-xs text-slate-400">₹</span>
+                      <input type="number" min={0} required={formIsPremium} value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))} placeholder="99" className="w-full pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-xs font-mono font-bold text-white outline-hidden" />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Cloudflare Stream Video UID <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formStreamVideoId}
-                        onChange={(e) => setFormStreamVideoId(e.target.value)}
-                        placeholder="32-character Cloudflare Stream Video UID"
-                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white font-mono outline-hidden"
-                      />
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Upload media into your Cloudflare Stream console to obtain the genuine 32-character UID before activating.
-                      </p>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-300">Premium Video Hosting</label>
+                      <div className="flex flex-wrap gap-4 text-xs text-white">
+                        <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="premiumHost" checked={formVideoHost === 'cloudflare'} onChange={() => setFormVideoHost('cloudflare')} />Cloudflare Stream</label>
+                        <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="premiumHost" checked={formVideoHost === 'youtube'} onChange={() => setFormVideoHost('youtube')} />YouTube Unlisted</label>
+                      </div>
                     </div>
+                    {formVideoHost === 'cloudflare' ? (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">Cloudflare Stream Video UID <span className="text-red-400">*</span></label>
+                        <input type="text" value={formStreamVideoId} onChange={(e) => setFormStreamVideoId(e.target.value)} placeholder="32-character Cloudflare Stream Video UID" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white font-mono outline-hidden" />
+                        <p className="text-[10px] text-slate-500 mt-1">Use the genuine UID from your Cloudflare Stream upload.</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">YouTube Unlisted Video URL <span className="text-red-400">*</span></label>
+                        <input type="url" value={formYoutubeUrl} onChange={(e) => setFormYoutubeUrl(e.target.value)} placeholder="https://youtu.be/VIDEO_ID" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden" />
+                        <p className="text-[10px] text-amber-300 mt-1">Allow embedding in YouTube settings. Unlisted links can still be shared outside this website.</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
-                    <label className="block text-xs font-bold text-emerald-400">
-                      YouTube Video URL or Video ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formYoutubeUrl}
-                      onChange={(e) => setFormYoutubeUrl(e.target.value)}
-                      placeholder="e.g. https://www.youtube.com/watch?v=... or ID"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden"
-                    />
+                    <label className="block text-xs font-bold text-emerald-400">YouTube Video URL or Video ID</label>
+                    <input type="text" value={formYoutubeUrl} onChange={(e) => setFormYoutubeUrl(e.target.value)} placeholder="e.g. https://www.youtube.com/watch?v=... or ID" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden" />
                   </div>
                 )}
               </div>
