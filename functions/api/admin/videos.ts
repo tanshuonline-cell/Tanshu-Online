@@ -79,12 +79,12 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
   try {
     const { results } = await env.DB.prepare(
-      `SELECT v.*, v.homepage_order as homepageOrder,
+      `SELECT v.*,
        (SELECT COUNT(*) FROM customer_video_access a WHERE a.video_id = v.id AND a.is_revoked = 0) as active_subscribers_count
        FROM videos v ORDER BY created_at DESC`
     ).all();
 
-    return new Response(JSON.stringify({ success: true, videos: results }), {
+    return new Response(JSON.stringify({ success: true, videos: results.map((row: any) => ({ ...row, homepageOrder: row.homepage_order == null ? null : Number(row.homepage_order) })) }), {
       status: 200,
       headers: corsHeaders,
     });
