@@ -54,7 +54,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     if (env.DB) {
       try {
         const existingAccess = await env.DB.prepare(
-          'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
+          'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0 AND expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP'
         )
           .bind(sanitizedPhone, videoId)
           .first();
