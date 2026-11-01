@@ -95,6 +95,7 @@ export interface VideoGuide {
   level?: 'Beginner' | 'Intermediate' | 'Advanced';
   isSample?: boolean; // Indicates sample catalog entry awaiting media upload in Cloudflare Stream
   isActive?: boolean; // Admin active/inactive status flag
+  homepageOrder?: number | null; // Manual Homepage position 1-4; null means not featured
   // Bilingual Guide Details
   hindiTitle?: string;
   hindiDescription?: string;
