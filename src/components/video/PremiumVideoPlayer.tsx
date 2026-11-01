@@ -187,19 +187,37 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center text-slate-300 gap-3 p-6 text-center">
               <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
-              <div className="text-sm font-semibold">Verifying Purchase & Generating Cloudflare Stream Token...</div>
+              <div className="text-sm font-semibold">Verifying Purchase & Authorizing Video Playback...</div>
               <div className="text-xs text-slate-500">Checking server entitlement records</div>
             </div>
           ) : authorized ? (
             <div className="relative w-full h-full bg-black">
-              {/* Cloudflare Stream Official Signed Embed Player (Download & Built-in Sharing Disabled) */}
-              <iframe
-                src={`https://iframe.videodelivery.net/${video.streamVideoId || playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
-                title={video.title}
-                className="w-full h-full border-0 select-none pointer-events-auto"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                allowFullScreen
-              />
+              {video.youtubeUrl ? (
+                <iframe
+                  src={(() => {
+                    try {
+                      const url = new URL(video.youtubeUrl);
+                      const id = url.hostname === 'youtu.be'
+                        ? url.pathname.split('/').filter(Boolean)[0]
+                        : (url.searchParams.get('v') || url.pathname.split('/').filter(Boolean).slice(-1)[0]);
+                      return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+                    } catch { return ''; }
+                  })()}
+                  title={video.title}
+                  className="w-full h-full border-0 select-none pointer-events-auto"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                /* Cloudflare Stream Official Signed Embed Player */
+                <iframe
+                  src={`https://iframe.videodelivery.net/${playbackToken || video.streamVideoId}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
+                  title={video.title}
+                  className="w-full h-full border-0 select-none pointer-events-auto"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen
+                />
+              )}
 
               {/* Dynamic Anti-Piracy Watermark Badge (Top Right) */}
               <div className="absolute top-3 right-3 pointer-events-none z-30 px-2.5 py-1 bg-black/75 backdrop-blur-xs border border-white/10 rounded-md text-[10px] font-mono text-slate-300 flex items-center gap-1.5 shadow-lg select-none">
