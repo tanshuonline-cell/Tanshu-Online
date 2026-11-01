@@ -194,8 +194,8 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     if (env.DB) {
       try {
         const accessRecord = await env.DB.prepare(
-          `SELECT id, is_revoked FROM customer_video_access
-           WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
+          `SELECT id, is_revoked, expires_at FROM customer_video_access
+           WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0 AND expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP`
         )
           .bind(sanitizedPhone, videoId)
           .first();
@@ -204,7 +204,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           return new Response(
             JSON.stringify({
               authorized: false,
-              error: 'Access denied. You have not purchased this premium video, or your access was revoked.',
+              error: 'Access denied. Your 30-day access has expired, you have not purchased this video, or access was revoked.',
             }),
             { status: 403, headers: corsHeaders }
           );
