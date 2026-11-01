@@ -143,16 +143,21 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     const topicsJson = JSON.stringify(Array.isArray(topics) ? topics : []);
     const isAct = isActive === false ? 0 : 1;
 
-    // Security & Validation Rule: If activating a Premium video, must have a genuine Stream UID
+    // Security & Validation Rule: Active premium videos must have one valid media source.
     if (finalIsPremium === 1 && isAct === 1) {
-      if (!streamVideoId || streamVideoId.startsWith('cf_stream_') || streamVideoId.startsWith('mock_') || streamVideoId.startsWith('stream-')) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Validation error: A genuine Cloudflare Stream Video UID is required before activating a Premium video. Placeholder or sample IDs cannot be activated.',
-          }),
-          { status: 400, headers: corsHeaders }
-        );
+      const hasYoutubeSource = typeof youtubeUrl === 'string' && youtubeUrl.trim().length > 0;
+      const hasStreamSource = typeof streamVideoId === 'string' && streamVideoId.trim().length > 0 && !streamVideoId.startsWith('cf_stream_') && !streamVideoId.startsWith('mock_') && !streamVideoId.startsWith('stream-');
+      if (hasYoutubeSource === hasStreamSource) {
+        return new Response(JSON.stringify({ success: false, error: 'Choose exactly one valid source: YouTube Unlisted URL or Cloudflare Stream Video UID.' }), { status: 400, headers: corsHeaders });
+      }
+      if (hasYoutubeSource) {
+        try {
+          const parsed = new URL(youtubeUrl.trim());
+          const validHost = ['youtube.com', 'www.youtube.com', 'youtu.be', 'm.youtube.com'].includes(parsed.hostname);
+          if (!validHost || !(parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).length)) throw new Error('invalid');
+        } catch {
+          return new Response(JSON.stringify({ success: false, error: 'Enter a valid YouTube video URL.' }), { status: 400, headers: corsHeaders });
+        }
       }
     }
 
