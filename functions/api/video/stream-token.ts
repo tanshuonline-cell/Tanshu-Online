@@ -91,6 +91,12 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
+    // Premium session validation requires a strong server-side secret; never use a hard-coded fallback.
+    const signingKey = env.ADMIN_SECRET_TOKEN;
+    if (!signingKey || signingKey.length < 32) {
+      return new Response(JSON.stringify({ authorized: false, error: 'Secure video access is not configured on the server. Please try again later.' }), { status: 503, headers: corsHeaders });
+    }
+
     // Step 2: For premium video, verify phone and cryptographic session token
     if (!customerPhone) {
       return new Response(
@@ -124,7 +130,6 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     let isSessionValid = false;
     try {
       const [b64Payload, sig] = tokenToValidate.split('.');
-      const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
       const isValidSig = await verifySignature(b64Payload, sig, signingKey);
 
       if (!isValidSig) {
