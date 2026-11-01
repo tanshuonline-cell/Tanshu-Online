@@ -57,41 +57,31 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
+    if (sanitizedPhone.length !== 10) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Please enter a valid 10-digit mobile number.' }), { status: 400, headers: corsHeaders });
+    }
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Purchase records are temporarily unavailable. Payment access cannot be verified right now.' }), { status: 503, headers: corsHeaders });
+    }
 
-    // Security check 1: Check if the order was originally registered for this specific video and phone
-    if (env.DB) {
-      try {
-        const orderRecord = await env.DB.prepare(
-          'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
-        )
-          .bind(orderId)
-          .first();
-
-        if (orderRecord) {
-          if (orderRecord.video_id !== videoId) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: This payment was not initiated for this video.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-          if (orderRecord.customer_phone !== sanitizedPhone) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: Customer phone mismatch.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-        }
-      } catch (dbErr) {
-        console.warn('D1 order pre-check warning:', dbErr);
-      }
+    // The order must exist and must belong to this exact video and customer.
+    let orderRecord: any;
+    try {
+      orderRecord = await env.DB.prepare(
+        'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+    } catch (dbErr) {
+      console.warn('D1 order pre-check failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Purchase records are temporarily unavailable. Please try verification again shortly.' }), { status: 503, headers: corsHeaders });
+    }
+    if (!orderRecord) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'This payment order could not be found. Please contact support before retrying.' }), { status: 404, headers: corsHeaders });
+    }
+    if (orderRecord.video_id !== videoId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Order validation error: This payment was not initiated for this video.' }), { status: 400, headers: corsHeaders });
+    }
+    if (orderRecord.customer_phone !== sanitizedPhone) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Order validation error: Customer phone mismatch.' }), { status: 400, headers: corsHeaders });
     }
 
     const appId = env.CASHFREE_APP_ID;
@@ -171,8 +161,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     // Persist and grant access in D1 database
     const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    if (env.DB) {
-      try {
+    try {
         // Update payment order status to PAID
         await env.DB.prepare(
           `UPDATE payment_orders
@@ -210,9 +199,15 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
             orderId
           )
           .run();
-      } catch (dbErr) {
-        console.warn('D1 verification update warning:', dbErr);
-      }
+    } catch (dbErr) {
+      console.error('D1 payment/access persistence failed:', dbErr);
+      return new Response(JSON.stringify({
+        success: false,
+        isPaid: true,
+        accessGranted: false,
+        error: 'Cashfree confirms your payment, but video access could not be saved yet. Please contact support with your order ID. Do not pay again.',
+        orderId,
+      }), { status: 503, headers: corsHeaders });
     }
 
     // Generate secure customer session token specifically for this (phone, videoId)
