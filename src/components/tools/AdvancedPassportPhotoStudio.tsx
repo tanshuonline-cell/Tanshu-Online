@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import {
-  Upload, Download, Printer, RefreshCw, ZoomIn, ZoomOut,
-  Images, ShieldCheck, Sparkles, SlidersHorizontal, Trash2
+  Upload, Download, Printer, RefreshCw,
+  ShieldCheck, Sparkles, SlidersHorizontal, Trash2
 } from 'lucide-react';
 
 type Photo = { id: string; name: string; src: string };
@@ -34,12 +34,10 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [sheetMargin, setSheetMargin] = useState(4);
   const [sheetGap, setSheetGap] = useState(2);
   const [background, setBackground] = useState('#ffffff');
-  const [keepOriginalBg, setKeepOriginalBg] = useState(true);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [saturation, setSaturation] = useState(100);
   const [smooth, setSmooth] = useState(0);
-  const [sharpness, setSharpness] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [moveX, setMoveX] = useState(0);
   const [moveY, setMoveY] = useState(0);
@@ -56,7 +54,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
 
   const resetAdjustments = () => {
     setBrightness(100); setContrast(100); setSaturation(100);
-    setSmooth(0); setSharpness(0); setZoom(1); setMoveX(0); setMoveY(0);
+    setSmooth(0); setZoom(1); setMoveX(0); setMoveY(0);
   };
 
   const addPhotos = async (files: FileList | null) => {
@@ -99,7 +97,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const usedH = rows * photoH + (rows - 1) * gap;
     const startX = isSingle ? 0 : Math.max(margin, (canvas.width - usedW) / 2);
     const startY = isSingle ? 0 : Math.max(margin, (canvas.height - usedH) / 2);
-    const draw = (img?: HTMLImageElement) => {
+    const draw = (images: HTMLImageElement[] = []) => {
       for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
         const x = startX + col * (photoW + gap);
         const y = startY + row * (photoH + gap);
@@ -107,6 +105,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         ctx.fillStyle = background;
         ctx.fillRect(x, y, photoW, photoH);
         ctx.beginPath(); ctx.rect(x, y, photoW, photoH); ctx.clip();
+        const img = images.length ? images[(isSingle ? 0 : row * cols + col) % images.length] : undefined;
         if (img) {
           const scale = Math.max(photoW / img.width, photoH / img.height) * zoom;
           const w = img.width * scale, h = img.height * scale;
@@ -126,12 +125,22 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           ctx.strokeRect(x - 5, y - 5, photoW + 10, photoH + 10); ctx.setLineDash([]); }
       }
     };
-    if (!selected) { draw(); return; }
-    const img = new Image();
-    img.onload = () => draw(img);
-    img.onerror = () => { setError('इस फोटो को पढ़ा नहीं जा सका।'); draw(); };
-    img.src = selected.src;
-  }, [selected, dimensions, paper, sheetMargin, sheetGap, background, mode, brightness, contrast, saturation, smooth, sharpness, zoom, moveX, moveY, border]);
+    const sourcePhotos = paper === 'single' ? (selected ? [selected] : []) : photos;
+    if (!sourcePhotos.length) { draw(); return; }
+    let cancelled = false;
+    Promise.all(sourcePhotos.map((photo) => new Promise<HTMLImageElement | null>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = photo.src;
+    }))).then((loaded) => {
+      if (cancelled) return;
+      const validImages = loaded.filter((img): img is HTMLImageElement => img !== null);
+      if (validImages.length !== sourcePhotos.length) setError('कुछ फोटो लोड नहीं हो सकीं। कृपया उन्हें दोबारा चुनें।');
+      draw(validImages);
+    });
+    return () => { cancelled = true; };
+  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, background, mode, brightness, contrast, saturation, smooth, zoom, moveX, moveY, border]);
 
   const downloadJpg = () => {
     if (!canvasRef.current || !selected) return;
@@ -203,12 +212,12 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
 
           <div className="border-t border-slate-200 pt-4">
             <h3 className="mb-3 font-bold text-slate-900">4. Background & Border</h3>
-            <div className="flex flex-wrap gap-2">{[{ name: 'White', value: '#ffffff' }, { name: 'Light Blue', value: '#dbeafe' }, { name: 'Light Gray', value: '#e5e7eb' }, { name: 'Cream', value: '#fff7ed' }].map((color) => <button key={color.value} onClick={() => { setBackground(color.value); setKeepOriginalBg(false); }} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${background === color.value ? 'border-blue-600 ring-1 ring-blue-200' : 'border-slate-200'}`}><span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-slate-300 align-middle" style={{ background: color.value }} />{color.name}</button>)}</div>
-            <label className="mt-3 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={keepOriginalBg} onChange={(e) => setKeepOriginalBg(e.target.checked)} /> Keep uploaded image as-is (transparent PNG areas remain transparent)</label>
+            <div className="flex flex-wrap gap-2">{[{ name: 'White', value: '#ffffff' }, { name: 'Light Blue', value: '#dbeafe' }, { name: 'Light Gray', value: '#e5e7eb' }, { name: 'Cream', value: '#fff7ed' }].map((color) => <button key={color.value} onClick={() => setBackground(color.value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${background === color.value ? 'border-blue-600 ring-1 ring-blue-200' : 'border-slate-200'}`}><span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-slate-300 align-middle" style={{ background: color.value }} />{color.name}</button>)}</div>
+            <p className="mt-2 text-[11px] text-slate-500">नोट: Background रंग केवल पारदर्शी हिस्सों या पहले से cut-out फोटो के पीछे दिखेगा। सामान्य JPG का बैकग्राउंड अभी अपने-आप नहीं हटता।</p>
             <div className="mt-3"><Slider label="Border width" min={0} max={4} value={border} onChange={setBorder} /></div>
           </div>
 
-          {mode === 'beauty' && <div className="space-y-3 border-t border-slate-200 pt-4"><h3 className="flex items-center gap-2 font-bold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 5. Beauty & Enhance</h3><Slider label="Brightness" value={brightness} min={50} max={150} onChange={setBrightness} /><Slider label="Contrast" value={contrast} min={50} max={150} onChange={setContrast} /><Slider label="Saturation" value={saturation} min={0} max={200} onChange={setSaturation} /><Slider label="Softening" value={smooth} min={0} max={10} onChange={setSmooth} /><Slider label="Sharpness (preview control)" value={sharpness} min={0} max={100} onChange={setSharpness} /><p className="text-[11px] text-slate-500">नोट: Softening एक हल्का blur effect है; यह AI skin retouching नहीं है। Sharpness slider अभी preview में लागू नहीं होता।</p></div>}
+          {mode === 'beauty' && <div className="space-y-3 border-t border-slate-200 pt-4"><h3 className="flex items-center gap-2 font-bold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 5. Beauty & Enhance</h3><Slider label="Brightness" value={brightness} min={50} max={150} onChange={setBrightness} /><Slider label="Contrast" value={contrast} min={50} max={150} onChange={setContrast} /><Slider label="Saturation" value={saturation} min={0} max={200} onChange={setSaturation} /><Slider label="Softening" value={smooth} min={0} max={10} onChange={setSmooth} /><p className="text-[11px] text-slate-500">नोट: Softening एक हल्का blur effect है; यह AI skin retouching नहीं है।</p></div>}
 
           <div className="border-t border-slate-200 pt-4">
             <div className="mb-3 flex items-center justify-between"><h3 className="font-bold text-slate-900">6. Crop & Position</h3><button onClick={resetAdjustments} className="text-xs font-semibold text-blue-700"><RefreshCw className="mr-1 inline h-3 w-3" /> Reset</button></div>
