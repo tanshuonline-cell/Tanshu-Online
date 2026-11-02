@@ -101,14 +101,17 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     let existingEntitlement: any;
     try {
       existingEntitlement = await env.DB.prepare(
-        'SELECT id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND order_id = ? LIMIT 1'
-      ).bind(sanitizedPhone, videoId, orderId).first();
+        'SELECT id, order_id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? LIMIT 1'
+      ).bind(sanitizedPhone, videoId).first();
     } catch (dbErr) {
       console.error('D1 entitlement pre-check failed:', dbErr);
       return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not validate the existing access record. Access remains locked.' }), { status: 503, headers: corsHeaders });
     }
     if (existingEntitlement && Number(existingEntitlement.is_revoked) === 1) {
       return new Response(JSON.stringify({ success: false, isPaid: false, error: 'This access was revoked by an administrator. Please contact support.' }), { status: 403, headers: corsHeaders });
+    }
+    if (existingEntitlement && existingEntitlement.order_id !== orderId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'A different purchase record already exists for this video and mobile number. Manual review is required; access was not reassigned.' }), { status: 409, headers: corsHeaders });
     }
 
     const appId = env.CASHFREE_APP_ID;
@@ -195,12 +198,10 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Persist and grant access in D1 database
-    const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
+    // Persist payment and grant access without ever overwriting an existing entitlement.
     try {
-        // Update payment order status to PAID
-        await env.DB.prepare(
+      await env.DB.batch([
+        env.DB.prepare(
           `UPDATE payment_orders
            SET order_status = 'PAID',
                cf_payment_id = ?,
@@ -208,35 +209,31 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
                raw_verification_json = ?,
                updated_at = CURRENT_TIMESTAMP
            WHERE order_id = ?`
-        )
-          .bind(
-            cfPaymentId || null,
-            paymentMethod || 'UPI/Card/Netbanking',
-            JSON.stringify(rawVerification),
-            orderId
-          )
-          .run();
-
-        // Idempotent access grant: Insert or update
-        await env.DB.prepare(
+        ).bind(
+          cfPaymentId || null,
+          cfData.payment_method || cfData.payment_group || 'UPI/Card/Netbanking',
+          JSON.stringify(rawVerification),
+          orderId
+        ),
+        env.DB.prepare(
           `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
-           VALUES (?, ?, ?, ?, ?, 0)
-           ON CONFLICT(customer_phone, video_id) DO UPDATE SET
-             order_id = excluded.order_id,
-             is_revoked = 0,
-             updated_at = CURRENT_TIMESTAMP`
-        )
-          .bind(
-            accessId,
-            sanitizedPhone,
-            customerEmail || null,
-            videoId,
-            orderId
-          )
-          .run();
+           SELECT ?, ?, ?, ?, ?, 0
+           WHERE EXISTS (SELECT 1 FROM payment_orders WHERE order_id = ? AND order_status = 'PAID')
+           ON CONFLICT(customer_phone, video_id) DO NOTHING`
+        ).bind(accessId, sanitizedPhone, customerEmail || null, videoId, orderId, orderId),
+      ]);
+
+      // Confirm the row belongs to this exact order and is still active. A concurrent
+      // purchase or Admin revocation must not be silently replaced.
+      const savedEntitlement = await env.DB.prepare(
+        'SELECT order_id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? LIMIT 1'
+      ).bind(sanitizedPhone, videoId).first();
+      if (!savedEntitlement || savedEntitlement.order_id !== orderId || Number(savedEntitlement.is_revoked) === 1) {
+        return new Response(JSON.stringify({ success: false, isPaid: true, error: 'Payment is confirmed, but an existing access record prevents automatic unlock. Please contact support with your order ID.' }), { status: 409, headers: corsHeaders });
+      }
     } catch (dbErr) {
-        console.error('D1 verification update failed:', dbErr);
-        return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment was confirmed, but access could not be saved. Please contact support; the video remains locked.' }), { status: 503, headers: corsHeaders });
+      console.error('D1 verification update failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment was confirmed, but access could not be saved. Please contact support; the video remains locked.' }), { status: 503, headers: corsHeaders });
     }
 
     // Generate secure customer session token only from the configured server secret.
