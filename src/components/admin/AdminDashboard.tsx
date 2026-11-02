@@ -37,6 +37,10 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases'>('overview');
   const [videos, setVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
+  const [grantPhone, setGrantPhone] = useState('');
+  const [grantVideoId, setGrantVideoId] = useState('');
+  const [grantNote, setGrantNote] = useState('');
+  const [grantSubmitting, setGrantSubmitting] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -291,6 +295,20 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     } catch (e: any) {
       showNotification('error', e.message || 'Error updating access.');
     }
+  };
+
+  const handleGrantAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phone = grantPhone.replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(phone) || !grantVideoId) { showNotification('error', '10 अंकों का मोबाइल नंबर और वीडियो चुनें।'); return; }
+    setGrantSubmitting(true);
+    try {
+      const response = await fetch('/api/admin/grant-access', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerPhone: phone, videoId: grantVideoId, note: grantNote.trim() }) });
+      const data = await response.json();
+      if (response.ok && data.success) { showNotification('success', 'बिना पेमेंट वाला एक्सेस दे दिया गया। ग्राहक इसी मोबाइल नंबर से वीडियो सत्यापित कर सकता है।'); setGrantPhone(''); setGrantVideoId(''); setGrantNote(''); }
+      else showNotification('error', data.error || 'एक्सेस नहीं दिया जा सका।');
+    } catch (err: any) { showNotification('error', err.message || 'सर्वर से संपर्क नहीं हो पाया।'); }
+    finally { setGrantSubmitting(false); }
   };
 
   // Metrics Calculations
@@ -1113,6 +1131,15 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
         {/* TAB 4: CUSTOMER PURCHASES & REVOCATION */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
+            <section className="bg-slate-950 rounded-2xl border border-emerald-800/60 p-5 space-y-4">
+              <div><h3 className="text-sm font-extrabold text-white">Grant Complimentary Video Access</h3><p className="text-xs text-slate-400 mt-1">किसी ग्राहक को बिना पेमेंट चुने हुए paid video का एक्सेस दें। ग्राहक को वही मोबाइल नंबर इस्तेमाल करना होगा।</p></div>
+              <form onSubmit={handleGrantAccess} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="text-xs text-slate-300 space-y-1"><span>Customer mobile number</span><input value={grantPhone} onChange={(e) => setGrantPhone(e.target.value)} inputMode="numeric" maxLength={10} placeholder="10 digit mobile number" className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-white" required /></label>
+                <label className="text-xs text-slate-300 space-y-1"><span>Select paid video</span><select value={grantVideoId} onChange={(e) => setGrantVideoId(e.target.value)} className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-white" required><option value="">Choose a video</option>{videos.filter((v) => v.isActive !== false && (v.isPremium || v.accessType === 'premium')).map((v) => <option key={v.id} value={v.id}>{v.title}</option>)}</select></label>
+                <label className="text-xs text-slate-300 space-y-1 md:col-span-2"><span>Reason / note (optional)</span><input value={grantNote} onChange={(e) => setGrantNote(e.target.value)} maxLength={240} placeholder="Reason for complimentary access" className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-white" /></label>
+                <div className="md:col-span-2"><button type="submit" disabled={grantSubmitting || !videos.some((v) => v.id === grantVideoId && v.isActive !== false && (v.isPremium || v.accessType === 'premium'))} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold">{grantSubmitting ? 'Granting access...' : 'Grant Access Without Payment'}</button></div>
+              </form>
+            </section>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-extrabold text-white">Verified Customer Purchases</h2>
