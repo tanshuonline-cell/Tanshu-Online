@@ -320,7 +320,6 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       return;
     }
     const drag = activeSheetDragRef.current;
-    const canvas = canvasRef.current;
     if (!drag || !canvas) return;
     const bounds = canvas.getBoundingClientRect();
     const x = (event.clientX - bounds.left) * canvas.width / bounds.width - drag.offsetX;
