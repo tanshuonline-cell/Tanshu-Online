@@ -96,9 +96,17 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       return new Response(JSON.stringify({ status: 'DUPLICATE_OR_ALREADY_PAID', orderId }), { status: 200, headers: jsonHeaders });
     }
 
+    // Never let a new payment overwrite an existing purchase or revive a revoked entitlement.
+    const priorAccess = await env.DB.prepare(
+      'SELECT order_id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? LIMIT 1'
+    ).bind(existingOrder.customer_phone, existingOrder.video_id).first();
+    if (priorAccess && (priorAccess.order_id !== orderId || Number(priorAccess.is_revoked) === 1)) {
+      return new Response(JSON.stringify({ error: 'An existing access record blocks automatic reassignment. Manual review is required.' }), { status: 409, headers: jsonHeaders });
+    }
+
     const accessId = `acc_wh_${orderId}`;
-    // Commit the paid-order update and entitlement together so a DB error cannot
-    // leave the order marked PAID while the customer has no access record.
+    // Commit the paid-order update and entitlement together. Conflict handling is insert-only:
+    // it must never replace the order ID or clear an administrator's revocation.
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE payment_orders
@@ -115,8 +123,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
          SELECT ?, ?, ?, ?, ?, 0
          WHERE EXISTS (SELECT 1 FROM payment_orders WHERE order_id = ? AND order_status = 'PAID')
-         ON CONFLICT DO UPDATE SET
-           order_id = excluded.order_id, is_revoked = 0, updated_at = CURRENT_TIMESTAMP`
+         ON CONFLICT(customer_phone, video_id) DO NOTHING`
       ).bind(
         accessId,
         existingOrder.customer_phone,
