@@ -96,34 +96,35 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     const accessId = `acc_wh_${orderId}`;
-    const updateResult = await env.DB.prepare(
-      `UPDATE payment_orders
-       SET order_status = 'PAID', cf_payment_id = ?, payment_method = ?,
-           raw_verification_json = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE order_id = ? AND order_status != 'PAID'`
-    ).bind(
-      paymentId,
-      paymentData?.payment_group || 'WEBHOOK',
-      rawBody,
-      orderId
-    ).run();
-
-    if (Number(updateResult?.meta?.changes || 0) === 0) {
-      return new Response(JSON.stringify({ status: 'DUPLICATE_OR_ALREADY_PAID', orderId }), { status: 200, headers: jsonHeaders });
-    }
-
-    await env.DB.prepare(
-      `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
-       VALUES (?, ?, ?, ?, ?, 0)
-       ON CONFLICT(customer_phone, video_id) DO UPDATE SET
-         order_id = excluded.order_id, is_revoked = 0, updated_at = CURRENT_TIMESTAMP`
-    ).bind(
-      accessId,
-      existingOrder.customer_phone,
-      eventData.data?.customer_details?.customer_email || null,
-      existingOrder.video_id,
-      orderId
-    ).run();
+    // Commit the paid-order update and entitlement together so a DB error cannot
+    // leave the order marked PAID while the customer has no access record.
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE payment_orders
+         SET order_status = 'PAID', cf_payment_id = ?, payment_method = ?,
+             raw_verification_json = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE order_id = ? AND order_status != 'PAID'`
+      ).bind(
+        paymentId,
+        paymentData?.payment_group || 'WEBHOOK',
+        rawBody,
+        orderId
+      ),
+      env.DB.prepare(
+        `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
+         SELECT ?, ?, ?, ?, ?, 0
+         WHERE EXISTS (SELECT 1 FROM payment_orders WHERE order_id = ? AND order_status = 'PAID')
+         ON CONFLICT(customer_phone, video_id) DO UPDATE SET
+           order_id = excluded.order_id, is_revoked = 0, updated_at = CURRENT_TIMESTAMP`
+      ).bind(
+        accessId,
+        existingOrder.customer_phone,
+        eventData.data?.customer_details?.customer_email || null,
+        existingOrder.video_id,
+        orderId,
+        orderId
+      )
+    ]);
 
     return new Response(JSON.stringify({ status: 'SUCCESS', orderId }), { status: 200, headers: jsonHeaders });
   } catch (err: any) {
