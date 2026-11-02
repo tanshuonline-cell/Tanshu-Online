@@ -50,11 +50,16 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
+    // Payment creation must use the live catalog and entitlement database.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, error: 'Video database is unavailable. Payment cannot be initiated.' }), { status: 503, headers: corsHeaders });
+    }
+
     // Check if customer already has unrevoked access in D1
-    if (env.DB) {
+    {
       try {
         const existingAccess = await env.DB.prepare(
-          'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
+          'SELECT id, order_id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
         )
           .bind(sanitizedPhone, videoId)
           .first();
@@ -64,6 +69,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
             JSON.stringify({
               success: true,
               alreadyPurchased: true,
+              orderId: existingAccess.order_id,
               message: 'You already have active access to this premium video.',
               videoId,
             }),
@@ -71,29 +77,30 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           );
         }
       } catch (dbErr) {
-        console.warn('D1 lookup warning:', dbErr);
+        console.error('D1 entitlement lookup failed:', dbErr);
+        return new Response(JSON.stringify({ success: false, error: 'Could not verify existing access. Payment cannot be initiated.' }), { status: 503, headers: corsHeaders });
       }
     }
 
     // Resolve video price (lookup in D1 or standard catalog fallback)
-    let videoPrice = 99; // Default price in INR
-    let videoTitle = 'Tanshu Online Premium Training Video';
+    let videoPrice = 0;
+    let videoTitle = '';
 
-    if (env.DB) {
-      try {
-        const videoRecord = await env.DB.prepare(
-          'SELECT title, price, is_premium FROM videos WHERE id = ? AND is_active = 1'
-        )
-          .bind(videoId)
-          .first();
-
-        if (videoRecord) {
-          videoPrice = Number(videoRecord.price) || 99;
-          videoTitle = videoRecord.title || videoTitle;
-        }
-      } catch (dbErr) {
-        console.warn('D1 video lookup warning:', dbErr);
+    try {
+      const videoRecord = await env.DB.prepare(
+        'SELECT title, price, is_premium, access_type FROM videos WHERE id = ? AND is_active = 1'
+      ).bind(videoId).first();
+      if (!videoRecord || !(videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium))) {
+        return new Response(JSON.stringify({ success: false, error: 'This paid video is unavailable or not active.' }), { status: 404, headers: corsHeaders });
       }
+      videoPrice = Number(videoRecord.price);
+      videoTitle = videoRecord.title || '';
+      if (!Number.isFinite(videoPrice) || videoPrice <= 0 || !videoTitle) {
+        return new Response(JSON.stringify({ success: false, error: 'The video price or title is invalid. Please contact support.' }), { status: 400, headers: corsHeaders });
+      }
+    } catch (dbErr) {
+      console.error('D1 video lookup failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, error: 'Could not validate video details. Payment cannot be initiated.' }), { status: 503, headers: corsHeaders });
     }
 
     // Generate unique order ID
@@ -157,8 +164,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       paymentSessionId = cfData.payment_session_id;
       cfOrderId = cfData.cf_order_id ? String(cfData.cf_order_id) : '';
     } else {
-      // Credentials not yet added to Cloudflare Pages env
-      paymentSessionId = `mock_session_${orderId}`;
+      return new Response(JSON.stringify({ success: false, error: 'Cashfree credentials are not configured. Payment cannot be initiated.' }), { status: 503, headers: corsHeaders });
     }
 
     // Persist pending order in D1 if available
@@ -179,7 +185,8 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           )
           .run();
       } catch (dbErr) {
-        console.warn('D1 insert order warning:', dbErr);
+        console.error('D1 insert order failed:', dbErr);
+        return new Response(JSON.stringify({ success: false, error: 'Could not save the payment order. Please do not pay; try again later.' }), { status: 503, headers: corsHeaders });
       }
     }
 

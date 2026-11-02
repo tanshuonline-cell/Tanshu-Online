@@ -26,7 +26,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
+  const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>([]);
   const [customerAuthOpen, setCustomerAuthOpen] = useState(false);
 
   // Existing Homepage State
@@ -43,14 +43,12 @@ export default function App() {
     fetch('/api/video/catalog')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.success && Array.isArray(data.videos) && data.videos.length > 0) {
-          const merged = [...data.videos];
-          for (const lv of LATEST_VIDEOS) {
-            if (!merged.some((m) => m.id === lv.id)) {
-              merged.push(lv);
-            }
-          }
-          setCatalogVideos(merged);
+        if (data && data.success && Array.isArray(data.videos)) {
+          // The D1 catalog is the source of truth when the API responds successfully.
+          // Do not append hard-coded sample videos to the live customer catalog.
+          const freeTutorials = LATEST_VIDEOS.filter((video) => !video.isPremium && video.accessType !== 'premium' && !video.isSample);
+          const livePremiumVideos = data.videos.filter((video: VideoGuide) => (video.isPremium || video.accessType === 'premium') && !video.isSample);
+          setCatalogVideos([...freeTutorials, ...livePremiumVideos]);
         }
       })
       .catch(() => {});
@@ -70,7 +68,7 @@ export default function App() {
         const id = pathname.startsWith('/video/')
           ? pathname.replace('/video/', '')
           : hash.replace('#video/', '');
-        const found = catalogVideos.find((v) => v.id === id) || LATEST_VIDEOS.find((v) => v.id === id);
+        const found = catalogVideos.find((v) => v.id === id);
         if (found) {
           setSelectedDetailVideo(found);
           setCurrentPage('video-detail');

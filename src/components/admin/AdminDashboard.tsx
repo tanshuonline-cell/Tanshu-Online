@@ -37,6 +37,10 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases'>('overview');
   const [videos, setVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
+  const [grantPhone, setGrantPhone] = useState('');
+  const [grantVideoId, setGrantVideoId] = useState('');
+  const [grantNote, setGrantNote] = useState('');
+  const [grantSubmitting, setGrantSubmitting] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -149,7 +153,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     setFormThumbnail(video.thumbnailUrl || '');
     setFormDuration(video.duration);
     setFormCategory(video.category);
-    setFormIsPremium(Boolean(video.isPremium || video.accessType === 'premium'));
+    setFormIsPremium(true);
     setFormPrice(video.price || 99);
     setFormYoutubeUrl(video.youtubeUrl || '');
     setFormStreamVideoId(video.streamVideoId || '');
@@ -166,14 +170,28 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       return;
     }
 
-    // Validation rule: If activating a Premium video, must have a real Cloudflare Stream UID
-    if (formIsPremium && formIsActive) {
+    if (!Number.isFinite(formPrice) || formPrice <= 0) {
+      showNotification('error', 'Paid video price must be greater than ₹0.');
+      return;
+    }
+
+    // Active paid videos need either a valid YouTube URL or a genuine Cloudflare Stream UID.
+    if (formIsActive) {
       const cleanStreamId = formStreamVideoId.trim();
-      if (!cleanStreamId || cleanStreamId.startsWith('cf_stream_') || cleanStreamId.startsWith('mock_') || cleanStreamId.startsWith('stream-')) {
-        showNotification(
-          'error',
-          'Validation failed: A genuine Cloudflare Stream Video UID is required before activating a Premium video. Sample placeholder IDs cannot be active.'
-        );
+      const cleanYoutubeUrl = formYoutubeUrl.trim();
+      let validYoutube = false;
+      if (cleanYoutubeUrl) {
+        try {
+          const parsed = new URL(cleanYoutubeUrl);
+          const host = parsed.hostname.replace(/^www\\./, '').toLowerCase();
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          const id = host === 'youtu.be' ? parts[0] : parsed.searchParams.get('v') || (['embed', 'shorts'].includes(parts[0]) ? parts[1] : '');
+          validYoutube = ['youtu.be', 'youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host) && /^[A-Za-z0-9_-]{11}$/.test(id || '');
+        } catch { validYoutube = false; }
+      }
+      const validStream = !!cleanStreamId && !cleanStreamId.startsWith('cf_stream_') && !cleanStreamId.startsWith('mock_') && !cleanStreamId.startsWith('stream-');
+      if (!validYoutube && !validStream) {
+        showNotification('error', 'एक्टिव वीडियो के लिए सही YouTube URL या Cloudflare Stream UID डालें।');
         return;
       }
     }
@@ -200,12 +218,12 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       thumbnailUrl: formThumbnail.trim() || undefined,
       duration: formDuration.trim() || '20:00',
       category: formCategory,
-      isPremium: formIsPremium,
-      accessType: formIsPremium ? 'premium' : 'free',
-      price: formIsPremium ? Math.max(0, Math.floor(formPrice)) : 0,
+      isPremium: true,
+      accessType: 'premium',
+      price: Math.max(1, Math.floor(formPrice)),
       currency: 'INR',
-      youtubeUrl: !formIsPremium ? formYoutubeUrl.trim() : undefined,
-      streamVideoId: formIsPremium ? formStreamVideoId.trim() : undefined,
+      youtubeUrl: formYoutubeUrl.trim() || undefined,
+      streamVideoId: formYoutubeUrl.trim() ? '' : formStreamVideoId.trim(),
       isActive: formIsActive,
       topics: topicsArray,
     };
@@ -291,6 +309,20 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     } catch (e: any) {
       showNotification('error', e.message || 'Error updating access.');
     }
+  };
+
+  const handleGrantAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phone = grantPhone.replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(phone) || !grantVideoId) { showNotification('error', '10 अंकों का मोबाइल नंबर और वीडियो चुनें।'); return; }
+    setGrantSubmitting(true);
+    try {
+      const response = await fetch('/api/admin/grant-access', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerPhone: phone, videoId: grantVideoId, note: grantNote.trim() }) });
+      const data = await response.json();
+      if (response.ok && data.success) { showNotification('success', 'बिना पेमेंट वाला एक्सेस दे दिया गया। ग्राहक इसी मोबाइल नंबर से वीडियो सत्यापित कर सकता है।'); setGrantPhone(''); setGrantVideoId(''); setGrantNote(''); await fetchPurchases(); }
+      else showNotification('error', data.error || 'एक्सेस नहीं दिया जा सका।');
+    } catch (err: any) { showNotification('error', err.message || 'सर्वर से संपर्क नहीं हो पाया।'); }
+    finally { setGrantSubmitting(false); }
   };
 
   // Metrics Calculations
@@ -788,29 +820,10 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 </div>
               </div>
 
-              {/* Video Type: Free vs Premium */}
+              {/* Paid-only website catalog */}
               <div className="pt-2 border-t border-slate-800 space-y-3">
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                    <input
-                      type="radio"
-                      name="videoType"
-                      checked={formIsPremium}
-                      onChange={() => setFormIsPremium(true)}
-                      className="text-amber-500"
-                    />
-                    <span>Premium Masterclass (Paid)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                    <input
-                      type="radio"
-                      name="videoType"
-                      checked={!formIsPremium}
-                      onChange={() => setFormIsPremium(false)}
-                      className="text-emerald-500"
-                    />
-                    <span>Free Tutorial (YouTube)</span>
-                  </label>
+                <div className="p-3 bg-amber-950/40 border border-amber-700 rounded-xl text-xs text-amber-200">
+                  सभी वेबसाइट वीडियो Paid Masterclass होंगे। Free वीडियो वेबसाइट पर नहीं जोड़े जाएंगे।
                 </div>
 
                 {formIsPremium ? (
@@ -853,36 +866,31 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Cloudflare Stream Video UID <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formStreamVideoId}
-                        onChange={(e) => setFormStreamVideoId(e.target.value)}
-                        placeholder="32-character Cloudflare Stream Video UID"
-                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white font-mono outline-hidden"
-                      />
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Upload media into your Cloudflare Stream console to obtain the genuine 32-character UID before activating.
-                      </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-emerald-400 mb-1">YouTube Unlisted Video URL (Paid playback)</label>
+                        <input
+                          type="url"
+                          value={formYoutubeUrl}
+                          onChange={(e) => setFormYoutubeUrl(e.target.value)}
+                          placeholder="https://youtu.be/xxxxxxxxxxx"
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-1">YouTube URL देने पर ग्राहक का भुगतान और एक्सेस सत्यापित होने के बाद ही एम्बेड प्लेयर दिखेगा। वीडियो को Unlisted रखें।</p>
+                      </div>
+                      <details className="text-xs text-slate-400">
+                        <summary className="cursor-pointer">या Cloudflare Stream UID इस्तेमाल करें</summary>
+                        <input
+                          type="text"
+                          value={formStreamVideoId}
+                          onChange={(e) => setFormStreamVideoId(e.target.value)}
+                          placeholder="Cloudflare Stream Video UID"
+                          className="mt-2 w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono outline-hidden"
+                        />
+                      </details>
                     </div>
                   </div>
-                ) : (
-                  <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
-                    <label className="block text-xs font-bold text-emerald-400">
-                      YouTube Video URL or Video ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formYoutubeUrl}
-                      onChange={(e) => setFormYoutubeUrl(e.target.value)}
-                      placeholder="e.g. https://www.youtube.com/watch?v=... or ID"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden"
-                    />
-                  </div>
-                )}
+                ) : null}
               </div>
 
               {/* Topics / Curriculum */}
@@ -1113,11 +1121,20 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
         {/* TAB 4: CUSTOMER PURCHASES & REVOCATION */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
+            <section className="bg-slate-950 rounded-2xl border border-emerald-800/60 p-5 space-y-4">
+              <div><h3 className="text-sm font-extrabold text-white">Grant Complimentary Video Access</h3><p className="text-xs text-slate-400 mt-1">किसी ग्राहक को बिना पेमेंट चुने हुए paid video का एक्सेस दें। ग्राहक को वही मोबाइल नंबर इस्तेमाल करना होगा।</p></div>
+              <form onSubmit={handleGrantAccess} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="text-xs text-slate-300 space-y-1"><span>Customer mobile number</span><input value={grantPhone} onChange={(e) => setGrantPhone(e.target.value)} inputMode="numeric" maxLength={10} placeholder="10 digit mobile number" className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-white" required /></label>
+                <label className="text-xs text-slate-300 space-y-1"><span>Select paid video</span><select value={grantVideoId} onChange={(e) => setGrantVideoId(e.target.value)} className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-white" required><option value="">Choose a video</option>{videos.filter((v) => v.isActive !== false && (v.isPremium || v.accessType === 'premium')).map((v) => <option key={v.id} value={v.id}>{v.title}</option>)}</select></label>
+                <label className="text-xs text-slate-300 space-y-1 md:col-span-2"><span>Reason / note (optional)</span><input value={grantNote} onChange={(e) => setGrantNote(e.target.value)} maxLength={240} placeholder="Reason for complimentary access" className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-white" /></label>
+                <div className="md:col-span-2"><button type="submit" disabled={grantSubmitting || !videos.some((v) => v.id === grantVideoId && v.isActive !== false && (v.isPremium || v.accessType === 'premium'))} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold">{grantSubmitting ? 'Granting access...' : 'Grant Access Without Payment'}</button></div>
+              </form>
+            </section>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-extrabold text-white">Verified Customer Purchases</h2>
+                <h2 className="text-xl font-extrabold text-white">Customer Access Records</h2>
                 <p className="text-xs text-slate-400">
-                  Audit trail of server-verified Cashfree payments and customer access entitlements.
+                  Cashfree verified purchases और Admin द्वारा दिए गए complimentary access, दोनों का रिकॉर्ड।
                 </p>
               </div>
               <button
@@ -1154,10 +1171,10 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                             {p.videoTitle || p.videoId}
                           </td>
                           <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
-                            {p.orderId}
+                            {p.orderId || '—'}
                           </td>
                           <td className="py-3 px-4 font-bold text-emerald-400 font-mono">
-                            ₹{p.amountPaid}
+                            {p.paymentStatus === 'COMPLIMENTARY' ? '₹0 (No payment)' : `₹${p.amountPaid}`}
                           </td>
                           <td className="py-3 px-4">
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
@@ -1189,7 +1206,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                     ) : (
                       <tr>
                         <td colSpan={7} className="py-10 text-center text-slate-500">
-                          No verified purchase records found in database.
+                          No customer access records found in database.
                         </td>
                       </tr>
                     )}

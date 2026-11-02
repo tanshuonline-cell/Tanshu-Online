@@ -45,53 +45,73 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       videoId?: string;
     };
 
-    if (!orderId || !customerPhone || !videoId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          isPaid: false,
-          error: 'Missing required parameters: orderId, customerPhone, and videoId are required.',
-        }),
-        { status: 400, headers: corsHeaders }
-      );
+    if (!customerPhone || !videoId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'customerPhone and videoId are required.' }), { status: 400, headers: corsHeaders });
     }
 
     const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(sanitizedPhone)) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'A valid 10-digit mobile number is required.' }), { status: 400, headers: corsHeaders });
+    }
 
-    // Security check 1: Check if the order was originally registered for this specific video and phone
-    if (env.DB) {
+    // Complimentary admin grants are verified separately; no payment order is fabricated.
+    if (!orderId) {
+      if (!env.DB) return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'Access database is unavailable.' }), { status: 503, headers: corsHeaders });
       try {
-        const orderRecord = await env.DB.prepare(
-          'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
-        )
-          .bind(orderId)
-          .first();
-
-        if (orderRecord) {
-          if (orderRecord.video_id !== videoId) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: This payment was not initiated for this video.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-          if (orderRecord.customer_phone !== sanitizedPhone) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: Customer phone mismatch.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-        }
+        const grant = await env.DB.prepare(
+          `SELECT g.id FROM admin_video_access_grants g
+           INNER JOIN videos v ON v.id = g.video_id
+           WHERE g.customer_phone = ? AND g.video_id = ? AND g.is_revoked = 0
+             AND v.is_active = 1 AND v.access_type = 'premium' AND v.is_premium = 1
+           LIMIT 1`
+        ).bind(sanitizedPhone, videoId).first();
+        if (!grant) return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'No active admin-granted access was found for this mobile number and video.' }), { status: 403, headers: corsHeaders });
+        const signingKey = env.ADMIN_SECRET_TOKEN;
+        if (!signingKey || signingKey.includes('YOUR_')) return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'Secure access signing is not configured.' }), { status: 503, headers: corsHeaders });
+        const payloadStr = JSON.stringify({ p: sanitizedPhone, v: videoId, g: grant.id, t: Date.now(), exp: Date.now() + 30 * 24 * 3600 * 1000 });
+        const b64Payload = btoa(payloadStr);
+        const signature = await createSignature(b64Payload, signingKey);
+        const sessionToken = `${b64Payload}.${signature}`;
+        corsHeaders['Set-Cookie'] = `tanshu_video_${videoId}_access=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+        return new Response(JSON.stringify({ success: true, isPaid: false, accessGranted: true, accessType: 'complimentary', videoId, customerPhone: sanitizedPhone, sessionToken, message: 'Complimentary access verified.' }), { status: 200, headers: corsHeaders });
       } catch (dbErr) {
-        console.warn('D1 order pre-check warning:', dbErr);
+        console.error('Complimentary access lookup failed:', dbErr);
+        return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'Could not verify complimentary access.' }), { status: 503, headers: corsHeaders });
       }
+    }
+
+    // Fail closed: every payment must match an order stored before checkout.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment database is unavailable. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
+    let orderRecord: any;
+    try {
+      orderRecord = await env.DB.prepare(
+        'SELECT video_id, customer_phone, order_status, order_amount FROM payment_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+    } catch (dbErr) {
+      console.error('D1 order pre-check failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not validate the payment order. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
+    if (!orderRecord || orderRecord.video_id !== videoId || orderRecord.customer_phone !== sanitizedPhone) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Order, video, or customer details do not match. Access denied.' }), { status: 403, headers: corsHeaders });
+    }
+
+    // A customer-side payment recheck must never undo an administrator's explicit revocation.
+    let existingEntitlement: any;
+    try {
+      existingEntitlement = await env.DB.prepare(
+        'SELECT id, order_id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? LIMIT 1'
+      ).bind(sanitizedPhone, videoId).first();
+    } catch (dbErr) {
+      console.error('D1 entitlement pre-check failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not validate the existing access record. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
+    if (existingEntitlement && Number(existingEntitlement.is_revoked) === 1) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'This access was revoked by an administrator. Please contact support.' }), { status: 403, headers: corsHeaders });
+    }
+    if (existingEntitlement && existingEntitlement.order_id !== orderId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'A different purchase record already exists for this video and mobile number. Manual review is required; access was not reassigned.' }), { status: 409, headers: corsHeaders });
     }
 
     const appId = env.CASHFREE_APP_ID;
@@ -142,6 +162,16 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
+    if (cfData.order_id !== orderId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Cashfree returned a different order ID. Access denied.' }), { status: 403, headers: corsHeaders });
+    }
+
+    const gatewayAmount = Number(cfData.order_amount);
+    const storedAmount = Number(orderRecord.order_amount);
+    if (!Number.isFinite(gatewayAmount) || !Number.isFinite(storedAmount) || gatewayAmount !== storedAmount || cfData.order_currency !== 'INR') {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment amount or currency does not match the saved order. Access denied.' }), { status: 403, headers: corsHeaders });
+    }
+
     if (cfData.order_status === 'PAID') {
       isPaid = true;
       cfPaymentId = cfData.cf_payment_id ? String(cfData.cf_payment_id) : undefined;
@@ -168,13 +198,11 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Persist and grant access in D1 database
+    // Persist payment and grant access without ever overwriting an existing entitlement.
     const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-    if (env.DB) {
-      try {
-        // Update payment order status to PAID
-        await env.DB.prepare(
+    try {
+      await env.DB.batch([
+        env.DB.prepare(
           `UPDATE payment_orders
            SET order_status = 'PAID',
                cf_payment_id = ?,
@@ -182,39 +210,38 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
                raw_verification_json = ?,
                updated_at = CURRENT_TIMESTAMP
            WHERE order_id = ?`
-        )
-          .bind(
-            cfPaymentId || null,
-            paymentMethod || 'UPI/Card/Netbanking',
-            JSON.stringify(rawVerification),
-            orderId
-          )
-          .run();
-
-        // Idempotent access grant: Insert or update
-        await env.DB.prepare(
+        ).bind(
+          cfPaymentId || null,
+          cfData.payment_method || cfData.payment_group || 'UPI/Card/Netbanking',
+          JSON.stringify(rawVerification),
+          orderId
+        ),
+        env.DB.prepare(
           `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
-           VALUES (?, ?, ?, ?, ?, 0)
-           ON CONFLICT(customer_phone, video_id) DO UPDATE SET
-             order_id = excluded.order_id,
-             is_revoked = 0,
-             updated_at = CURRENT_TIMESTAMP`
-        )
-          .bind(
-            accessId,
-            sanitizedPhone,
-            customerEmail || null,
-            videoId,
-            orderId
-          )
-          .run();
-      } catch (dbErr) {
-        console.warn('D1 verification update warning:', dbErr);
+           SELECT ?, ?, ?, ?, ?, 0
+           WHERE EXISTS (SELECT 1 FROM payment_orders WHERE order_id = ? AND order_status = 'PAID')
+           ON CONFLICT(customer_phone, video_id) DO NOTHING`
+        ).bind(accessId, sanitizedPhone, customerEmail || null, videoId, orderId, orderId),
+      ]);
+
+      // Confirm the row belongs to this exact order and is still active. A concurrent
+      // purchase or Admin revocation must not be silently replaced.
+      const savedEntitlement = await env.DB.prepare(
+        'SELECT order_id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? LIMIT 1'
+      ).bind(sanitizedPhone, videoId).first();
+      if (!savedEntitlement || savedEntitlement.order_id !== orderId || Number(savedEntitlement.is_revoked) === 1) {
+        return new Response(JSON.stringify({ success: false, isPaid: true, error: 'Payment is confirmed, but an existing access record prevents automatic unlock. Please contact support with your order ID.' }), { status: 409, headers: corsHeaders });
       }
+    } catch (dbErr) {
+      console.error('D1 verification update failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment was confirmed, but access could not be saved. Please contact support; the video remains locked.' }), { status: 503, headers: corsHeaders });
     }
 
-    // Generate secure customer session token specifically for this (phone, videoId)
-    const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
+    // Generate secure customer session token only from the configured server secret.
+    const signingKey = env.ADMIN_SECRET_TOKEN;
+    if (!signingKey || signingKey.includes('YOUR_')) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Secure access signing is not configured. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
     const payloadStr = JSON.stringify({
       p: sanitizedPhone,
       v: videoId,

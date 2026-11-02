@@ -54,41 +54,36 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Step 1: Check if the video is Free or Premium
-    let isPremium = true;
-    let streamVideoId = '';
-    let youtubeUrl: string | undefined;
-
-    if (env.DB) {
-      try {
-        const videoRecord = await env.DB.prepare(
-          'SELECT access_type, is_premium, stream_video_id, youtube_url FROM videos WHERE id = ?'
-        )
-          .bind(videoId)
-          .first();
-
-        if (videoRecord) {
-          isPremium = videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium);
-          streamVideoId = videoRecord.stream_video_id || '';
-          youtubeUrl = videoRecord.youtube_url;
-        }
-      } catch (dbErr) {
-        console.warn('D1 video lookup warning:', dbErr);
-      }
+    // Paid catalog only: database and active premium video record are mandatory.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ authorized: false, error: 'Video database is unavailable. Access denied.' }), { status: 503, headers: corsHeaders });
     }
-
-    // If video is free, allow playback
-    if (!isPremium) {
-      return new Response(
-        JSON.stringify({
-          authorized: true,
-          accessType: 'free',
-          videoId,
-          youtubeUrl,
-          message: 'Free video access authorized',
-        }),
-        { status: 200, headers: corsHeaders }
-      );
+    let streamVideoId = '';
+    let youtubeVideoId = '';
+    try {
+      const videoRecord = await env.DB.prepare(
+        'SELECT access_type, is_premium, stream_video_id, youtube_url FROM videos WHERE id = ? AND is_active = 1'
+      ).bind(videoId).first();
+      if (!videoRecord || videoRecord.access_type !== 'premium' || Number(videoRecord.is_premium) !== 1) {
+        return new Response(JSON.stringify({ authorized: false, error: 'This paid video is unavailable or not active.' }), { status: 404, headers: corsHeaders });
+      }
+      streamVideoId = videoRecord.stream_video_id || '';
+      const rawYoutubeUrl = typeof videoRecord.youtube_url === 'string' ? videoRecord.youtube_url.trim() : '';
+      if (rawYoutubeUrl) {
+        try {
+          const parsedUrl = new URL(rawYoutubeUrl);
+          const host = parsedUrl.hostname.replace(/^www\\./, '').toLowerCase();
+          const candidate = host === 'youtu.be'
+            ? parsedUrl.pathname.split('/').filter(Boolean)[0]
+            : ['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host)
+              ? (parsedUrl.searchParams.get('v') || parsedUrl.pathname.split('/').filter(Boolean).slice(-1)[0])
+              : '';
+          if (candidate && /^[A-Za-z0-9_-]{11}$/.test(candidate)) youtubeVideoId = candidate;
+        } catch { /* Ignore invalid stored URLs and fall back to Stream validation. */ }
+      }
+    } catch (dbErr) {
+      console.error('D1 video lookup failed:', dbErr);
+      return new Response(JSON.stringify({ authorized: false, error: 'Could not validate this video. Access denied.' }), { status: 503, headers: corsHeaders });
     }
 
     // Step 2: For premium video, verify phone and cryptographic session token
@@ -103,6 +98,9 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(sanitizedPhone)) {
+      return new Response(JSON.stringify({ authorized: false, error: 'A valid 10-digit mobile number is required.' }), { status: 400, headers: corsHeaders });
+    }
 
     // Extract session token from Authorization header, body, or HttpOnly cookie
     const authHeader = request.headers.get('Authorization') || '';
@@ -122,9 +120,13 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     let isSessionValid = false;
+    let parsed: any;
     try {
       const [b64Payload, sig] = tokenToValidate.split('.');
-      const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
+      const signingKey = env.ADMIN_SECRET_TOKEN;
+      if (!signingKey || signingKey.includes('YOUR_')) {
+        return new Response(JSON.stringify({ authorized: false, error: 'Secure access signing is not configured.' }), { status: 503, headers: corsHeaders });
+      }
       const isValidSig = await verifySignature(b64Payload, sig, signingKey);
 
       if (!isValidSig) {
@@ -137,7 +139,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         );
       }
 
-      const parsed = JSON.parse(atob(b64Payload));
+      parsed = JSON.parse(atob(b64Payload));
       // Cross-video & identity check: Token must match this specific video and customer phone
       if (parsed.v !== videoId) {
         return new Response(
@@ -159,7 +161,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         );
       }
 
-      if (parsed.exp && parsed.exp < Date.now()) {
+      if (!Number.isFinite(parsed.exp) || parsed.exp <= Date.now()) {
         return new Response(
           JSON.stringify({
             authorized: false,
@@ -190,31 +192,41 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Step 2b: If D1 Database is available, verify unrevoked database entitlement
-    if (env.DB) {
-      try {
-        const accessRecord = await env.DB.prepare(
-          `SELECT id, is_revoked FROM customer_video_access
-           WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
-        )
-          .bind(sanitizedPhone, videoId)
-          .first();
-
-        if (!accessRecord) {
-          return new Response(
-            JSON.stringify({
-              authorized: false,
-              error: 'Access denied. You have not purchased this premium video, or your access was revoked.',
-            }),
-            { status: 403, headers: corsHeaders }
-          );
-        }
-      } catch (dbErr) {
-        console.warn('D1 access check warning:', dbErr);
+    // The signed token type must match its own active entitlement; revoked grants cannot fall back to unrelated records.
+    try {
+      let accessRecord: any = null;
+      if (parsed.g && typeof parsed.g === 'string') {
+        accessRecord = await env.DB.prepare(
+          `SELECT id FROM admin_video_access_grants
+           WHERE id = ? AND customer_phone = ? AND video_id = ? AND is_revoked = 0 LIMIT 1`
+        ).bind(parsed.g, sanitizedPhone, videoId).first();
+      } else if (parsed.o && typeof parsed.o === 'string') {
+        accessRecord = await env.DB.prepare(
+          `SELECT id FROM customer_video_access
+           WHERE customer_phone = ? AND video_id = ? AND order_id = ? AND is_revoked = 0 LIMIT 1`
+        ).bind(sanitizedPhone, videoId, parsed.o).first();
       }
+      if (!accessRecord) {
+        return new Response(JSON.stringify({ authorized: false, error: 'This session has no matching active purchase or complimentary grant.' }), { status: 403, headers: corsHeaders });
+      }
+    } catch (dbErr) {
+      console.error('D1 access check failed:', dbErr);
+      return new Response(JSON.stringify({ authorized: false, error: 'Could not verify your access record. Access denied.' }), { status: 503, headers: corsHeaders });
     }
 
-    // Step 3: Video is verified! Validate Cloudflare Stream credentials & video asset
+    // Only reveal the YouTube embed after the signed session and matching active entitlement are verified.
+    if (youtubeVideoId) {
+      return new Response(JSON.stringify({
+        authorized: true,
+        accessType: 'premium',
+        videoId,
+        provider: 'youtube',
+        youtubeEmbedUrl: `https://www.youtube-nocookie.com/embed/${youtubeVideoId}?rel=0`,
+        expiresInSeconds: Math.max(0, Math.floor((parsed.exp - Date.now()) / 1000)),
+      }), { status: 200, headers: corsHeaders });
+    }
+
+    // Stream fallback: generate a short-lived Cloudflare Stream playback token.
     const accountId = env.CLOUDFLARE_STREAM_ACCOUNT_ID;
     const apiToken = env.CLOUDFLARE_STREAM_API_TOKEN;
 

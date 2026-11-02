@@ -59,13 +59,13 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
         throw new Error(data.error || 'Failed to create payment order.');
       }
 
-      // Check if user already owned this video
+      // Existing entitlement is not enough by itself: re-check the original Cashfree order
+      // server-side to issue a fresh, video-scoped session token.
       if (data.alreadyPurchased) {
-        setStep('success');
-        setStatusMessage('Active access found! Unlocking your masterclass now...');
-        setTimeout(() => {
-          onPaymentSuccess(video.id, sanitizedPhone);
-        }, 1200);
+        if (!data.orderId) {
+          throw new Error('Existing access record has no payment order reference. Please contact support.');
+        }
+        await handleVerifyPayment(data.orderId);
         return;
       }
 
@@ -84,31 +84,64 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
     }
   };
 
-  // Launch Cashfree SDK if available
+  // Launch Cashfree SDK and surface safe, actionable errors in the checkout UI.
   const launchCashfreeSdk = (sessionId: string, orderId: string, env: string) => {
     const cfScriptId = 'cashfree-js-sdk-v3';
-    let script = document.getElementById(cfScriptId) as HTMLScriptElement;
+    let script = document.getElementById(cfScriptId) as HTMLScriptElement | null;
+
+    const failCheckout = (message: string) => {
+      console.error('Cashfree checkout failed:', message);
+      setStep('failed');
+      setErrorMessage(message);
+    };
 
     const onScriptLoaded = () => {
-      const cashfreeInstance = (window as any).Cashfree?.({
-        mode: env === 'PRODUCTION' ? 'production' : 'sandbox',
-      });
+      try {
+        const cashfreeFactory = (window as any).Cashfree;
+        if (typeof cashfreeFactory !== 'function') {
+          failCheckout('Cashfree payment window could not initialize. Please refresh the page and try again.');
+          return;
+        }
 
-      if (cashfreeInstance) {
-        cashfreeInstance.checkout({
+        const cashfreeInstance = cashfreeFactory({
+          mode: env === 'PRODUCTION' ? 'production' : 'sandbox',
+        });
+
+        if (!cashfreeInstance || typeof cashfreeInstance.checkout !== 'function') {
+          failCheckout('Cashfree payment service is unavailable. Please try again later.');
+          return;
+        }
+
+        Promise.resolve(cashfreeInstance.checkout({
           paymentSessionId: sessionId,
           redirectTarget: '_modal',
-        }).then((result: any) => {
-          if (result.error) {
-            console.warn('Cashfree popup error or closed:', result.error);
+        })).then((result: any) => {
+          if (result?.error) {
+            const detail = typeof result.error.message === 'string'
+              ? result.error.message.trim().slice(0, 240)
+              : '';
+            failCheckout(detail
+              ? `Cashfree checkout error: ${detail}`
+              : 'Cashfree could not authenticate this payment session. Please try again; if it continues, contact support.');
+            return;
           }
-          if (result.redirect) {
-            console.log('Payment redirection started');
+          if (result?.redirect) {
+            console.log('Cashfree payment redirection started.');
           }
-          if (result.paymentDetails) {
+          if (result?.paymentDetails) {
             handleVerifyPayment(orderId);
           }
+        }).catch((error: any) => {
+          const detail = typeof error?.message === 'string' ? error.message.trim().slice(0, 240) : '';
+          failCheckout(detail
+            ? `Cashfree checkout could not open: ${detail}`
+            : 'Cashfree checkout could not open. Please refresh the page and try again.');
         });
+      } catch (error: any) {
+        const detail = typeof error?.message === 'string' ? error.message.trim().slice(0, 240) : '';
+        failCheckout(detail
+          ? `Cashfree initialization error: ${detail}`
+          : 'Cashfree payment service could not initialize. Please try again.');
       }
     };
 
@@ -117,9 +150,15 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
       script.id = cfScriptId;
       script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
       script.onload = onScriptLoaded;
+      script.onerror = () => failCheckout('Cashfree payment library failed to load. Check your connection and try again.');
       document.body.appendChild(script);
-    } else {
+    } else if ((window as any).Cashfree) {
       onScriptLoaded();
+    } else {
+      script.addEventListener('load', onScriptLoaded, { once: true });
+      script.addEventListener('error', () => {
+        failCheckout('Cashfree payment library failed to load. Check your connection and try again.');
+      }, { once: true });
     }
   };
 
@@ -149,9 +188,9 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
 
       const data = await response.json();
 
-      if (response.ok && data.isPaid) {
+      if (response.ok && (data.isPaid || data.accessGranted)) {
         setStep('success');
-        setStatusMessage('Payment verified! Video masterclass unlocked successfully.');
+        setStatusMessage(data.accessGranted ? 'Complimentary access verified! Video unlocked successfully.' : 'Payment verified! Video masterclass unlocked successfully.');
         setTimeout(() => {
           onPaymentSuccess(video.id, sanitizedPhone, data.sessionToken);
         }, 1500);
@@ -412,7 +451,7 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
                   <div className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-xl space-y-1.5 text-[11px] text-amber-950">
                     <div className="flex items-center gap-1.5">
                       <CheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                      <span>Instant Cloudflare Stream Full HD playback after payment</span>
+                      <span>Instant secure video playback after payment</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <CheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
@@ -436,73 +475,22 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
               ) : (
                 <div className="space-y-4">
                   <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
-                    <strong className="block font-bold text-blue-950 mb-0.5">Account Security Policy:</strong>
-                    To protect customer purchases from unauthorized viewing, access restoration requires Two-Factor SMS OTP verification to your registered mobile number.
+                    <strong className="block font-bold text-blue-950 mb-0.5">Restore Secure Access:</strong>
+                    अपना वही 10 अंकों का मोबाइल नंबर डालें जिससे वीडियो खरीदा था या जिस पर Admin ने complimentary access दिया है। सर्वर रिकॉर्ड जाँचकर ही वीडियो खोलेगा।
                   </div>
-
-                  {!restoreOtpSent ? (
-                    <form onSubmit={handleRequestRestoreOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Registered Mobile Number <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-500">
-                            +91
-                          </span>
-                          <input
-                            type="tel"
-                            maxLength={10}
-                            required
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            placeholder="98765 43210"
-                            className="w-full pl-12 pr-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 transition-all outline-hidden"
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          A 2-Factor verification code will be sent to this number to verify ownership.
-                        </p>
+                  <form onSubmit={handleRequestRestoreOtp} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Registered Mobile Number <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-500">+91</span>
+                        <input type="tel" maxLength={10} required value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="98765 43210" className="w-full pl-12 pr-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 transition-all outline-hidden" />
                       </div>
-
-                      <button
-                        type="submit"
-                        disabled={!isPhoneValid}
-                        className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                      >
-                        <span>Send Verification OTP (2FA)</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyRestoreOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Enter Verification OTP <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          required
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="Enter 6-digit OTP"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-bold tracking-widest text-slate-900 placeholder:text-slate-400 transition-all outline-hidden text-center"
-                        />
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          Sent to +91 {sanitizedPhone}
-                        </p>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span>Verify OTP & Unlock Access</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  )}
+                      <p className="text-[10px] text-slate-500 mt-1">कोई OTP नहीं भेजा जाएगा। मौजूदा purchase या admin access रिकॉर्ड सर्वर पर verify होगा।</p>
+                    </div>
+                    <button type="submit" disabled={!isPhoneValid} className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
+                      <span>Verify & Restore Video Access</span><ArrowRight className="w-4 h-4" />
+                    </button>
+                  </form>
                 </div>
               )}
             </>

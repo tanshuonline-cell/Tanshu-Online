@@ -47,7 +47,9 @@ async function verifyAdminAuth(request: Request, env: Env): Promise<boolean> {
     const isValid = await verifyHmac(b64, sig, signingKey);
     if (isValid) {
       const payload = JSON.parse(atob(b64));
-      return !payload.exp || payload.exp > Date.now();
+      return payload.role === 'superadmin' &&
+        typeof payload.u === 'string' && payload.u.length > 0 &&
+        Number.isFinite(payload.exp) && payload.exp > Date.now();
     }
   } catch {
     return false;
@@ -69,25 +71,34 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   if (!env.DB) {
     return new Response(
       JSON.stringify({
-        success: true,
+        success: false,
         purchases: [],
-        message: 'D1 database binding not active.',
+        error: 'D1 database binding is unavailable. Purchase history cannot be verified.',
       }),
-      { status: 200, headers: corsHeaders }
+      { status: 503, headers: corsHeaders }
     );
   }
 
   try {
     const { results } = await env.DB.prepare(
-      `SELECT a.id, a.customer_phone, a.customer_email, a.video_id, 
-              v.title as video_title, a.order_id, 
-              COALESCE(o.order_amount, v.price, 99) as amount_paid,
-              COALESCE(o.order_status, 'PAID') as payment_status,
-              a.granted_at, a.is_revoked
-       FROM customer_video_access a
-       LEFT JOIN videos v ON a.video_id = v.id
-       LEFT JOIN payment_orders o ON a.order_id = o.order_id
-       ORDER BY a.granted_at DESC`
+      `SELECT * FROM (
+         SELECT a.id, a.customer_phone, a.customer_email, a.video_id,
+                v.title as video_title, a.order_id,
+                COALESCE(o.order_amount, 0) as amount_paid,
+                COALESCE(o.order_status, 'UNKNOWN') as payment_status,
+                a.granted_at, a.is_revoked, 'PURCHASE' as access_source
+         FROM customer_video_access a
+         LEFT JOIN videos v ON a.video_id = v.id
+         LEFT JOIN payment_orders o ON a.order_id = o.order_id
+         UNION ALL
+         SELECT g.id, g.customer_phone, NULL as customer_email, g.video_id,
+                v.title as video_title, NULL as order_id,
+                0 as amount_paid, 'COMPLIMENTARY' as payment_status,
+                g.granted_at, g.is_revoked, 'ADMIN_GRANT' as access_source
+         FROM admin_video_access_grants g
+         LEFT JOIN videos v ON g.video_id = v.id
+       )
+       ORDER BY granted_at DESC`
     ).all();
 
     // Mask customer identifiers for privacy compliance
@@ -104,8 +115,9 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         videoId: row.video_id,
         videoTitle: row.video_title || row.video_id,
         orderId: row.order_id,
-        amountPaid: Number(row.amount_paid) || 99,
+        amountPaid: Number(row.amount_paid) || 0,
         paymentStatus: row.payment_status,
+        accessSource: row.access_source,
         grantedAt: row.granted_at,
         isRevoked: Boolean(row.is_revoked),
       };

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Play, Lock, Clock, ArrowRight, Sparkles, GraduationCap, Info } from 'lucide-react';
 import { VideoGuide } from '../../types';
-import { LATEST_VIDEOS } from '../../data/videosData';
 import { useLanguage } from '../../context/LanguageContext';
 import { FreeGuideDetailsModal } from './FreeGuideDetailsModal';
 
@@ -14,7 +13,7 @@ interface Props {
 export const VideoLearningCenter: React.FC<Props> = ({
   onOpenCatalog,
   onSelectVideo,
-  videos = LATEST_VIDEOS,
+  videos = [],
 }) => {
   const { t, isHindi } = useLanguage();
   const [selectedFreeGuide, setSelectedFreeGuide] = useState<VideoGuide | null>(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ArrowLeft,
   Play,
@@ -34,23 +34,8 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
   const isPremium = video.isPremium || video.accessType === 'premium';
   const price = video.price || 99;
 
-  // Check if customer already has a stored verified session for this specific video in localStorage
-  useEffect(() => {
-    if (!isPremium) return;
-    try {
-      const stored = localStorage.getItem('tanshu_purchased_videos_v1');
-      if (stored) {
-        const records = JSON.parse(stored);
-        if (records[video.id] && records[video.id].phone && records[video.id].sessionToken) {
-          setIsUnlocked(true);
-          setCustomerPhone(records[video.id].phone);
-          setSessionToken(records[video.id].sessionToken);
-        }
-      }
-    } catch (e) {
-      console.warn('LocalStorage entitlement check notice:', e);
-    }
-  }, [video.id, isPremium]);
+  // Browser storage is only a convenience cache, never proof of purchase.
+  // Existing purchases must be re-verified against Cashfree by the server before unlocking.
 
   const handlePaymentSuccess = (videoId: string, phone: string, token?: string) => {
     setIsCheckoutOpen(false);
