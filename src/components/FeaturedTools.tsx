@@ -10,17 +10,10 @@ import scannerImg from '../assets/images/tool_doc_scanner_rectifier_179321193834
 import pvcCropperImg from '../assets/images/tool_pdf_to_pvc_cropper_1793211938406.jpg';
 import idLayoutImg from '../assets/images/tool_id_front_back_layout_1793211939391.jpg';
 import invoiceImg from '../assets/images/tool_invoice_generator_1793211940230.jpg';
-import studioBoyImg from '../assets/images/studio_sample_boy.jpg';
-import studioGirlImg from '../assets/images/studio_sample_girl.jpg';
 
 const StudioSamplePreview: React.FC = () => (
-  <div className="grid h-full grid-cols-2 gap-2 bg-gradient-to-br from-slate-100 to-sky-50 p-2.5">
-    <div className="min-w-0 overflow-hidden rounded-lg border border-white bg-white shadow-md">
-      <img src={studioBoyImg} alt="Sample portrait" className="h-full w-full object-cover object-top" />
-    </div>
-    <div className="min-w-0 overflow-hidden rounded-lg border border-white bg-white shadow-md">
-      <img src={studioGirlImg} alt="Sample portrait" className="h-full w-full object-cover object-top" />
-    </div>
+  <div className="h-full w-full overflow-hidden bg-slate-100">
+    <img src={passportImg} alt="Passport photo studio sample" className="h-full w-full object-cover object-center" />
   </div>
 );
 
