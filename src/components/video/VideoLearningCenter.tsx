@@ -19,21 +19,9 @@ export const VideoLearningCenter: React.FC<Props> = ({
   const { t, isHindi } = useLanguage();
   const [selectedFreeGuide, setSelectedFreeGuide] = useState<VideoGuide | null>(null);
 
-  // Requirement: Display a maximum of four cards in this exact sequence: Free, Premium, Free, Premium.
-  // Using actual configured video records and their real Free/Premium status.
-  const freeVideos = videos.filter((v) => !v.isPremium && v.accessType !== 'premium' && v.isActive !== false);
-  const premiumVideos = videos.filter((v) => (v.isPremium || v.accessType === 'premium') && v.isActive !== false);
-
-  const homepageVideos: VideoGuide[] = [
-    // 1. Free
-    freeVideos.find((v) => v.id === 'pvc-card-printing-guide') || freeVideos[0],
-    // 2. Premium
-    premiumVideos.find((v) => v.id === 'premium-photoshop-pvc-batch') || premiumVideos[0],
-    // 3. Free
-    freeVideos.find((v) => v.id === 'ration-card-online-apply') || freeVideos[1],
-    // 4. Premium
-    premiumVideos.find((v) => v.id === 'premium-csc-mastery-2026') || premiumVideos[1],
-  ].filter(Boolean);
+  // Show the first four active videos from the live catalog (API data is preferred by App).
+  // This prevents stale hard-coded sample cards from appearing on the homepage.
+  const homepageVideos = videos.filter((video) => video.isActive !== false).slice(0, 4);
 
   return (
     <section id="video-learning-center" className="py-10 bg-slate-50 border-b border-slate-200">
