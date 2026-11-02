@@ -97,6 +97,20 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Order, video, or customer details do not match. Access denied.' }), { status: 403, headers: corsHeaders });
     }
 
+    // A customer-side payment recheck must never undo an administrator's explicit revocation.
+    let existingEntitlement: any;
+    try {
+      existingEntitlement = await env.DB.prepare(
+        'SELECT id, is_revoked FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND order_id = ? LIMIT 1'
+      ).bind(sanitizedPhone, videoId, orderId).first();
+    } catch (dbErr) {
+      console.error('D1 entitlement pre-check failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not validate the existing access record. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
+    if (existingEntitlement && Number(existingEntitlement.is_revoked) === 1) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'This access was revoked by an administrator. Please contact support.' }), { status: 403, headers: corsHeaders });
+    }
+
     const appId = env.CASHFREE_APP_ID;
     const secretKey = env.CASHFREE_SECRET_KEY;
     const isProd = env.CASHFREE_ENVIRONMENT === 'PRODUCTION';
@@ -143,6 +157,10 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         }),
         { status: cfResponse.status, headers: corsHeaders }
       );
+    }
+
+    if (cfData.order_id !== orderId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Cashfree returned a different order ID. Access denied.' }), { status: 403, headers: corsHeaders });
     }
 
     const gatewayAmount = Number(cfData.order_amount);
