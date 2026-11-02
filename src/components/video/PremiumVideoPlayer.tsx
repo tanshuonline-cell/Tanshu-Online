@@ -21,6 +21,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [playbackToken, setPlaybackToken] = useState<string | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+  const [youtubeEmbedUrl, setYoutubeEmbedUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'chapters' | 'about'>('chapters');
   const [isBlurred, setIsBlurred] = useState<boolean>(false);
@@ -108,8 +109,11 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
         setAuthorized(true);
         setPlaybackToken(data.playbackToken || 'active_token');
         setPlaybackUrl(data.playbackUrl || null);
+        setYoutubeEmbedUrl(data.youtubeEmbedUrl || null);
       } else {
         setAuthorized(false);
+        setYoutubeEmbedUrl(null);
+        setPlaybackUrl(null);
         setErrorMessage(
           data.error || 'Access Denied: Server could not verify an active purchase entitlement for this phone number.'
         );
@@ -187,30 +191,44 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center text-slate-300 gap-3 p-6 text-center">
               <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
-              <div className="text-sm font-semibold">Verifying Purchase & Generating Cloudflare Stream Token...</div>
+              <div className="text-sm font-semibold">Verifying Purchase & Unlocking Video...</div>
               <div className="text-xs text-slate-500">Checking server entitlement records</div>
             </div>
           ) : authorized ? (
             <div className="relative w-full h-full bg-black">
-              {/* Cloudflare Stream Official Signed Embed Player (Download & Built-in Sharing Disabled) */}
-              <iframe
-                src={`https://iframe.videodelivery.net/${playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
-                title={video.title}
-                className="w-full h-full border-0 select-none pointer-events-auto"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                allowFullScreen
-              />
-
-              {/* Dynamic Anti-Piracy Watermark Badge (Top Right) */}
-              <div className="absolute top-3 right-3 pointer-events-none z-30 px-2.5 py-1 bg-black/75 backdrop-blur-xs border border-white/10 rounded-md text-[10px] font-mono text-slate-300 flex items-center gap-1.5 shadow-lg select-none">
-                <Shield className="w-3 h-3 text-emerald-400 shrink-0" />
-                <span>Licensed to: {maskedPhone}</span>
-              </div>
-
-              {/* Secondary Discreet Floating Session Stamp (Bottom Left) */}
-              <div className="absolute bottom-3 left-3 pointer-events-none z-30 px-2 py-0.5 bg-black/60 backdrop-blur-2xs rounded text-[9px] font-mono text-slate-400 opacity-70 select-none">
-                Tanshu Protected Stream • ID #{sanitizedPhone.slice(-4) || 'AUTH'}
-              </div>
+              {youtubeEmbedUrl ? (
+                <div className="w-full h-full flex flex-col bg-black">
+                  <iframe
+                    src={youtubeEmbedUrl}
+                    title={video.title}
+                    className="w-full flex-1 min-h-0 border-0"
+                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                  <div className="shrink-0 px-3 py-1.5 bg-slate-950/95 border-t border-white/10 flex items-center justify-between gap-2 text-[10px] font-mono text-slate-300">
+                    <span className="font-bold tracking-wide text-amber-400">TANSHU ONLINE • LICENSED ACCESS</span>
+                    <span>Customer: {maskedPhone}</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <iframe
+                    src={`https://iframe.videodelivery.net/${playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
+                    title={video.title}
+                    className="w-full h-full border-0 select-none pointer-events-auto"
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                    allowFullScreen
+                  />
+                  <div className="absolute top-3 right-3 pointer-events-none z-30 px-2.5 py-1 bg-black/75 border border-white/10 rounded-md text-[10px] font-mono text-slate-300 flex items-center gap-1.5 shadow-lg select-none">
+                    <Shield className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span>Licensed to: {maskedPhone}</span>
+                  </div>
+                  <div className="absolute bottom-3 left-3 pointer-events-none z-30 px-2 py-0.5 bg-black/60 rounded text-[9px] font-mono text-slate-400 opacity-70 select-none">
+                    Tanshu Protected Stream • ID #{sanitizedPhone.slice(-4) || 'AUTH'}
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-6 max-w-md text-white">
@@ -335,7 +353,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
 
               <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800 text-slate-400 text-[11px]">
                 <strong className="text-slate-200 block mb-1">Licensed Access Notice:</strong>
-                This video is digitally watermarked with your registered number ({maskedPhone}). Stream URL tokens are short-lived and non-transferable.
+                This video is digitally watermarked with your registered number ({maskedPhone}). YouTube Unlisted videos can still be shared by anyone who obtains the link; this player checks the customer entitlement before revealing the embed.
               </div>
             </div>
           )}
@@ -345,7 +363,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
         <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Cloudflare Stream Token-Signed Playback & Dynamic Watermarking</span>
+            <span>Verified Paid Access • Tanshu Online</span>
           </div>
           <button
             onClick={onClose}
