@@ -10,14 +10,30 @@ type PhotoPreset = 'india' | 'stamp' | 'pan' | 'custom';
 type Paper = 'single' | '4x6' | 'A4';
 type Mode = 'official' | 'beauty';
 type SignatureBackground = 'transparent' | 'white' | 'custom';
-type PhotoEdit = { zoom: number; moveX: number; moveY: number; brightness: number; contrast: number; saturation: number; smooth: number };
+type PhotoEdit = { zoom: number; moveX: number; moveY: number; cropX: number; cropY: number; cropW: number; cropH: number; brightness: number; contrast: number; saturation: number; smooth: number };
 type SheetRect = { slot: number; photoId: string; x: number; y: number; w: number; h: number };
-const DEFAULT_EDIT: PhotoEdit = { zoom: 1, moveX: 0, moveY: 0, brightness: 100, contrast: 100, saturation: 100, smooth: 0 };
+const DEFAULT_EDIT: PhotoEdit = { zoom: 1, moveX: 0, moveY: 0, cropX: 0, cropY: 0, cropW: 100, cropH: 100, brightness: 100, contrast: 100, saturation: 100, smooth: 0 };
 
 const PRESETS: Record<Exclude<PhotoPreset, 'custom'>, { label: string; width: number; height: number }> = {
   india: { label: 'India Passport / Exam · 35 × 45 mm', width: 413, height: 531 },
   stamp: { label: 'Stamp Photo · 25 × 30 mm', width: 295, height: 354 },
   pan: { label: 'PAN Photo · 25 × 35 mm', width: 295, height: 413 }
+};
+
+// Local color-key background removal for plain edge-connected backgrounds (not AI segmentation).
+const removePlainBackground = (source: HTMLImageElement, tolerance: number): HTMLCanvasElement => {
+  const canvas = document.createElement('canvas'); canvas.width = source.naturalWidth || source.width; canvas.height = source.naturalHeight || source.height;
+  const ctx = canvas.getContext('2d'); if (!ctx) return canvas; ctx.drawImage(source, 0, 0);
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height), { data, width, height } = image;
+  const sample = (x:number,y:number) => { const i=(y*width+x)*4; return [data[i],data[i+1],data[i+2]]; };
+  const corners=[sample(0,0),sample(width-1,0),sample(0,height-1),sample(width-1,height-1)];
+  const bg=[0,1,2].map(c=>Math.round(corners.reduce((sum,rgb)=>sum+rgb[c],0)/4));
+  const matches=(i:number)=>Math.max(Math.abs(data[i]-bg[0]),Math.abs(data[i+1]-bg[1]),Math.abs(data[i+2]-bg[2]))<=tolerance;
+  const seen=new Uint8Array(width*height), queue=new Int32Array(width*height); let head=0,tail=0;
+  const seed=(p:number)=>{if(!seen[p]&&matches(p*4)){seen[p]=1;queue[tail++]=p;}};
+  for(let x=0;x<width;x++){seed(x);seed((height-1)*width+x);} for(let y=1;y<height-1;y++){seed(y*width);seed(y*width+width-1);}
+  while(head<tail){const p=queue[head++],x=p%width,y=Math.floor(p/width);data[p*4+3]=0;if(x>0)seed(p-1);if(x+1<width)seed(p+1);if(y>0)seed(p-width);if(y+1<height)seed(p+width);}
+  ctx.putImageData(image,0,0);return canvas;
 };
 
 const readFile = (file: File) => new Promise<string>((resolve, reject) => {
@@ -44,7 +60,13 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [sheetMargin, setSheetMargin] = useState(4);
   const [sheetGap, setSheetGap] = useState(2);
   const [background, setBackground] = useState('#ffffff');
+  const [backgroundRemoved, setBackgroundRemoved] = useState<Record<string, boolean>>({});
+  const [backgroundTolerance, setBackgroundTolerance] = useState(32);
   const [border, setBorder] = useState(1);
+  const [activePanel, setActivePanel] = useState<'crop'|'remove-bg'|'color'|'border'|null>(null);
+  const [cropDrag, setCropDrag] = useState<{startX:number;startY:number;startCrop:PhotoEdit;mode:'move'|'resize'}|null>(null);
+  const [language, setLanguage] = useState<'en'|'hi'>('en');
+  const [step, setStep] = useState<1|2|3>(1);
   const [error, setError] = useState('');
   const [signatureSrc, setSignatureSrc] = useState('');
   const [signatureName, setSignatureName] = useState('');
@@ -136,7 +158,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) blur(${Math.max(0, edit.smooth) * 0.012}px)`
             : 'brightness(100%) contrast(100%) saturate(100%)';
           ctx.filter = filter;
-          ctx.drawImage(img, x + (photoW - w) / 2 + edit.moveX, y + (photoH - h) / 2 + edit.moveY, w, h);
+          const source: CanvasImageSource = backgroundRemoved[photo.id] ? removePlainBackground(img, backgroundTolerance) : img;
+          const sx=img.width*edit.cropX/100, sy=img.height*edit.cropY/100, sw=img.width*edit.cropW/100, sh=img.height*edit.cropH/100;
+          ctx.drawImage(source,sx,sy,sw,sh,x+(photoW-w)/2+edit.moveX,y+(photoH-h)/2+edit.moveY,w,h);
         } else {
           ctx.fillStyle = '#f1f5f9'; ctx.fillRect(x, y, photoW, photoH);
           ctx.fillStyle = '#64748b'; ctx.font = '28px sans-serif'; ctx.textAlign = 'center';
@@ -207,7 +231,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       draw(loaded, signatureImage);
     });
     return () => { cancelled = true; };
-  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, background, mode, photoEdits, sheetPositions, border, signatureSrc, signatureBackground, signatureCustomColor, signatureRemoveWhite, signatureCrop, signaturePlacement]);
+  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, background, mode, photoEdits, sheetPositions, border, signatureSrc, signatureBackground, signatureCustomColor, signatureRemoveWhite, signatureCrop, signaturePlacement, backgroundRemoved, backgroundTolerance]);
 
   const updateSignatureFile = async (file?: File) => {
     if (!file) return;
@@ -375,11 +399,12 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Advanced Passport Photo Studio</h2>
-          <p className="text-sm text-slate-500">फोटो तैयार करें, साइज सेट करें और प्रिंट शीट डाउनलोड करें।</p>
+          <p className="text-sm text-slate-500">{language==='hi'?'फोटो तैयार करें, साइज सेट करें और प्रिंट शीट डाउनलोड करें।':'Prepare your photo, set its size, and download a print sheet.'}</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700"><ShieldCheck className="h-4 w-4" /> फोटो आपके ब्राउज़र में प्रोसेस होती है</span>
+        <div className="flex items-center gap-2"><button onClick={()=>setLanguage(language==='en'?'hi':'en')} className="rounded-lg border bg-white px-3 py-1.5 text-xs font-bold">{language==='en'?'हिंदी':'English'}</button><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700"><ShieldCheck className="h-4 w-4" />{language==='hi'?'फोटो ब्राउज़र में प्रोसेस होती है':'Browser-side processing'}</span></div>
       </div>
 
+      <div className="mb-3 grid grid-cols-3 gap-2">{([1,2,3] as const).map(n=><button key={n} onClick={()=>setStep(n)} className={`rounded-xl border px-3 py-2 text-xs font-bold ${step===n?'border-blue-600 bg-blue-600 text-white':'border-slate-200 bg-white text-slate-600'}`}>{n===1?(language==='hi'?'1. अपलोड':'1. Upload'):n===2?(language==='hi'?'2. एडिट':'2. Edit'):(language==='hi'?'3. डाउनलोड':'3. Export')}</button>)}</div>
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
         <section className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
           <div>
@@ -390,6 +415,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             {photos.length > 0 && <><p className="mt-2 text-[11px] text-slate-500">शीट में फोटो का क्रम बदलने के लिए थंबनेल को माउस से खींचकर दूसरी फोटो पर छोड़ें।</p><div className="mt-3 grid grid-cols-4 gap-2">{photos.map((photo) => <button key={photo.id} draggable onDragStart={() => setDraggingPhotoId(photo.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); reorderPhotos(draggingPhotoId, photo.id); setDraggingPhotoId(''); }} onDragEnd={() => setDraggingPhotoId('')} onClick={() => setSelectedId(photo.id)} title={`Select or drag to reorder: ${photo.name}`} className={`overflow-hidden rounded-lg border-2 bg-white ${selected?.id === photo.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'} ${draggingPhotoId === photo.id ? 'opacity-40' : ''}`}><img src={photo.src} alt={photo.name} className="aspect-square w-full object-cover" /></button>)}</div></>}
           </div>
 
+          {step===1 && <>
           <div className="border-t border-slate-200 pt-4">
             <h3 className="mb-3 font-bold text-slate-900">2. फोटो का प्रकार</h3>
             <div className="grid grid-cols-2 gap-2">
@@ -408,6 +434,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <p className="mt-2 text-xs text-slate-500">चुने गए साइज का आउटपुट 300 DPI के हिसाब से तैयार होगा। हर आवेदन की फोटो गाइडलाइन अलग हो सकती है।</p>
           </div>
 
+          </>}
+          {step===2 && <>
+          <div className="grid grid-cols-2 gap-2"><button onClick={()=>setActivePanel('crop')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">✂️ {language==='hi'?'फोटो क्रॉप करें':'Crop Photo'}</button><button onClick={()=>setActivePanel('remove-bg')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</button><button onClick={()=>setActivePanel('color')} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बैकग्राउंड रंग':'Background Color'}</button><button onClick={()=>setActivePanel('border')} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बॉर्डर सेट करें':'Border Settings'}</button></div>
           <div className="border-t border-slate-200 pt-4">
             <h3 className="mb-3 font-bold text-slate-900">4. Background & Border</h3>
             <div className="flex flex-wrap gap-2">{[{ name: 'White', value: '#ffffff' }, { name: 'Light Blue', value: '#dbeafe' }, { name: 'Light Gray', value: '#e5e7eb' }, { name: 'Cream', value: '#fff7ed' }].map((color) => <button key={color.value} onClick={() => setBackground(color.value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${background === color.value ? 'border-blue-600 ring-1 ring-blue-200' : 'border-slate-200'}`}><span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-slate-300 align-middle" style={{ background: color.value }} />{color.name}</button>)}</div>
@@ -456,15 +485,23 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <div className="mt-3"><Slider label="Move up / down" min={-250} max={250} value={selectedEdit.moveY} onChange={(v) => updateSelectedEdit('moveY', v)} /></div>
           </div>
           {selected && <button onClick={removeSelected} className="text-xs font-semibold text-red-600 hover:text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Remove selected photo</button>}
+          </>}
+          {step===3 && <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{language==='hi'?'प्रीव्यू जाँचें और JPG/PDF डाउनलोड करें।':'Check the preview and download JPG/PDF.'}</p>}
         </section>
 
         <section className="min-w-0 space-y-4 xl:sticky xl:top-3 xl:self-start">
-          <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-slate-900">Live Print Preview</h3><select value={paper} onChange={(e) => setPaper(e.target.value as Paper)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch</option><option value="A4">A4 Sheet</option></select><div className="flex rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => setPaper('4x6')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === '4x6' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>4 × 6 inch</button><button onClick={() => setPaper('A4')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === 'A4' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>A4 Sheet</button></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-slate-900">{language==='hi'?'लाइव प्रिंट प्रीव्यू':'Live Print Preview'}</h3><select value={paper} onChange={(e) => setPaper(e.target.value as Paper)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch</option><option value="A4">A4 Sheet</option></select><div className="flex rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => setPaper('4x6')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === '4x6' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>4 × 6 inch</button><button onClick={() => setPaper('A4')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === 'A4' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>A4 Sheet</button></div></div>
           <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3"><button onClick={autoArrangeSheet} disabled={paper === 'single'} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Auto Arrange</button><button onClick={resetSheetLayout} disabled={paper === 'single' || Object.keys(sheetPositions).length === 0} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40">Reset Layout</button><span className="self-center text-[11px] text-slate-500">फोटो खिसकाते समय दूसरे फोटो से टकराने पर जगह स्वीकार नहीं होगी।</span></div><div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Photo gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><p className="col-span-2 text-[11px] text-slate-500">Auto-fit layout: चुने गए photo size के हिसाब से पेज पर जितनी फोटो फिट होंगी, उतनी अपने-आप लगेंगी। Margin और gap कम करके पेपर बचाएँ; प्रिंटर के non-printable किनारों का ध्यान रखें।</p></div><div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"><canvas ref={canvasRef} onPointerDown={handleSheetPointerDown} onPointerMove={handleSheetPointerMove} onPointerUp={handleSheetPointerUp} onPointerCancel={handleSheetPointerUp} style={{ touchAction: 'none', cursor: paper === 'single' ? (signatureSrc ? 'move' : 'grab') : 'grab' }} className="mx-auto block h-auto max-h-[720px] max-w-full bg-white shadow-lg" /></div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3"><button onClick={downloadJpg} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 text-sm font-semibold text-white disabled:opacity-40"><Download className="h-4 w-4" /> {paper === "single" ? "Download Single Photo" : "Download Sheet JPG"}</button><button onClick={downloadPdf} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Download className="h-4 w-4" /> Download PDF</button><button onClick={() => window.print()} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Printer className="h-4 w-4" /> Print</button></div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>ध्यान दें:</strong> यह पहला working studio build है। इसमें batch upload, crop/position, size presets, beauty sliders और print export शामिल हैं। AI background removal, manual eraser और face detection/auto-crop अभी शामिल नहीं हैं। Signature Editor में manual crop, background options और photo overlay शामिल हैं। Background color transparent PNG या पहले से cut-out फोटो पर ही साफ़ दिखेगा; सामान्य JPG की पुरानी background अपने-आप नहीं हटेगी। सरकारी आवेदन से पहले संबंधित विभाग की latest photo specification जाँचें।</div>
         </section>
       </div>
+      {activePanel && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm"><div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl"><div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-bold">{activePanel==='crop'?(language==='hi'?'फोटो क्रॉप करें':'Crop Photo'):activePanel==='remove-bg'?(language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'):activePanel==='color'?(language==='hi'?'बैकग्राउंड रंग':'Background Color'):(language==='hi'?'बॉर्डर सेटिंग':'Border Settings')}</h3><button onClick={()=>{setActivePanel(null);setCropDrag(null);}} className="rounded-lg px-3 py-1 hover:bg-slate-100">✕</button></div>
+      {activePanel==='crop'&&selected&&<div className="space-y-3"><p className="text-xs text-slate-500">{language==='hi'?'बॉक्स को खींचकर जगह बदलें और कोने से साइज़ बदलें।':'Drag the box to move it; drag the corner to resize.'}</p><div className="relative mx-auto overflow-hidden rounded-lg bg-slate-100" style={{width:'100%',aspectRatio:'4/5'}}><img src={selected.src} alt="Crop source" className="absolute inset-0 h-full w-full object-contain"/><div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{left:(photoEdits[selected.id]?.cropX??0)+'%',top:(photoEdits[selected.id]?.cropY??0)+'%',width:(photoEdits[selected.id]?.cropW??100)+'%',height:(photoEdits[selected.id]?.cropH??100)+'%',touchAction:'none'}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);setCropDrag({startX:e.clientX,startY:e.clientY,startCrop:photoEdits[selected.id]||DEFAULT_EDIT,mode:(e.target as HTMLElement).dataset.resize==='handle'?'resize':'move'});}} onPointerMove={e=>{if(!cropDrag||e.buttons!==1)return;const b=e.currentTarget.parentElement!.getBoundingClientRect(),dx=(e.clientX-cropDrag.startX)/b.width*100,dy=(e.clientY-cropDrag.startY)/b.height*100,c=cropDrag.startCrop;setPhotoEdits(prev=>({...prev,[selected.id]:{...(prev[selected.id]||DEFAULT_EDIT),cropX:cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropW,c.cropX+dx)):c.cropX,cropY:cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropH,c.cropY+dy)):c.cropY,cropW:cropDrag.mode==='resize'?Math.max(10,Math.min(100-c.cropX,c.cropW+dx)):c.cropW,cropH:cropDrag.mode==='resize'?Math.max(10,Math.min(100-c.cropY,c.cropH+dy)):c.cropH}}));}} onPointerUp={()=>setCropDrag(null)}><span data-resize="handle" className="absolute -bottom-1 -right-1 h-4 w-4 rounded-sm border-2 border-white bg-blue-600"/></div></div><button onClick={()=>setPhotoEdits(c=>({...c,[selected.id]:{...(c[selected.id]||DEFAULT_EDIT),cropX:0,cropY:0,cropW:100,cropH:100}}))} className="rounded-lg border px-3 py-2 text-xs">{language==='hi'?'क्रॉप रीसेट':'Reset Crop'}</button></div>}
+      {activePanel==='remove-bg'&&selected&&<div className="space-y-4"><p className="text-sm text-slate-600">{language==='hi'?'किनारों से जुड़े सादे बैकग्राउंड रंग हटेंगे। जटिल बैकग्राउंड के लिए AI कटआउट नहीं है।':'Removes a plain, edge-connected background color. This is color-key removal, not AI segmentation.'}</p><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!backgroundRemoved[selected.id]} onChange={e=>setBackgroundRemoved(c=>({...c,[selected.id]:e.target.checked}))}/>{language==='hi'?'बैकग्राउंड हटाना चालू करें':'Enable background removal'}</label><label className="block text-sm">{language==='hi'?'रंग सहनशीलता':'Color tolerance'}: {backgroundTolerance}<input type="range" min="8" max="100" value={backgroundTolerance} onChange={e=>setBackgroundTolerance(Number(e.target.value))} className="mt-2 w-full"/></label><div className="flex gap-2"><button onClick={()=>setBackgroundRemoved(c=>({...c,[selected.id]:true}))} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white">{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</button><button onClick={()=>setBackgroundRemoved(c=>({...c,[selected.id]:false}))} className="rounded-lg border px-4 py-2 text-sm">{language==='hi'?'मूल फोटो':'Restore Original'}</button></div></div>}
+      {activePanel==='color'&&<div className="space-y-4"><div className="flex flex-wrap gap-2">{[{name:'White',value:'#ffffff'},{name:'Blue',value:'#1d4ed8'},{name:'Light Blue',value:'#dbeafe'},{name:'Gray',value:'#e5e7eb'},{name:'Cream',value:'#fff7ed'}].map(c=><button key={c.value} onClick={()=>setBackground(c.value)} className="rounded-lg border px-3 py-2 text-sm">{c.name}</button>)}</div><label className="flex items-center gap-3 text-sm">{language==='hi'?'कस्टम रंग':'Custom color'}<input type="color" value={background} onChange={e=>setBackground(e.target.value)}/></label></div>}
+      {activePanel==='border'&&<div className="space-y-4"><label className="block text-sm">{language==='hi'?'बॉर्डर मोटाई':'Border width'}: {border}<input type="range" min="0" max="8" value={border} onChange={e=>setBorder(Number(e.target.value))} className="mt-2 w-full"/></label></div>}
+      </div></div>}
     </div>
   );
 };
