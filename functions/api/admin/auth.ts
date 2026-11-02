@@ -210,7 +210,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     }
 
     const payload = JSON.parse(atob(b64));
-    if (payload.exp && payload.exp < Date.now()) {
+    if (payload.role !== 'superadmin' || typeof payload.u !== 'string' || !payload.u || !Number.isFinite(payload.exp) || payload.exp <= Date.now()) {
       return new Response(JSON.stringify({ authenticated: false, error: 'Admin session has expired.' }), {
         status: 401,
         headers: corsHeaders,
@@ -222,7 +222,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         authenticated: true,
         user: {
           username: payload.u,
-          role: payload.role || 'superadmin',
+          role: payload.role,
         },
       }),
       { status: 200, headers: corsHeaders }
