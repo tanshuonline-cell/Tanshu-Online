@@ -153,7 +153,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             const signatureCtx = signatureCanvas.getContext('2d');
             if (signatureCtx) {
               signatureCtx.drawImage(signatureImage, cropX, cropY, cropW, cropH, 0, 0, signatureCanvas.width, signatureCanvas.height);
-              if (signatureRemoveWhite && signatureBackground === 'transparent') {
+              if (signatureRemoveWhite && signatureBackground !== 'white') {
                 const pixels = signatureCtx.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
                 for (let p = 0; p < pixels.data.length; p += 4) {
                   const r = pixels.data[p], g = pixels.data[p + 1], b = pixels.data[p + 2];
@@ -224,23 +224,26 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       const sw = img.width * signatureCrop.w / 100, sh = img.height * signatureCrop.h / 100;
       const out = document.createElement('canvas'); out.width = Math.max(1, Math.round(sw)); out.height = Math.max(1, Math.round(sh));
       const c = out.getContext('2d'); if (!c) return;
-      if (signatureBackground !== 'transparent') { c.fillStyle = signatureBackground === 'white' ? '#fff' : signatureCustomColor; c.fillRect(0, 0, out.width, out.height); }
-      c.drawImage(img, sx, sy, sw, sh, 0, 0, out.width, out.height);
-      if (signatureRemoveWhite && signatureBackground === 'transparent') {
-        const pixels = c.getImageData(0, 0, out.width, out.height);
+      const raw = document.createElement('canvas'); raw.width = out.width; raw.height = out.height;
+      const rawCtx = raw.getContext('2d'); if (!rawCtx) return;
+      rawCtx.drawImage(img, sx, sy, sw, sh, 0, 0, out.width, out.height);
+      if (signatureRemoveWhite && signatureBackground !== 'white') {
+        const pixels = rawCtx.getImageData(0, 0, out.width, out.height);
         for (let p = 0; p < pixels.data.length; p += 4) {
           const r = pixels.data[p], g = pixels.data[p + 1], b = pixels.data[p + 2], light = (r + g + b) / 3;
           if (light > 238 && Math.min(r, g, b) > 225) pixels.data[p + 3] = 0;
           else if (light > 210 && Math.min(r, g, b) > 195) pixels.data[p + 3] = Math.round(pixels.data[p + 3] * (238 - light) / 28);
         }
-        c.putImageData(pixels, 0, 0);
+        rawCtx.putImageData(pixels, 0, 0);
       }
+      if (signatureBackground !== 'transparent') { c.fillStyle = signatureBackground === 'white' ? '#fff' : signatureCustomColor; c.fillRect(0, 0, out.width, out.height); }
+      c.drawImage(raw, 0, 0);
       const a = document.createElement('a'); a.download = 'tanshu-signature.png'; a.href = out.toDataURL('image/png'); a.click();
     };
     img.src = signatureSrc;
   };
   const moveSignatureCrop = (event: React.PointerEvent<HTMLDivElement>) => {
-    const box = event.currentTarget.getBoundingClientRect();
+    const box = (event.currentTarget.parentElement || event.currentTarget).getBoundingClientRect();
     const x = Math.max(0, Math.min(100, (event.clientX - box.left) / box.width * 100));
     const y = Math.max(0, Math.min(100, (event.clientY - box.top) / box.height * 100));
     if (!signatureDragRef.current) { signatureDragRef.current = { x, y }; return; }
