@@ -448,7 +448,7 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1">कोई OTP नहीं भेजा जाएगा। मौजूदा purchase या admin access रिकॉर्ड सर्वर पर verify होगा।</p>
                     </div>
-                    <button type="submit" disabled={!isPhoneValid || step === 'verifying'} className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
+                    <button type="submit" disabled={!isPhoneValid} className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
                       <span>Verify & Restore Video Access</span><ArrowRight className="w-4 h-4" />
                     </button>
                   </form>
