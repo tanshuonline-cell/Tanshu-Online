@@ -145,7 +145,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const downloadJpg = () => {
     if (!canvasRef.current || !selected) return;
     const link = document.createElement('a');
-    link.download = `tanshu-photo-${selected.name.replace(/\\.[^.]+$/, '')}-${paper}.jpg`;
+    link.download = `tanshu-photo-${selected.name.replace(/\.[^.]+$/, '')}-${paper}.jpg`;
     link.href = canvasRef.current.toDataURL('image/jpeg', 0.96);
     link.click();
   };
