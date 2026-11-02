@@ -54,41 +54,22 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Step 1: Check if the video is Free or Premium
-    let isPremium = true;
-    let streamVideoId = '';
-    let youtubeUrl: string | undefined;
-
-    if (env.DB) {
-      try {
-        const videoRecord = await env.DB.prepare(
-          'SELECT access_type, is_premium, stream_video_id, youtube_url FROM videos WHERE id = ?'
-        )
-          .bind(videoId)
-          .first();
-
-        if (videoRecord) {
-          isPremium = videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium);
-          streamVideoId = videoRecord.stream_video_id || '';
-          youtubeUrl = videoRecord.youtube_url;
-        }
-      } catch (dbErr) {
-        console.warn('D1 video lookup warning:', dbErr);
-      }
+    // Paid catalog only: database and active premium video record are mandatory.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ authorized: false, error: 'Video database is unavailable. Access denied.' }), { status: 503, headers: corsHeaders });
     }
-
-    // If video is free, allow playback
-    if (!isPremium) {
-      return new Response(
-        JSON.stringify({
-          authorized: true,
-          accessType: 'free',
-          videoId,
-          youtubeUrl,
-          message: 'Free video access authorized',
-        }),
-        { status: 200, headers: corsHeaders }
-      );
+    let streamVideoId = '';
+    try {
+      const videoRecord = await env.DB.prepare(
+        'SELECT access_type, is_premium, stream_video_id FROM videos WHERE id = ? AND is_active = 1'
+      ).bind(videoId).first();
+      if (!videoRecord || !(videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium))) {
+        return new Response(JSON.stringify({ authorized: false, error: 'This paid video is unavailable or not active.' }), { status: 404, headers: corsHeaders });
+      }
+      streamVideoId = videoRecord.stream_video_id || '';
+    } catch (dbErr) {
+      console.error('D1 video lookup failed:', dbErr);
+      return new Response(JSON.stringify({ authorized: false, error: 'Could not validate this video. Access denied.' }), { status: 503, headers: corsHeaders });
     }
 
     // Step 2: For premium video, verify phone and cryptographic session token
@@ -124,7 +105,10 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     let isSessionValid = false;
     try {
       const [b64Payload, sig] = tokenToValidate.split('.');
-      const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
+      const signingKey = env.ADMIN_SECRET_TOKEN;
+      if (!signingKey || signingKey.includes('YOUR_')) {
+        return new Response(JSON.stringify({ authorized: false, error: 'Secure access signing is not configured.' }), { status: 503, headers: corsHeaders });
+      }
       const isValidSig = await verifySignature(b64Payload, sig, signingKey);
 
       if (!isValidSig) {
@@ -190,28 +174,18 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Step 2b: If D1 Database is available, verify unrevoked database entitlement
-    if (env.DB) {
-      try {
-        const accessRecord = await env.DB.prepare(
-          `SELECT id, is_revoked FROM customer_video_access
-           WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
-        )
-          .bind(sanitizedPhone, videoId)
-          .first();
-
-        if (!accessRecord) {
-          return new Response(
-            JSON.stringify({
-              authorized: false,
-              error: 'Access denied. You have not purchased this premium video, or your access was revoked.',
-            }),
-            { status: 403, headers: corsHeaders }
-          );
-        }
-      } catch (dbErr) {
-        console.warn('D1 access check warning:', dbErr);
+    // The entitlement record is authoritative. Database errors must never grant access.
+    try {
+      const accessRecord = await env.DB.prepare(
+        `SELECT id, is_revoked FROM customer_video_access
+         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
+      ).bind(sanitizedPhone, videoId).first();
+      if (!accessRecord) {
+        return new Response(JSON.stringify({ authorized: false, error: 'No active purchase or manual access grant exists for this video.' }), { status: 403, headers: corsHeaders });
       }
+    } catch (dbErr) {
+      console.error('D1 access check failed:', dbErr);
+      return new Response(JSON.stringify({ authorized: false, error: 'Could not verify your access record. Access denied.' }), { status: 503, headers: corsHeaders });
     }
 
     // Step 3: Video is verified! Validate Cloudflare Stream credentials & video asset
