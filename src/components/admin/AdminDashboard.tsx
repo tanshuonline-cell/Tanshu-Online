@@ -153,7 +153,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     setFormThumbnail(video.thumbnailUrl || '');
     setFormDuration(video.duration);
     setFormCategory(video.category);
-    setFormIsPremium(Boolean(video.isPremium || video.accessType === 'premium'));
+    setFormIsPremium(true);
     setFormPrice(video.price || 99);
     setFormYoutubeUrl(video.youtubeUrl || '');
     setFormStreamVideoId(video.streamVideoId || '');
@@ -170,8 +170,13 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       return;
     }
 
-    // Validation rule: If activating a Premium video, must have a real Cloudflare Stream UID
-    if (formIsPremium && formIsActive) {
+    if (!Number.isFinite(formPrice) || formPrice <= 0) {
+      showNotification('error', 'Paid video price must be greater than ₹0.');
+      return;
+    }
+
+    // Every website catalog video must be paid and use a genuine Cloudflare Stream UID.
+    if (formIsActive) {
       const cleanStreamId = formStreamVideoId.trim();
       if (!cleanStreamId || cleanStreamId.startsWith('cf_stream_') || cleanStreamId.startsWith('mock_') || cleanStreamId.startsWith('stream-')) {
         showNotification(
@@ -204,12 +209,12 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       thumbnailUrl: formThumbnail.trim() || undefined,
       duration: formDuration.trim() || '20:00',
       category: formCategory,
-      isPremium: formIsPremium,
-      accessType: formIsPremium ? 'premium' : 'free',
-      price: formIsPremium ? Math.max(0, Math.floor(formPrice)) : 0,
+      isPremium: true,
+      accessType: 'premium',
+      price: Math.max(1, Math.floor(formPrice)),
       currency: 'INR',
-      youtubeUrl: !formIsPremium ? formYoutubeUrl.trim() : undefined,
-      streamVideoId: formIsPremium ? formStreamVideoId.trim() : undefined,
+      youtubeUrl: undefined,
+      streamVideoId: formStreamVideoId.trim(),
       isActive: formIsActive,
       topics: topicsArray,
     };
@@ -806,29 +811,10 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 </div>
               </div>
 
-              {/* Video Type: Free vs Premium */}
+              {/* Paid-only website catalog */}
               <div className="pt-2 border-t border-slate-800 space-y-3">
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                    <input
-                      type="radio"
-                      name="videoType"
-                      checked={formIsPremium}
-                      onChange={() => setFormIsPremium(true)}
-                      className="text-amber-500"
-                    />
-                    <span>Premium Masterclass (Paid)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                    <input
-                      type="radio"
-                      name="videoType"
-                      checked={!formIsPremium}
-                      onChange={() => setFormIsPremium(false)}
-                      className="text-emerald-500"
-                    />
-                    <span>Free Tutorial (YouTube)</span>
-                  </label>
+                <div className="p-3 bg-amber-950/40 border border-amber-700 rounded-xl text-xs text-amber-200">
+                  सभी वेबसाइट वीडियो Paid Masterclass होंगे। Free वीडियो वेबसाइट पर नहीं जोड़े जाएंगे।
                 </div>
 
                 {formIsPremium ? (
