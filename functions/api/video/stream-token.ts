@@ -84,6 +84,9 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(sanitizedPhone)) {
+      return new Response(JSON.stringify({ authorized: false, error: 'A valid 10-digit mobile number is required.' }), { status: 400, headers: corsHeaders });
+    }
 
     // Extract session token from Authorization header, body, or HttpOnly cookie
     const authHeader = request.headers.get('Authorization') || '';
@@ -143,7 +146,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         );
       }
 
-      if (parsed.exp && parsed.exp < Date.now()) {
+      if (!Number.isFinite(parsed.exp) || parsed.exp <= Date.now()) {
         return new Response(
           JSON.stringify({
             authorized: false,
@@ -174,18 +177,22 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // The entitlement record is authoritative. Database errors must never grant access.
+    // The signed token type must match its own active entitlement; revoked grants cannot fall back to unrelated records.
     try {
-      const accessRecord = await env.DB.prepare(
-        `SELECT id, 'purchase' AS source FROM customer_video_access
-         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0
-         UNION ALL
-         SELECT id, 'admin_grant' AS source FROM admin_video_access_grants
-         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0
-         LIMIT 1`
-      ).bind(sanitizedPhone, videoId, sanitizedPhone, videoId).first();
+      let accessRecord: any = null;
+      if (parsed.g && typeof parsed.g === 'string') {
+        accessRecord = await env.DB.prepare(
+          `SELECT id FROM admin_video_access_grants
+           WHERE id = ? AND customer_phone = ? AND video_id = ? AND is_revoked = 0 LIMIT 1`
+        ).bind(parsed.g, sanitizedPhone, videoId).first();
+      } else if (parsed.o && typeof parsed.o === 'string') {
+        accessRecord = await env.DB.prepare(
+          `SELECT id FROM customer_video_access
+           WHERE customer_phone = ? AND video_id = ? AND order_id = ? AND is_revoked = 0 LIMIT 1`
+        ).bind(sanitizedPhone, videoId, parsed.o).first();
+      }
       if (!accessRecord) {
-        return new Response(JSON.stringify({ authorized: false, error: 'No active purchase or complimentary admin grant exists for this video.' }), { status: 403, headers: corsHeaders });
+        return new Response(JSON.stringify({ authorized: false, error: 'This session has no matching active purchase or complimentary grant.' }), { status: 403, headers: corsHeaders });
       }
     } catch (dbErr) {
       console.error('D1 access check failed:', dbErr);
