@@ -1,13 +1,13 @@
 export async function onRequestGet(): Promise<Response> {
   const robotsTxt = `# Robots.txt for TANSHU ONLINE
-# Domain: https://tansu-online.pages.dev
+# Domain: https://tanshu-online.pages.dev
 
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://tansu-online.pages.dev/sitemap.xml
+Sitemap: https://tanshu-online.pages.dev/sitemap.xml
 `;
 
   return new Response(robotsTxt, {
