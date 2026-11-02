@@ -78,7 +78,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       });
       if (resp.ok) {
         const data = await resp.json();
-        if (data.success && Array.isArray(data.videos) && data.videos.length > 0) {
+        if (data.success && Array.isArray(data.videos)) {
           setVideos(data.videos);
         }
       }
