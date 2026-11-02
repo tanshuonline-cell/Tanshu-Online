@@ -84,31 +84,64 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
     }
   };
 
-  // Launch Cashfree SDK if available
+  // Launch Cashfree SDK and surface safe, actionable errors in the checkout UI.
   const launchCashfreeSdk = (sessionId: string, orderId: string, env: string) => {
     const cfScriptId = 'cashfree-js-sdk-v3';
-    let script = document.getElementById(cfScriptId) as HTMLScriptElement;
+    let script = document.getElementById(cfScriptId) as HTMLScriptElement | null;
+
+    const failCheckout = (message: string) => {
+      console.error('Cashfree checkout failed:', message);
+      setStep('failed');
+      setErrorMessage(message);
+    };
 
     const onScriptLoaded = () => {
-      const cashfreeInstance = (window as any).Cashfree?.({
-        mode: env === 'PRODUCTION' ? 'production' : 'sandbox',
-      });
+      try {
+        const cashfreeFactory = (window as any).Cashfree;
+        if (typeof cashfreeFactory !== 'function') {
+          failCheckout('Cashfree payment window could not initialize. Please refresh the page and try again.');
+          return;
+        }
 
-      if (cashfreeInstance) {
-        cashfreeInstance.checkout({
+        const cashfreeInstance = cashfreeFactory({
+          mode: env === 'PRODUCTION' ? 'production' : 'sandbox',
+        });
+
+        if (!cashfreeInstance || typeof cashfreeInstance.checkout !== 'function') {
+          failCheckout('Cashfree payment service is unavailable. Please try again later.');
+          return;
+        }
+
+        Promise.resolve(cashfreeInstance.checkout({
           paymentSessionId: sessionId,
           redirectTarget: '_modal',
-        }).then((result: any) => {
-          if (result.error) {
-            console.warn('Cashfree popup error or closed:', result.error);
+        })).then((result: any) => {
+          if (result?.error) {
+            const detail = typeof result.error.message === 'string'
+              ? result.error.message.trim().slice(0, 240)
+              : '';
+            failCheckout(detail
+              ? `Cashfree checkout error: ${detail}`
+              : 'Cashfree could not authenticate this payment session. Please try again; if it continues, contact support.');
+            return;
           }
-          if (result.redirect) {
-            console.log('Payment redirection started');
+          if (result?.redirect) {
+            console.log('Cashfree payment redirection started.');
           }
-          if (result.paymentDetails) {
+          if (result?.paymentDetails) {
             handleVerifyPayment(orderId);
           }
+        }).catch((error: any) => {
+          const detail = typeof error?.message === 'string' ? error.message.trim().slice(0, 240) : '';
+          failCheckout(detail
+            ? `Cashfree checkout could not open: ${detail}`
+            : 'Cashfree checkout could not open. Please refresh the page and try again.');
         });
+      } catch (error: any) {
+        const detail = typeof error?.message === 'string' ? error.message.trim().slice(0, 240) : '';
+        failCheckout(detail
+          ? `Cashfree initialization error: ${detail}`
+          : 'Cashfree payment service could not initialize. Please try again.');
       }
     };
 
@@ -117,9 +150,15 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
       script.id = cfScriptId;
       script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
       script.onload = onScriptLoaded;
+      script.onerror = () => failCheckout('Cashfree payment library failed to load. Check your connection and try again.');
       document.body.appendChild(script);
-    } else {
+    } else if ((window as any).Cashfree) {
       onScriptLoaded();
+    } else {
+      script.addEventListener('load', onScriptLoaded, { once: true });
+      script.addEventListener('error', () => {
+        failCheckout('Cashfree payment library failed to load. Check your connection and try again.');
+      }, { once: true });
     }
   };
 
