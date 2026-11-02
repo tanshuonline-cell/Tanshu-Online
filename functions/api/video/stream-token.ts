@@ -55,9 +55,27 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     // Step 1: Check if the video is Free or Premium
+    const KNOWN_CATALOG: Record<string, { isPremium: boolean; youtubeUrl: string }> = {
+      'video_1': { isPremium: false, youtubeUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' },
+      'video_2': { isPremium: false, youtubeUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' },
+      'video_3': { isPremium: false, youtubeUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' },
+      'video_4': { isPremium: false, youtubeUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' },
+      'video_5': { isPremium: false, youtubeUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' },
+      'video_6': { isPremium: false, youtubeUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' },
+      'video_1793562264012': { isPremium: true, youtubeUrl: 'https://youtu.be/kClJTQIZlQs' },
+      'video_1793576406875': { isPremium: true, youtubeUrl: 'https://youtu.be/wAR_IbOAy50' },
+      'video_1793570249064': { isPremium: true, youtubeUrl: 'https://youtu.be/Z8zFPwL8vpc' },
+      'video_1793569224346': { isPremium: true, youtubeUrl: 'https://youtu.be/fidfFbXOqiU' },
+    };
+
     let isPremium = true;
     let streamVideoId = '';
     let youtubeUrl: string | undefined;
+
+    if (KNOWN_CATALOG[videoId]) {
+      isPremium = KNOWN_CATALOG[videoId].isPremium;
+      youtubeUrl = KNOWN_CATALOG[videoId].youtubeUrl;
+    }
 
     if (env.DB) {
       try {
@@ -70,7 +88,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         if (videoRecord) {
           isPremium = videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium);
           streamVideoId = videoRecord.stream_video_id || '';
-          youtubeUrl = videoRecord.youtube_url;
+          youtubeUrl = videoRecord.youtube_url || youtubeUrl;
         }
       } catch (dbErr) {
         console.warn('D1 video lookup warning:', dbErr);
@@ -214,7 +232,23 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       }
     }
 
-    // Step 3: Video is verified! Validate Cloudflare Stream credentials & video asset
+    // Step 3: Video is verified! Determine playback source (Cloudflare Stream or Authorized YouTube)
+    const hasStreamUid = streamVideoId && !streamVideoId.startsWith('mock_') && !streamVideoId.startsWith('cf_stream_') && !streamVideoId.startsWith('stream-');
+
+    if (!hasStreamUid && youtubeUrl) {
+      return new Response(
+        JSON.stringify({
+          authorized: true,
+          accessType: 'premium',
+          playbackType: 'youtube',
+          playbackUrl: youtubeUrl,
+          videoId,
+          message: 'Premium video access authorized via verified stream',
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
     const accountId = env.CLOUDFLARE_STREAM_ACCOUNT_ID;
     const apiToken = env.CLOUDFLARE_STREAM_API_TOKEN;
 
@@ -228,12 +262,11 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Check if this video is a sample catalog entry without an uploaded stream UID
-    if (!streamVideoId || streamVideoId.startsWith('mock_') || streamVideoId.startsWith('cf_stream_') || streamVideoId.startsWith('stream-')) {
+    if (!hasStreamUid) {
       return new Response(
         JSON.stringify({
           authorized: false,
-          error: 'This premium masterclass is a sample catalog entry without an active Cloudflare Stream UID. Please upload the video media in Cloudflare Stream dashboard and update streamVideoId.',
+          error: 'This video media source is not yet configured. Please configure Cloudflare Stream UID or authorized stream URL in Admin Settings.',
         }),
         { status: 400, headers: corsHeaders }
       );

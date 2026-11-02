@@ -1,0 +1,9 @@
+# Robots.txt for TANSHU ONLINE
+# Domain: https://tansu-online.pages.dev
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://tansu-online.pages.dev/sitemap.xml

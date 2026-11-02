@@ -19,9 +19,18 @@ export const VideoLearningCenter: React.FC<Props> = ({
   const { t, isHindi } = useLanguage();
   const [selectedFreeGuide, setSelectedFreeGuide] = useState<VideoGuide | null>(null);
 
-  // Show the first four active videos from the live catalog (API data is preferred by App).
-  // This prevents stale hard-coded sample cards from appearing on the homepage.
-  const homepageVideos = videos.filter((video) => video.isActive !== false).slice(0, 4);
+  const [filterTab, setFilterTab] = useState<'all' | 'free' | 'premium'>('all');
+
+  const activeVideos = videos.filter((v) => v.isActive !== false);
+  const freeVideos = activeVideos.filter((v) => !v.isPremium && v.accessType !== 'premium');
+  const premiumVideos = activeVideos.filter((v) => v.isPremium || v.accessType === 'premium');
+
+  const displayedVideos = activeVideos.filter((video) => {
+    const isPremium = video.isPremium || video.accessType === 'premium';
+    if (filterTab === 'free') return !isPremium;
+    if (filterTab === 'premium') return isPremium;
+    return true;
+  });
 
   return (
     <section id="video-learning-center" className="py-10 bg-slate-50 border-b border-slate-200">
@@ -54,9 +63,48 @@ export const VideoLearningCenter: React.FC<Props> = ({
           </div>
         </div>
 
+        {/* Category Filter Tabs */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setFilterTab('all')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              filterTab === 'all'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            {isHindi ? `सभी वीडियो (${activeVideos.length})` : `All Videos (${activeVideos.length})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('free')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterTab === 'free'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <Play className="w-3 h-3 fill-current" />
+            <span>{isHindi ? `निशुल्क गाइड (${freeVideos.length})` : `Free Guides (${freeVideos.length})`}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('premium')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterTab === 'premium'
+                ? 'bg-amber-500 text-slate-950 shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <Lock className="w-3 h-3" />
+            <span>{isHindi ? `प्रीमियम मास्टरक्लास (${premiumVideos.length})` : `Premium Masterclasses (${premiumVideos.length})`}</span>
+          </button>
+        </div>
+
         {/* Responsive Grid: 4 cards on desktop (lg:grid-cols-4), 3 on tablet (md:grid-cols-3), 2 on mobile (grid-cols-2) */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {homepageVideos.map((video, idx) => {
+          {displayedVideos.map((video) => {
             const isPremium = video.isPremium || video.accessType === 'premium';
             const price = video.price || 99;
             const displayTitle = isHindi && video.hindiTitle ? video.hindiTitle : video.title;

@@ -99,6 +99,8 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
           videoId: video.id,
           customerPhone,
           sessionToken,
+          streamVideoId: video.streamVideoId,
+          youtubeUrl: video.youtubeUrl,
         }),
       });
 
@@ -192,14 +194,30 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
             </div>
           ) : authorized ? (
             <div className="relative w-full h-full bg-black">
-              {/* Cloudflare Stream Official Signed Embed Player (Download & Built-in Sharing Disabled) */}
-              <iframe
-                src={`https://iframe.videodelivery.net/${video.streamVideoId || playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
-                title={video.title}
-                className="w-full h-full border-0 select-none pointer-events-auto"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                allowFullScreen
-              />
+              {video.streamVideoId && video.streamVideoId.trim() ? (
+                <iframe
+                  src={`https://iframe.videodelivery.net/${video.streamVideoId || playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
+                  title={video.title}
+                  className="w-full h-full border-0 select-none pointer-events-auto"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen
+                />
+              ) : (
+                <iframe
+                  src={(() => {
+                    const target = playbackUrl || video.youtubeUrl || '';
+                    if (!target) return '';
+                    if (target.includes('/embed/')) return target;
+                    const idMatch = target.match(/(?:youtu\.be\/|v=|\/embed\/|\/v\/)([\w-]{11})/);
+                    const ytid = idMatch ? idMatch[1] : target;
+                    return `https://www.youtube-nocookie.com/embed/${ytid}?autoplay=1&rel=0&modestbranding=1`;
+                  })()}
+                  title={video.title}
+                  className="w-full h-full border-0 select-none pointer-events-auto"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
 
               {/* Dynamic Anti-Piracy Watermark Badge (Top Right) */}
               <div className="absolute top-3 right-3 pointer-events-none z-30 px-2.5 py-1 bg-black/75 backdrop-blur-xs border border-white/10 rounded-md text-[10px] font-mono text-slate-300 flex items-center gap-1.5 shadow-lg select-none">

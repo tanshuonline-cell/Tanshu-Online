@@ -75,9 +75,34 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       }
     }
 
+    // Trusted Premium Catalog fallback
+    const TRUSTED_PREMIUM_CATALOG: Record<string, { price: number; title: string }> = {
+      'video_1793562264012': {
+        price: 49,
+        title: 'Aadhaar Card Father Name Update - Complete Step-by-Step Guide',
+      },
+      'video_1793576406875': {
+        price: 99,
+        title: 'Aadhaar Father Name Update – Complete Document List, Document Examples & Step-by-Step Application Guide',
+      },
+      'video_1793570249064': {
+        price: 299,
+        title: 'Aadhaar C/O Father Name Update – Complete Document List With Live Proof (Step-by-Step Guide) | Level 3 Part 2',
+      },
+      'video_1793569224346': {
+        price: 399,
+        title: 'Aadhaar C/O, S/O & D/O Update – Complete Application Process & Step-by-Step Guide | Level 3 Part 1',
+      },
+    };
+
     // Resolve video price (lookup in D1 or standard catalog fallback)
-    let videoPrice = 99; // Default price in INR
+    let videoPrice = 99; // Default fallback in INR
     let videoTitle = 'Tanshu Online Premium Training Video';
+
+    if (TRUSTED_PREMIUM_CATALOG[videoId]) {
+      videoPrice = TRUSTED_PREMIUM_CATALOG[videoId].price;
+      videoTitle = TRUSTED_PREMIUM_CATALOG[videoId].title;
+    }
 
     if (env.DB) {
       try {
@@ -88,7 +113,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           .first();
 
         if (videoRecord) {
-          videoPrice = Number(videoRecord.price) || 99;
+          videoPrice = Number(videoRecord.price) || videoPrice;
           videoTitle = videoRecord.title || videoTitle;
         }
       } catch (dbErr) {

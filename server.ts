@@ -14,7 +14,11 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  app.use(express.json());
+  app.use(express.json({
+    verify: (req: any, _res: any, buf: Buffer) => {
+      req.rawBody = buf.toString('utf8');
+    }
+  }));
 
   // Lightweight cookie parser middleware
   app.use((req: any, _res: any, next: any) => {
@@ -111,7 +115,17 @@ async function startServer() {
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const orderId = `TANSHU_${timestamp}_${randomSuffix}`;
-      const videoPrice = 99; // Standard fallback price in INR
+
+      const TRUSTED_PREMIUM_PRICES: Record<string, { price: number; title: string }> = {
+        'video_1793562264012': { price: 49, title: 'Aadhaar Card Father Name Update - Complete Step-by-Step Guide' },
+        'video_1793576406875': { price: 99, title: 'Aadhaar Father Name Update – Complete Document List, Document Examples & Step-by-Step Application Guide' },
+        'video_1793570249064': { price: 299, title: 'Aadhaar C/O Father Name Update – Complete Document List With Live Proof (Step-by-Step Guide) | Level 3 Part 2' },
+        'video_1793569224346': { price: 399, title: 'Aadhaar C/O, S/O & D/O Update – Complete Application Process & Step-by-Step Guide | Level 3 Part 1' },
+      };
+
+      const matchedVideo = TRUSTED_PREMIUM_PRICES[videoId] || devVideos.get(videoId);
+      const videoPrice = matchedVideo?.price || 99;
+      const videoTitle = matchedVideo?.title || 'Tanshu Online Premium Training Video';
 
       const appId = process.env.CASHFREE_APP_ID;
       const secretKey = process.env.CASHFREE_SECRET_KEY;
@@ -305,20 +319,58 @@ async function startServer() {
     }
   });
 
-  // 3. Webhook Listener
+  // 3. Webhook Listener with Cashfree HMAC-SHA256 signature verification
   app.post('/api/video/webhook', (req: Request, res: Response) => {
     try {
-      const orderData = req.body?.data?.order;
-      if (orderData && orderData.order_status === 'PAID') {
-        const orderId = orderData.order_id;
-        const phone = orderData.customer_details?.customer_phone;
-        const order = devOrders.get(orderId);
+      const webhookSecret = process.env.CASHFREE_WEBHOOK_SECRET || process.env.CASHFREE_SECRET_KEY;
+      const timestamp = (req.headers['x-webhook-timestamp'] as string) || '';
+      const signature = (req.headers['x-webhook-signature'] as string) || '';
+      const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+
+      if (webhookSecret && !webhookSecret.includes('YOUR_')) {
+        if (!timestamp || !signature) {
+          return res.status(401).json({ error: 'Missing webhook signature headers.' });
+        }
+
+        const tsNum = Number(timestamp);
+        const now = Date.now();
+        const tsMillis = tsNum > 1e11 ? tsNum : tsNum * 1000;
+        if (Math.abs(now - tsMillis) > 10 * 60 * 1000) {
+          return res.status(401).json({ error: 'Webhook timestamp expired.' });
+        }
+
+        const expectedSig = crypto
+          .createHmac('sha256', webhookSecret)
+          .update(`${timestamp}${rawBody}`)
+          .digest('base64');
+
+        if (expectedSig !== signature) {
+          return res.status(401).json({ error: 'Invalid webhook signature.' });
+        }
+      }
+
+      const eventData = req.body;
+      const orderData = eventData?.data?.order;
+      const paymentData = eventData?.data?.payment;
+
+      if (!orderData || !orderData.order_id) {
+        return res.json({ status: 'IGNORED' });
+      }
+
+      const orderId = orderData.order_id;
+      const orderStatus = String(orderData.order_status || '').toUpperCase();
+      const paymentStatus = String(paymentData?.payment_status || '').toUpperCase();
+      const phone = orderData.customer_details?.customer_phone;
+      const order = devOrders.get(orderId);
+
+      if (orderStatus === 'PAID' && (paymentStatus === 'SUCCESS' || eventData.type === 'PAYMENT_SUCCESS_WEBHOOK')) {
         if (order) {
           order.orderStatus = 'PAID';
           if (phone && order.videoId) {
-            devAccess.set(`${phone}_${order.videoId}`, {
+            const sanitizedPhone = String(phone).replace(/\D/g, '').slice(-10);
+            devAccess.set(`${sanitizedPhone}_${order.videoId}`, {
               id: `acc_wh_${Date.now()}`,
-              customerPhone: phone,
+              customerPhone: sanitizedPhone,
               videoId: order.videoId,
               orderId,
               grantedAt: new Date().toISOString(),
@@ -326,8 +378,15 @@ async function startServer() {
             });
           }
         }
+        return res.json({ status: 'SUCCESS', orderId });
+      } else if (orderStatus === 'FAILED' || orderStatus === 'USER_DROPPED') {
+        if (order) {
+          order.orderStatus = 'FAILED';
+        }
+        return res.json({ status: 'RECORDED_PAYMENT_FAILED', orderId });
       }
-      res.json({ status: 'SUCCESS' });
+
+      res.json({ status: 'IGNORED_NON_FINAL_STATE' });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -398,6 +457,20 @@ async function startServer() {
         });
       }
 
+      const hasStreamUid = req.body.streamVideoId && !req.body.streamVideoId.startsWith('cf_stream_') && !req.body.streamVideoId.startsWith('mock_');
+      const fallbackYoutubeUrl = req.body.youtubeUrl;
+
+      if (!hasStreamUid && fallbackYoutubeUrl) {
+        return res.json({
+          authorized: true,
+          accessType: 'premium',
+          playbackType: 'youtube',
+          playbackUrl: fallbackYoutubeUrl,
+          videoId,
+          message: 'Premium video access authorized via verified stream'
+        });
+      }
+
       // Check Cloudflare Stream credentials
       const streamAccountId = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID;
       const streamApiToken = process.env.CLOUDFLARE_STREAM_API_TOKEN;
@@ -409,11 +482,11 @@ async function startServer() {
         });
       }
 
-      // Sample masterclasses check
-      if (videoId.startsWith('premium-') || !req.body.streamVideoId || req.body.streamVideoId.startsWith('cf_stream_')) {
+      // Validate active Cloudflare Stream UID
+      if (!hasStreamUid) {
         return res.status(400).json({
           authorized: false,
-          error: 'This premium masterclass is a sample catalog entry without an active Cloudflare Stream UID. Please upload the video media in Cloudflare Stream dashboard.'
+          error: 'This premium masterclass does not have an active Cloudflare Stream media UID configured yet. Please configure the 32-character video UID in Admin Settings.'
         });
       }
 
@@ -752,6 +825,52 @@ async function startServer() {
   app.get('/api/video/catalog', (_req: Request, res: Response) => {
     const videos = Array.from(devVideos.values()).filter(v => v.isActive !== false);
     res.json({ success: true, videos });
+  });
+
+  // SEO: Plain-text robots.txt & valid XML sitemap
+  app.get('/robots.txt', (_req: Request, res: Response) => {
+    res.type('text/plain').send(`# Robots.txt for TANSHU ONLINE
+# Domain: https://tansu-online.pages.dev
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://tansu-online.pages.dev/sitemap.xml
+`);
+  });
+
+  app.get('/sitemap.xml', (_req: Request, res: Response) => {
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://tansu-online.pages.dev/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://tansu-online.pages.dev/videos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://tansu-online.pages.dev/services</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tansu-online.pages.dev/schemes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tansu-online.pages.dev/tools</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>
+`);
   });
 
   const isProduction = process.env.NODE_ENV === 'production';
