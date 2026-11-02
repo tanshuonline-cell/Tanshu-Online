@@ -591,8 +591,12 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                                 <span className="text-slate-300 truncate max-w-xs block">
                                   Stream: {v.streamVideoId.slice(0, 16)}...
                                 </span>
+                              ) : v.youtubeUrl ? (
+                                <span className="text-blue-400 truncate max-w-xs block" title={v.youtubeUrl}>
+                                  YouTube Unlisted
+                                </span>
                               ) : (
-                                <span className="text-red-400 italic">No Stream UID</span>
+                                <span className="text-red-400 italic">No video source</span>
                               )
                             ) : (
                               <span className="text-blue-400 truncate max-w-xs block">
