@@ -194,7 +194,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
             <div className="relative w-full h-full bg-black">
               {/* Cloudflare Stream Official Signed Embed Player (Download & Built-in Sharing Disabled) */}
               <iframe
-                src={`https://iframe.videodelivery.net/${video.streamVideoId || playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
+                src={`https://iframe.videodelivery.net/${playbackToken}?poster=${encodeURIComponent(video.thumbnailUrl || '')}&autoplay=true&controls=true&defaultTextTrack=false`}
                 title={video.title}
                 className="w-full h-full border-0 select-none pointer-events-auto"
                 allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
@@ -256,10 +256,12 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
                   <span>{video.duration}</span>
                 </span>
                 <span>•</span>
-                <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>Verified Purchase Unlocked</span>
-                </span>
+                {authorized && (
+                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Verified Access</span>
+                  </span>
+                )}
               </div>
             </div>
 
