@@ -75,7 +75,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         purchases: [],
         error: 'D1 database binding is unavailable. Purchase history cannot be verified.',
       }),
-      { status: 200, headers: corsHeaders }
+      { status: 503, headers: corsHeaders }
     );
   }
 
