@@ -47,7 +47,7 @@ async function verifyAdminAuth(request: Request, env: Env): Promise<boolean> {
     const isValid = await verifyHmac(b64, sig, signingKey);
     if (isValid) {
       const payload = JSON.parse(atob(b64));
-      return !payload.exp || payload.exp > Date.now();
+      return payload.role === 'superadmin' && typeof payload.u === 'string' && payload.u.length > 0 && Number.isFinite(payload.exp) && payload.exp > Date.now();
     }
   } catch {
     return false;
@@ -66,6 +66,10 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     });
   }
 
+  if (!env.DB) {
+    return new Response(JSON.stringify({ success: false, error: 'Database unavailable. No access changes were made.' }), { status: 503, headers: corsHeaders });
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const { accessId, revoke } = body as { accessId?: string; revoke?: boolean };
@@ -79,12 +83,15 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
     const newRevokeVal = revoke === false ? 0 : 1;
 
-    if (env.DB) {
-      await env.DB.prepare(
-        'UPDATE customer_video_access SET is_revoked = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-      )
-        .bind(newRevokeVal, accessId)
-        .run();
+    const purchaseResult = await env.DB.prepare(
+      'UPDATE customer_video_access SET is_revoked = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    ).bind(newRevokeVal, accessId).run();
+    const grantResult = await env.DB.prepare(
+      'UPDATE admin_video_access_grants SET is_revoked = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    ).bind(newRevokeVal, accessId).run();
+    const changed = Number(purchaseResult?.meta?.changes || 0) + Number(grantResult?.meta?.changes || 0);
+    if (!changed) {
+      return new Response(JSON.stringify({ success: false, error: 'No matching purchase or complimentary grant was found.' }), { status: 404, headers: corsHeaders });
     }
 
     return new Response(
