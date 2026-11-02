@@ -67,14 +67,10 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   }
 
   if (!env.DB) {
-    return new Response(
-      JSON.stringify({
-        success: true,
-        videos: [],
-        message: 'D1 database binding not active; returning empty admin list.',
-      }),
-      { status: 200, headers: corsHeaders }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'D1_BINDING_MISSING: Video database is not connected.' }), {
+      status: 503,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -104,6 +100,13 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
   if (!isAuth) {
     return new Response(JSON.stringify({ error: 'Unauthorized admin access.' }), {
       status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  if (!env.DB) {
+    return new Response(JSON.stringify({ success: false, error: 'D1_BINDING_MISSING: Video database is not connected.' }), {
+      status: 503,
       headers: corsHeaders,
     });
   }
@@ -226,6 +229,13 @@ export async function onRequestDelete(context: { request: Request; env: Env }): 
   if (!isAuth) {
     return new Response(JSON.stringify({ error: 'Unauthorized admin access.' }), {
       status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  if (!env.DB) {
+    return new Response(JSON.stringify({ success: false, error: 'D1_BINDING_MISSING: Video database is not connected.' }), {
+      status: 503,
       headers: corsHeaders,
     });
   }
