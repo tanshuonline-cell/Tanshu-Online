@@ -23,8 +23,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!(await validAdmin(request, env))) return Response.json({ success: false, error: 'Unauthorized admin access.' }, { status: 401, headers });
   if (!env.DB) return Response.json({ success: false, error: 'Database unavailable.' }, { status: 503, headers });
   try {
-    const body = await request.json() as { phone?: string; videoId?: string; note?: string };
-    const phone = String(body.phone || '').replace(/\D/g, '').slice(-10);
+    const body = await request.json() as { phone?: string; customerPhone?: string; videoId?: string; note?: string };
+    const phone = String(body.customerPhone || body.phone || '').replace(/\D/g, '').slice(-10);
     const videoId = String(body.videoId || '').trim();
     const note = String(body.note || '').trim().slice(0, 300);
     if (!/^\d{10}$/.test(phone) || !videoId) return Response.json({ success: false, error: 'Valid 10-digit mobile number and video are required.' }, { status: 400, headers });
