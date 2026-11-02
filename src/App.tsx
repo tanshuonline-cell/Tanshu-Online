@@ -28,6 +28,56 @@ export default function App() {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [customerAuthOpen, setCustomerAuthOpen] = useState(false);
+  
+  // Keep browser metadata aligned with the actual public route.
+  useEffect(() => {
+    const siteUrl = 'https://tanshu-online.pages.dev';
+    const pathname = window.location.pathname;
+    const isVideoCatalog = pathname === '/videos';
+    const isVideoDetail = pathname.startsWith('/video/');
+    const video = isVideoDetail
+      ? (catalogVideos.find((item) => item.id === pathname.replace('/video/', '')) ||
+         LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
+      : null;
+
+    const title = isVideoCatalog
+      ? 'Video Learning Center | TANSHU ONLINE'
+      : video
+        ? `${video.title} | TANSHU ONLINE`
+        : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
+    const description = isVideoCatalog
+      ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
+      : video
+        ? (video.description || video.title).slice(0, 300)
+        : 'TANSHU ONLINE पर उपयोगी ऑनलाइन टूल्स, सरकारी सेवाओं और योजनाओं की जानकारी, दस्तावेज़ संबंधी सुविधाएँ और वीडियो गाइड एक ही जगह पाएँ।';
+    const canonicalUrl = `${siteUrl}${pathname === '/' ? '/' : pathname}`;
+
+    document.title = title;
+    const setMeta = (selector: string, attribute: 'name' | 'property', key: string, value: string) => {
+      let element = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attribute, key);
+        document.head.appendChild(element);
+      }
+      element.content = value;
+    };
+    setMeta('meta[name="description"]', 'name', 'description', description);
+    setMeta('meta[property="og:title"]', 'property', 'og:title', title);
+    setMeta('meta[property="og:description"]', 'property', 'og:description', description);
+    setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
+    setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
+    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
+
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalUrl;
+  }, [catalogVideos]);
+
 
   // Existing Homepage State
   const [activeSection, setActiveSection] = useState<string>('home');
