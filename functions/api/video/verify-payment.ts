@@ -58,40 +58,21 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
     const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
 
-    // Security check 1: Check if the order was originally registered for this specific video and phone
-    if (env.DB) {
-      try {
-        const orderRecord = await env.DB.prepare(
-          'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
-        )
-          .bind(orderId)
-          .first();
-
-        if (orderRecord) {
-          if (orderRecord.video_id !== videoId) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: This payment was not initiated for this video.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-          if (orderRecord.customer_phone !== sanitizedPhone) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: Customer phone mismatch.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-        }
-      } catch (dbErr) {
-        console.warn('D1 order pre-check warning:', dbErr);
-      }
+    // Fail closed: every payment must match an order stored before checkout.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment database is unavailable. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
+    let orderRecord: any;
+    try {
+      orderRecord = await env.DB.prepare(
+        'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+    } catch (dbErr) {
+      console.error('D1 order pre-check failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not validate the payment order. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
+    if (!orderRecord || orderRecord.video_id !== videoId || orderRecord.customer_phone !== sanitizedPhone) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Order, video, or customer details do not match. Access denied.' }), { status: 403, headers: corsHeaders });
     }
 
     const appId = env.CASHFREE_APP_ID;
@@ -171,8 +152,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     // Persist and grant access in D1 database
     const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    if (env.DB) {
-      try {
+    try {
         // Update payment order status to PAID
         await env.DB.prepare(
           `UPDATE payment_orders
@@ -208,13 +188,16 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
             orderId
           )
           .run();
-      } catch (dbErr) {
-        console.warn('D1 verification update warning:', dbErr);
-      }
+    } catch (dbErr) {
+        console.error('D1 verification update failed:', dbErr);
+        return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment was confirmed, but access could not be saved. Please contact support; the video remains locked.' }), { status: 503, headers: corsHeaders });
     }
 
-    // Generate secure customer session token specifically for this (phone, videoId)
-    const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
+    // Generate secure customer session token only from the configured server secret.
+    const signingKey = env.ADMIN_SECRET_TOKEN;
+    if (!signingKey || signingKey.includes('YOUR_')) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Secure access signing is not configured. Access remains locked.' }), { status: 503, headers: corsHeaders });
+    }
     const payloadStr = JSON.stringify({
       p: sanitizedPhone,
       v: videoId,
