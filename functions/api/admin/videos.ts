@@ -97,7 +97,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
         const youtubeUrl = row.youtube_url ?? undefined;
         const youtubeId = typeof youtubeUrl === 'string'
-          ? (youtubeUrl.match(/(?:youtu\\.be\\/|youtube\\.com\\/(?:watch\\?v=|embed\\/|shorts\\/))([^?&/]+)/)?.[1] ?? '')
+          ? (youtubeUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/)?.[1] ?? '')
           : '';
 
         return {
