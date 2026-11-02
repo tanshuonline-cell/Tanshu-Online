@@ -177,11 +177,15 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     // The entitlement record is authoritative. Database errors must never grant access.
     try {
       const accessRecord = await env.DB.prepare(
-        `SELECT id, is_revoked FROM customer_video_access
-         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
-      ).bind(sanitizedPhone, videoId).first();
+        `SELECT id, 'purchase' AS source FROM customer_video_access
+         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0
+         UNION ALL
+         SELECT id, 'admin_grant' AS source FROM admin_video_access_grants
+         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0
+         LIMIT 1`
+      ).bind(sanitizedPhone, videoId, sanitizedPhone, videoId).first();
       if (!accessRecord) {
-        return new Response(JSON.stringify({ authorized: false, error: 'No active purchase or manual access grant exists for this video.' }), { status: 403, headers: corsHeaders });
+        return new Response(JSON.stringify({ authorized: false, error: 'No active purchase or complimentary admin grant exists for this video.' }), { status: 403, headers: corsHeaders });
       }
     } catch (dbErr) {
       console.error('D1 access check failed:', dbErr);
