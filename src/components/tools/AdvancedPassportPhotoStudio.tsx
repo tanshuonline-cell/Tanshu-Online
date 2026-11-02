@@ -9,6 +9,7 @@ type Photo = { id: string; name: string; src: string };
 type PhotoPreset = 'india' | 'stamp' | 'pan' | 'custom';
 type Paper = 'single' | '4x6' | 'A4';
 type Mode = 'official' | 'beauty';
+type SignatureBackground = 'transparent' | 'white' | 'custom';
 type PhotoEdit = { zoom: number; moveX: number; moveY: number; brightness: number; contrast: number; saturation: number; smooth: number };
 type SheetRect = { slot: number; photoId: string; x: number; y: number; w: number; h: number };
 const DEFAULT_EDIT: PhotoEdit = { zoom: 1, moveX: 0, moveY: 0, brightness: 100, contrast: 100, saturation: 100, smooth: 0 };
@@ -44,6 +45,15 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [background, setBackground] = useState('#ffffff');
   const [border, setBorder] = useState(1);
   const [error, setError] = useState('');
+  const [signatureSrc, setSignatureSrc] = useState('');
+  const [signatureName, setSignatureName] = useState('');
+  const [signatureBackground, setSignatureBackground] = useState<SignatureBackground>('transparent');
+  const [signatureCustomColor, setSignatureCustomColor] = useState('#ffffff');
+  const [signatureRemoveWhite, setSignatureRemoveWhite] = useState(true);
+  const [signatureCrop, setSignatureCrop] = useState({ x: 0, y: 0, w: 100, h: 100 });
+  const [signaturePlacement, setSignaturePlacement] = useState({ x: 58, y: 78, width: 32 });
+  const signatureInputRef = useRef<HTMLInputElement>(null);
+  const signatureDragRef = useRef<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
@@ -100,7 +110,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const usedH = rows * photoH + (rows - 1) * gap;
     const startX = isSingle ? 0 : Math.max(margin, (canvas.width - usedW) / 2);
     const startY = isSingle ? 0 : Math.max(margin, (canvas.height - usedH) / 2);
-    const draw = (images: Array<HTMLImageElement | null> = []) => {
+    const draw = (images: Array<HTMLImageElement | null> = [], signatureImage: HTMLImageElement | null = null) => {
       const rects: SheetRect[] = [];
       for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
         const slot = row * cols + col;
@@ -131,6 +141,43 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           ctx.fillStyle = '#64748b'; ctx.font = '28px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText('Upload a photo', x + photoW / 2, y + photoH / 2);
         }
+        if (img && signatureImage) {
+          const cropX = signatureImage.width * signatureCrop.x / 100;
+          const cropY = signatureImage.height * signatureCrop.y / 100;
+          const cropW = signatureImage.width * signatureCrop.w / 100;
+          const cropH = signatureImage.height * signatureCrop.h / 100;
+          if (cropW > 0 && cropH > 0) {
+            const signatureCanvas = document.createElement('canvas');
+            signatureCanvas.width = Math.max(1, Math.round(cropW));
+            signatureCanvas.height = Math.max(1, Math.round(cropH));
+            const signatureCtx = signatureCanvas.getContext('2d');
+            if (signatureCtx) {
+              signatureCtx.drawImage(signatureImage, cropX, cropY, cropW, cropH, 0, 0, signatureCanvas.width, signatureCanvas.height);
+              if (signatureRemoveWhite && signatureBackground === 'transparent') {
+                const pixels = signatureCtx.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
+                for (let p = 0; p < pixels.data.length; p += 4) {
+                  const r = pixels.data[p], g = pixels.data[p + 1], b = pixels.data[p + 2];
+                  const lightness = (r + g + b) / 3;
+                  const whiteness = Math.min(r, g, b);
+                  if (lightness > 238 && whiteness > 225) pixels.data[p + 3] = 0;
+                  else if (lightness > 210 && whiteness > 195) pixels.data[p + 3] = Math.round(pixels.data[p + 3] * (238 - lightness) / 28);
+                }
+                signatureCtx.putImageData(pixels, 0, 0);
+              }
+              const drawW = photoW * signaturePlacement.width / 100;
+              const drawH = drawW * signatureCanvas.height / signatureCanvas.width;
+              const drawX = x + photoW * signaturePlacement.x / 100;
+              const drawY = y + photoH * signaturePlacement.y / 100;
+              ctx.save();
+              if (signatureBackground !== 'transparent') {
+                ctx.fillStyle = signatureBackground === 'white' ? '#ffffff' : signatureCustomColor;
+                ctx.fillRect(drawX - 3, drawY - 3, drawW + 6, drawH + 6);
+              }
+              ctx.drawImage(signatureCanvas, drawX, drawY, drawW, drawH);
+              ctx.restore();
+            }
+          }
+        }
         ctx.restore();
         if (border > 0) { ctx.strokeStyle = '#111827'; ctx.lineWidth = border * 2; ctx.strokeRect(x, y, photoW, photoH); }
         if (!isSingle) { ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
@@ -146,14 +193,64 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       img.onload = () => resolve(img);
       img.onerror = () => resolve(null);
       img.src = photo.src;
-    }))).then((loaded) => {
+    }))).then(async (loaded) => {
       if (cancelled) return;
       if (loaded.some((img) => img === null)) setError('कुछ फोटो लोड नहीं हो सकीं। कृपया उन्हें दोबारा चुनें।');
-      draw(loaded);
+      let signatureImage: HTMLImageElement | null = null;
+      if (signatureSrc) {
+        signatureImage = await new Promise<HTMLImageElement | null>((resolve) => {
+          const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = signatureSrc;
+        });
+      }
+      if (cancelled) return;
+      draw(loaded, signatureImage);
     });
     return () => { cancelled = true; };
-  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, background, mode, photoEdits, sheetPositions, border]);
+  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, background, mode, photoEdits, sheetPositions, border, signatureSrc, signatureBackground, signatureCustomColor, signatureRemoveWhite, signatureCrop, signaturePlacement]);
 
+  const updateSignatureFile = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('सिग्नेचर के लिए JPG या PNG इमेज चुनें।'); return; }
+    try {
+      setSignatureSrc(await readFile(file)); setSignatureName(file.name);
+      setSignatureCrop({ x: 0, y: 0, w: 100, h: 100 }); setError('');
+    } catch { setError('सिग्नेचर इमेज पढ़ी नहीं जा सकी।'); }
+  };
+  const downloadSignaturePng = async () => {
+    if (!signatureSrc) return;
+    const img = new Image();
+    img.onload = () => {
+      const sx = img.width * signatureCrop.x / 100, sy = img.height * signatureCrop.y / 100;
+      const sw = img.width * signatureCrop.w / 100, sh = img.height * signatureCrop.h / 100;
+      const out = document.createElement('canvas'); out.width = Math.max(1, Math.round(sw)); out.height = Math.max(1, Math.round(sh));
+      const c = out.getContext('2d'); if (!c) return;
+      if (signatureBackground !== 'transparent') { c.fillStyle = signatureBackground === 'white' ? '#fff' : signatureCustomColor; c.fillRect(0, 0, out.width, out.height); }
+      c.drawImage(img, sx, sy, sw, sh, 0, 0, out.width, out.height);
+      if (signatureRemoveWhite && signatureBackground === 'transparent') {
+        const pixels = c.getImageData(0, 0, out.width, out.height);
+        for (let p = 0; p < pixels.data.length; p += 4) {
+          const r = pixels.data[p], g = pixels.data[p + 1], b = pixels.data[p + 2], light = (r + g + b) / 3;
+          if (light > 238 && Math.min(r, g, b) > 225) pixels.data[p + 3] = 0;
+          else if (light > 210 && Math.min(r, g, b) > 195) pixels.data[p + 3] = Math.round(pixels.data[p + 3] * (238 - light) / 28);
+        }
+        c.putImageData(pixels, 0, 0);
+      }
+      const a = document.createElement('a'); a.download = 'tanshu-signature.png'; a.href = out.toDataURL('image/png'); a.click();
+    };
+    img.src = signatureSrc;
+  };
+  const moveSignatureCrop = (event: React.PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, (event.clientX - box.left) / box.width * 100));
+    const y = Math.max(0, Math.min(100, (event.clientY - box.top) / box.height * 100));
+    if (!signatureDragRef.current) { signatureDragRef.current = { x, y }; return; }
+    const start = signatureDragRef.current;
+    setSignatureCrop((current) => {
+      const dx = x - start.x, dy = y - start.y;
+      return { ...current, x: Math.max(0, Math.min(100 - current.w, current.x + dx)), y: Math.max(0, Math.min(100 - current.h, current.y + dy)) };
+    });
+    signatureDragRef.current = { x, y };
+  };
   const handleSheetPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (paper === 'single') return;
     const canvas = canvasRef.current;
@@ -288,6 +385,38 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <div className="mt-3"><Slider label="Border width" min={0} max={4} value={border} onChange={setBorder} /></div>
           </div>
 
+          <div className="space-y-3 border-t border-slate-200 pt-4">
+            <h3 className="font-bold text-slate-900">7. Signature Editor</h3>
+            <input ref={signatureInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { void updateSignatureFile(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+            <button onClick={() => signatureInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-blue-300 bg-white px-3 py-3 text-sm font-semibold text-blue-700"><Upload className="h-4 w-4" /> सिग्नेचर अपलोड करें</button>
+            {signatureSrc && <>
+              <p className="text-xs text-slate-500">{signatureName} · Crop box को पकड़कर खिसकाएँ; crop का आकार नीचे से बदलें।</p>
+              <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border border-slate-300 bg-[linear-gradient(45deg,#eee_25%,transparent_25%),linear-gradient(-45deg,#eee_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#eee_75%),linear-gradient(-45deg,transparent_75%,#eee_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]">
+                <img src={signatureSrc} alt="Signature crop source" className="block max-h-48 w-full object-contain" />
+                <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{ left: signatureCrop.x + '%', top: signatureCrop.y + '%', width: signatureCrop.w + '%', height: signatureCrop.h + '%' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); signatureDragRef.current = { x: (e.clientX - e.currentTarget.parentElement!.getBoundingClientRect().left) / e.currentTarget.parentElement!.getBoundingClientRect().width * 100, y: (e.clientY - e.currentTarget.parentElement!.getBoundingClientRect().top) / e.currentTarget.parentElement!.getBoundingClientRect().height * 100 }; }} onPointerMove={(e) => { if (e.buttons === 1) moveSignatureCrop(e as unknown as React.PointerEvent<HTMLDivElement>); }} onPointerUp={() => { signatureDragRef.current = null; }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Slider label="Crop width (%)" min={5} max={100} value={signatureCrop.w} onChange={(v) => setSignatureCrop((c) => ({ ...c, w: Math.min(v, 100 - c.x) }))} />
+                <Slider label="Crop height (%)" min={5} max={100} value={signatureCrop.h} onChange={(v) => setSignatureCrop((c) => ({ ...c, h: Math.min(v, 100 - c.y) }))} />
+                <Slider label="Crop left (%)" min={0} max={95} value={signatureCrop.x} onChange={(v) => setSignatureCrop((c) => ({ ...c, x: Math.min(v, 100 - c.w) }))} />
+                <Slider label="Crop top (%)" min={0} max={95} value={signatureCrop.y} onChange={(v) => setSignatureCrop((c) => ({ ...c, y: Math.min(v, 100 - c.h) }))} />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(['transparent', 'white', 'custom'] as SignatureBackground[]).map((v) => <button key={v} onClick={() => setSignatureBackground(v)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${signatureBackground === v ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white'}`}>{v === 'transparent' ? 'Transparent' : v === 'white' ? 'White' : 'Custom Color'}</button>)}
+                {signatureBackground === 'custom' && <input aria-label="Signature background color" type="color" value={signatureCustomColor} onChange={(e) => setSignatureCustomColor(e.target.value)} className="h-9 w-12 rounded border" />}
+              </div>
+              {signatureBackground === 'transparent' && <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={signatureRemoveWhite} onChange={(e) => setSignatureRemoveWhite(e.target.checked)} /> सफेद पेपर बैकग्राउंड हटाकर transparent करें</label>}
+              <div className="border-t border-slate-200 pt-3">
+                <p className="mb-2 text-xs font-semibold text-slate-700">फोटो पर सिग्नेचर की जगह और साइज़</p>
+                <Slider label="Left position (%)" min={0} max={90} value={signaturePlacement.x} onChange={(v) => setSignaturePlacement((p) => ({ ...p, x: v }))} />
+                <Slider label="Top position (%)" min={0} max={95} value={signaturePlacement.y} onChange={(v) => setSignaturePlacement((p) => ({ ...p, y: v }))} />
+                <Slider label="Signature width (%)" min={5} max={80} value={signaturePlacement.width} onChange={(v) => setSignaturePlacement((p) => ({ ...p, width: v }))} />
+              </div>
+              <div className="flex flex-wrap gap-2"><button onClick={() => void downloadSignaturePng()} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white">Download Signature PNG</button><button onClick={() => { setSignatureSrc(''); setSignatureName(''); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold">Remove Signature</button></div>
+            </>}
+            <p className="text-[11px] text-slate-500">Transparent mode में सफेद pixels हटाने का threshold आधारित विकल्प है; हल्के रंग के हस्ताक्षर पर परिणाम जाँचें।</p>
+          </div>
+
           {mode === 'beauty' && <div className="space-y-3 border-t border-slate-200 pt-4"><h3 className="flex items-center gap-2 font-bold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 5. Beauty & Enhance</h3><Slider label="Brightness" value={selectedEdit.brightness} min={50} max={150} onChange={(v) => updateSelectedEdit('brightness', v)} /><Slider label="Contrast" value={selectedEdit.contrast} min={50} max={150} onChange={(v) => updateSelectedEdit('contrast', v)} /><Slider label="Saturation" value={selectedEdit.saturation} min={0} max={200} onChange={(v) => updateSelectedEdit('saturation', v)} /><Slider label="Softening" value={selectedEdit.smooth} min={0} max={10} onChange={(v) => updateSelectedEdit('smooth', v)} /><p className="text-[11px] text-slate-500">नोट: Softening एक हल्का blur effect है; यह AI skin retouching नहीं है।</p></div>}
 
           <div className="border-t border-slate-200 pt-4">
@@ -303,7 +432,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-slate-900">Live Print Preview</h3><select value={paper} onChange={(e) => setPaper(e.target.value as Paper)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch</option><option value="A4">A4 Sheet</option></select><div className="flex rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => setPaper('4x6')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === '4x6' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>4 × 6 inch</button><button onClick={() => setPaper('A4')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === 'A4' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>A4 Sheet</button></div></div>
           <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3"><button onClick={autoArrangeSheet} disabled={paper === 'single'} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Auto Arrange</button><button onClick={resetSheetLayout} disabled={paper === 'single' || Object.keys(sheetPositions).length === 0} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40">Reset Layout</button><span className="self-center text-[11px] text-slate-500">फोटो खिसकाते समय दूसरे फोटो से टकराने पर जगह स्वीकार नहीं होगी।</span></div><div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Photo gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><p className="col-span-2 text-[11px] text-slate-500">Auto-fit layout: चुने गए photo size के हिसाब से पेज पर जितनी फोटो फिट होंगी, उतनी अपने-आप लगेंगी। Margin और gap कम करके पेपर बचाएँ; प्रिंटर के non-printable किनारों का ध्यान रखें।</p></div><div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"><canvas ref={canvasRef} onPointerDown={handleSheetPointerDown} onPointerMove={handleSheetPointerMove} onPointerUp={handleSheetPointerUp} onPointerCancel={handleSheetPointerUp} style={{ touchAction: 'none', cursor: paper === 'single' ? 'default' : 'grab' }} className="mx-auto block h-auto max-h-[720px] max-w-full bg-white shadow-lg" /></div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3"><button onClick={downloadJpg} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 text-sm font-semibold text-white disabled:opacity-40"><Download className="h-4 w-4" /> {paper === "single" ? "Download Single Photo" : "Download Sheet JPG"}</button><button onClick={downloadPdf} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Download className="h-4 w-4" /> Download PDF</button><button onClick={() => window.print()} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Printer className="h-4 w-4" /> Print</button></div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>ध्यान दें:</strong> यह पहला working studio build है। इसमें batch upload, crop/position, size presets, beauty sliders और print export शामिल हैं। AI background removal, manual eraser, face detection/auto-crop और signature editor अभी शामिल नहीं हैं। Background color transparent PNG या पहले से cut-out फोटो पर ही साफ़ दिखेगा; सामान्य JPG की पुरानी background अपने-आप नहीं हटेगी। सरकारी आवेदन से पहले संबंधित विभाग की latest photo specification जाँचें।</div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>ध्यान दें:</strong> यह पहला working studio build है। इसमें batch upload, crop/position, size presets, beauty sliders और print export शामिल हैं। AI background removal, manual eraser और face detection/auto-crop अभी शामिल नहीं हैं। Signature Editor में manual crop, background options और photo overlay शामिल हैं। Background color transparent PNG या पहले से cut-out फोटो पर ही साफ़ दिखेगा; सामान्य JPG की पुरानी background अपने-आप नहीं हटेगी। सरकारी आवेदन से पहले संबंधित विभाग की latest photo specification जाँचें।</div>
         </section>
       </div>
     </div>
