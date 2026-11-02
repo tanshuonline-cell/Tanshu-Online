@@ -84,7 +84,47 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
        FROM videos v ORDER BY created_at DESC`
     ).all();
 
-    return new Response(JSON.stringify({ success: true, videos: results.map((row: any) => ({ ...row, homepageOrder: row.homepage_order == null ? null : Number(row.homepage_order) })) }), {
+    return new Response(JSON.stringify({
+      success: true,
+      videos: results.map((row: any) => {
+        let topics: string[] = [];
+        try {
+          const parsed = typeof row.topics_json === 'string' ? JSON.parse(row.topics_json) : row.topics_json;
+          topics = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          topics = [];
+        }
+
+        const youtubeUrl = row.youtube_url ?? undefined;
+        const youtubeId = typeof youtubeUrl === 'string'
+          ? (youtubeUrl.match(/(?:youtu\\.be\\/|youtube\\.com\\/(?:watch\\?v=|embed\\/|shorts\\/))([^?&/]+)/)?.[1] ?? '')
+          : '';
+
+        return {
+          id: String(row.id),
+          title: row.title ?? '',
+          duration: row.duration ?? '',
+          category: row.category ?? '',
+          instructor: row.instructor ?? '',
+          description: row.description ?? '',
+          topics,
+          videoId: youtubeId,
+          thumbnailUrl: row.thumbnail_url ?? undefined,
+          accessType: row.access_type ?? 'free',
+          isPremium: Number(row.is_premium) === 1,
+          price: Number(row.price) || 0,
+          currency: row.currency ?? 'INR',
+          streamVideoId: row.stream_video_id ?? undefined,
+          youtubeUrl,
+          level: row.level ?? 'Beginner',
+          isActive: Number(row.is_active) === 1,
+          homepageOrder: row.homepage_order == null ? null : Number(row.homepage_order),
+          activeSubscribersCount: Number(row.active_subscribers_count) || 0,
+          createdAt: row.created_at ?? undefined,
+          updatedAt: row.updated_at ?? undefined,
+        };
+      })
+    }), {
       status: 200,
       headers: corsHeaders,
     });
