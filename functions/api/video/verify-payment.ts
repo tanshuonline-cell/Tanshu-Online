@@ -65,7 +65,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     let orderRecord: any;
     try {
       orderRecord = await env.DB.prepare(
-        'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
+        'SELECT video_id, customer_phone, order_status, order_amount FROM payment_orders WHERE order_id = ?'
       ).bind(orderId).first();
     } catch (dbErr) {
       console.error('D1 order pre-check failed:', dbErr);
@@ -121,6 +121,12 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         }),
         { status: cfResponse.status, headers: corsHeaders }
       );
+    }
+
+    const gatewayAmount = Number(cfData.order_amount);
+    const storedAmount = Number(orderRecord.order_amount);
+    if (!Number.isFinite(gatewayAmount) || !Number.isFinite(storedAmount) || gatewayAmount !== storedAmount || cfData.order_currency !== 'INR') {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment amount or currency does not match the saved order. Access denied.' }), { status: 403, headers: corsHeaders });
     }
 
     if (cfData.order_status === 'PAID') {
