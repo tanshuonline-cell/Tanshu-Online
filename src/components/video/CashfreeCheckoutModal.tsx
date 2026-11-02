@@ -412,7 +412,7 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
                   <div className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-xl space-y-1.5 text-[11px] text-amber-950">
                     <div className="flex items-center gap-1.5">
                       <CheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                      <span>Instant Cloudflare Stream Full HD playback after payment</span>
+                      <span>Instant secure video playback after payment</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <CheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
