@@ -154,16 +154,33 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     const topicsJson = JSON.stringify(Array.isArray(topics) ? topics : []);
     const isAct = isActive === false ? 0 : 1;
 
-    // Security & Validation Rule: If activating a Premium video, must have a genuine Stream UID
+    // Active paid videos may use a genuine Cloudflare Stream UID or a valid YouTube URL.
+    let normalizedYoutubeUrl: string | null = null;
+    const rawYoutubeUrl = typeof youtubeUrl === 'string' ? youtubeUrl.trim() : '';
+    if (rawYoutubeUrl) {
+      try {
+        const parsedUrl = new URL(rawYoutubeUrl);
+        const host = parsedUrl.hostname.replace(/^www\\./, '').toLowerCase();
+        let candidate = '';
+        if (host === 'youtu.be') candidate = parsedUrl.pathname.split('/').filter(Boolean)[0] || '';
+        else if (['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host)) {
+          const parts = parsedUrl.pathname.split('/').filter(Boolean);
+          candidate = parsedUrl.searchParams.get('v') || (['embed', 'shorts'].includes(parts[0]) ? parts[1] : '');
+        }
+        if (!['youtu.be', 'youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host) || !/^[A-Za-z0-9_-]{11}$/.test(candidate)) {
+          throw new Error('Invalid YouTube URL');
+        }
+        normalizedYoutubeUrl = `https://www.youtube.com/watch?v=${candidate}`;
+      } catch {
+        return new Response(JSON.stringify({ success: false, error: 'Valid YouTube video URL required (youtu.be, youtube.com/watch, /embed or /shorts).' }), { status: 400, headers: corsHeaders });
+      }
+    }
+
     if (finalIsPremium === 1 && isAct === 1) {
-      if (!streamVideoId || streamVideoId.startsWith('cf_stream_') || streamVideoId.startsWith('mock_') || streamVideoId.startsWith('stream-')) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Validation error: A genuine Cloudflare Stream Video UID is required before activating a Premium video. Placeholder or sample IDs cannot be activated.',
-          }),
-          { status: 400, headers: corsHeaders }
-        );
+      const cleanStreamId = typeof streamVideoId === 'string' ? streamVideoId.trim() : '';
+      const validStreamId = !!cleanStreamId && !cleanStreamId.startsWith('cf_stream_') && !cleanStreamId.startsWith('mock_') && !cleanStreamId.startsWith('stream-');
+      if (!normalizedYoutubeUrl && !validStreamId) {
+        return new Response(JSON.stringify({ success: false, error: 'Active paid video ke liye valid YouTube URL ya genuine Cloudflare Stream UID zaroori hai.' }), { status: 400, headers: corsHeaders });
       }
     }
 
@@ -205,7 +222,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           finalPrice,
           currency || 'INR',
           streamVideoId || null,
-          youtubeUrl || null,
+          normalizedYoutubeUrl,
           level || 'Beginner',
           thumbnailUrl || null,
           isActive === false ? 0 : 1
