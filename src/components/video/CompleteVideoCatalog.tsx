@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Search, ArrowLeft, Play, Lock, Clock, Sparkles, Filter, X } from 'lucide-react';
 import { VideoGuide } from '../../types';
-import { LATEST_VIDEOS } from '../../data/videosData';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface Props {
@@ -11,7 +10,7 @@ interface Props {
 }
 
 export const CompleteVideoCatalog: React.FC<Props> = ({
-  videos = LATEST_VIDEOS,
+  videos = [],
   onSelectVideo,
   onBackToHome,
 }) => {
