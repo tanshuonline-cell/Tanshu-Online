@@ -59,13 +59,13 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
         throw new Error(data.error || 'Failed to create payment order.');
       }
 
-      // Check if user already owned this video
+      // Existing entitlement is not enough by itself: re-check the original Cashfree order
+      // server-side to issue a fresh, video-scoped session token.
       if (data.alreadyPurchased) {
-        setStep('success');
-        setStatusMessage('Active access found! Unlocking your masterclass now...');
-        setTimeout(() => {
-          onPaymentSuccess(video.id, sanitizedPhone);
-        }, 1200);
+        if (!data.orderId) {
+          throw new Error('Existing access record has no payment order reference. Please contact support.');
+        }
+        await handleVerifyPayment(data.orderId);
         return;
       }
 
