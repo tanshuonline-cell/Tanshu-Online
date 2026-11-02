@@ -310,7 +310,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     try {
       const response = await fetch('/api/admin/grant-access', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerPhone: phone, videoId: grantVideoId, note: grantNote.trim() }) });
       const data = await response.json();
-      if (response.ok && data.success) { showNotification('success', 'बिना पेमेंट वाला एक्सेस दे दिया गया। ग्राहक इसी मोबाइल नंबर से वीडियो सत्यापित कर सकता है।'); setGrantPhone(''); setGrantVideoId(''); setGrantNote(''); }
+      if (response.ok && data.success) { showNotification('success', 'बिना पेमेंट वाला एक्सेस दे दिया गया। ग्राहक इसी मोबाइल नंबर से वीडियो सत्यापित कर सकता है।'); setGrantPhone(''); setGrantVideoId(''); setGrantNote(''); await fetchPurchases(); }
       else showNotification('error', data.error || 'एक्सेस नहीं दिया जा सका।');
     } catch (err: any) { showNotification('error', err.message || 'सर्वर से संपर्क नहीं हो पाया।'); }
     finally { setGrantSubmitting(false); }
@@ -1128,9 +1128,9 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
             </section>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-extrabold text-white">Verified Customer Purchases</h2>
+                <h2 className="text-xl font-extrabold text-white">Customer Access Records</h2>
                 <p className="text-xs text-slate-400">
-                  Audit trail of server-verified Cashfree payments and customer access entitlements.
+                  Cashfree verified purchases और Admin द्वारा दिए गए complimentary access, दोनों का रिकॉर्ड।
                 </p>
               </div>
               <button
@@ -1167,10 +1167,10 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                             {p.videoTitle || p.videoId}
                           </td>
                           <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
-                            {p.orderId}
+                            {p.orderId || '—'}
                           </td>
                           <td className="py-3 px-4 font-bold text-emerald-400 font-mono">
-                            ₹{p.amountPaid}
+                            {p.paymentStatus === 'COMPLIMENTARY' ? '₹0 (No payment)' : `₹${p.amountPaid}`}
                           </td>
                           <td className="py-3 px-4">
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
@@ -1202,7 +1202,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                     ) : (
                       <tr>
                         <td colSpan={7} className="py-10 text-center text-slate-500">
-                          No verified purchase records found in database.
+                          No customer access records found in database.
                         </td>
                       </tr>
                     )}
