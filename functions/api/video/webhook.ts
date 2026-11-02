@@ -62,7 +62,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
     const orderId = String(orderData.order_id);
     const existingOrder = await env.DB.prepare(
-      'SELECT video_id, customer_phone, order_amount, order_currency FROM payment_orders WHERE order_id = ?'
+      'SELECT video_id, customer_phone, order_amount, order_currency, order_status, cf_payment_id FROM payment_orders WHERE order_id = ?'
     ).bind(orderId).first();
 
     // Ignore unknown orders; never create an entitlement from webhook-supplied identity data.
@@ -70,31 +70,47 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       return new Response(JSON.stringify({ error: 'Unknown order.' }), { status: 404, headers: jsonHeaders });
     }
 
-    if (orderData.order_status !== 'PAID') {
-      return new Response(JSON.stringify({ status: 'IGNORED', orderId, orderStatus: orderData.order_status || 'UNKNOWN' }), { status: 200, headers: jsonHeaders });
+    // Cashfree confirms a successful attempt with payment.payment_status === SUCCESS.
+    // Order status is not the payment-attempt status in the documented webhook payload.
+    if (paymentData?.payment_status !== 'SUCCESS') {
+      return new Response(JSON.stringify({ status: 'IGNORED', orderId, paymentStatus: paymentData?.payment_status || 'UNKNOWN' }), { status: 200, headers: jsonHeaders });
     }
 
     const amount = Number(orderData.order_amount);
+    const paymentAmount = Number(paymentData.payment_amount);
     const savedAmount = Number(existingOrder.order_amount);
     const currency = orderData.order_currency || existingOrder.order_currency;
-    const webhookPhone = String(orderData.customer_details?.customer_phone || '').replace(/\D/g, '').slice(-10);
-    if (!Number.isFinite(amount) || amount !== savedAmount || currency !== 'INR' ||
+    const paymentCurrency = paymentData.payment_currency || currency;
+    const webhookPhone = String(eventData.data?.customer_details?.customer_phone || '').replace(/\D/g, '').slice(-10);
+    const paymentId = paymentData?.cf_payment_id ? String(paymentData.cf_payment_id) : '';
+    if (!paymentId || !Number.isFinite(amount) || amount !== savedAmount ||
+        !Number.isFinite(paymentAmount) || paymentAmount !== savedAmount ||
+        currency !== 'INR' || paymentCurrency !== 'INR' ||
         existingOrder.order_currency !== 'INR' || webhookPhone !== existingOrder.customer_phone) {
       return new Response(JSON.stringify({ error: 'Webhook order details do not match the saved order.' }), { status: 403, headers: jsonHeaders });
     }
 
+    // Once one attempt has paid the order, duplicate or later attempts must not replace it.
+    if (existingOrder.order_status === 'PAID') {
+      return new Response(JSON.stringify({ status: 'DUPLICATE_OR_ALREADY_PAID', orderId }), { status: 200, headers: jsonHeaders });
+    }
+
     const accessId = `acc_wh_${orderId}`;
-    await env.DB.prepare(
+    const updateResult = await env.DB.prepare(
       `UPDATE payment_orders
        SET order_status = 'PAID', cf_payment_id = ?, payment_method = ?,
            raw_verification_json = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE order_id = ?`
+       WHERE order_id = ? AND order_status != 'PAID'`
     ).bind(
-      paymentData?.cf_payment_id ? String(paymentData.cf_payment_id) : null,
+      paymentId,
       paymentData?.payment_group || 'WEBHOOK',
       rawBody,
       orderId
     ).run();
+
+    if (Number(updateResult?.meta?.changes || 0) === 0) {
+      return new Response(JSON.stringify({ status: 'DUPLICATE_OR_ALREADY_PAID', orderId }), { status: 200, headers: jsonHeaders });
+    }
 
     await env.DB.prepare(
       `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
@@ -104,7 +120,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     ).bind(
       accessId,
       existingOrder.customer_phone,
-      orderData.customer_details?.customer_email || null,
+      eventData.data?.customer_details?.customer_email || null,
       existingOrder.video_id,
       orderId
     ).run();
