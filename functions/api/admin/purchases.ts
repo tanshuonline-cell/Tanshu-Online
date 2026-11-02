@@ -47,7 +47,9 @@ async function verifyAdminAuth(request: Request, env: Env): Promise<boolean> {
     const isValid = await verifyHmac(b64, sig, signingKey);
     if (isValid) {
       const payload = JSON.parse(atob(b64));
-      return !payload.exp || payload.exp > Date.now();
+      return payload.role === 'superadmin' &&
+        typeof payload.u === 'string' && payload.u.length > 0 &&
+        Number.isFinite(payload.exp) && payload.exp > Date.now();
     }
   } catch {
     return false;
@@ -69,9 +71,9 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   if (!env.DB) {
     return new Response(
       JSON.stringify({
-        success: true,
+        success: false,
         purchases: [],
-        message: 'D1 database binding not active.',
+        error: 'D1 database binding is unavailable. Purchase history cannot be verified.',
       }),
       { status: 200, headers: corsHeaders }
     );
