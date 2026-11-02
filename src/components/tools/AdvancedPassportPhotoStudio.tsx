@@ -26,6 +26,7 @@ const readFile = (file: File) => new Promise<string>((resolve, reject) => {
 export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
+  const [draggingPhotoId, setDraggingPhotoId] = useState<string>('');
   const [mode, setMode] = useState<Mode>('official');
   const [preset, setPreset] = useState<PhotoPreset>('india');
   const [customWidth, setCustomWidth] = useState(35);
@@ -159,6 +160,19 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     doc.save(`tanshu-photo-sheet-${paper}.pdf`);
   };
 
+  const reorderPhotos = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    setPhotos((current) => {
+      const from = current.findIndex((photo) => photo.id === sourceId);
+      const to = current.findIndex((photo) => photo.id === targetId);
+      if (from < 0 || to < 0) return current;
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
   const removeSelected = () => {
     if (!selected) return;
     const next = photos.filter((photo) => photo.id !== selected.id);
@@ -189,7 +203,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => { void addPhotos(event.target.files); event.currentTarget.value = ''; }} />
             <button onClick={() => uploadRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-5 text-sm font-semibold text-blue-700 hover:bg-blue-50"><Upload className="h-5 w-5" /> एक या कई फोटो चुनें</button>
             {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-            {photos.length > 0 && <div className="mt-3 grid grid-cols-4 gap-2">{photos.map((photo) => <button key={photo.id} onClick={() => { setSelectedId(photo.id); resetAdjustments(); }} title={photo.name} className={`overflow-hidden rounded-lg border-2 bg-white ${selected?.id === photo.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'}`}><img src={photo.src} alt={photo.name} className="aspect-square w-full object-cover" /></button>)}</div>}
+            {photos.length > 0 && <><p className="mt-2 text-[11px] text-slate-500">शीट में फोटो का क्रम बदलने के लिए थंबनेल को माउस से खींचकर दूसरी फोटो पर छोड़ें।</p><div className="mt-3 grid grid-cols-4 gap-2">{photos.map((photo) => <button key={photo.id} draggable onDragStart={() => setDraggingPhotoId(photo.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); reorderPhotos(draggingPhotoId, photo.id); setDraggingPhotoId(''); }} onDragEnd={() => setDraggingPhotoId('')} onClick={() => { setSelectedId(photo.id); resetAdjustments(); }} title={`Select or drag to reorder: ${photo.name}`} className={`overflow-hidden rounded-lg border-2 bg-white ${selected?.id === photo.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'} ${draggingPhotoId === photo.id ? 'opacity-40' : ''}`}><img src={photo.src} alt={photo.name} className="aspect-square w-full object-cover" /></button>)}</div></>}
           </div>
 
           <div className="border-t border-slate-200 pt-4">
