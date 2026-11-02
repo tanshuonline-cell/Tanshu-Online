@@ -7,7 +7,7 @@ import {
 
 type Photo = { id: string; name: string; src: string };
 type PhotoPreset = 'india' | 'stamp' | 'pan' | 'custom';
-type Paper = '4x6' | 'A4';
+type Paper = 'single' | '4x6' | 'A4';
 type Mode = 'official' | 'beauty';
 
 const PRESETS: Record<Exclude<PhotoPreset, 'custom'>, { label: string; width: number; height: number }> = {
@@ -30,7 +30,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [preset, setPreset] = useState<PhotoPreset>('india');
   const [customWidth, setCustomWidth] = useState(35);
   const [customHeight, setCustomHeight] = useState(45);
-  const [paper, setPaper] = useState<Paper>('4x6');
+  const [paper, setPaper] = useState<Paper>('single');
+  const [sheetMargin, setSheetMargin] = useState(4);
+  const [sheetGap, setSheetGap] = useState(2);
   const [background, setBackground] = useState('#ffffff');
   const [keepOriginalBg, setKeepOriginalBg] = useState(true);
   const [brightness, setBrightness] = useState(100);
@@ -82,20 +84,25 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if (!ctx) return;
     const photoW = Math.round(dimensions.width);
     const photoH = Math.round(dimensions.height);
+    const isSingle = paper === 'single';
     const is4x6 = paper === '4x6';
-    canvas.width = is4x6 ? 1200 : 2480;
-    canvas.height = is4x6 ? 1800 : 3508;
+    canvas.width = isSingle ? photoW : is4x6 ? 1200 : 2480;
+    canvas.height = isSingle ? photoH : is4x6 ? 1800 : 3508;
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const margin = is4x6 ? 36 : 70;
-    const cols = is4x6 ? 2 : Math.max(1, Math.floor((canvas.width - margin * 2) / (photoW + 24)));
-    const rows = Math.max(1, Math.floor((canvas.height - margin * 2) / (photoH + 24)));
-    const gapX = (canvas.width - margin * 2 - cols * photoW) / (cols + 1);
-    const gapY = (canvas.height - margin * 2 - rows * photoH) / (rows + 1);
+    const mmToPx = (mm: number) => mm * 300 / 25.4;
+    const margin = isSingle ? 0 : mmToPx(sheetMargin);
+    const gap = isSingle ? 0 : mmToPx(sheetGap);
+    const cols = isSingle ? 1 : Math.max(1, Math.floor((canvas.width - margin * 2 + gap) / (photoW + gap)));
+    const rows = isSingle ? 1 : Math.max(1, Math.floor((canvas.height - margin * 2 + gap) / (photoH + gap)));
+    const usedW = cols * photoW + (cols - 1) * gap;
+    const usedH = rows * photoH + (rows - 1) * gap;
+    const startX = isSingle ? 0 : Math.max(margin, (canvas.width - usedW) / 2);
+    const startY = isSingle ? 0 : Math.max(margin, (canvas.height - usedH) / 2);
     const draw = (img?: HTMLImageElement) => {
       for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
-        const x = margin + gapX + col * (photoW + gapX);
-        const y = margin + gapY + row * (photoH + gapY);
+        const x = startX + col * (photoW + gap);
+        const y = startY + row * (photoH + gap);
         ctx.save();
         ctx.fillStyle = background;
         ctx.fillRect(x, y, photoW, photoH);
@@ -115,8 +122,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         }
         ctx.restore();
         if (border > 0) { ctx.strokeStyle = '#111827'; ctx.lineWidth = border * 2; ctx.strokeRect(x, y, photoW, photoH); }
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
-        ctx.strokeRect(x - 5, y - 5, photoW + 10, photoH + 10); ctx.setLineDash([]);
+        if (!isSingle) { ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+          ctx.strokeRect(x - 5, y - 5, photoW + 10, photoH + 10); ctx.setLineDash([]); }
       }
     };
     if (!selected) { draw(); return; }
@@ -124,7 +131,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     img.onload = () => draw(img);
     img.onerror = () => { setError('इस फोटो को पढ़ा नहीं जा सका।'); draw(); };
     img.src = selected.src;
-  }, [selected, dimensions, paper, background, mode, brightness, contrast, saturation, smooth, sharpness, zoom, moveX, moveY, border]);
+  }, [selected, dimensions, paper, sheetMargin, sheetGap, background, mode, brightness, contrast, saturation, smooth, sharpness, zoom, moveX, moveY, border]);
 
   const downloadJpg = () => {
     if (!canvasRef.current || !selected) return;
@@ -136,8 +143,10 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
 
   const downloadPdf = () => {
     if (!canvasRef.current || !selected) return;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: paper === '4x6' ? [4, 6] : 'a4' });
-    doc.addImage(canvasRef.current.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, paper === '4x6' ? 4 : 8.27, paper === '4x6' ? 6 : 11.69);
+    const doc = paper === 'single' ? new jsPDF({ orientation: 'portrait', unit: 'mm', format: [dimensions.width * 25.4 / 300, dimensions.height * 25.4 / 300] }) : new jsPDF({ orientation: 'portrait', unit: 'in', format: paper === '4x6' ? [4, 6] : 'a4' });
+    const pageW = paper === 'single' ? dimensions.width * 25.4 / 300 : paper === '4x6' ? 4 : 8.27;
+    const pageH = paper === 'single' ? dimensions.height * 25.4 / 300 : paper === '4x6' ? 6 : 11.69;
+    doc.addImage(canvasRef.current.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, pageW, pageH);
     doc.save(`tanshu-photo-sheet-${paper}.pdf`);
   };
 
