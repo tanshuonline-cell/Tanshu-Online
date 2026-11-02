@@ -152,8 +152,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         const img = images.length ? images[photoIndex % images.length] || undefined : undefined;
         const edit = photo ? (photoEdits[photo.id] || DEFAULT_EDIT) : DEFAULT_EDIT;
         if (img) {
-          const scale = Math.max(photoW / img.width, photoH / img.height) * edit.zoom;
-          const w = img.width * scale, h = img.height * scale;
+          const cropSourceW = img.width * edit.cropW / 100, cropSourceH = img.height * edit.cropH / 100;
+          const scale = Math.max(photoW / cropSourceW, photoH / cropSourceH) * edit.zoom;
+          const w = cropSourceW * scale, h = cropSourceH * scale;
           const filter = mode === 'beauty'
             ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) blur(${Math.max(0, edit.smooth) * 0.012}px)`
             : 'brightness(100%) contrast(100%) saturate(100%)';
@@ -437,12 +438,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           </>}
           {step===2 && <>
           <div className="grid grid-cols-2 gap-2"><button onClick={()=>setActivePanel('crop')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">✂️ {language==='hi'?'फोटो क्रॉप करें':'Crop Photo'}</button><button onClick={()=>setActivePanel('remove-bg')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</button><button onClick={()=>setActivePanel('color')} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बैकग्राउंड रंग':'Background Color'}</button><button onClick={()=>setActivePanel('border')} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बॉर्डर सेट करें':'Border Settings'}</button></div>
-          <div className="border-t border-slate-200 pt-4">
-            <h3 className="mb-3 font-bold text-slate-900">4. Background & Border</h3>
-            <div className="flex flex-wrap gap-2">{[{ name: 'White', value: '#ffffff' }, { name: 'Light Blue', value: '#dbeafe' }, { name: 'Light Gray', value: '#e5e7eb' }, { name: 'Cream', value: '#fff7ed' }].map((color) => <button key={color.value} onClick={() => setBackground(color.value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${background === color.value ? 'border-blue-600 ring-1 ring-blue-200' : 'border-slate-200'}`}><span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-slate-300 align-middle" style={{ background: color.value }} />{color.name}</button>)}</div>
-            <p className="mt-2 text-[11px] text-slate-500">नोट: Background रंग केवल पारदर्शी हिस्सों या पहले से cut-out फोटो के पीछे दिखेगा। सामान्य JPG का बैकग्राउंड अभी अपने-आप नहीं हटता।</p>
-            <div className="mt-3"><Slider label="Border width" min={0} max={4} value={border} onChange={setBorder} /></div>
-          </div>
+
 
           <div className="space-y-3 border-t border-slate-200 pt-4">
             <h3 className="font-bold text-slate-900">7. Signature Editor</h3>
