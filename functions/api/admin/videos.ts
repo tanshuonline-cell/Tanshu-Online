@@ -39,7 +39,7 @@ async function verifyAdmin(request: Request, env: Env): Promise<boolean> {
     const expected = await createHmac(b64, signingKey);
     if (expected === sig) {
       const payload = JSON.parse(atob(b64));
-      return !payload.exp || payload.exp > Date.now();
+      return payload.role === 'superadmin' && typeof payload.u === 'string' && payload.u.length > 0 && Number.isFinite(payload.exp) && payload.exp > Date.now();
     }
   } catch {
     return false;
@@ -140,9 +140,17 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     const videoId = id || `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const finalAccessType = accessType || (isPremium ? 'premium' : 'free');
-    const finalIsPremium = finalAccessType === 'premium' ? 1 : 0;
-    const finalPrice = finalIsPremium ? Math.max(0, Math.floor(Number(price) || 0)) : 0;
+    // This website is paid-video-only. Ignore client attempts to save a free listing.
+    const finalAccessType = 'premium';
+    const finalIsPremium = 1;
+    const parsedPrice = Number(price);
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      return new Response(JSON.stringify({ success: false, error: 'Paid video price must be greater than ₹0.' }), { status: 400, headers: corsHeaders });
+    }
+    const finalPrice = Math.floor(parsedPrice);
+    if (finalPrice <= 0) {
+      return new Response(JSON.stringify({ success: false, error: 'Paid video price must be at least ₹1.' }), { status: 400, headers: corsHeaders });
+    }
     const topicsJson = JSON.stringify(Array.isArray(topics) ? topics : []);
     const isAct = isActive === false ? 0 : 1;
 
