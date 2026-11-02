@@ -84,13 +84,14 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     const webhookPhone = String(eventData.data?.customer_details?.customer_phone || '').replace(/\D/g, '').slice(-10);
     const paymentId = paymentData?.cf_payment_id ? String(paymentData.cf_payment_id) : '';
     if (!paymentId || !Number.isFinite(amount) || amount !== savedAmount ||
-        !Number.isFinite(paymentAmount) || paymentAmount !== savedAmount ||
+        !Number.isFinite(paymentAmount) || paymentAmount <= 0 || paymentAmount > savedAmount ||
         currency !== 'INR' || paymentCurrency !== 'INR' ||
         existingOrder.order_currency !== 'INR' || webhookPhone !== existingOrder.customer_phone) {
-      return new Response(JSON.stringify({ error: 'Webhook order details do not match the saved order.' }), { status: 403, headers: jsonHeaders });
+      return new Response(JSON.stringify({ error: 'Webhook order or payment details do not match the saved order.' }), { status: 403, headers: jsonHeaders });
     }
 
     // Once one attempt has paid the order, duplicate or later attempts must not replace it.
+    // The entitlement upsert below is idempotent even if two signed deliveries race.
     if (existingOrder.order_status === 'PAID') {
       return new Response(JSON.stringify({ status: 'DUPLICATE_OR_ALREADY_PAID', orderId }), { status: 200, headers: jsonHeaders });
     }
@@ -114,7 +115,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
          SELECT ?, ?, ?, ?, ?, 0
          WHERE EXISTS (SELECT 1 FROM payment_orders WHERE order_id = ? AND order_status = 'PAID')
-         ON CONFLICT(customer_phone, video_id) DO UPDATE SET
+         ON CONFLICT DO UPDATE SET
            order_id = excluded.order_id, is_revoked = 0, updated_at = CURRENT_TIMESTAMP`
       ).bind(
         accessId,
