@@ -16,7 +16,7 @@ async function validAdmin(request: Request, env: Env): Promise<boolean> {
     const expected = Array.from(new Uint8Array(signed)).map(b => b.toString(16).padStart(2, '0')).join('');
     if (expected !== signature) return false;
     const data = JSON.parse(atob(payload));
-    return Boolean(data.exp && data.exp > Date.now());
+    return Boolean(data.role === 'superadmin' && typeof data.u === 'string' && data.u.length > 0 && data.exp && data.exp > Date.now());
   } catch { return false; }
 }
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
