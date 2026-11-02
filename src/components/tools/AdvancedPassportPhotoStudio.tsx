@@ -274,11 +274,6 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       return;
     }
     if (paper === 'single') return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const bounds = canvas.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) * canvas.width / bounds.width;
-    const y = (event.clientY - bounds.top) * canvas.height / bounds.height;
     const hit = [...sheetRectsRef.current].reverse().find((rect) => x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h);
     if (!hit) return;
     activeSheetDragRef.current = { slot: hit.slot, offsetX: x - hit.x, offsetY: y - hit.y };
