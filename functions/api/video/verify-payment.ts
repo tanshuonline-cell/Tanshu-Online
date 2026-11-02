@@ -199,6 +199,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     // Persist payment and grant access without ever overwriting an existing entitlement.
+    const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     try {
       await env.DB.batch([
         env.DB.prepare(
