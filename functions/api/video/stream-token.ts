@@ -59,14 +59,28 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       return new Response(JSON.stringify({ authorized: false, error: 'Video database is unavailable. Access denied.' }), { status: 503, headers: corsHeaders });
     }
     let streamVideoId = '';
+    let youtubeVideoId = '';
     try {
       const videoRecord = await env.DB.prepare(
-        'SELECT access_type, is_premium, stream_video_id FROM videos WHERE id = ? AND is_active = 1'
+        'SELECT access_type, is_premium, stream_video_id, youtube_url FROM videos WHERE id = ? AND is_active = 1'
       ).bind(videoId).first();
       if (!videoRecord || videoRecord.access_type !== 'premium' || Number(videoRecord.is_premium) !== 1) {
         return new Response(JSON.stringify({ authorized: false, error: 'This paid video is unavailable or not active.' }), { status: 404, headers: corsHeaders });
       }
       streamVideoId = videoRecord.stream_video_id || '';
+      const rawYoutubeUrl = typeof videoRecord.youtube_url === 'string' ? videoRecord.youtube_url.trim() : '';
+      if (rawYoutubeUrl) {
+        try {
+          const parsedUrl = new URL(rawYoutubeUrl);
+          const host = parsedUrl.hostname.replace(/^www\\./, '').toLowerCase();
+          const candidate = host === 'youtu.be'
+            ? parsedUrl.pathname.split('/').filter(Boolean)[0]
+            : ['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host)
+              ? (parsedUrl.searchParams.get('v') || parsedUrl.pathname.split('/').filter(Boolean).slice(-1)[0])
+              : '';
+          if (candidate && /^[A-Za-z0-9_-]{11}$/.test(candidate)) youtubeVideoId = candidate;
+        } catch { /* Ignore invalid stored URLs and fall back to Stream validation. */ }
+      }
     } catch (dbErr) {
       console.error('D1 video lookup failed:', dbErr);
       return new Response(JSON.stringify({ authorized: false, error: 'Could not validate this video. Access denied.' }), { status: 503, headers: corsHeaders });
@@ -200,7 +214,19 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       return new Response(JSON.stringify({ authorized: false, error: 'Could not verify your access record. Access denied.' }), { status: 503, headers: corsHeaders });
     }
 
-    // Step 3: Video is verified! Validate Cloudflare Stream credentials & video asset
+    // Only reveal the YouTube embed after the signed session and matching active entitlement are verified.
+    if (youtubeVideoId) {
+      return new Response(JSON.stringify({
+        authorized: true,
+        accessType: 'premium',
+        videoId,
+        provider: 'youtube',
+        youtubeEmbedUrl: `https://www.youtube-nocookie.com/embed/${youtubeVideoId}?rel=0`,
+        expiresInSeconds: Math.max(0, Math.floor((parsed.exp - Date.now()) / 1000)),
+      }), { status: 200, headers: corsHeaders });
+    }
+
+    // Stream fallback: generate a short-lived Cloudflare Stream playback token.
     const accountId = env.CLOUDFLARE_STREAM_ACCOUNT_ID;
     const apiToken = env.CLOUDFLARE_STREAM_API_TOKEN;
 
