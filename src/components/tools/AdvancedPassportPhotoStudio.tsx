@@ -53,7 +53,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [signatureCrop, setSignatureCrop] = useState({ x: 0, y: 0, w: 100, h: 100 });
   const [signaturePlacement, setSignaturePlacement] = useState({ x: 58, y: 78, width: 32 });
   const signatureInputRef = useRef<HTMLInputElement>(null);
-  const signatureDragRef = useRef<{ x: number; y: number } | null>(null);
+  const signatureDragRef = useRef<{ x: number; y: number; mode?: 'move' | 'resize' } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
@@ -250,9 +250,10 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const start = signatureDragRef.current;
     setSignatureCrop((current) => {
       const dx = x - start.x, dy = y - start.y;
+      if (start.mode === 'resize') return { ...current, w: Math.max(5, Math.min(100 - current.x, current.w + dx)), h: Math.max(5, Math.min(100 - current.y, current.h + dy)) };
       return { ...current, x: Math.max(0, Math.min(100 - current.w, current.x + dx)), y: Math.max(0, Math.min(100 - current.h, current.y + dy)) };
     });
-    signatureDragRef.current = { x, y };
+    signatureDragRef.current = { x, y, mode: start.mode };
   };
   const handleSheetPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (paper === 'single') return;
@@ -396,7 +397,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
               <p className="text-xs text-slate-500">{signatureName} · Crop box को पकड़कर खिसकाएँ; crop का आकार नीचे से बदलें।</p>
               <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border border-slate-300 bg-[linear-gradient(45deg,#eee_25%,transparent_25%),linear-gradient(-45deg,#eee_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#eee_75%),linear-gradient(-45deg,transparent_75%,#eee_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]">
                 <img src={signatureSrc} alt="Signature crop source" className="block max-h-48 w-full object-contain" />
-                <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{ left: signatureCrop.x + '%', top: signatureCrop.y + '%', width: signatureCrop.w + '%', height: signatureCrop.h + '%' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); signatureDragRef.current = { x: (e.clientX - e.currentTarget.parentElement!.getBoundingClientRect().left) / e.currentTarget.parentElement!.getBoundingClientRect().width * 100, y: (e.clientY - e.currentTarget.parentElement!.getBoundingClientRect().top) / e.currentTarget.parentElement!.getBoundingClientRect().height * 100 }; }} onPointerMove={(e) => { if (e.buttons === 1) moveSignatureCrop(e as unknown as React.PointerEvent<HTMLDivElement>); }} onPointerUp={() => { signatureDragRef.current = null; }} />
+                <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{ left: signatureCrop.x + '%', top: signatureCrop.y + '%', width: signatureCrop.w + '%', height: signatureCrop.h + '%' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); signatureDragRef.current = { x: (e.clientX - parent.left) / parent.width * 100, y: (e.clientY - parent.top) / parent.height * 100, mode: (e.target as HTMLElement).dataset.resize === 'handle' ? 'resize' : 'move' }; }} onPointerMove={(e) => { if (e.buttons === 1) moveSignatureCrop(e as unknown as React.PointerEvent<HTMLDivElement>); }} onPointerUp={() => { signatureDragRef.current = null; }}><span data-resize="handle" className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-white bg-blue-600" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Slider label="Crop width (%)" min={5} max={100} value={signatureCrop.w} onChange={(v) => setSignatureCrop((c) => ({ ...c, w: Math.min(v, 100 - c.x) }))} />
