@@ -106,6 +106,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     let isSessionValid = false;
+    let parsed: any;
     try {
       const [b64Payload, sig] = tokenToValidate.split('.');
       const signingKey = env.ADMIN_SECRET_TOKEN;
@@ -124,7 +125,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         );
       }
 
-      const parsed = JSON.parse(atob(b64Payload));
+      parsed = JSON.parse(atob(b64Payload));
       // Cross-video & identity check: Token must match this specific video and customer phone
       if (parsed.v !== videoId) {
         return new Response(
