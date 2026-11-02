@@ -77,7 +77,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     const amount = Number(orderData.order_amount);
     const savedAmount = Number(existingOrder.order_amount);
     const currency = orderData.order_currency || existingOrder.order_currency;
-    const webhookPhone = String(orderData.customer_details?.customer_phone || '').replace(/\\D/g, '').slice(-10);
+    const webhookPhone = String(orderData.customer_details?.customer_phone || '').replace(/\D/g, '').slice(-10);
     if (!Number.isFinite(amount) || amount !== savedAmount || currency !== 'INR' ||
         existingOrder.order_currency !== 'INR' || webhookPhone !== existingOrder.customer_phone) {
       return new Response(JSON.stringify({ error: 'Webhook order details do not match the saved order.' }), { status: 403, headers: jsonHeaders });
