@@ -43,14 +43,10 @@ export default function App() {
     fetch('/api/video/catalog')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.success && Array.isArray(data.videos) && data.videos.length > 0) {
-          const merged = [...data.videos];
-          for (const lv of LATEST_VIDEOS) {
-            if (!merged.some((m) => m.id === lv.id)) {
-              merged.push(lv);
-            }
-          }
-          setCatalogVideos(merged);
+        if (data && data.success && Array.isArray(data.videos)) {
+          // The D1 catalog is the source of truth when the API responds successfully.
+          // Do not append hard-coded sample videos to the live customer catalog.
+          setCatalogVideos(data.videos.length > 0 ? data.videos : []);
         }
       })
       .catch(() => {});
