@@ -63,7 +63,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       const videoRecord = await env.DB.prepare(
         'SELECT access_type, is_premium, stream_video_id FROM videos WHERE id = ? AND is_active = 1'
       ).bind(videoId).first();
-      if (!videoRecord || !(videoRecord.access_type === 'premium' || Boolean(videoRecord.is_premium))) {
+      if (!videoRecord || videoRecord.access_type !== 'premium' || Number(videoRecord.is_premium) !== 1) {
         return new Response(JSON.stringify({ authorized: false, error: 'This paid video is unavailable or not active.' }), { status: 404, headers: corsHeaders });
       }
       streamVideoId = videoRecord.stream_video_id || '';
