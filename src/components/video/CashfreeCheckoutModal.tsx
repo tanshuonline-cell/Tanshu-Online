@@ -436,73 +436,22 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
               ) : (
                 <div className="space-y-4">
                   <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
-                    <strong className="block font-bold text-blue-950 mb-0.5">Account Security Policy:</strong>
-                    To protect customer purchases from unauthorized viewing, access restoration requires Two-Factor SMS OTP verification to your registered mobile number.
+                    <strong className="block font-bold text-blue-950 mb-0.5">Restore Secure Access:</strong>
+                    अपना वही 10 अंकों का मोबाइल नंबर डालें जिससे वीडियो खरीदा था या जिस पर Admin ने complimentary access दिया है। सर्वर रिकॉर्ड जाँचकर ही वीडियो खोलेगा।
                   </div>
-
-                  {!restoreOtpSent ? (
-                    <form onSubmit={handleRequestRestoreOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Registered Mobile Number <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-500">
-                            +91
-                          </span>
-                          <input
-                            type="tel"
-                            maxLength={10}
-                            required
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            placeholder="98765 43210"
-                            className="w-full pl-12 pr-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 transition-all outline-hidden"
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          A 2-Factor verification code will be sent to this number to verify ownership.
-                        </p>
+                  <form onSubmit={handleRequestRestoreOtp} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Registered Mobile Number <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-500">+91</span>
+                        <input type="tel" maxLength={10} required value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="98765 43210" className="w-full pl-12 pr-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 transition-all outline-hidden" />
                       </div>
-
-                      <button
-                        type="submit"
-                        disabled={!isPhoneValid}
-                        className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                      >
-                        <span>Send Verification OTP (2FA)</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyRestoreOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Enter Verification OTP <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          required
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="Enter 6-digit OTP"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-bold tracking-widest text-slate-900 placeholder:text-slate-400 transition-all outline-hidden text-center"
-                        />
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          Sent to +91 {sanitizedPhone}
-                        </p>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span>Verify OTP & Unlock Access</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  )}
+                      <p className="text-[10px] text-slate-500 mt-1">कोई OTP नहीं भेजा जाएगा। मौजूदा purchase या admin access रिकॉर्ड सर्वर पर verify होगा।</p>
+                    </div>
+                    <button type="submit" disabled={!isPhoneValid || step === 'verifying'} className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
+                      <span>Verify & Restore Video Access</span><ArrowRight className="w-4 h-4" />
+                    </button>
+                  </form>
                 </div>
               )}
             </>
