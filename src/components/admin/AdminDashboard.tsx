@@ -175,14 +175,23 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       return;
     }
 
-    // Every website catalog video must be paid and use a genuine Cloudflare Stream UID.
+    // Active paid videos need either a valid YouTube URL or a genuine Cloudflare Stream UID.
     if (formIsActive) {
       const cleanStreamId = formStreamVideoId.trim();
-      if (!cleanStreamId || cleanStreamId.startsWith('cf_stream_') || cleanStreamId.startsWith('mock_') || cleanStreamId.startsWith('stream-')) {
-        showNotification(
-          'error',
-          'Validation failed: A genuine Cloudflare Stream Video UID is required before activating a Premium video. Sample placeholder IDs cannot be active.'
-        );
+      const cleanYoutubeUrl = formYoutubeUrl.trim();
+      let validYoutube = false;
+      if (cleanYoutubeUrl) {
+        try {
+          const parsed = new URL(cleanYoutubeUrl);
+          const host = parsed.hostname.replace(/^www\\./, '').toLowerCase();
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          const id = host === 'youtu.be' ? parts[0] : parsed.searchParams.get('v') || (['embed', 'shorts'].includes(parts[0]) ? parts[1] : '');
+          validYoutube = ['youtu.be', 'youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host) && /^[A-Za-z0-9_-]{11}$/.test(id || '');
+        } catch { validYoutube = false; }
+      }
+      const validStream = !!cleanStreamId && !cleanStreamId.startsWith('cf_stream_') && !cleanStreamId.startsWith('mock_') && !cleanStreamId.startsWith('stream-');
+      if (!validYoutube && !validStream) {
+        showNotification('error', 'एक्टिव वीडियो के लिए सही YouTube URL या Cloudflare Stream UID डालें।');
         return;
       }
     }
@@ -213,8 +222,8 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       accessType: 'premium',
       price: Math.max(1, Math.floor(formPrice)),
       currency: 'INR',
-      youtubeUrl: undefined,
-      streamVideoId: formStreamVideoId.trim(),
+      youtubeUrl: formYoutubeUrl.trim() || undefined,
+      streamVideoId: formYoutubeUrl.trim() ? '' : formStreamVideoId.trim(),
       isActive: formIsActive,
       topics: topicsArray,
     };
@@ -857,36 +866,31 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Cloudflare Stream Video UID <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formStreamVideoId}
-                        onChange={(e) => setFormStreamVideoId(e.target.value)}
-                        placeholder="32-character Cloudflare Stream Video UID"
-                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white font-mono outline-hidden"
-                      />
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Upload media into your Cloudflare Stream console to obtain the genuine 32-character UID before activating.
-                      </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-emerald-400 mb-1">YouTube Unlisted Video URL (Paid playback)</label>
+                        <input
+                          type="url"
+                          value={formYoutubeUrl}
+                          onChange={(e) => setFormYoutubeUrl(e.target.value)}
+                          placeholder="https://youtu.be/xxxxxxxxxxx"
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-1">YouTube URL देने पर ग्राहक का भुगतान और एक्सेस सत्यापित होने के बाद ही एम्बेड प्लेयर दिखेगा। वीडियो को Unlisted रखें।</p>
+                      </div>
+                      <details className="text-xs text-slate-400">
+                        <summary className="cursor-pointer">या Cloudflare Stream UID इस्तेमाल करें</summary>
+                        <input
+                          type="text"
+                          value={formStreamVideoId}
+                          onChange={(e) => setFormStreamVideoId(e.target.value)}
+                          placeholder="Cloudflare Stream Video UID"
+                          className="mt-2 w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono outline-hidden"
+                        />
+                      </details>
                     </div>
                   </div>
-                ) : (
-                  <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
-                    <label className="block text-xs font-bold text-emerald-400">
-                      YouTube Video URL or Video ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formYoutubeUrl}
-                      onChange={(e) => setFormYoutubeUrl(e.target.value)}
-                      placeholder="e.g. https://www.youtube.com/watch?v=... or ID"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs text-white outline-hidden"
-                    />
-                  </div>
-                )}
+                ) : null}
               </div>
 
               {/* Topics / Curriculum */}
