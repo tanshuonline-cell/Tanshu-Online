@@ -149,9 +149,9 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
 
       const data = await response.json();
 
-      if (response.ok && data.isPaid) {
+      if (response.ok && (data.isPaid || data.accessGranted)) {
         setStep('success');
-        setStatusMessage('Payment verified! Video masterclass unlocked successfully.');
+        setStatusMessage(data.accessGranted ? 'Complimentary access verified! Video unlocked successfully.' : 'Payment verified! Video masterclass unlocked successfully.');
         setTimeout(() => {
           onPaymentSuccess(video.id, sanitizedPhone, data.sessionToken);
         }, 1500);
