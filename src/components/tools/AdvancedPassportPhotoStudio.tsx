@@ -100,7 +100,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const usedH = rows * photoH + (rows - 1) * gap;
     const startX = isSingle ? 0 : Math.max(margin, (canvas.width - usedW) / 2);
     const startY = isSingle ? 0 : Math.max(margin, (canvas.height - usedH) / 2);
-    const draw = (images: HTMLImageElement[] = []) => {
+    const draw = (images: Array<HTMLImageElement | null> = []) => {
       const rects: SheetRect[] = [];
       for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
         const slot = row * cols + col;
@@ -116,7 +116,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         ctx.fillStyle = background;
         ctx.fillRect(x, y, photoW, photoH);
         ctx.beginPath(); ctx.rect(x, y, photoW, photoH); ctx.clip();
-        const img = images.length ? images[photoIndex % images.length] : undefined;
+        const img = images.length ? images[photoIndex % images.length] || undefined : undefined;
         const edit = photo ? (photoEdits[photo.id] || DEFAULT_EDIT) : DEFAULT_EDIT;
         if (img) {
           const scale = Math.max(photoW / img.width, photoH / img.height) * edit.zoom;
@@ -148,9 +148,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       img.src = photo.src;
     }))).then((loaded) => {
       if (cancelled) return;
-      const validImages = loaded.filter((img): img is HTMLImageElement => img !== null);
-      if (validImages.length !== sourcePhotos.length) setError('कुछ फोटो लोड नहीं हो सकीं। कृपया उन्हें दोबारा चुनें।');
-      draw(validImages);
+      if (loaded.some((img) => img === null)) setError('कुछ फोटो लोड नहीं हो सकीं। कृपया उन्हें दोबारा चुनें।');
+      draw(loaded);
     });
     return () => { cancelled = true; };
   }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, background, mode, photoEdits, sheetPositions, border]);
@@ -216,7 +215,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const removeSelected = () => {
     if (!selected) return;
     const next = photos.filter((photo) => photo.id !== selected.id);
-    setPhotos(next); setSelectedId(next[0]?.id || ''); resetAdjustments();
+    setPhotos(next); setSelectedId(next[0]?.id || '');
+    setPhotoEdits((current) => { const updated = { ...current }; delete updated[selected.id]; return updated; });
   };
 
   const Slider = ({ label, value, min = 0, max = 200, onChange }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void }) => (
@@ -243,7 +243,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => { void addPhotos(event.target.files); event.currentTarget.value = ''; }} />
             <button onClick={() => uploadRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-5 text-sm font-semibold text-blue-700 hover:bg-blue-50"><Upload className="h-5 w-5" /> एक या कई फोटो चुनें</button>
             {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-            {photos.length > 0 && <><p className="mt-2 text-[11px] text-slate-500">शीट में फोटो का क्रम बदलने के लिए थंबनेल को माउस से खींचकर दूसरी फोटो पर छोड़ें।</p><div className="mt-3 grid grid-cols-4 gap-2">{photos.map((photo) => <button key={photo.id} draggable onDragStart={() => setDraggingPhotoId(photo.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); reorderPhotos(draggingPhotoId, photo.id); setDraggingPhotoId(''); }} onDragEnd={() => setDraggingPhotoId('')} onClick={() => { setSelectedId(photo.id); resetAdjustments(); }} title={`Select or drag to reorder: ${photo.name}`} className={`overflow-hidden rounded-lg border-2 bg-white ${selected?.id === photo.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'} ${draggingPhotoId === photo.id ? 'opacity-40' : ''}`}><img src={photo.src} alt={photo.name} className="aspect-square w-full object-cover" /></button>)}</div></>}
+            {photos.length > 0 && <><p className="mt-2 text-[11px] text-slate-500">शीट में फोटो का क्रम बदलने के लिए थंबनेल को माउस से खींचकर दूसरी फोटो पर छोड़ें।</p><div className="mt-3 grid grid-cols-4 gap-2">{photos.map((photo) => <button key={photo.id} draggable onDragStart={() => setDraggingPhotoId(photo.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); reorderPhotos(draggingPhotoId, photo.id); setDraggingPhotoId(''); }} onDragEnd={() => setDraggingPhotoId('')} onClick={() => setSelectedId(photo.id)} title={`Select or drag to reorder: ${photo.name}`} className={`overflow-hidden rounded-lg border-2 bg-white ${selected?.id === photo.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'} ${draggingPhotoId === photo.id ? 'opacity-40' : ''}`}><img src={photo.src} alt={photo.name} className="aspect-square w-full object-cover" /></button>)}</div></>}
           </div>
 
           <div className="border-t border-slate-200 pt-4">
