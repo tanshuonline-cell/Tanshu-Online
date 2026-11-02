@@ -175,12 +175,29 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const y = (event.clientY - bounds.top) * canvas.height / bounds.height - drag.offsetY;
     const rect = sheetRectsRef.current.find((item) => item.slot === drag.slot);
     if (!rect) return;
-    setSheetPositions((current) => ({ ...current, [drag.slot]: {
+    const candidate = {
       x: Math.max(0, Math.min(canvas.width - rect.w, x)),
       y: Math.max(0, Math.min(canvas.height - rect.h, y))
-    } }));
+    };
+    // Reject a drag position that would overlap another photo.
+    const overlaps = sheetRectsRef.current.some((other) => {
+      if (other.slot === drag.slot) return false;
+      const otherPos = sheetPositions[other.slot];
+      const otherX = otherPos ? otherPos.x : other.x;
+      const otherY = otherPos ? otherPos.y : other.y;
+      return candidate.x < otherX + other.w && candidate.x + rect.w > otherX &&
+        candidate.y < otherY + other.h && candidate.y + rect.h > otherY;
+    });
+    if (overlaps) return;
+    setSheetPositions((current) => ({ ...current, [drag.slot]: candidate }));
   };
   const handleSheetPointerUp = () => { activeSheetDragRef.current = null; };
+
+  const resetSheetLayout = () => setSheetPositions({});
+  const autoArrangeSheet = () => {
+    // The canvas renderer's default row/column grid is the collision-free auto layout.
+    setSheetPositions({});
+  };
 
   const downloadJpg = () => {
     if (!canvasRef.current || !selected) return;
@@ -284,7 +301,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
 
         <section className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-slate-900">Live Print Preview</h3><select value={paper} onChange={(e) => setPaper(e.target.value as Paper)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch</option><option value="A4">A4 Sheet</option></select><div className="flex rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => setPaper('4x6')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === '4x6' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>4 × 6 inch</button><button onClick={() => setPaper('A4')} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === 'A4' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>A4 Sheet</button></div></div>
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Photo gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><p className="col-span-2 text-[11px] text-slate-500">Auto-fit layout: चुने गए photo size के हिसाब से पेज पर जितनी फोटो फिट होंगी, उतनी अपने-आप लगेंगी। Margin और gap कम करके पेपर बचाएँ; प्रिंटर के non-printable किनारों का ध्यान रखें।</p></div><div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"><canvas ref={canvasRef} onPointerDown={handleSheetPointerDown} onPointerMove={handleSheetPointerMove} onPointerUp={handleSheetPointerUp} onPointerCancel={handleSheetPointerUp} style={{ touchAction: 'none', cursor: paper === 'single' ? 'default' : 'grab' }} className="mx-auto block h-auto max-h-[720px] max-w-full bg-white shadow-lg" /></div>
+          <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3"><button onClick={autoArrangeSheet} disabled={paper === 'single'} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Auto Arrange</button><button onClick={resetSheetLayout} disabled={paper === 'single' || Object.keys(sheetPositions).length === 0} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40">Reset Layout</button><span className="self-center text-[11px] text-slate-500">फोटो खिसकाते समय दूसरे फोटो से टकराने पर जगह स्वीकार नहीं होगी।</span></div><div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Photo gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><p className="col-span-2 text-[11px] text-slate-500">Auto-fit layout: चुने गए photo size के हिसाब से पेज पर जितनी फोटो फिट होंगी, उतनी अपने-आप लगेंगी। Margin और gap कम करके पेपर बचाएँ; प्रिंटर के non-printable किनारों का ध्यान रखें।</p></div><div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"><canvas ref={canvasRef} onPointerDown={handleSheetPointerDown} onPointerMove={handleSheetPointerMove} onPointerUp={handleSheetPointerUp} onPointerCancel={handleSheetPointerUp} style={{ touchAction: 'none', cursor: paper === 'single' ? 'default' : 'grab' }} className="mx-auto block h-auto max-h-[720px] max-w-full bg-white shadow-lg" /></div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3"><button onClick={downloadJpg} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 text-sm font-semibold text-white disabled:opacity-40"><Download className="h-4 w-4" /> {paper === "single" ? "Download Single Photo" : "Download Sheet JPG"}</button><button onClick={downloadPdf} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Download className="h-4 w-4" /> Download PDF</button><button onClick={() => window.print()} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Printer className="h-4 w-4" /> Print</button></div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>ध्यान दें:</strong> यह पहला working studio build है। इसमें batch upload, crop/position, size presets, beauty sliders और print export शामिल हैं। AI background removal, manual eraser, face detection/auto-crop और signature editor अभी शामिल नहीं हैं। Background color transparent PNG या पहले से cut-out फोटो पर ही साफ़ दिखेगा; सामान्य JPG की पुरानी background अपने-आप नहीं हटेगी। सरकारी आवेदन से पहले संबंधित विभाग की latest photo specification जाँचें।</div>
         </section>
