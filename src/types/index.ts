@@ -120,9 +120,10 @@ export interface CustomerPurchaseRecord {
   customerEmail?: string;
   videoId: string;
   videoTitle?: string;
-  orderId: string;
+  orderId?: string | null;
   amountPaid: number;
-  paymentStatus: PaymentStatus;
+  paymentStatus: PaymentStatus | 'COMPLIMENTARY' | 'UNKNOWN';
+  accessSource?: 'PURCHASE' | 'ADMIN_GRANT';
   grantedAt: string;
   isRevoked: boolean;
 }
