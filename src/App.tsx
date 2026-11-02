@@ -46,7 +46,9 @@ export default function App() {
         if (data && data.success && Array.isArray(data.videos)) {
           // The D1 catalog is the source of truth when the API responds successfully.
           // Do not append hard-coded sample videos to the live customer catalog.
-          setCatalogVideos(data.videos.length > 0 ? data.videos : []);
+          const freeTutorials = LATEST_VIDEOS.filter((video) => !video.isPremium && video.accessType !== 'premium' && !video.isSample);
+          const livePremiumVideos = data.videos.filter((video: VideoGuide) => (video.isPremium || video.accessType === 'premium') && !video.isSample);
+          setCatalogVideos([...freeTutorials, ...livePremiumVideos]);
         }
       })
       .catch(() => {});
