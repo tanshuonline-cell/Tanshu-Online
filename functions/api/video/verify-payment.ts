@@ -45,18 +45,40 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       videoId?: string;
     };
 
-    if (!orderId || !customerPhone || !videoId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          isPaid: false,
-          error: 'Missing required parameters: orderId, customerPhone, and videoId are required.',
-        }),
-        { status: 400, headers: corsHeaders }
-      );
+    if (!customerPhone || !videoId) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'customerPhone and videoId are required.' }), { status: 400, headers: corsHeaders });
     }
 
     const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(sanitizedPhone)) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'A valid 10-digit mobile number is required.' }), { status: 400, headers: corsHeaders });
+    }
+
+    // Complimentary admin grants are verified separately; no payment order is fabricated.
+    if (!orderId) {
+      if (!env.DB) return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'Access database is unavailable.' }), { status: 503, headers: corsHeaders });
+      try {
+        const grant = await env.DB.prepare(
+          `SELECT g.id FROM admin_video_access_grants g
+           INNER JOIN videos v ON v.id = g.video_id
+           WHERE g.customer_phone = ? AND g.video_id = ? AND g.is_revoked = 0
+             AND v.is_active = 1 AND v.access_type = 'premium' AND v.is_premium = 1
+           LIMIT 1`
+        ).bind(sanitizedPhone, videoId).first();
+        if (!grant) return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'No active admin-granted access was found for this mobile number and video.' }), { status: 403, headers: corsHeaders });
+        const signingKey = env.ADMIN_SECRET_TOKEN;
+        if (!signingKey || signingKey.includes('YOUR_')) return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'Secure access signing is not configured.' }), { status: 503, headers: corsHeaders });
+        const payloadStr = JSON.stringify({ p: sanitizedPhone, v: videoId, g: grant.id, t: Date.now(), exp: Date.now() + 30 * 24 * 3600 * 1000 });
+        const b64Payload = btoa(payloadStr);
+        const signature = await createSignature(b64Payload, signingKey);
+        const sessionToken = `${b64Payload}.${signature}`;
+        corsHeaders['Set-Cookie'] = `tanshu_video_${videoId}_access=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+        return new Response(JSON.stringify({ success: true, isPaid: false, accessGranted: true, accessType: 'complimentary', videoId, customerPhone: sanitizedPhone, sessionToken, message: 'Complimentary access verified.' }), { status: 200, headers: corsHeaders });
+      } catch (dbErr) {
+        console.error('Complimentary access lookup failed:', dbErr);
+        return new Response(JSON.stringify({ success: false, accessGranted: false, error: 'Could not verify complimentary access.' }), { status: 503, headers: corsHeaders });
+      }
+    }
 
     // Fail closed: every payment must match an order stored before checkout.
     if (!env.DB) {
