@@ -74,7 +74,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [sizeUnit, setSizeUnit] = useState<SizeUnit>('mm');
   const [paper, setPaper] = useState<Paper>('single');
   const [sheetMargin, setSheetMargin] = useState(5);
-  const [sheetGap, setSheetGap] = useState(2);
+  const [sheetGap, setSheetGap] = useState(3);
   const [sheetPhotoCount, setSheetPhotoCount] = useState(4);
   const [sheetPhotoOverrides, setSheetPhotoOverrides] = useState<Record<number, string>>({});
   const [background, setBackground] = useState('#ffffff');
@@ -316,8 +316,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         }
         ctx.restore();
         if (border > 0) { ctx.strokeStyle = '#111827'; ctx.lineWidth = border * 2; ctx.strokeRect(x, y, slotW, slotH); }
-        if (!isSingle) { ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
-          ctx.strokeRect(x - 5, y - 5, slotW + 10, slotH + 10); ctx.setLineDash([]); }
+        
       }
       sheetRectsRef.current = rects;
     };
@@ -398,44 +397,29 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const canvas=canvasRef.current;if(!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height;
     if(paper==='single'){if(!selected)return;const photoW=canvas.width,photoH=canvas.height,sigW=photoW*signaturePlacement.width/100,sigH=signatureSrc?(()=>{const image=new Image();image.src=signatureSrc;return sigW*(image.naturalHeight||image.height||1)/(image.naturalWidth||image.width||1);})():0,sigX=photoW*signaturePlacement.x/100,sigY=photoH*signaturePlacement.y/100,onSignature=!!signatureSrc&&x>=sigX&&x<=sigX+sigW&&y>=sigY&&y<=sigY+sigH,resizeSignature=onSignature&&x>=sigX+sigW-Math.max(18,photoW*.035)&&y>=sigY+sigH-Math.max(18,photoH*.035),edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:onSignature?'signature':'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature};canvas.setPointerCapture(event.pointerId);return;}
     const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);return;}setSelectedSheetSlot(hit.slot);
-    const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b);
-    event.preventDefault();activeSheetDragRef.current={slot:hit.slot,mode:corner?'resize':'move',startX:x,startY:y,startRect:hit,handle:t?(l?'tl':'tr'):(l?'bl':'br')};canvas.setPointerCapture(event.pointerId);
+    const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0;
+    event.preventDefault();activeSheetDragRef.current={slot:hit.slot,mode:corner&&canResize?'resize':'move',startX:x,startY:y,startRect:hit,handle:t?(l?'tl':'tr'):(l?'bl':'br')};canvas.setPointerCapture(event.pointerId);
   };
   const handleSheetPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas=canvasRef.current,cd=activeCanvasDragRef.current;if(cd&&canvas&&selected){const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-cd.startX,dy=y-cd.startY;if(cd.kind==='signature')setSignaturePlacement(p=>cd.resizeSignature?({...p,width:Math.max(5,Math.min(90,cd.startSigWidth+dx/canvas.width*100))}):({...p,x:Math.max(0,Math.min(100-p.width,cd.startSigX+dx/canvas.width*100)),y:Math.max(0,Math.min(100,cd.startSigY+dy/canvas.height*100))}));else setPhotoEdits(cur=>({...cur,[selected.id]:{...(cur[selected.id]||DEFAULT_EDIT),moveX:cd.startMoveX+dx,moveY:cd.startMoveY+dy}}));return;}
     const drag=activeSheetDragRef.current;if(!drag||!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
-    const snap=(v:number,targets:number[])=>{const n=targets.reduce((best,t)=>Math.abs(t-v)<Math.abs(best-v)?t:best,v);return Math.abs(n-v)<=24?n:v;};
     if(drag.mode==='move'){
-      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),m=sheetMargin*300/25.4,edgeGap=sheetGap*300/25.4;
-      let nx=Math.max(m,Math.min(canvas.width-m-s.w,s.x+dx)),ny=Math.max(m,Math.min(canvas.height-m-s.h,s.y+dy));
-      // Snap all four edges and centers to neighbouring photos for consistent rows/columns.
-      const xTargets=[m,canvas.width-m-s.w,...others.flatMap(r=>[r.x-s.w-edgeGap,r.x+r.w+edgeGap,r.x,r.x+r.w-s.w,r.x+(r.w-s.w)/2])];
-      const yTargets=[m,canvas.height-m-s.h,...others.flatMap(r=>[r.y-s.h-edgeGap,r.y+r.h+edgeGap,r.y,r.y+r.h-s.h,r.y+(r.h-s.h)/2])];
-      nx=snap(nx,xTargets);ny=snap(ny,yTargets);
-      const overlaps=(x0:number,y0:number)=>others.some(r=>x0<r.x+r.w-1&&x0+s.w>r.x+1&&y0<r.y+r.h-1&&y0+s.h>r.y+1);
-      if(overlaps(nx,ny)){
-        // If the requested drop would cover another photo, choose the nearest free aligned position.
-        const candidates:{x:number;y:number;d:number}[]=[];
-        for(const r of others){
-          candidates.push({x:r.x-s.w-edgeGap,y:ny,d:0},{x:r.x+r.w+edgeGap,y:ny,d:0},{x:nx,y:r.y-s.h-edgeGap,d:0},{x:nx,y:r.y+r.h+edgeGap,d:0});
-        }
-        const valid=candidates.map(p=>({x:Math.max(m,Math.min(canvas.width-m-s.w,p.x)),y:Math.max(m,Math.min(canvas.height-m-s.h,p.y))}))
-          .filter(p=>!overlaps(p.x,p.y))
-          .map(p=>({...p,d:(p.x-(s.x+dx))**2+(p.y-(s.y+dy))**2}))
-          .sort((a,b)=>a.d-b.d)[0];
-        if(valid){nx=valid.x;ny=valid.y;}
-        else {nx=s.x;ny=s.y;}
-      }
-      setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
+      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),m=sheetMargin*300/25.4;
+      // Free two-axis movement: no magnetic snapping or forced repositioning.
+      const nx=Math.max(m,Math.min(canvas.width-m-s.w,s.x+dx)),ny=Math.max(m,Math.min(canvas.height-m-s.h,s.y+dy));
+      const overlaps=others.some(r=>nx<r.x+r.w-1&&nx+s.w>r.x+1&&ny<r.y+r.h-1&&ny+s.h>r.y+1);
+      // Keep the last valid location if the dragged photo would cover another photo.
+      if(!overlaps)setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
     }
     else{
       const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio),margin=sheetMargin*300/25.4;
+      // Only the first photo defines the sheet's print size; other copies keep that exact size.
       const maxW=Math.min(left?s.x+s.w-margin:canvas.width-margin-s.x,(top?s.y+s.h-margin:canvas.height-margin-s.y)*ratio);
-      const wantedW=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2));
+      const wantedW=Math.max(s.w,Math.min(maxW,s.w+delta/2));
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot);
       const makeRect=(w:number)=>({x:left?s.x+s.w-w:s.x,y:top?s.y+s.h-w/ratio:s.y,w,h:w/ratio});
       const collides=(rect:{x:number;y:number;w:number;h:number})=>others.some(r=>rect.x<r.x+r.w-1&&rect.x+rect.w>r.x+1&&rect.y<r.y+r.h-1&&rect.y+rect.h>r.y+1);
-      let low=Math.max(24,Math.min(s.w,s.h)*.18),high=wantedW;
+      let low=s.w,high=wantedW;
       if(collides(makeRect(high))){for(let i=0;i<14;i++){const mid=(low+high)/2;if(collides(makeRect(mid)))high=mid;else low=mid;} }
       const next=makeRect(Math.max(low,Math.min(wantedW,high)));
       setSheetPositions(cur=>({...cur,[drag.slot]:next}));
