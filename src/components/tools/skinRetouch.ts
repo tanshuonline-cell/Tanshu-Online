@@ -69,21 +69,23 @@ export async function retouchFaceSkinLocally(
 
   // A local 3x3 median repairs isolated high-contrast blemish pixels only.
   // It leaves normal skin texture intact and does not soften the whole face.
+  const red = new Array<number>(9);
+  const green = new Array<number>(9);
+  const blue = new Array<number>(9);
   for (let y = 1; y < height - 1; y++) {
     const maskY = Math.min(maskHeight - 1, Math.floor(y * maskHeight / height));
     for (let x = 1; x < width - 1; x++) {
       const maskX = Math.min(maskWidth - 1, Math.floor(x * maskWidth / width));
       if (labels[maskY * maskWidth + maskX] !== 3) continue;
 
-      const red: number[] = [];
-      const green: number[] = [];
-      const blue: number[] = [];
+      let sample = 0;
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const offset = ((y + dy) * width + (x + dx)) * 4;
-          red.push(pixels[offset]);
-          green.push(pixels[offset + 1]);
-          blue.push(pixels[offset + 2]);
+          red[sample] = pixels[offset];
+          green[sample] = pixels[offset + 1];
+          blue[sample] = pixels[offset + 2];
+          sample++;
         }
       }
       const center = (y * width + x) * 4;
