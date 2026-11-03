@@ -55,6 +55,16 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [sheetPositions, setSheetPositions] = useState<Record<number, { x: number; y: number; w: number; h: number }>>({});
   const [selectedSheetSlot, setSelectedSheetSlot] = useState<number | null>(null);
   const sheetRectsRef = useRef<SheetRect[]>([]);
+  const sheetImageCacheRef = useRef<Map<string, Promise<HTMLImageElement | null>>>(new Map());
+  const loadSheetImage = (src: string) => {
+    const cached = sheetImageCacheRef.current.get(src);
+    if (cached) return cached;
+    const pending = new Promise<HTMLImageElement | null>((resolve) => {
+      const image = new Image(); image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = src;
+    });
+    sheetImageCacheRef.current.set(src, pending);
+    return pending;
+  };
   const activeSheetDragRef = useRef<{ slot: number; mode: 'move' | 'resize'; startX: number; startY: number; startRect: SheetRect; handle: 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
   const activeCanvasDragRef = useRef<{ kind: 'photo' | 'signature'; startX: number; startY: number; startMoveX: number; startMoveY: number; startSigX: number; startSigY: number; startSigWidth: number; resizeSignature: boolean } | null>(null);
   const [mode, setMode] = useState<Mode>('official');
@@ -63,7 +73,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [customHeight, setCustomHeight] = useState(45);
   const [sizeUnit, setSizeUnit] = useState<SizeUnit>('mm');
   const [paper, setPaper] = useState<Paper>('single');
-  const [sheetMargin, setSheetMargin] = useState(4);
+  const [sheetMargin, setSheetMargin] = useState(5);
   const [sheetGap, setSheetGap] = useState(2);
   const [sheetPhotoCount, setSheetPhotoCount] = useState(4);
   const [sheetPhotoOverrides, setSheetPhotoOverrides] = useState<Record<number, string>>({});
@@ -198,8 +208,10 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const photoH = Math.round(dimensions.height);
     const isSingle = paper === 'single';
     const is4x6 = paper === '4x6';
-    canvas.width = isSingle ? photoW : is4x6 ? 1200 : 2480;
-    canvas.height = isSingle ? photoH : is4x6 ? 1800 : 3508;
+    const targetCanvasWidth = isSingle ? photoW : is4x6 ? 1200 : 2480;
+    const targetCanvasHeight = isSingle ? photoH : is4x6 ? 1800 : 3508;
+    if (canvas.width !== targetCanvasWidth) canvas.width = targetCanvasWidth;
+    if (canvas.height !== targetCanvasHeight) canvas.height = targetCanvasHeight;
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     const mmToPx = (mm: number) => mm * 300 / 25.4;
@@ -317,14 +329,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         }).filter((photo): photo is Photo => Boolean(photo));
     if (!sourcePhotos.length) { draw(); return; }
     let cancelled = false;
-    Promise.all(sourcePhotos.map((photo) => new Promise<HTMLImageElement | null>((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = photo.src;
-    }))).then(async (originals) => {
+    Promise.all(sourcePhotos.map((photo) => loadSheetImage(photo.src))).then(async (originals) => {
       const loaded = await Promise.all(sourcePhotos.map((photo, index) => aiCutouts[photo.id]
-        ? new Promise<HTMLImageElement | null>((resolve) => { const cut = new Image(); cut.onload = () => resolve(cut); cut.onerror = () => resolve(originals[index]); cut.src = aiCutouts[photo.id]; })
+        ? loadSheetImage(aiCutouts[photo.id]).then((cut) => cut || originals[index])
         : Promise.resolve(originals[index])));
       if (cancelled) return;
       if (loaded.some((img) => img === null)) setError('कुछ फोटो लोड नहीं हो सकीं। कृपया उन्हें दोबारा चुनें।');
@@ -392,16 +399,38 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if(paper==='single'){if(!selected)return;const photoW=canvas.width,photoH=canvas.height,sigW=photoW*signaturePlacement.width/100,sigH=signatureSrc?(()=>{const image=new Image();image.src=signatureSrc;return sigW*(image.naturalHeight||image.height||1)/(image.naturalWidth||image.width||1);})():0,sigX=photoW*signaturePlacement.x/100,sigY=photoH*signaturePlacement.y/100,onSignature=!!signatureSrc&&x>=sigX&&x<=sigX+sigW&&y>=sigY&&y<=sigY+sigH,resizeSignature=onSignature&&x>=sigX+sigW-Math.max(18,photoW*.035)&&y>=sigY+sigH-Math.max(18,photoH*.035),edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:onSignature?'signature':'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature};canvas.setPointerCapture(event.pointerId);return;}
     const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);return;}setSelectedSheetSlot(hit.slot);
     const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b);
-    activeSheetDragRef.current={slot:hit.slot,mode:corner?'resize':'move',startX:x,startY:y,startRect:hit,handle:t?(l?'tl':'tr'):(l?'bl':'br')};canvas.setPointerCapture(event.pointerId);
+    event.preventDefault();activeSheetDragRef.current={slot:hit.slot,mode:corner?'resize':'move',startX:x,startY:y,startRect:hit,handle:t?(l?'tl':'tr'):(l?'bl':'br')};canvas.setPointerCapture(event.pointerId);
   };
   const handleSheetPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas=canvasRef.current,cd=activeCanvasDragRef.current;if(cd&&canvas&&selected){const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-cd.startX,dy=y-cd.startY;if(cd.kind==='signature')setSignaturePlacement(p=>cd.resizeSignature?({...p,width:Math.max(5,Math.min(90,cd.startSigWidth+dx/canvas.width*100))}):({...p,x:Math.max(0,Math.min(100-p.width,cd.startSigX+dx/canvas.width*100)),y:Math.max(0,Math.min(100,cd.startSigY+dy/canvas.height*100))}));else setPhotoEdits(cur=>({...cur,[selected.id]:{...(cur[selected.id]||DEFAULT_EDIT),moveX:cd.startMoveX+dx,moveY:cd.startMoveY+dy}}));return;}
     const drag=activeSheetDragRef.current;if(!drag||!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
-    const snap=(v:number,targets:number[])=>{const n=targets.reduce((best,t)=>Math.abs(t-v)<Math.abs(best-v)?t:best,v);return Math.abs(n-v)<=14?n:v;};
-    if(drag.mode==='move'){const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),m=sheetMargin*300/25.4,nx=snap(Math.max(0,Math.min(canvas.width-s.w,s.x+dx)),[m,canvas.width-m-s.w,...others.flatMap(r=>[r.x-s.w,r.x+r.w])]),ny=snap(Math.max(0,Math.min(canvas.height-s.h,s.y+dy)),[m,canvas.height-m-s.h,...others.flatMap(r=>[r.y-s.h,r.y+r.h])]);setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));}
+    const snap=(v:number,targets:number[])=>{const n=targets.reduce((best,t)=>Math.abs(t-v)<Math.abs(best-v)?t:best,v);return Math.abs(n-v)<=24?n:v;};
+    if(drag.mode==='move'){
+      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),m=sheetMargin*300/25.4,edgeGap=sheetGap*300/25.4;
+      let nx=Math.max(m,Math.min(canvas.width-m-s.w,s.x+dx)),ny=Math.max(m,Math.min(canvas.height-m-s.h,s.y+dy));
+      // Snap all four edges and centers to neighbouring photos for consistent rows/columns.
+      const xTargets=[m,canvas.width-m-s.w,...others.flatMap(r=>[r.x-s.w-edgeGap,r.x+r.w+edgeGap,r.x,r.x+r.w-s.w,r.x+(r.w-s.w)/2])];
+      const yTargets=[m,canvas.height-m-s.h,...others.flatMap(r=>[r.y-s.h-edgeGap,r.y+r.h+edgeGap,r.y,r.y+r.h-s.h,r.y+(r.h-s.h)/2])];
+      nx=snap(nx,xTargets);ny=snap(ny,yTargets);
+      const overlaps=(x0:number,y0:number)=>others.some(r=>x0<r.x+r.w-1&&x0+s.w>r.x+1&&y0<r.y+r.h-1&&y0+s.h>r.y+1);
+      if(overlaps(nx,ny)){
+        // If the requested drop would cover another photo, choose the nearest free aligned position.
+        const candidates:{x:number;y:number;d:number}[]=[];
+        for(const r of others){
+          candidates.push({x:r.x-s.w-edgeGap,y:ny,d:0},{x:r.x+r.w+edgeGap,y:ny,d:0},{x:nx,y:r.y-s.h-edgeGap,d:0},{x:nx,y:r.y+r.h+edgeGap,d:0});
+        }
+        const valid=candidates.map(p=>({x:Math.max(m,Math.min(canvas.width-m-s.w,p.x)),y:Math.max(m,Math.min(canvas.height-m-s.h,p.y))}))
+          .filter(p=>!overlaps(p.x,p.y))
+          .map(p=>({...p,d:(p.x-(s.x+dx))**2+(p.y-(s.y+dy))**2}))
+          .sort((a,b)=>a.d-b.d)[0];
+        if(valid){nx=valid.x;ny=valid.y;}
+        else {nx=s.x;ny=s.y;}
+      }
+      setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
+    }
     else{const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio),maxW=Math.min(left?s.x+s.w:canvas.width-s.x,(top?s.y+s.h:canvas.height-s.y)*ratio),nw=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2)),nh=nw/ratio;setSheetPositions(cur=>({...cur,[drag.slot]:{x:left?s.x+s.w-nw:s.x,y:top?s.y+s.h-nh:s.y,w:nw,h:nh}}));}
   };
-  const handleSheetPointerUp = () => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; };
+  const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
 
   const resetSheetLayout = () => { setSheetPositions({}); setSelectedSheetSlot(null); };
   const autoArrangeSheet = () => {
@@ -598,7 +627,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         <section className="min-w-0 space-y-4 xl:sticky xl:top-3 xl:self-start">
           <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-slate-900">{language==='hi'?'लाइव प्रिंट प्रीव्यू':'Live Print Preview'}</h3><select value={paper} onChange={(e) => { const next = e.target.value as Paper; setPaper(next); setSheetPhotoCount(next === '4x6' ? 4 : next === 'A4' ? 0 : 1); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(null); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch Photo Sheet</option><option value="A4">A4 Photo Sheet</option></select><div className="flex rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => { setPaper('4x6'); setSheetPhotoCount(4); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(null); }} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === '4x6' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>4 × 6 inch</button><button onClick={() => { setPaper('A4'); setSheetPhotoCount(0); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(null); }} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === 'A4' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>A4 Sheet</button></div></div>
           <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3"><button onClick={autoArrangeSheet} disabled={paper === 'single'} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Auto Arrange</button><button onClick={resetSheetLayout} disabled={paper === 'single' || Object.keys(sheetPositions).length === 0} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40">Reset Layout</button><span className="self-center text-[11px] text-slate-500">फोटो चुनें, बीच से खिसकाएँ और किसी कोने से छोटा-बड़ा करें।</span></div><div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-bold text-slate-700">Photos on this sheet</span><span className="text-[11px] text-slate-500">Capacity: {sheetFitCapacity} · Selected: {Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity)}</span></div><div className="flex flex-wrap gap-2"><button onClick={() => setPresetSheetCount(4)} disabled={paper === 'single' || sheetFitCapacity < 4} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${sheetPhotoCount === 4 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300'}`}>4 Photos</button><button onClick={() => setPresetSheetCount(6)} disabled={paper === 'single' || sheetFitCapacity < 6} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${sheetPhotoCount === 6 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300'}`}>6 Photos</button><button onClick={useAutoFitSheet} disabled={paper === 'single'} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Auto-fit</button><button onClick={addSelectedSheetCopy} disabled={paper === 'single' || !selected || Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity) >= sheetCapacity} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">+ Add selected photo copy</button><button onClick={duplicateSelectedSheetPhoto} disabled={paper === 'single' || selectedSheetSlot === null || Math.min(sheetCapacity, sheetPhotoCount || sheetCapacity) >= sheetCapacity} className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Duplicate selected sheet photo</button></div><label className="block text-xs text-slate-600">Custom photo count<input type="number" min="1" max={sheetCapacity} value={paper === 'single' ? 1 : Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity)} onChange={(e) => setPresetSheetCount(Number(e.target.value) || 1)} disabled={paper === 'single'} className="mt-1 w-full rounded-lg border p-2" /></label><div className="grid grid-cols-2 gap-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Cutting gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label></div><p className="text-[11px] text-slate-500">Auto-fit से मूल साइज में फिट होने वाली अधिकतम फोटो लगेंगी। Custom count में 7–8 या जरूरत के अनुसार कॉपी बढ़ाएँ; ज्यादा फोटो चुनने पर शुरुआती लेआउट अपने-आप छोटा होकर शीट में फिट होगा। फिर किसी भी फोटो के कोने से उसका साइज अलग बदलें। PDF प्रिंट करते समय Actual size / 100% चुनें; “Fit to page” बंद रखें। प्रिंटर के printable margins अलग हो सकते हैं।</p></div>{aiProcessing && <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">{aiProgressMessage || 'BiRefNet AI फोटो का background हटा रहा है… पूरा होने पर Preview अपने-आप अपडेट होगा।'}</p>}
-          <div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"><div className="relative mx-auto w-fit"><canvas ref={canvasRef} onPointerDown={handleSheetPointerDown} onPointerMove={handleSheetPointerMove} onPointerUp={handleSheetPointerUp} onPointerCancel={handleSheetPointerUp} style={{ touchAction: 'none', cursor: paper === 'single' ? (signatureSrc ? 'move' : 'grab') : 'grab' }} className="mx-auto block h-auto max-h-[720px] max-w-full bg-white shadow-lg" />{selectedSheetRect && paper !== 'single' && <div className="pointer-events-none absolute border-2 border-blue-600" style={{ left: `${selectedSheetRect.x / (paper === '4x6' ? 1200 : 2480) * 100}%`, top: `${selectedSheetRect.y / (paper === '4x6' ? 1800 : 3508) * 100}%`, width: `${selectedSheetRect.w / (paper === '4x6' ? 1200 : 2480) * 100}%`, height: `${selectedSheetRect.h / (paper === '4x6' ? 1800 : 3508) * 100}%` }}><span className="absolute -left-2 -top-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/><span className="absolute -right-2 -top-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/><span className="absolute -bottom-2 -left-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/><span className="absolute -bottom-2 -right-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/></div>}</div></div>
+          <div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"><div className="relative mx-auto w-fit"><canvas ref={canvasRef} onPointerDown={handleSheetPointerDown} onPointerMove={handleSheetPointerMove} onPointerUp={handleSheetPointerUp} onPointerCancel={handleSheetPointerUp} onLostPointerCapture={handleSheetPointerUp} style={{ touchAction: 'none', cursor: paper === 'single' ? (signatureSrc ? 'move' : 'grab') : 'grab' }} className="mx-auto block h-auto max-h-[720px] max-w-full bg-white shadow-lg" />{selectedSheetRect && paper !== 'single' && <div className="pointer-events-none absolute border-2 border-blue-600" style={{ left: `${selectedSheetRect.x / (paper === '4x6' ? 1200 : 2480) * 100}%`, top: `${selectedSheetRect.y / (paper === '4x6' ? 1800 : 3508) * 100}%`, width: `${selectedSheetRect.w / (paper === '4x6' ? 1200 : 2480) * 100}%`, height: `${selectedSheetRect.h / (paper === '4x6' ? 1800 : 3508) * 100}%` }}><span className="absolute -left-2 -top-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/><span className="absolute -right-2 -top-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/><span className="absolute -bottom-2 -left-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/><span className="absolute -bottom-2 -right-2 h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow"/></div>}</div></div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3"><button onClick={downloadJpg} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 text-sm font-semibold text-white disabled:opacity-40"><Download className="h-4 w-4" /> {paper === "single" ? "Download Single Photo" : "Download Sheet JPG"}</button><button onClick={downloadPdf} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Download className="h-4 w-4" /> Download PDF</button><button onClick={printSheet} disabled={!selected} className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40"><Printer className="h-4 w-4" /> Print at Actual Size</button></div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>ध्यान दें:</strong> BiRefNet AI बैकग्राउंड हटाने के लिए इस्तेमाल होता है। फिर भी हर फोटो में बालों और किनारों का परिणाम अलग हो सकता है; प्रिंट से पहले आउटपुट जाँचें। Face detection, AI skin retouch और manual brush eraser अभी उपलब्ध नहीं हैं। प्रिंट से पहले फोटो का परिणाम और संबंधित विभाग की latest specification जाँचें।</div>
         </section>
