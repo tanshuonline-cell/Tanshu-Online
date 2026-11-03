@@ -71,22 +71,55 @@ const removePlainBackground = (source: HTMLImageElement, tolerance: number): HTM
   ctx.putImageData(image,0,0);return canvas;
 };
 
-// Remove only edge-connected paper pixels so white gaps inside a handwritten signature remain natural.
+// Remove uneven paper by comparing each pixel with the brightest nearby paper surface.
+// This also clears enclosed counters (O/A/R etc.) instead of relying on edge-connected flood fill.
 const removeSignaturePaperBackground = (canvas: HTMLCanvasElement): void => {
   const ctx = canvas.getContext('2d');
   if (!ctx || !canvas.width || !canvas.height) return;
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const { data } = image;
-  // Matte removal clears neutral paper throughout the image, including enclosed letter counters.
-  // A soft alpha ramp preserves antialiased ink edges; chromatic ink is protected from paper removal.
-  for (let i = 0; i < data.length; i += 4) {
+  const width = canvas.width, height = canvas.height, length = width * height;
+  const luminance = new Uint8Array(length);
+  const horizontalMax = new Uint8Array(length);
+  const localPaper = new Uint8Array(length);
+
+  for (let p = 0, i = 0; p < length; p++, i += 4) {
+    luminance[p] = Math.round(0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]);
+  }
+
+  // Separable 13px max filter estimates the local paper tone despite shadows and paper texture.
+  const radius = 6;
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      let brightest = 0;
+      for (let k = Math.max(0, x - radius); k <= Math.min(width - 1, x + radius); k++) {
+        const value = luminance[row + k];
+        if (value > brightest) brightest = value;
+      }
+      horizontalMax[row + x] = brightest;
+    }
+  }
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let brightest = 0;
+      for (let k = Math.max(0, y - radius); k <= Math.min(height - 1, y + radius); k++) {
+        const value = horizontalMax[k * width + x];
+        if (value > brightest) brightest = value;
+      }
+      localPaper[y * width + x] = brightest;
+    }
+  }
+
+  for (let p = 0, i = 0; p < length; p++, i += 4) {
     if (data[i + 3] === 0) continue;
     const red = data[i], green = data[i + 1], blue = data[i + 2];
-    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
     const chroma = Math.max(red, green, blue) - Math.min(red, green, blue);
-    const neutral = Math.max(0, Math.min(1, (34 - chroma) / 24));
-    const paperAlpha = Math.max(0, Math.min(1, (242 - luminance) / 62));
-    const keepAlpha = 1 - neutral * (1 - paperAlpha);
+    const inkContrast = Math.max(0, localPaper[p] - luminance[p]);
+    // Remove weak local contrast (paper grain), preserve strong pen strokes and antialiased edges.
+    const inkAlpha = Math.max(0, Math.min(1, (inkContrast - 13) / 43));
+    const colorInkProtection = Math.max(0, Math.min(1, (chroma - 18) / 34));
+    const keepAlpha = Math.max(inkAlpha, colorInkProtection * 0.92);
     data[i + 3] = Math.round(data[i + 3] * keepAlpha);
   }
   ctx.putImageData(image, 0, 0);
