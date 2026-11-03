@@ -428,7 +428,18 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       }
       setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
     }
-    else{const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio),maxW=Math.min(left?s.x+s.w:canvas.width-s.x,(top?s.y+s.h:canvas.height-s.y)*ratio),nw=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2)),nh=nw/ratio;setSheetPositions(cur=>({...cur,[drag.slot]:{x:left?s.x+s.w-nw:s.x,y:top?s.y+s.h-nh:s.y,w:nw,h:nh}}));}
+    else{
+      const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio),margin=sheetMargin*300/25.4;
+      const maxW=Math.min(left?s.x+s.w-margin:canvas.width-margin-s.x,(top?s.y+s.h-margin:canvas.height-margin-s.y)*ratio);
+      const wantedW=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2));
+      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot);
+      const makeRect=(w:number)=>({x:left?s.x+s.w-w:s.x,y:top?s.y+s.h-w/ratio:s.y,w,h:w/ratio});
+      const collides=(rect:{x:number;y:number;w:number;h:number})=>others.some(r=>rect.x<r.x+r.w-1&&rect.x+rect.w>r.x+1&&rect.y<r.y+r.h-1&&rect.y+rect.h>r.y+1);
+      let low=Math.max(24,Math.min(s.w,s.h)*.18),high=wantedW;
+      if(collides(makeRect(high))){for(let i=0;i<14;i++){const mid=(low+high)/2;if(collides(makeRect(mid)))high=mid;else low=mid;} }
+      const next=makeRect(Math.max(low,Math.min(wantedW,high)));
+      setSheetPositions(cur=>({...cur,[drag.slot]:next}));
+    }
   };
   const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
 
