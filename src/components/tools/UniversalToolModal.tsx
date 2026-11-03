@@ -102,7 +102,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </button>
         </div>
 
-        <div className={`overflow-y-auto flex-1 space-y-6 ${tool.id === 'advanced-passport-photo-studio' ? 'p-3 sm:p-5 lg:p-6 bg-slate-50' : 'p-6 bg-white'}`}>
+        <div className={`${tool.id === 'advanced-passport-photo-studio' ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${tool.id === 'advanced-passport-photo-studio' ? 'p-3 sm:p-5 lg:p-6 bg-slate-50' : 'p-6 bg-white'}`}>
           {tool.id === 'advanced-passport-photo-studio' ? (
             null
           ) : (
