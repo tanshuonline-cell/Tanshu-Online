@@ -416,6 +416,21 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),gap=sheetGap*300/25.4;
       let nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx));
       let ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
+      if (lockSheetGroup && sheetRectsRef.current.length > 1) {
+        const group = sheetRectsRef.current;
+        const minX = Math.min(...group.map(r => r.x)), minY = Math.min(...group.map(r => r.y));
+        const maxX = Math.max(...group.map(r => r.x + r.w)), maxY = Math.max(...group.map(r => r.y + r.h));
+        const moveX = Math.max(-minX, Math.min(canvas.width - maxX, nx - s.x));
+        const moveY = Math.max(-minY, Math.min(canvas.height - maxY, ny - s.y));
+        const moved = group.map(r => ({ ...r, x: r.x + moveX, y: r.y + moveY }));
+        sheetRectsRef.current = moved;
+        setSheetPositions(current => {
+          const next = { ...current };
+          for (const rect of moved) next[rect.slot] = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+          return next;
+        });
+        return;
+      }
       // Smart alignment: snap to a neighbour's top/centre/bottom line and
       // to its left/right edge with the configured cutting gap.
       const snapDistance=8*300/25.4;
@@ -476,6 +491,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { flushSheetMove(); activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if(event)event.currentTarget.style.cursor='grab'; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
 
   const [nudgeStepMm, setNudgeStepMm] = useState(1);
+  const [lockSheetGroup, setLockSheetGroup] = useState(false);
+  const [rowCopyCount, setRowCopyCount] = useState('all');
   const nudgeMasterPhoto = (dxMm: number, dyMm: number) => {
     if (paper === 'single') return;
     const master = sheetRectsRef.current.find((rect) => rect.slot === 0);
@@ -519,6 +536,55 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if (currentCount >= sheetCapacity) return;
     setSheetPhotoOverrides((current) => ({ ...current, [currentCount]: selected.id }));
     setSheetPhotoCount(currentCount + 1);
+    setSelectedSheetSlot(currentCount);
+  };
+  const copySelectedRowBelow = () => {
+    if (paper === 'single' || selectedSheetSlot === null) return;
+    const rects = [...sheetRectsRef.current];
+    const selectedRect = rects.find(r => r.slot === selectedSheetSlot);
+    if (!selectedRect) return;
+    const rowTolerance = Math.max(2, sheetGap * 300 / 25.4 * 0.2);
+    let row = rects.filter(r => Math.abs(r.y - selectedRect.y) <= rowTolerance).sort((a,b) => a.x - b.x);
+    if (rowCopyCount !== 'all') row = row.slice(0, Number(rowCopyCount));
+    const currentCount = Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity);
+    const amount = Math.min(row.length, sheetCapacity - currentCount);
+    if (!amount) return;
+    row = row.slice(0, amount);
+    const gapPx = sheetGap * 300 / 25.4;
+    const nextY = Math.max(...rects.map(r => r.y + r.h)) + gapPx;
+    const overrides: Record<number, string> = {};
+    const positions: Record<number, { x: number; y: number; w: number; h: number }> = {};
+    row.forEach((rect, index) => {
+      const slot = currentCount + index;
+      overrides[slot] = rect.photoId;
+      positions[slot] = { x: rect.x, y: nextY, w: rect.w, h: rect.h };
+    });
+    setSheetPhotoOverrides(current => ({ ...current, ...overrides }));
+    setSheetPositions(current => ({ ...current, ...positions }));
+    setSheetPhotoCount(currentCount + amount);
+    setSelectedSheetSlot(currentCount);
+  };
+  const copyAllRowsBelow = () => {
+    if (paper === 'single') return;
+    const rects = [...sheetRectsRef.current].sort((a,b) => a.slot - b.slot);
+    const currentCount = Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity);
+    const amount = Math.min(rects.length, sheetCapacity - currentCount);
+    if (!amount || !rects.length) return;
+    const source = rects.slice(0, amount);
+    const gapPx = sheetGap * 300 / 25.4;
+    const minY = Math.min(...rects.map(r => r.y));
+    const maxY = Math.max(...rects.map(r => r.y + r.h));
+    const offsetY = maxY - minY + gapPx;
+    const overrides: Record<number, string> = {};
+    const positions: Record<number, { x: number; y: number; w: number; h: number }> = {};
+    source.forEach((rect, index) => {
+      const slot = currentCount + index;
+      overrides[slot] = rect.photoId;
+      positions[slot] = { x: rect.x, y: rect.y + offsetY, w: rect.w, h: rect.h };
+    });
+    setSheetPhotoOverrides(current => ({ ...current, ...overrides }));
+    setSheetPositions(current => ({ ...current, ...positions }));
+    setSheetPhotoCount(currentCount + amount);
     setSelectedSheetSlot(currentCount);
   };
   const duplicateSelectedSheetPhoto = () => {
@@ -694,7 +760,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
 
         <section className="min-w-0 space-y-4 xl:sticky xl:top-3 xl:self-start">
           <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-slate-900">{language==='hi'?'लाइव प्रिंट प्रीव्यू':'Live Print Preview'}</h3><select value={paper} onChange={(e) => { const next = e.target.value as Paper; setPaper(next); setSheetPhotoCount(next === '4x6' ? 4 : next === 'A4' ? 0 : 1); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(null); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch Photo Sheet</option><option value="A4">A4 Photo Sheet</option></select><div className="flex rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => { setPaper('4x6'); setSheetPhotoCount(4); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(null); }} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === '4x6' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>4 × 6 inch</button><button onClick={() => { setPaper('A4'); setSheetPhotoCount(0); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(null); }} className={`rounded px-3 py-1.5 text-xs font-semibold ${paper === 'A4' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>A4 Sheet</button></div></div>
-          <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3"><button onClick={autoArrangeSheet} disabled={paper === 'single'} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Auto Arrange</button><button onClick={resetSheetLayout} disabled={paper === 'single' || Object.keys(sheetPositions).length === 0} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40">Reset Layout</button><span className="self-center text-[11px] text-slate-500">फोटो चुनें, बीच से खिसकाएँ और किसी कोने से छोटा-बड़ा करें।</span></div><div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-bold text-slate-700">Photos on this sheet</span><span className="text-[11px] text-slate-500">Capacity: {sheetFitCapacity} · Selected: {Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity)}</span></div><div className="flex flex-wrap gap-2"><button onClick={() => setPresetSheetCount(4)} disabled={paper === 'single' || sheetFitCapacity < 4} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${sheetPhotoCount === 4 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300'}`}>4 Photos</button><button onClick={() => setPresetSheetCount(6)} disabled={paper === 'single' || sheetFitCapacity < 6} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${sheetPhotoCount === 6 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300'}`}>6 Photos</button><button onClick={useAutoFitSheet} disabled={paper === 'single'} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Auto-fit</button><button onClick={addSelectedSheetCopy} disabled={paper === 'single' || !selected || Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity) >= sheetCapacity} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">+ Add selected photo copy</button><button onClick={duplicateSelectedSheetPhoto} disabled={paper === 'single' || selectedSheetSlot === null || Math.min(sheetCapacity, sheetPhotoCount || sheetCapacity) >= sheetCapacity} className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Duplicate selected sheet photo</button></div><label className="block text-xs text-slate-600">Custom photo count<input type="number" min="1" max={sheetCapacity} value={paper === 'single' ? 1 : Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity)} onChange={(e) => setPresetSheetCount(Number(e.target.value) || 1)} disabled={paper === 'single'} className="mt-1 w-full rounded-lg border p-2" /></label><div className="grid grid-cols-2 gap-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Cutting gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label></div><p className="text-[11px] text-slate-500">Auto-fit से मूल साइज में फिट होने वाली अधिकतम फोटो लगेंगी। Custom count में 7–8 या जरूरत के अनुसार कॉपी बढ़ाएँ; ज्यादा फोटो चुनने पर शुरुआती लेआउट अपने-आप छोटा होकर शीट में फिट होगा। फिर किसी भी फोटो के कोने से उसका साइज अलग बदलें। PDF प्रिंट करते समय Actual size / 100% चुनें; “Fit to page” बंद रखें। प्रिंटर के printable margins अलग हो सकते हैं।</p></div>{aiProcessing && <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">{aiProgressMessage || 'BiRefNet AI फोटो का background हटा रहा है… पूरा होने पर Preview अपने-आप अपडेट होगा।'}</p>}
+          <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3"><button onClick={autoArrangeSheet} disabled={paper === 'single'} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Auto Arrange</button><button onClick={resetSheetLayout} disabled={paper === 'single' || Object.keys(sheetPositions).length === 0} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40">Reset Layout</button><span className="self-center text-[11px] text-slate-500">फोटो चुनें और खिसकाएँ। Copy selected row से लाइन नीचे जोड़ें; Copy all rows से पूरा लेआउट दोहराएँ। Group Lock चालू करके किसी फोटो को खींचें—सभी फोटो साथ चलेंगी और आपसी गैप/साइज सुरक्षित रहेगा।</span></div><div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-bold text-slate-700">Photos on this sheet</span><span className="text-[11px] text-slate-500">Capacity: {sheetFitCapacity} · Selected: {Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity)}</span></div><div className="flex flex-wrap gap-2"><button onClick={() => setPresetSheetCount(4)} disabled={paper === 'single' || sheetFitCapacity < 4} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${sheetPhotoCount === 4 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300'}`}>4 Photos</button><button onClick={() => setPresetSheetCount(6)} disabled={paper === 'single' || sheetFitCapacity < 6} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${sheetPhotoCount === 6 ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300'}`}>6 Photos</button><button onClick={useAutoFitSheet} disabled={paper === 'single'} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Auto-fit</button><button onClick={addSelectedSheetCopy} disabled={paper === 'single' || !selected || Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity) >= sheetCapacity} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">+ Add selected photo copy</button><button onClick={duplicateSelectedSheetPhoto} disabled={paper === 'single' || selectedSheetSlot === null || Math.min(sheetCapacity, sheetPhotoCount || sheetCapacity) >= sheetCapacity} className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-40">Duplicate selected sheet photo</button><label className="flex items-center gap-2 text-xs text-slate-600">Row copy <select value={rowCopyCount} onChange={e => setRowCopyCount(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-2 py-2"><option value="all">पूरी लाइन</option><option value="1">1 फोटो</option><option value="2">2 फोटो</option><option value="3">3 फोटो</option><option value="4">4 फोटो</option><option value="8">8 फोटो</option></select></label><button onClick={copySelectedRowBelow} disabled={paper === 'single' || selectedSheetSlot === null || Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity) >= sheetCapacity} className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 disabled:opacity-40">↓ Copy selected row below</button><button onClick={copyAllRowsBelow} disabled={paper === 'single' || Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity) >= sheetCapacity} className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 disabled:opacity-40">Copy all rows below</button><button type="button" onClick={() => setLockSheetGroup(v => !v)} disabled={paper === 'single' || sheetRectsRef.current.length < 2} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${lockSheetGroup ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-slate-300 bg-white text-slate-700'} disabled:opacity-40`}>{lockSheetGroup ? '🔒 Group locked' : 'Lock all photos as group'}</button></div><label className="block text-xs text-slate-600">Custom photo count<input type="number" min="1" max={sheetCapacity} value={paper === 'single' ? 1 : Math.min(sheetCapacity, sheetPhotoCount || sheetFitCapacity)} onChange={(e) => setPresetSheetCount(Number(e.target.value) || 1)} disabled={paper === 'single'} className="mt-1 w-full rounded-lg border p-2" /></label><div className="grid grid-cols-2 gap-3"><label className="text-xs text-slate-600">Page margin (mm)<input type="number" min="0" max="15" value={sheetMargin} onChange={(e) => setSheetMargin(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs text-slate-600">Cutting gap (mm)<input type="number" min="0" max="8" value={sheetGap} onChange={(e) => setSheetGap(Number(e.target.value))} disabled={paper === "single"} className="mt-1 w-full rounded-lg border p-2" /></label></div><p className="text-[11px] text-slate-500">Auto-fit से मूल साइज में फिट होने वाली अधिकतम फोटो लगेंगी। Custom count में 7–8 या जरूरत के अनुसार कॉपी बढ़ाएँ; ज्यादा फोटो चुनने पर शुरुआती लेआउट अपने-आप छोटा होकर शीट में फिट होगा। फिर किसी भी फोटो के कोने से उसका साइज अलग बदलें। PDF प्रिंट करते समय Actual size / 100% चुनें; “Fit to page” बंद रखें। प्रिंटर के printable margins अलग हो सकते हैं।</p></div>{aiProcessing && <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">{aiProgressMessage || 'BiRefNet AI फोटो का background हटा रहा है… पूरा होने पर Preview अपने-आप अपडेट होगा।'}</p>}
           {paper !== 'single' && <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div><p className="text-sm font-bold text-blue-900">पहला फोटो सेट करें (Master Position)</p><p className="text-[11px] text-blue-800">पहले फोटो को चुनें। माउस से आराम से खिसकाएँ या नीचे के बटन इस्तेमाल करें।</p></div>
