@@ -223,7 +223,10 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       img.onload = () => resolve(img);
       img.onerror = () => resolve(null);
       img.src = photo.src;
-    }))).then(async (loaded) => {
+    }))).then(async (originals) => {
+      const loaded = await Promise.all(sourcePhotos.map((photo, index) => aiCutouts[photo.id]
+        ? new Promise<HTMLImageElement | null>((resolve) => { const cut = new Image(); cut.onload = () => resolve(cut); cut.onerror = () => resolve(originals[index]); cut.src = aiCutouts[photo.id]; })
+        : Promise.resolve(originals[index]));
       if (cancelled) return;
       if (loaded.some((img) => img === null)) setError('कुछ फोटो लोड नहीं हो सकीं। कृपया उन्हें दोबारा चुनें।');
       let signatureImage: HTMLImageElement | null = null;
