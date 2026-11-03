@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { removeBackgroundAI } from './backgroundRemovalAI';
+import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision';
 import {
   Upload, Download, Printer, RefreshCw,
   ShieldCheck, Sparkles, SlidersHorizontal, Trash2
@@ -17,6 +18,34 @@ type SignatureBackground = 'transparent' | 'white' | 'custom';
 type PhotoEdit = { zoom: number; moveX: number; moveY: number; cropX: number; cropY: number; cropW: number; cropH: number; brightness: number; contrast: number; saturation: number; smooth: number };
 type SheetRect = { slot: number; photoId: string; x: number; y: number; w: number; h: number };
 const DEFAULT_EDIT: PhotoEdit = { zoom: 1, moveX: 0, moveY: 0, cropX: 0, cropY: 0, cropW: 100, cropH: 100, brightness: 100, contrast: 100, saturation: 100, smooth: 0 };
+
+// MediaPipe Face Detector runs inference locally in the browser. The image itself is never uploaded.
+let faceDetectorPromise: Promise<FaceDetector> | null = null;
+const getLocalFaceDetector = async (): Promise<FaceDetector> => {
+  if (!faceDetectorPromise) {
+    faceDetectorPromise = (async () => {
+      const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm');
+      return FaceDetector.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite'
+        },
+        runningMode: 'IMAGE',
+        minDetectionConfidence: 0.5
+      });
+    })().catch((error) => {
+      faceDetectorPromise = null;
+      throw error;
+    });
+  }
+  return faceDetectorPromise;
+};
+
+const loadImageForDetection = (src: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
+  const image = new Image();
+  image.onload = () => resolve(image);
+  image.onerror = () => reject(new Error('फोटो पढ़ी नहीं जा सकी।'));
+  image.src = src;
+});
 
 const PRESETS: Record<Exclude<PhotoPreset, 'custom'>, { label: string; width: number; height: number }> = {
   india: { label: 'India Passport / Exam · 35 × 45 mm', width: 413, height: 531 },
@@ -846,7 +875,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <p className="text-[11px] text-slate-500">Transparent mode में सफेद pixels हटाने का threshold आधारित विकल्प है; हल्के रंग के हस्ताक्षर पर परिणाम जाँचें।</p>
           </div>
 
-          {mode === 'beauty' && <div className="space-y-3 border-t border-slate-200 pt-4"><h3 className="flex items-center gap-2 font-bold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 5. Beauty & Enhance</h3><Slider label="Brightness" value={selectedEdit.brightness} min={50} max={150} onChange={(v) => updateSelectedEdit('brightness', v)} /><Slider label="Contrast" value={selectedEdit.contrast} min={50} max={150} onChange={(v) => updateSelectedEdit('contrast', v)} /><Slider label="Saturation" value={selectedEdit.saturation} min={0} max={200} onChange={(v) => updateSelectedEdit('saturation', v)} /><Slider label="Softening (हल्का blur)" value={selectedEdit.smooth} min={0} max={10} onChange={(v) => updateSelectedEdit('smooth', v)} /><div className="rounded-lg border border-blue-100 bg-blue-50 p-3 space-y-2"><div className="flex flex-wrap gap-2"><button type="button" disabled={!selected} onClick={async()=>{setFaceStatus('चेहरा खोज रहे हैं…');setFaceRect(null);const FD=(window as any).FaceDetector;if(!FD){setFaceStatus('इस ब्राउज़र में Face Detection API समर्थित नहीं है।');return;}try{const detector=new FD({fastMode:true,maxDetectedFaces:5});const image=new Image();image.onload=async()=>{try{const faces=await detector.detect(image);if(!faces.length){setFaceStatus('कोई चेहरा नहीं मिला।');return;}const b=faces[0].boundingBox;setFaceRect({x:b.x/image.width,y:b.y/image.height,width:b.width/image.width,height:b.height/image.height});setFaceStatus(`${faces.length} चेहरा मिला।`);}catch{setFaceStatus('Face Detection विफल।');}};image.src=selected!.src;}catch{setFaceStatus('Face Detection समर्थित नहीं है।');}}} className="rounded border bg-white px-3 py-2 text-xs font-bold">Detect Face</button><button type="button" disabled={!selected||!faceRect} onClick={()=>{if(!selected||!faceRect)return;const image=new Image();image.onload=()=>{const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');if(!ctx)return;ctx.drawImage(image,0,0);const b=faceRect,x=b.x*c.width,y=b.y*c.height,w=b.width*c.width,h=b.height*c.height,blur=document.createElement('canvas');blur.width=c.width;blur.height=c.height;const bc=blur.getContext('2d');if(!bc)return;bc.filter='blur(3px)';bc.drawImage(image,0,0);ctx.save();ctx.beginPath();ctx.ellipse(x+w/2,y+h*.58,w*.48,h*.43,0,0,Math.PI*2);ctx.clip();ctx.globalAlpha=retouchStrength/100;ctx.drawImage(blur,0,0);ctx.restore();setAiCutouts(v=>({...v,[selected.id]:c.toDataURL('image/png')}));setBackgroundRemoved(v=>({...v,[selected.id]:true}));setFaceStatus('हल्का smoothing लागू। Restore Original से हटाएँ।');};image.src=selected.src;}} className="rounded bg-blue-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Apply gentle retouch</button></div><label className="block text-xs">Retouch strength: {retouchStrength}%<input type="range" min="0" max="60" value={retouchStrength} onChange={e=>setRetouchStrength(Number(e.target.value))} className="w-full"/></label>{faceStatus&&<p className="text-xs text-blue-900">{faceStatus}</p>}<p className="text-[11px] text-blue-800">स्थानीय Face Detection API समर्थित ब्राउज़र पर ही चलेगा; यह blemish-removal मॉडल नहीं है।</p></div></div>}
+          {mode === 'beauty' && <div className="space-y-3 border-t border-slate-200 pt-4"><h3 className="flex items-center gap-2 font-bold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 5. Beauty & Enhance</h3><Slider label="Brightness" value={selectedEdit.brightness} min={50} max={150} onChange={(v) => updateSelectedEdit('brightness', v)} /><Slider label="Contrast" value={selectedEdit.contrast} min={50} max={150} onChange={(v) => updateSelectedEdit('contrast', v)} /><Slider label="Saturation" value={selectedEdit.saturation} min={0} max={200} onChange={(v) => updateSelectedEdit('saturation', v)} /><Slider label="Softening (हल्का blur)" value={selectedEdit.smooth} min={0} max={10} onChange={(v) => updateSelectedEdit('smooth', v)} /><div className="rounded-lg border border-blue-100 bg-blue-50 p-3 space-y-2"><div className="flex flex-wrap gap-2"><button type="button" disabled={!selected} onClick={async()=>{if(!selected)return;setFaceStatus('MediaPipe मॉडल लोड हो रहा है…');setFaceRect(null);try{const detector=await getLocalFaceDetector();setFaceStatus('फोटो में चेहरा खोज रहे हैं…');const image=await loadImageForDetection(selected.src);const result=detector.detect(image);const detections=result.detections||[];if(!detections.length){setFaceStatus('कोई चेहरा नहीं मिला। साफ़ और सामने से ली गई फोटो आज़माएँ।');return;}const box=detections[0].boundingBox;if(!box){setFaceStatus('चेहरे की सीमा नहीं मिल सकी।');return;}setFaceRect({x:box.originX/image.naturalWidth,y:box.originY/image.naturalHeight,width:box.width/image.naturalWidth,height:box.height/image.naturalHeight});setFaceStatus(`${detections.length} चेहरा मिला।`);}catch(error){console.error('Local face detection failed',error);setFaceStatus('Face Detection मॉडल लोड नहीं हो पाया। इंटरनेट कनेक्शन जाँचकर फिर कोशिश करें।');}}} className="rounded border bg-white px-3 py-2 text-xs font-bold">Detect Face</button><button type="button" disabled={!selected||!faceRect} onClick={()=>{if(!selected||!faceRect)return;const image=new Image();image.onload=()=>{const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');if(!ctx)return;ctx.drawImage(image,0,0);const b=faceRect,x=b.x*c.width,y=b.y*c.height,w=b.width*c.width,h=b.height*c.height,blur=document.createElement('canvas');blur.width=c.width;blur.height=c.height;const bc=blur.getContext('2d');if(!bc)return;bc.filter='blur(3px)';bc.drawImage(image,0,0);ctx.save();ctx.beginPath();ctx.ellipse(x+w/2,y+h*.58,w*.48,h*.43,0,0,Math.PI*2);ctx.clip();ctx.globalAlpha=retouchStrength/100;ctx.drawImage(blur,0,0);ctx.restore();setAiCutouts(v=>({...v,[selected.id]:c.toDataURL('image/png')}));setBackgroundRemoved(v=>({...v,[selected.id]:true}));setFaceStatus('हल्का smoothing लागू। Restore Original से हटाएँ।');};image.src=selected.src;}} className="rounded bg-blue-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Apply gentle retouch</button></div><label className="block text-xs">Retouch strength: {retouchStrength}%<input type="range" min="0" max="60" value={retouchStrength} onChange={e=>setRetouchStrength(Number(e.target.value))} className="w-full"/></label>{faceStatus&&<p className="text-xs text-blue-900">{faceStatus}</p>}<p className="text-[11px] text-blue-800">स्थानीय Face Detection API समर्थित ब्राउज़र पर ही चलेगा; यह blemish-removal मॉडल नहीं है।</p></div></div>}
 
           <div className="border-t border-slate-200 pt-4">
             <div className="mb-3 flex items-center justify-between"><h3 className="font-bold text-slate-900">6. Crop & Position</h3><button onClick={resetAdjustments} className="text-xs font-semibold text-blue-700"><RefreshCw className="mr-1 inline h-3 w-3" /> Reset</button></div>
