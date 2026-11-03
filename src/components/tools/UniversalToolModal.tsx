@@ -94,7 +94,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                   <ShieldCheck className="w-3.5 h-3.5" /> Browser-side processing
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>
+              {tool.id !== 'advanced-passport-photo-studio' && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
@@ -104,7 +104,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
 
         <div className={`overflow-y-auto flex-1 space-y-6 ${tool.id === 'advanced-passport-photo-studio' ? 'p-3 sm:p-5 lg:p-6 bg-slate-50' : 'p-6 bg-white'}`}>
           {tool.id === 'advanced-passport-photo-studio' ? (
-            <p className="px-1 text-[11px] leading-4 text-slate-500">Passport photos · Signature editing · 4×6 / A4 print sheets</p>
+            null
           ) : (
             <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
               <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
