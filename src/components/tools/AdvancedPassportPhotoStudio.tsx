@@ -902,8 +902,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       <div className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white/95 py-1.5 shadow-sm backdrop-blur">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0">
-            <h2 className="text-sm font-extrabold tracking-tight text-slate-900 sm:text-base">Advanced Passport Photo &amp; Signature Photo Studio</h2>
-            <p className="text-[10px] leading-3 text-slate-500">{language==='hi'?'फोटो एडिट करें और प्रिंट शीट तैयार करें।':'Edit photos and prepare print-ready sheets.'}</p>
+            <h2 className="text-sm font-extrabold tracking-tight text-slate-900 sm:text-base">Advanced Passport Photo and Signature Photo Studio</h2>
+            <p className="text-[10px] leading-3 text-slate-500">Edit Photo and Prepare Print Ready Sheets</p>
+            <p className="text-[10px] leading-3 text-slate-500">Passport Photo Signature Editing Form Multiple 6 / A4 Print Sheets</p>
           </div>
 
         </div>
