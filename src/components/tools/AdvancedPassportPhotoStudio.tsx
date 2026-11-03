@@ -898,7 +898,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const selectedSheetRect = selectedSheetSlot === null ? null : sheetRectsRef.current.find((rect) => rect.slot === selectedSheetSlot) || null;
 
   return (
-    <div className="min-h-full space-y-1.5">
+    <div className="flex h-full min-h-0 flex-col gap-1.5">
       <div className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white/95 py-1.5 shadow-sm backdrop-blur">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0">
@@ -912,8 +912,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       </div>
 
 
-      <div className={`grid grid-cols-1 items-start gap-2 lg:h-[calc(100dvh-10rem)] lg:min-h-[420px] lg:overflow-hidden lg:gap-3 ${showStepSidebar ? "lg:grid-cols-[minmax(210px,230px)_minmax(0,1fr)] xl:grid-cols-[minmax(220px,245px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,260px)_minmax(0,1fr)]" : "lg:grid-cols-1"}`}>
-        {showStepSidebar && <section className={`space-y-3 rounded-2xl border border-indigo-100 bg-white p-2.5 shadow-lg animate-in slide-in-from-left-3 fade-in duration-300 sm:p-3 lg:h-full lg:min-h-0 lg:max-h-full lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-y-contain lg:touch-pan-y ${step !== 2 ? "min-h-0 max-h-[calc(100dvh-10rem)] overflow-x-hidden overflow-y-auto overscroll-y-contain" : ""}`}>
+      <div className={`grid min-h-0 flex-1 grid-cols-1 items-start gap-2 overflow-hidden lg:grid-rows-[minmax(0,1fr)] lg:gap-3 ${showStepSidebar ? "lg:grid-cols-[minmax(210px,230px)_minmax(0,1fr)] xl:grid-cols-[minmax(220px,245px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,260px)_minmax(0,1fr)]" : "lg:grid-cols-1"}`}>
+        {showStepSidebar && <section className={`space-y-3 rounded-2xl border border-indigo-100 bg-white p-2.5 shadow-lg animate-in slide-in-from-left-3 fade-in duration-300 sm:p-3 lg:h-full lg:min-h-0 lg:max-h-full lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-y-contain lg:touch-pan-y ${step !== 2 ? "h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain" : ""}`}>
           <div className="relative z-10 -mx-1 mb-2 rounded-xl border border-slate-200 bg-white/95 p-1.5 shadow-sm backdrop-blur">
             <div className="grid grid-cols-3 gap-1">
               {([1,2,3] as const).map(n=><button key={n} onClick={()=>{setStep(n);setShowStepSidebar(true);}} aria-current={step===n?'step':undefined} className={`flex min-h-9 items-center justify-center gap-1 rounded-lg border px-1.5 py-1 text-[10px] font-bold transition-colors sm:gap-1.5 sm:px-2 sm:text-[11px] ${step===n?(n===1?'border-blue-700 bg-blue-600 text-white shadow-sm':n===2?'border-emerald-700 bg-emerald-600 text-white shadow-sm':'border-amber-600 bg-amber-500 text-white shadow-sm'):(n===1?'border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100':n===2?'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100':'border-amber-100 bg-amber-50 text-amber-700 hover:bg-amber-100')}`}>{n===1?<Upload className="h-4 w-4 shrink-0"/>:n===2?<SlidersHorizontal className="h-4 w-4 shrink-0"/>:<Download className="h-4 w-4 shrink-0"/>}<span className="whitespace-nowrap">{n===1?(language==='hi'?'1. अपलोड':'1. Upload'):n===2?(language==='hi'?'2. एडिट':'2. Edit'):(language==='hi'?'3. डाउनलोड':'3. Export')}</span></button>)}
