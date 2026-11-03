@@ -803,7 +803,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const Slider = ({ label, value, min = 0, max = 200, onChange }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void }) => (
     <label className="block space-y-1.5">
       <span className="flex justify-between text-xs font-semibold text-slate-700"><span>{label}</span><span className="tabular-nums text-slate-500">{value}</span></span>
-      <input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} className="w-full accent-blue-600" />
+      <input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} onPointerDown={(event) => event.stopPropagation()} onTouchStart={(event) => event.stopPropagation()} style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} className="w-full touch-none select-none accent-blue-600 cursor-ew-resize" />
     </label>
   );
 
@@ -893,8 +893,12 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <Slider label="Contrast" value={selectedEdit.contrast} min={50} max={150} onChange={(v) => updateSelectedEdit('contrast', v)} />
             <Slider label="Saturation" value={selectedEdit.saturation} min={0} max={200} onChange={(v) => updateSelectedEdit('saturation', v)} />
             <Slider label="Softening (हल्का blur)" value={selectedEdit.smooth} min={0} max={10} onChange={(v) => updateSelectedEdit('smooth', v)} />
-            <div className="flex flex-wrap gap-2"><button type="button" onClick={undoBeauty} disabled={!canUndoBeauty} className="rounded border px-3 py-2 text-xs font-bold disabled:opacity-40">↶ Undo</button><button type="button" onClick={redoBeauty} disabled={!canRedoBeauty} className="rounded border px-3 py-2 text-xs font-bold disabled:opacity-40">↷ Redo</button><button type="button" onClick={() => setPreviewOriginal(v => !v)} className="rounded border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800">{previewOriginal ? 'Edited Preview' : 'Before / Original'}</button><button type="button" onClick={resetAdjustments} className="rounded border px-3 py-2 text-xs font-bold">Reset Beauty</button></div>
-            <p className="text-[11px] text-slate-500">स्लाइडर बदलते ही Live Preview अपडेट होता है। Softening हल्का रखें ताकि आँखों की डिटेल बनी रहे। Before / Original दबाकर मूल फोटो से तुलना करें।</p>
+            <div className="flex flex-wrap gap-2"><button type="button" onClick={undoBeauty} disabled={!canUndoBeauty} className="rounded border px-3 py-2 text-xs font-bold disabled:opacity-40">↶ Undo</button><button type="button" onClick={redoBeauty} disabled={!canRedoBeauty} className="rounded border px-3 py-2 text-xs font-bold disabled:opacity-40">↷ Redo</button><button type="button" onClick={resetAdjustments} className="rounded border px-3 py-2 text-xs font-bold">Reset Beauty</button></div>
+            <p className="text-[11px] text-slate-500">स्लाइडर को बाएँ-दाएँ खींचें। बदलाव ऊपर मुख्य फोटो में लाइव दिखेगा। नीचे Original और Edited फोटो साथ-साथ देखकर फर्क जाँचें।</p>
+            {selected && <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="min-w-0 space-y-1.5"><div className="text-[10px] font-extrabold tracking-wide text-slate-600">BEFORE · ORIGINAL</div><div className="flex h-40 items-center justify-center overflow-hidden rounded-lg border bg-white"><img src={selected.src} alt="Original photo before beauty edits" className="max-h-full max-w-full object-contain" /></div></div>
+              <div className="min-w-0 space-y-1.5"><div className="text-[10px] font-extrabold tracking-wide text-blue-700">AFTER · EDITED PREVIEW</div><div className="flex h-40 items-center justify-center overflow-hidden rounded-lg border border-blue-200 bg-white"><img src={aiCutouts[selected.id] || selected.src} alt="Edited photo preview" className="max-h-full max-w-full object-contain" style={{ filter: `brightness(${selectedEdit.brightness}%) contrast(${selectedEdit.contrast}%) saturate(${selectedEdit.saturation}%) blur(${selectedEdit.smooth * 0.12}px)` }} /></div></div>
+            </div>}
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" disabled={!selected || aiProcessing} onClick={async () => {
