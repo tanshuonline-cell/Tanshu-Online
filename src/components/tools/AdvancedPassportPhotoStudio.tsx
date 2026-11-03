@@ -163,6 +163,11 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [faceStatus, setFaceStatus] = useState('');
   const [faceRect, setFaceRect] = useState<{x:number;y:number;width:number;height:number}|null>(null);
   const [retouchStrength, setRetouchStrength] = useState(18);
+  const [previewOriginal, setPreviewOriginal] = useState(false);
+  const beautyUndoRef = useRef<Array<{ id: string; edit: PhotoEdit; cutout?: string; removed: boolean }>>([]);
+  const beautyRedoRef = useRef<Array<{ id: string; edit: PhotoEdit; cutout?: string; removed: boolean }>>([]);
+  const [canUndoBeauty, setCanUndoBeauty] = useState(false);
+  const [canRedoBeauty, setCanRedoBeauty] = useState(false);
   const [brushSize, setBrushSize] = useState(24);
   const [brushMode, setBrushMode] = useState<'erase'|'restore'>('erase');
   const [brushActive, setBrushActive] = useState(false);
@@ -192,7 +197,12 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
 
   const selected = photos.find((photo) => photo.id === selectedId) || photos[0] || null;
   const selectedEdit = selected ? (photoEdits[selected.id] || DEFAULT_EDIT) : DEFAULT_EDIT;
-  const updateSelectedEdit = (key: keyof PhotoEdit, value: number) => { if (!selected) return; setPhotoEdits((current) => ({ ...current, [selected.id]: { ...(current[selected.id] || DEFAULT_EDIT), [key]: value } })); };
+  const captureBeautySnapshot = (id: string) => ({ id, edit: { ...(photoEdits[id] || DEFAULT_EDIT) }, cutout: aiCutouts[id], removed: !!backgroundRemoved[id] });
+  const saveBeautyHistory = (id: string) => { beautyUndoRef.current = [...beautyUndoRef.current.slice(-29), captureBeautySnapshot(id)]; beautyRedoRef.current = []; setCanUndoBeauty(true); setCanRedoBeauty(false); };
+  const restoreBeautySnapshot = (snapshot: { id: string; edit: PhotoEdit; cutout?: string; removed: boolean }) => { setPhotoEdits(v => ({ ...v, [snapshot.id]: { ...snapshot.edit } })); setAiCutouts(v => { const n={...v}; if(snapshot.cutout) n[snapshot.id]=snapshot.cutout; else delete n[snapshot.id]; return n; }); setBackgroundRemoved(v => ({ ...v, [snapshot.id]: snapshot.removed })); setFaceStatus('Beauty बदलाव वापस लागू कर दिया गया।'); };
+  const undoBeauty = () => { if(!selected)return; const previous=beautyUndoRef.current.pop(); if(!previous)return; beautyRedoRef.current=[...beautyRedoRef.current.slice(-29),captureBeautySnapshot(selected.id)]; restoreBeautySnapshot(previous); setCanUndoBeauty(beautyUndoRef.current.length>0); setCanRedoBeauty(true); };
+  const redoBeauty = () => { if(!selected)return; const next=beautyRedoRef.current.pop(); if(!next)return; beautyUndoRef.current=[...beautyUndoRef.current.slice(-29),captureBeautySnapshot(selected.id)]; restoreBeautySnapshot(next); setCanUndoBeauty(true); setCanRedoBeauty(beautyRedoRef.current.length>0); };
+  const updateSelectedEdit = (key: keyof PhotoEdit, value: number) => { if (!selected) return; saveBeautyHistory(selected.id); setPhotoEdits((current) => ({ ...current, [selected.id]: { ...(current[selected.id] || DEFAULT_EDIT), [key]: value } })); setFaceStatus('बदलाव लाइव प्रीव्यू में दिख रहा है।'); };
 
   const dimensions = useMemo(() => {
     if (preset === 'custom') return { width: Math.max(10, customWidth) * 300 / 25.4, height: Math.max(10, customHeight) * 300 / 25.4 };
@@ -250,22 +260,22 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     canvas.width = width; canvas.height = height;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     ctx.fillStyle = background; ctx.fillRect(0, 0, width, height);
-    const sourceUrl = backgroundRemoved[selected.id] && aiCutouts[selected.id] ? aiCutouts[selected.id] : selected.src;
+    const sourceUrl = !previewOriginal && backgroundRemoved[selected.id] && aiCutouts[selected.id] ? aiCutouts[selected.id] : selected.src;
     const image = new Image();
     image.onload = () => {
       const edit = photoEdits[selected.id] || DEFAULT_EDIT;
       const sx = image.width * edit.cropX / 100, sy = image.height * edit.cropY / 100;
       const sw = image.width * edit.cropW / 100, sh = image.height * edit.cropH / 100;
       ctx.save();
-      ctx.filter = mode === 'beauty' ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%)` : 'none';
+      ctx.filter = mode === 'beauty' && !previewOriginal ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) blur(${edit.smooth * 0.012}px)` : 'none';
       ctx.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
       ctx.restore();
     };
     image.src = sourceUrl;
-  }, [activePanel, selected?.id, selected?.src, dimensions.width, dimensions.height, photoEdits, background, backgroundRemoved, aiCutouts, mode]);
+  }, [activePanel, selected?.id, selected?.src, dimensions.width, dimensions.height, photoEdits, background, backgroundRemoved, aiCutouts, mode, previewOriginal]);
 
   const resetAdjustments = () => {
-    if (selected) setPhotoEdits((current) => ({ ...current, [selected.id]: { ...DEFAULT_EDIT } }));
+    if (selected) { saveBeautyHistory(selected.id); setPhotoEdits((current) => ({ ...current, [selected.id]: { ...DEFAULT_EDIT } })); setFaceStatus('Beauty adjustments रीसेट हो गए। Undo से वापस ला सकते हैं।'); }
   };
 
   const addPhotos = async (files: FileList | null) => {
@@ -351,12 +361,12 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           const cropSourceW = img.width * edit.cropW / 100, cropSourceH = img.height * edit.cropH / 100;
           const scale = Math.max(slotW / cropSourceW, slotH / cropSourceH) * edit.zoom;
           const w = cropSourceW * scale, h = cropSourceH * scale;
-          const filter = mode === 'beauty'
-            ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%)`
+          const filter = mode === 'beauty' && !previewOriginal
+            ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) blur(${edit.smooth * 0.012}px)`
             : 'brightness(100%) contrast(100%) saturate(100%)';
           ctx.filter = filter;
           const aiCutout = aiCutouts[photo.id];
-          const source: CanvasImageSource = backgroundRemoved[photo.id] ? (aiCutout ? img : removePlainBackground(img, backgroundTolerance)) : img;
+          const source: CanvasImageSource = !previewOriginal && backgroundRemoved[photo.id] ? (aiCutout ? img : removePlainBackground(img, backgroundTolerance)) : img;
           const sx=img.width*edit.cropX/100, sy=img.height*edit.cropY/100, sw=img.width*edit.cropW/100, sh=img.height*edit.cropH/100;
           ctx.drawImage(source,sx,sy,sw,sh,x+(slotW-w)/2+edit.moveX*slotW/photoW,y+(slotH-h)/2+edit.moveY*slotH/photoH,w,h);
         } else {
@@ -431,7 +441,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       draw(loaded, signatureImage);
     });
     return () => { cancelled = true; };
-  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, sheetPhotoCount, sheetPhotoOverrides, background, mode, photoEdits, sheetPositions, border, signatureSrc, signatureBackground, signatureCustomColor, signatureRemoveWhite, signatureCrop, signaturePlacement, backgroundRemoved, backgroundTolerance, aiCutouts]);
+  }, [selected, photos, dimensions, paper, sheetMargin, sheetGap, sheetPhotoCount, sheetPhotoOverrides, background, mode, previewOriginal, photoEdits, sheetPositions, border, signatureSrc, signatureBackground, signatureCustomColor, signatureRemoveWhite, signatureCrop, signaturePlacement, backgroundRemoved, backgroundTolerance, aiCutouts]);
 
   const updateSignatureFile = async (file?: File) => {
     if (!file) return;
@@ -882,6 +892,9 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <Slider label="Brightness" value={selectedEdit.brightness} min={50} max={150} onChange={(v) => updateSelectedEdit('brightness', v)} />
             <Slider label="Contrast" value={selectedEdit.contrast} min={50} max={150} onChange={(v) => updateSelectedEdit('contrast', v)} />
             <Slider label="Saturation" value={selectedEdit.saturation} min={0} max={200} onChange={(v) => updateSelectedEdit('saturation', v)} />
+            <Slider label="Softening (हल्का blur)" value={selectedEdit.smooth} min={0} max={10} onChange={(v) => updateSelectedEdit('smooth', v)} />
+            <div className="flex flex-wrap gap-2"><button type="button" onClick={undoBeauty} disabled={!canUndoBeauty} className="rounded border px-3 py-2 text-xs font-bold disabled:opacity-40">↶ Undo</button><button type="button" onClick={redoBeauty} disabled={!canRedoBeauty} className="rounded border px-3 py-2 text-xs font-bold disabled:opacity-40">↷ Redo</button><button type="button" onClick={() => setPreviewOriginal(v => !v)} className="rounded border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800">{previewOriginal ? 'Edited Preview' : 'Before / Original'}</button><button type="button" onClick={resetAdjustments} className="rounded border px-3 py-2 text-xs font-bold">Reset Beauty</button></div>
+            <p className="text-[11px] text-slate-500">स्लाइडर बदलते ही Live Preview अपडेट होता है। Softening हल्का रखें ताकि आँखों की डिटेल बनी रहे। Before / Original दबाकर मूल फोटो से तुलना करें।</p>
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" disabled={!selected || aiProcessing} onClick={async () => {
@@ -891,6 +904,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
                   try {
                     const sourceUrl = backgroundRemoved[target.id] && aiCutouts[target.id] ? aiCutouts[target.id] : target.src;
                     const image = await loadImageForDetection(sourceUrl);
+                    saveBeautyHistory(target.id);
                     const retouched = await retouchFaceSkinLocally(image, retouchStrength);
                     const resultUrl = retouched.toDataURL('image/png');
                     setAiCutouts(current => ({ ...current, [target.id]: resultUrl }));
