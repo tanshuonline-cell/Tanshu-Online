@@ -75,6 +75,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [borderDraft, setBorderDraft] = useState(1);
   const [activePanel, setActivePanel] = useState<'crop'|'remove-bg'|'color'|'border'|null>(null);
   const [cropDrag, setCropDrag] = useState<{startX:number;startY:number;startCrop:PhotoEdit;mode:'move'|'resize';handle?:string}|null>(null);
+  const [cropImageDimensions, setCropImageDimensions] = useState({ width: 4, height: 5 });
   const [language, setLanguage] = useState<'en'|'hi'>('en');
   const [step, setStep] = useState<1|2|3>(1);
   const [error, setError] = useState('');
@@ -98,6 +99,36 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if (preset === 'custom') return { width: Math.max(10, customWidth) * 300 / 25.4, height: Math.max(10, customHeight) * 300 / 25.4 };
     return PRESETS[preset];
   }, [preset, customWidth, customHeight]);
+
+  const cropPercentRatio = dimensions.width / dimensions.height * cropImageDimensions.height / cropImageDimensions.width;
+  const fitCropToOutput = (crop: PhotoEdit): PhotoEdit => {
+    const ratio = Math.max(0.01, cropPercentRatio);
+    const width = Math.min(crop.cropW, crop.cropH * ratio, 100, 100 * ratio);
+    const height = width / ratio;
+    return { ...crop, cropX: Math.max(0, Math.min(100 - width, crop.cropX + (crop.cropW - width) / 2)), cropY: Math.max(0, Math.min(100 - height, crop.cropY + (crop.cropH - height) / 2)), cropW: width, cropH: height };
+  };
+  const openCropEditor = () => {
+    if (!selected) return;
+    setPhotoEdits((current) => ({ ...current, [selected.id]: fitCropToOutput(current[selected.id] || DEFAULT_EDIT) }));
+    setActivePanel('crop');
+  };
+
+  useEffect(() => {
+    if (!selected) return;
+    const image = new Image();
+    image.onload = () => setCropImageDimensions({ width: image.naturalWidth || image.width, height: image.naturalHeight || image.height });
+    image.src = selected.src;
+  }, [selected?.src]);
+
+  useEffect(() => {
+    if (activePanel !== 'crop' || !selected) return;
+    setPhotoEdits((current) => {
+      const previous = current[selected.id] || DEFAULT_EDIT;
+      const fitted = fitCropToOutput(previous);
+      if (Math.abs(previous.cropX - fitted.cropX) < 0.01 && Math.abs(previous.cropY - fitted.cropY) < 0.01 && Math.abs(previous.cropW - fitted.cropW) < 0.01 && Math.abs(previous.cropH - fitted.cropH) < 0.01) return current;
+      return { ...current, [selected.id]: fitted };
+    });
+  }, [activePanel, selected?.id, dimensions.width, dimensions.height, cropImageDimensions.width, cropImageDimensions.height]);
 
   const resetAdjustments = () => {
     if (selected) setPhotoEdits((current) => ({ ...current, [selected.id]: { ...DEFAULT_EDIT } }));
@@ -450,13 +481,13 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <select value={preset} onChange={(event) => setPreset(event.target.value as PhotoPreset)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
               <option value="india">{PRESETS.india.label}</option><option value="stamp">{PRESETS.stamp.label}</option><option value="pan">{PRESETS.pan.label}</option><option value="custom">Custom Size</option>
             </select>
-            {preset === 'custom' && <div className="mt-2 grid grid-cols-2 gap-2"><label className="text-xs text-slate-600">Width (mm)<input type="number" min="10" max="100" value={customWidth} onChange={(e) => setCustomWidth(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2" /></label><label className="text-xs text-slate-600">Height (mm)<input type="number" min="10" max="100" value={customHeight} onChange={(e) => setCustomHeight(Number(e.target.value))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2" /></label></div>}
+            {preset === 'custom' && <div className="mt-2 space-y-2"><label className="block text-xs text-slate-600">Measurement unit<select value={sizeUnit} onChange={(e) => setSizeUnit(e.target.value as SizeUnit)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2"><option value="mm">Millimetres (MM)</option><option value="cm">Centimetres (CM)</option><option value="in">Inches (IN)</option></select></label><div className="grid grid-cols-2 gap-2"><label className="text-xs text-slate-600">Width ({sizeUnit.toUpperCase()})<input type="number" min="0.1" step="0.1" value={Number(fromMillimetres(customWidth,sizeUnit).toFixed(2))} onChange={(e) => setCustomWidth(toMillimetres(Math.max(0.1,Number(e.target.value)||0.1),sizeUnit))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2" /></label><label className="text-xs text-slate-600">Height ({sizeUnit.toUpperCase()})<input type="number" min="0.1" step="0.1" value={Number(fromMillimetres(customHeight,sizeUnit).toFixed(2))} onChange={(e) => setCustomHeight(toMillimetres(Math.max(0.1,Number(e.target.value)||0.1),sizeUnit))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2" /></label></div></div>}
             <p className="mt-2 text-xs text-slate-500">चुने गए साइज का आउटपुट 300 DPI के हिसाब से तैयार होगा। हर आवेदन की फोटो गाइडलाइन अलग हो सकती है।</p>
           </div>
 
           </>}
           {step===2 && <>
-          <div className="grid grid-cols-2 gap-2"><button onClick={()=>setActivePanel('crop')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">✂️ {language==='hi'?'फोटो क्रॉप करें':'Crop Photo'}</button><button onClick={()=>setActivePanel('remove-bg')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</button><button onClick={()=>{setBackgroundDraft(background);setActivePanel('color');}} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बैकग्राउंड रंग':'Background Color'}</button><button onClick={()=>{setBorderDraft(border);setActivePanel('border');}} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बॉर्डर सेट करें':'Border Settings'}</button></div>
+          <div className="grid grid-cols-2 gap-2"><button onClick={openCropEditor} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">✂️ {language==='hi'?'फोटो क्रॉप करें':'Crop Photo'}</button><button onClick={()=>setActivePanel('remove-bg')} disabled={!selected} className="rounded-xl border bg-white p-3 text-sm font-bold disabled:opacity-40">{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</button><button onClick={()=>{setBackgroundDraft(background);setActivePanel('color');}} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बैकग्राउंड रंग':'Background Color'}</button><button onClick={()=>{setBorderDraft(border);setActivePanel('border');}} className="rounded-xl border bg-white p-3 text-sm font-bold">{language==='hi'?'बॉर्डर सेट करें':'Border Settings'}</button></div>
 
 
           <div className="space-y-3 border-t border-slate-200 pt-4">
@@ -501,7 +532,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           </div>
           {selected && <button onClick={removeSelected} className="text-xs font-semibold text-red-600 hover:text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Remove selected photo</button>}
           </>}
-          {step===3 && <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{language==='hi'?'प्रीव्यू जाँचें और JPG/PDF डाउनलोड करें।':'Check the preview and download JPG/PDF.'}</p>}
+          {step===3 && <div className="space-y-3"><p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{language==='hi'?'प्रीव्यू जाँचें और JPG/PDF डाउनलोड करें।':'Check the preview and download JPG/PDF.'}</p><button onClick={()=>{setStep(2);openCropEditor();}} disabled={!selected} className="w-full rounded-lg border border-blue-300 bg-white px-4 py-3 text-sm font-bold text-blue-700 disabled:opacity-40">← {language==='hi'?'वापस जाएँ और Crop सुधारें':'Back to Crop & Adjust'}</button></div>}
         </section>
 
         <section className="min-w-0 space-y-4 xl:sticky xl:top-3 xl:self-start">
@@ -541,11 +572,11 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           </div>
         </div>}
         <p className="text-xs text-slate-500">नीले बॉक्स को खींचकर जगह बदलें। चारों कोनों के हैंडल से crop का आकार बदलें। चुना गया साइज अंतिम प्रिंट फोटो का आउटपुट साइज तय करता है।</p>
-        <div className="relative mx-auto overflow-hidden rounded-lg border border-slate-200 bg-slate-100" style={{width:'100%',maxWidth:440,aspectRatio:'4/5',touchAction:'none'}}>
-          <img src={selected.src} alt="Crop source" className="absolute inset-0 h-full w-full object-contain"/>
+        <div className="relative mx-auto overflow-hidden rounded-lg border border-slate-200 bg-slate-100" style={{width:'100%',maxWidth:440,aspectRatio:`${cropImageDimensions.width}/${cropImageDimensions.height}`,touchAction:'none'}}>
+          <img src={selected.src} alt="Crop source" className="absolute inset-0 h-full w-full object-fill"/>
           <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{left:(photoEdits[selected.id]?.cropX??0)+'%',top:(photoEdits[selected.id]?.cropY??0)+'%',width:(photoEdits[selected.id]?.cropW??100)+'%',height:(photoEdits[selected.id]?.cropH??100)+'%',touchAction:'none'}}
             onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);setCropDrag({startX:e.clientX,startY:e.clientY,startCrop:photoEdits[selected.id]||DEFAULT_EDIT,mode:(e.target as HTMLElement).dataset.resize?'resize':'move',handle:(e.target as HTMLElement).dataset.resize||'bottom-right'});}}
-            onPointerMove={e=>{if(!cropDrag||e.buttons!==1)return;const box=e.currentTarget.parentElement!.getBoundingClientRect(),dx=(e.clientX-cropDrag.startX)/box.width*100,dy=(e.clientY-cropDrag.startY)/box.height*100,c=cropDrag.startCrop,handle=cropDrag.handle||'bottom-right',left=handle.includes('left'),top=handle.includes('top'),w=cropDrag.mode==='move'?c.cropW:Math.max(10,Math.min(left?c.cropW-dx:100-c.cropX,c.cropW+(left?-dx:dx))),h=cropDrag.mode==='move'?c.cropH:Math.max(10,Math.min(top?c.cropH-dy:100-c.cropY,c.cropH+(top?-dy:dy))),x=cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropW,c.cropX+dx)):left?c.cropX+c.cropW-w:c.cropX,y=cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropH,c.cropY+dy)):top?c.cropY+c.cropH-h:c.cropY;setPhotoEdits(prev=>({...prev,[selected.id]:{...(prev[selected.id]||DEFAULT_EDIT),cropX:x,cropY:y,cropW:w,cropH:h}}));}} onPointerUp={()=>setCropDrag(null)} onPointerCancel={()=>setCropDrag(null)}>
+            onPointerMove={e=>{if(!cropDrag||e.buttons!==1)return;const box=e.currentTarget.parentElement!.getBoundingClientRect(),dx=(e.clientX-cropDrag.startX)/box.width*100,dy=(e.clientY-cropDrag.startY)/box.height*100,c=cropDrag.startCrop,handle=cropDrag.handle||'bottom-right',left=handle.includes('left'),top=handle.includes('top'),ratio=Math.max(0.01,cropPercentRatio);let x=c.cropX,y=c.cropY,w=c.cropW,h=c.cropH;if(cropDrag.mode==='move'){x=Math.max(0,Math.min(100-c.cropW,c.cropX+dx));y=Math.max(0,Math.min(100-c.cropH,c.cropY+dy));}else{const horizontalDelta=left?-dx:dx,verticalDelta=(top?-dy:dy)*ratio,proposedW=c.cropW+(horizontalDelta+verticalDelta)/2,maxW=Math.min(left?c.cropX+c.cropW:100-c.cropX,(top?c.cropY+c.cropH:100-c.cropY)*ratio),minW=Math.min(10,maxW),nextW=Math.max(minW,Math.min(maxW,proposedW));w=nextW;h=w/ratio;x=left?c.cropX+c.cropW-w:c.cropX;y=top?c.cropY+c.cropH-h:c.cropY;x=Math.max(0,Math.min(100-w,x));y=Math.max(0,Math.min(100-h,y));}setPhotoEdits(prev=>({...prev,[selected.id]:{...(prev[selected.id]||DEFAULT_EDIT),cropX:x,cropY:y,cropW:w,cropH:h}}));}} onPointerUp={()=>setCropDrag(null)} onPointerCancel={()=>setCropDrag(null)}>
             {['top-left','top-right','bottom-left','bottom-right'].map(pos=><span key={pos} data-resize={pos} className={`absolute h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow ${pos.includes('top')?'-top-2':'-bottom-2'} ${pos.includes('left')?'-left-2':'-right-2'} cursor-nwse-resize`}/>)}
           </div>
         </div>
