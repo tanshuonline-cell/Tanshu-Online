@@ -949,7 +949,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           </div>
 
           </>}
-          {step===2 && <>
+          {step===2 && <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2"><button onClick={openCropEditor} disabled={!selected} className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-2 py-3 text-xs font-bold text-sky-800 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md disabled:opacity-40">✂️ <span>{language==='hi'?'फोटो क्रॉप करें':'Crop Photo'}</span></button><button onClick={()=>setActivePanel('remove-bg')} disabled={!selected} className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-2 py-3 text-xs font-bold text-emerald-800 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md disabled:opacity-40"><Eraser className="h-4 w-4 shrink-0" /><span>{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</span></button><button onClick={()=>{setBackgroundDraft(background);setActivePanel('color');}} className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white px-2 py-3 text-xs font-bold text-cyan-800 shadow-sm transition-all hover:-translate-y-0.5 hover:border-cyan-400 hover:shadow-md"><Palette className="h-4 w-4 shrink-0" /><span>{language==='hi'?'बैकग्राउंड रंग':'Background Color'}</span></button><button onClick={()=>{setBorderDraft(border);setActivePanel('border');}} className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white px-2 py-3 text-xs font-bold text-indigo-800 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-400 hover:shadow-md disabled:opacity-40"><Square className="h-4 w-4 shrink-0" /><span>{language==='hi'?'बॉर्डर सेट करें':'Border Settings'}</span></button></div><p className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2.5 text-xs leading-5 text-emerald-900">
 
 
@@ -1065,7 +1065,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <div className="mt-3"><Slider label="Move up / down" min={-250} max={250} value={selectedEdit.moveY} onChange={(v) => updateSelectedEdit('moveY', v)} /></div>
           </div>
           {selected && <button onClick={removeSelected} className="text-xs font-semibold text-red-600 hover:text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Remove selected photo</button>}
-          </>}
+          </div>}
           {step===3 && <div className="space-y-3"><p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{language==='hi'?'प्रीव्यू जाँचें और JPG/PDF डाउनलोड करें।':'Check the preview and download JPG/PDF.'}</p><button onClick={()=>{setStep(2);openCropEditor();}} disabled={!selected} className="w-full rounded-lg border border-blue-300 bg-white px-4 py-3 text-sm font-bold text-blue-700 disabled:opacity-40">← {language==='hi'?'वापस जाएँ और Crop सुधारें':'Back to Crop & Adjust'}</button></div>}
         </section>}
 
