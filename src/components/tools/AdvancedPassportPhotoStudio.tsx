@@ -1077,7 +1077,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       {activePanel==='crop'&&selected&&<div className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-slate-700">Crop / output size
-            <select value={preset} onChange={e=>setPreset(e.target.value as PhotoPreset)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2">
+            <select value={preset} onChange={e=>setPreset(e.target.value as PhotoPreset)} className="mt-1 w-full rounded-xl border border-indigo-300 bg-gradient-to-r from-indigo-50 via-white to-cyan-50 p-2.5 font-bold text-indigo-900 shadow-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
               <option value="india">India Passport / Exam · 35 × 45 mm</option>
               <option value="stamp">Stamp Photo · 25 × 30 mm</option>
               <option value="pan">PAN Photo · 25 × 35 mm</option>
