@@ -600,7 +600,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if (paper === 'single' || !slots.length) return;
     const remove = new Set(slots), remaining = [...sheetRectsRef.current].filter(rect => !remove.has(rect.slot)).sort((a,b) => a.slot - b.slot);
     if (remaining.length === sheetRectsRef.current.length) return;
-    if (!remaining.length) { setSheetPhotoCount(1); setSheetPhotoOverrides({}); setSheetPositions({}); setSelectedSheetSlot(0); setSelectedSheetSlots([]); setLockSheetGroup(false); return; }
+    if (!remaining.length) { setError('शीट पर कम-से-कम एक फोटो रखना जरूरी है।'); return; }
     const overrides: Record<number, string> = {}, positions: Record<number, { x: number; y: number; w: number; h: number }> = {};
     remaining.forEach((rect,index) => { overrides[index] = rect.photoId; positions[index] = { x: rect.x, y: rect.y, w: rect.w, h: rect.h }; });
     setSheetPhotoOverrides(overrides); setSheetPositions(positions); setSheetPhotoCount(remaining.length); setSelectedSheetSlot(0); setSelectedSheetSlots([]);
