@@ -28,7 +28,7 @@ const advancedPassportStudio: ToolItem = {
   categoryLabel: 'Photo & Signature',
   isFeatured: true,
   iconName: 'Camera',
-  description: 'Advanced photo studio for multiple passport photos, precise crop, signature editing and print-ready 4×6 / A4 sheets.',
+  description: 'Passport photos, signature editing and print-ready 4×6 / A4 sheets.',
   detailedInstructions: 'Upload one or more photos, select the required document size, adjust each photo, edit a signature and export a single photo or print sheet.',
   keyFeatures: [
     'Multiple photos with independent crop and adjustment settings',
