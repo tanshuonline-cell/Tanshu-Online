@@ -89,6 +89,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const signatureDragRef = useRef<{ x: number; y: number; mode?: 'move' | 'resize' } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cropPreviewRef = useRef<HTMLCanvasElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const selected = photos.find((photo) => photo.id === selectedId) || photos[0] || null;
@@ -129,6 +130,28 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       return { ...current, [selected.id]: fitted };
     });
   }, [activePanel, selected?.id, dimensions.width, dimensions.height, cropImageDimensions.width, cropImageDimensions.height]);
+
+  useEffect(() => {
+    const canvas = cropPreviewRef.current;
+    if (activePanel !== 'crop' || !canvas || !selected) return;
+    const width = Math.max(1, Math.round(dimensions.width));
+    const height = Math.max(1, Math.round(dimensions.height));
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    ctx.fillStyle = background; ctx.fillRect(0, 0, width, height);
+    const sourceUrl = backgroundRemoved[selected.id] && aiCutouts[selected.id] ? aiCutouts[selected.id] : selected.src;
+    const image = new Image();
+    image.onload = () => {
+      const edit = photoEdits[selected.id] || DEFAULT_EDIT;
+      const sx = image.width * edit.cropX / 100, sy = image.height * edit.cropY / 100;
+      const sw = image.width * edit.cropW / 100, sh = image.height * edit.cropH / 100;
+      ctx.save();
+      ctx.filter = mode === 'beauty' ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) blur(${Math.max(0, edit.smooth) * 0.012}px)` : 'none';
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
+      ctx.restore();
+    };
+    image.src = sourceUrl;
+  }, [activePanel, selected?.id, selected?.src, dimensions.width, dimensions.height, photoEdits, background, backgroundRemoved, aiCutouts, mode]);
 
   const resetAdjustments = () => {
     if (selected) setPhotoEdits((current) => ({ ...current, [selected.id]: { ...DEFAULT_EDIT } }));
@@ -543,7 +566,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>ध्यान दें:</strong> BiRefNet AI बैकग्राउंड हटाने के लिए इस्तेमाल होता है। फिर भी हर फोटो में बालों और किनारों का परिणाम अलग हो सकता है; प्रिंट से पहले आउटपुट जाँचें। Face detection, AI skin retouch और manual brush eraser अभी उपलब्ध नहीं हैं। प्रिंट से पहले फोटो का परिणाम और संबंधित विभाग की latest specification जाँचें।</div>
         </section>
       </div>
-      {activePanel && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm"><div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl"><div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-bold">{activePanel==='crop'?(language==='hi'?'फोटो क्रॉप करें':'Crop Photo'):activePanel==='remove-bg'?(language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'):activePanel==='color'?(language==='hi'?'बैकग्राउंड रंग':'Background Color'):(language==='hi'?'बॉर्डर सेटिंग':'Border Settings')}</h3><button onClick={()=>{setActivePanel(null);setCropDrag(null);}} className="rounded-lg px-3 py-1 hover:bg-slate-100">✕</button></div>
+      {activePanel && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm"><div className="w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl"><div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-bold">{activePanel==='crop'?(language==='hi'?'फोटो क्रॉप करें':'Crop Photo'):activePanel==='remove-bg'?(language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'):activePanel==='color'?(language==='hi'?'बैकग्राउंड रंग':'Background Color'):(language==='hi'?'बॉर्डर सेटिंग':'Border Settings')}</h3><button onClick={()=>{setActivePanel(null);setCropDrag(null);}} className="rounded-lg px-3 py-1 hover:bg-slate-100">✕</button></div>
       {activePanel==='crop'&&selected&&<div className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-slate-700">Crop / output size
@@ -572,6 +595,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           </div>
         </div>}
         <p className="text-xs text-slate-500">नीले बॉक्स को खींचकर जगह बदलें। चारों कोनों के हैंडल से crop का आकार बदलें। चुना गया साइज अंतिम प्रिंट फोटो का आउटपुट साइज तय करता है।</p>
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(220px,0.8fr)]">
         <div className="relative mx-auto overflow-hidden rounded-lg border border-slate-200 bg-slate-100" style={{width:'100%',maxWidth:440,aspectRatio:`${cropImageDimensions.width}/${cropImageDimensions.height}`,touchAction:'none'}}>
           <img src={selected.src} alt="Crop source" className="absolute inset-0 h-full w-full object-fill"/>
           <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{left:(photoEdits[selected.id]?.cropX??0)+'%',top:(photoEdits[selected.id]?.cropY??0)+'%',width:(photoEdits[selected.id]?.cropW??100)+'%',height:(photoEdits[selected.id]?.cropH??100)+'%',touchAction:'none'}}
@@ -580,8 +604,17 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             {['top-left','top-right','bottom-left','bottom-right'].map(pos=><span key={pos} data-resize={pos} className={`absolute h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow ${pos.includes('top')?'-top-2':'-bottom-2'} ${pos.includes('left')?'-left-2':'-right-2'} cursor-nwse-resize`}/>)}
           </div>
         </div>
+          <div className="space-y-2 rounded-xl border border-blue-100 bg-blue-50 p-3">
+            <h4 className="text-sm font-bold text-blue-900">Live final photo preview</h4>
+            <p className="text-xs text-blue-800">यहाँ वही चुना हुआ crop और exact output ratio दिखेगा जो JPG/PDF में बनेगा।</p>
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
+              <canvas ref={cropPreviewRef} className="mx-auto block h-auto max-h-[360px] max-w-full object-contain shadow-sm" />
+            </div>
+            <p className="text-[11px] text-slate-600">{preset==='custom'?fromMillimetres(customWidth,sizeUnit).toFixed(2)+' × '+fromMillimetres(customHeight,sizeUnit).toFixed(2)+' '+sizeUnit.toUpperCase():PRESETS[preset].label}</p>
+          </div>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3">
-          <button onClick={()=>setPhotoEdits(c=>({...c,[selected.id]:{...(c[selected.id]||DEFAULT_EDIT),cropX:0,cropY:0,cropW:100,cropH:100}}))} className="rounded-lg border px-3 py-2 text-xs font-semibold">Reset Crop</button>
+          <button onClick={()=>setPhotoEdits(c=>({...c,[selected.id]:fitCropToOutput({...DEFAULT_EDIT})}))} className="rounded-lg border px-3 py-2 text-xs font-semibold">Reset Crop</button>
           <div className="flex gap-2"><button onClick={()=>{setActivePanel(null);setCropDrag(null);}} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Cancel</button><button onClick={()=>{setActivePanel(null);setCropDrag(null);setStep(3);}} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white">Save &amp; Next</button></div>
         </div>
         <p className="text-[11px] text-amber-700">ध्यान दें: फोटो साइज का अंतिम नियम संबंधित फॉर्म/विभाग की आधिकारिक गाइडलाइन से मिलाएँ।</p>
