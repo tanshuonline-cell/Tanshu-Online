@@ -352,7 +352,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           const scale = Math.max(slotW / cropSourceW, slotH / cropSourceH) * edit.zoom;
           const w = cropSourceW * scale, h = cropSourceH * scale;
           const filter = mode === 'beauty'
-            ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) blur(${Math.max(0, edit.smooth) * 0.012}px)`
+            ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) none`
             : 'brightness(100%) contrast(100%) saturate(100%)';
           ctx.filter = filter;
           const aiCutout = aiCutouts[photo.id];
