@@ -415,14 +415,20 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio),margin=sheetMargin*300/25.4;
       // Only the first photo defines the sheet's print size; other copies keep that exact size.
       const maxW=Math.min(left?s.x+s.w-margin:canvas.width-margin-s.x,(top?s.y+s.h-margin:canvas.height-margin-s.y)*ratio);
-      const wantedW=Math.max(s.w,Math.min(maxW,s.w+delta/2));
+      const wantedW=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2));
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot);
       const makeRect=(w:number)=>({x:left?s.x+s.w-w:s.x,y:top?s.y+s.h-w/ratio:s.y,w,h:w/ratio});
       const collides=(rect:{x:number;y:number;w:number;h:number})=>others.some(r=>rect.x<r.x+r.w-1&&rect.x+rect.w>r.x+1&&rect.y<r.y+r.h-1&&rect.y+rect.h>r.y+1);
-      let low=s.w,high=wantedW;
+      let low=Math.max(24,Math.min(s.w,s.h)*.18),high=wantedW;
       if(collides(makeRect(high))){for(let i=0;i<14;i++){const mid=(low+high)/2;if(collides(makeRect(mid)))high=mid;else low=mid;} }
       const next=makeRect(Math.max(low,Math.min(wantedW,high)));
-      setSheetPositions(cur=>({...cur,[drag.slot]:next}));
+      setSheetPositions(cur=>{
+        const synced:{[slot:number]:{x:number;y:number;w:number;h:number}}={...cur};
+        // The first photo sets the common print dimensions for every copy on this sheet.
+        for(const rect of sheetRectsRef.current)synced[rect.slot]={x:rect.x,y:rect.y,w:next.w,h:next.h};
+        synced[drag.slot]=next;
+        return synced;
+      });
     }
   };
   const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
