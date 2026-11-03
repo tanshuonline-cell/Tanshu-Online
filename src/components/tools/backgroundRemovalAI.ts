@@ -29,7 +29,7 @@ export async function removeBackgroundAI(source: string): Promise<Blob> {
   const model = await getModel();
   const segmentation = await model.segmentPerson(image, {
     internalResolution: 'medium',
-    segmentationThreshold: 0.7,
+    segmentationThreshold: 0.45,
     maxDetections: 1,
     scoreThreshold: 0.2,
     nmsRadius: 20
@@ -45,6 +45,10 @@ export async function removeBackgroundAI(source: string): Promise<Blob> {
   maskCanvas.height = segmentation.height;
   const maskCtx = maskCanvas.getContext('2d');
   if (!maskCtx) throw new Error('AI mask could not be created.');
+  const foregroundCount = segmentation.data.reduce((count, value) => count + (value > 0 ? 1 : 0), 0);
+  if (foregroundCount < segmentation.data.length * 0.005) {
+    throw new Error('AI व्यक्ति को पहचान नहीं पाया। साफ रोशनी वाली, पूरे चेहरे और कंधों की फोटो चुनकर दोबारा कोशिश करें।');
+  }
   const maskImage = maskCtx.createImageData(segmentation.width, segmentation.height);
   for (let i = 0; i < segmentation.data.length; i++) {
     const alpha = segmentation.data[i] ? 255 : 0;
