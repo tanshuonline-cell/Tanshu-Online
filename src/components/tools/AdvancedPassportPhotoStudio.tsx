@@ -257,7 +257,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       const sx = image.width * edit.cropX / 100, sy = image.height * edit.cropY / 100;
       const sw = image.width * edit.cropW / 100, sh = image.height * edit.cropH / 100;
       ctx.save();
-      ctx.filter = mode === 'beauty' ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) none` : 'none';
+      ctx.filter = mode === 'beauty' ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%)` : 'none';
       ctx.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
       ctx.restore();
     };
@@ -352,7 +352,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           const scale = Math.max(slotW / cropSourceW, slotH / cropSourceH) * edit.zoom;
           const w = cropSourceW * scale, h = cropSourceH * scale;
           const filter = mode === 'beauty'
-            ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%) none`
+            ? `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%)`
             : 'brightness(100%) contrast(100%) saturate(100%)';
           ctx.filter = filter;
           const aiCutout = aiCutouts[photo.id];
