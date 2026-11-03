@@ -82,9 +82,9 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6">
-      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
+    <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${tool.id === 'advanced-passport-photo-studio' ? 'p-0' : 'p-3 sm:p-6'}`}>
+      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${tool.id === 'advanced-passport-photo-studio' ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
+        <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${tool.id === 'advanced-passport-photo-studio' ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
           <div className="flex items-center gap-3">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
@@ -102,7 +102,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 bg-white space-y-6">
+        <div className={`overflow-y-auto flex-1 space-y-6 ${tool.id === 'advanced-passport-photo-studio' ? 'p-3 sm:p-5 lg:p-6 bg-slate-50' : 'p-6 bg-white'}`}>
           <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
             <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
             <div>
