@@ -163,7 +163,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             : 'brightness(100%) contrast(100%) saturate(100%)';
           ctx.filter = filter;
           const aiCutout = aiCutouts[photo.id];
-          const source: CanvasImageSource = backgroundRemoved[photo.id] ? (aiCutout ? (() => { const cut = new Image(); cut.src = aiCutout; return cut; })() : removePlainBackground(img, backgroundTolerance)) : img;
+          const source: CanvasImageSource = backgroundRemoved[photo.id] ? (aiCutout ? img : removePlainBackground(img, backgroundTolerance)) : img;
           const sx=img.width*edit.cropX/100, sy=img.height*edit.cropY/100, sw=img.width*edit.cropW/100, sh=img.height*edit.cropH/100;
           ctx.drawImage(source,sx,sy,sw,sh,x+(photoW-w)/2+edit.moveX,y+(photoH-h)/2+edit.moveY,w,h);
         } else {
