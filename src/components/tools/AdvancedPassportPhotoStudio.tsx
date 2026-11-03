@@ -72,25 +72,22 @@ const removePlainBackground = (source: HTMLImageElement, tolerance: number): HTM
 };
 
 // Remove only edge-connected paper pixels so white gaps inside a handwritten signature remain natural.
-const removeSignaturePaperBackground = (canvas: HTMLCanvasElement, tolerance = 42): void => {
+const removeSignaturePaperBackground = (canvas: HTMLCanvasElement): void => {
   const ctx = canvas.getContext('2d');
   if (!ctx || !canvas.width || !canvas.height) return;
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const { data, width, height } = image;
-  const sample = (x: number, y: number) => { const i = (y * width + x) * 4; return [data[i], data[i + 1], data[i + 2]]; };
-  const corners = [sample(0, 0), sample(width - 1, 0), sample(0, height - 1), sample(width - 1, height - 1)];
-  const bg = [0, 1, 2].map(channel => Math.round(corners.reduce((sum, rgb) => sum + rgb[channel], 0) / corners.length));
-  const seen = new Uint8Array(width * height), queue = new Int32Array(width * height);
-  let head = 0, tail = 0;
-  const distance = (pixel: number) => Math.max(Math.abs(data[pixel * 4] - bg[0]), Math.abs(data[pixel * 4 + 1] - bg[1]), Math.abs(data[pixel * 4 + 2] - bg[2]));
-  const seed = (pixel: number) => { if (!seen[pixel] && distance(pixel) <= tolerance) { seen[pixel] = 1; queue[tail++] = pixel; } };
-  for (let x = 0; x < width; x++) { seed(x); seed((height - 1) * width + x); }
-  for (let y = 1; y < height - 1; y++) { seed(y * width); seed(y * width + width - 1); }
-  while (head < tail) {
-    const pixel = queue[head++], x = pixel % width, y = Math.floor(pixel / width), alphaIndex = pixel * 4 + 3;
-    const edgeDistance = distance(pixel);
-    data[alphaIndex] = edgeDistance <= tolerance * 0.72 ? 0 : Math.round(data[alphaIndex] * Math.min(1, (edgeDistance - tolerance * 0.72) / (tolerance * 0.28)));
-    if (x > 0) seed(pixel - 1); if (x + 1 < width) seed(pixel + 1); if (y > 0) seed(pixel - width); if (y + 1 < height) seed(pixel + width);
+  const { data } = image;
+  // Remove near-white paper everywhere (including enclosed gaps), while preserving
+  // darker ink and saturated blue ink. A soft alpha ramp keeps anti-aliased strokes smooth.
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue;
+    const red = data[i], green = data[i + 1], blue = data[i + 2];
+    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    const chroma = Math.max(red, green, blue) - Math.min(red, green, blue);
+    const whitePaper = Math.max(0, Math.min(1, (luminance - 178) / 67));
+    const neutralPaper = Math.max(0, Math.min(1, 1 - chroma / 72));
+    const remove = whitePaper * neutralPaper;
+    data[i + 3] = Math.round(data[i + 3] * (1 - remove));
   }
   ctx.putImageData(image, 0, 0);
 };
@@ -216,7 +213,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [signatureCrop, setSignatureCrop] = useState({ x: 0, y: 0, w: 100, h: 100 });
   const [signaturePlacement, setSignaturePlacement] = useState({ x: 58, y: 78, width: 32 });
   const signatureInputRef = useRef<HTMLInputElement>(null);
-  const signatureDragRef = useRef<{ x: number; y: number; mode?: 'move' | 'resize' } | null>(null);
+  const signatureDragRef = useRef<{ x: number; y: number; mode?: 'move' | 'resize'; startCrop?: { x: number; y: number; w: number; h: number }; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cropPreviewRef = useRef<HTMLCanvasElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
@@ -491,129 +488,32 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const box = (event.currentTarget.parentElement || event.currentTarget).getBoundingClientRect();
     const x = Math.max(0, Math.min(100, (event.clientX - box.left) / box.width * 100));
     const y = Math.max(0, Math.min(100, (event.clientY - box.top) / box.height * 100));
-    if (!signatureDragRef.current) { signatureDragRef.current = { x, y }; return; }
-    const start = signatureDragRef.current;
-    setSignatureCrop((current) => {
-      const dx = x - start.x, dy = y - start.y;
-      if (start.mode === 'resize') return { ...current, w: Math.max(5, Math.min(100 - current.x, current.w + dx)), h: Math.max(5, Math.min(100 - current.y, current.h + dy)) };
-      return { ...current, x: Math.max(0, Math.min(100 - current.w, current.x + dx)), y: Math.max(0, Math.min(100 - current.h, current.y + dy)) };
+    const drag = signatureDragRef.current;
+    if (!drag) { signatureDragRef.current = { x, y, startCrop: { ...signatureCrop }, mode: 'move' }; return; }
+    const start = drag.startCrop || signatureCrop;
+    const dx = x - drag.x, dy = y - drag.y;
+    setSignatureCrop(() => {
+      if (drag.mode !== 'resize') {
+        return { ...start, x: Math.max(0, Math.min(100 - start.w, start.x + dx)), y: Math.max(0, Math.min(100 - start.h, start.y + dy)) };
+      }
+      const left = drag.corner?.endsWith('l') || false;
+      const top = drag.corner?.startsWith('t') || false;
+      const right = !left, bottom = !top;
+      const fixedX = left ? start.x + start.w : start.x;
+      const fixedY = top ? start.y + start.h : start.y;
+      const movingX = Math.max(0, Math.min(100, (left ? start.x : start.x + start.w) + dx));
+      const movingY = Math.max(0, Math.min(100, (top ? start.y : start.y + start.h) + dy));
+      const nextX = left ? Math.min(movingX, fixedX - 5) : fixedX;
+      const nextY = top ? Math.min(movingY, fixedY - 5) : fixedY;
+      const nextRight = right ? Math.max(movingX, fixedX + 5) : fixedX;
+      const nextBottom = bottom ? Math.max(movingY, fixedY + 5) : fixedY;
+      const x1 = Math.max(0, Math.min(95, nextX));
+      const y1 = Math.max(0, Math.min(95, nextY));
+      const x2 = Math.max(x1 + 5, Math.min(100, nextRight));
+      const y2 = Math.max(y1 + 5, Math.min(100, nextBottom));
+      return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
     });
-    signatureDragRef.current = { x, y, mode: start.mode };
   };
-  const handleSheetPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas=canvasRef.current;if(!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height;
-    if(paper==='single'){if(!selected)return;const edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature:false};canvas.setPointerCapture(event.pointerId);return;}
-    const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);setSelectedSheetSlots([]);canvas.style.cursor='grab';return;}if(event.ctrlKey||event.metaKey||event.shiftKey){setSelectedSheetSlots(current=>current.includes(hit.slot)?current.filter(slot=>slot!==hit.slot):[...current,hit.slot]);setSelectedSheetSlot(hit.slot);canvas.focus();return;}setSelectedSheetSlot(hit.slot);setSelectedSheetSlots([hit.slot]);canvas.focus();
-    const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0,handle=t?(l?'tl':'tr'):(l?'bl':'br'),resizing=corner&&canResize;
-    const copyHandleSize=Math.max(64,Math.min(100,Math.min(hit.w,hit.h)*.22));
-    const onCopyHandle=selectedSheetSlot===hit.slot&&x>=hit.x+hit.w-copyHandleSize&&x<=hit.x+hit.w&&y>=hit.y&&y<=hit.y+copyHandleSize;
-    if((event.altKey||onCopyHandle)&&!resizing){
-      const currentCount=Math.min(sheetCapacity,sheetPhotoCount||sheetFitCapacity);
-      if(currentCount>=sheetCapacity){setError('शीट पर और फोटो जोड़ने की जगह नहीं है।');return;}
-      event.preventDefault();saveSheetUndo();
-      const nextSlot=currentCount,copyRect:SheetRect={...hit,slot:nextSlot};
-      setSheetPhotoOverrides(current=>({...current,[nextSlot]:hit.photoId}));
-      setSheetPhotoCount(nextSlot+1);setSheetPositions(current=>({...current,[nextSlot]:{x:copyRect.x,y:copyRect.y,w:copyRect.w,h:copyRect.h}}));
-      sheetRectsRef.current=[...sheetRectsRef.current,copyRect];
-      setSelectedSheetSlot(nextSlot);setSelectedSheetSlots([]);
-      canvas.style.cursor='grabbing';
-      activeSheetDragRef.current={slot:nextSlot,mode:'move',startX:x,startY:y,startRect:copyRect,startGroup:[copyRect],handle:'br',duplicate:true,moved:false};
-      canvas.setPointerCapture(event.pointerId);return;
-    }
-    event.preventDefault();canvas.style.cursor=resizing?(handle==='tl'||handle==='br'?'nwse-resize':'nesw-resize'):'grabbing';activeSheetDragRef.current={slot:hit.slot,mode:resizing?'resize':'move',startX:x,startY:y,startRect:hit,startGroup:sheetRectsRef.current.map(rect=>({...rect})),handle};canvas.setPointerCapture(event.pointerId);
-  };
-  const handleSheetPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas=canvasRef.current,cd=activeCanvasDragRef.current;if(cd&&canvas&&selected){const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-cd.startX,dy=y-cd.startY;setPhotoEdits(cur=>({...cur,[selected.id]:{...(cur[selected.id]||DEFAULT_EDIT),moveX:cd.startMoveX+dx,moveY:cd.startMoveY+dy}}));return;}
-    const drag=activeSheetDragRef.current;if(!drag||!canvas){if(canvas&&paper!=='single'){const bounds=canvas.getBoundingClientRect(),px=(event.clientX-bounds.left)*canvas.width/bounds.width,py=(event.clientY-bounds.top)*canvas.height/bounds.height,hover=[...sheetRectsRef.current].reverse().find(r=>px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h);if(hover){const hs=Math.max(22,Math.min(42,Math.min(hover.w,hover.h)*.09)),left=px<=hover.x+hs,right=px>=hover.x+hover.w-hs,top=py<=hover.y+hs,bottom=py>=hover.y+hover.h-hs,isCorner=(left||right)&&(top||bottom);canvas.style.cursor=isCorner&&hover.slot===0?((top&&left)||(bottom&&right)?'nwse-resize':'nesw-resize'):'grab';}else canvas.style.cursor='grab';}return;}const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
-    if(drag.mode==='move'){
-      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),gap=sheetGap*300/25.4;
-      let nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx));
-      let ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
-      if (lockSheetGroup && drag.startGroup.length > 1) {
-        // Always calculate from the pointer-down snapshot. Using the already
-        // moved rectangles here would add the full pointer delta repeatedly,
-        // making the group jump and accelerate during dragging.
-        const group = drag.startGroup;
-        const minX = Math.min(...group.map(r => r.x)), minY = Math.min(...group.map(r => r.y));
-        const maxX = Math.max(...group.map(r => r.x + r.w)), maxY = Math.max(...group.map(r => r.y + r.h));
-        const moveX = Math.max(-minX, Math.min(canvas.width - maxX, dx));
-        const moveY = Math.max(-minY, Math.min(canvas.height - maxY, dy));
-        const moved = group.map(r => ({ ...r, x: r.x + moveX, y: r.y + moveY }));
-        sheetRectsRef.current = moved;
-        pendingSheetGroupRef.current = moved;
-        if (sheetMoveFrameRef.current === null) {
-          sheetMoveFrameRef.current = requestAnimationFrame(() => {
-            sheetMoveFrameRef.current = null;
-            const pendingGroup = pendingSheetGroupRef.current;
-            pendingSheetGroupRef.current = null;
-            if (pendingGroup) setSheetPositions(current => {
-              const next = { ...current };
-              for (const rect of pendingGroup) next[rect.slot] = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
-              return next;
-            });
-          });
-        }
-        return;
-      }
-      // Smart alignment: snap to a neighbour's top/centre/bottom line and
-      // to its left/right edge with the configured cutting gap.
-      const snapDistance=8*300/25.4;
-      const nearest=(value:number,candidates:number[])=>{
-        let best=value,bestDistance=snapDistance+1;
-        for(const candidate of candidates){
-          const distance=Math.abs(value-candidate);
-          if(distance<bestDistance){best=candidate;bestDistance=distance;}
-        }
-        return best;
-      };
-      // The master (first) photo is positioned freely; only later copies snap to it.
-      if (drag.slot !== 0) {
-        nx=nearest(nx,others.flatMap(r=>[r.x,r.x+r.w+gap,r.x-gap-s.w]));
-        ny=nearest(ny,others.flatMap(r=>[r.y,r.y+(r.h-s.h)/2,r.y+r.h+gap,r.y-gap-s.h]));
-      }
-      nx=Math.max(0,Math.min(canvas.width-s.w,nx));
-      ny=Math.max(0,Math.min(canvas.height-s.h,ny));
-      const tooClose=others.some(r=>nx<r.x+r.w+gap-1&&nx+s.w>r.x-gap+1&&ny<r.y+r.h+gap-1&&ny+s.h>r.y-gap+1);
-      if(!tooClose){
-        if(drag.duplicate&&(Math.abs(dx)>3||Math.abs(dy)>3))drag.moved=true;
-        const nextRect={...s,x:nx,y:ny};
-        // Keep geometry in sync immediately; React/canvas repaint is coalesced to one frame.
-        sheetRectsRef.current=sheetRectsRef.current.map(rect=>rect.slot===drag.slot?nextRect:rect);
-        pendingSheetMoveRef.current={slot:drag.slot,position:{x:nx,y:ny,w:s.w,h:s.h}};
-        if(sheetMoveFrameRef.current===null){
-          sheetMoveFrameRef.current=requestAnimationFrame(()=>{
-            sheetMoveFrameRef.current=null;
-            const pending=pendingSheetMoveRef.current;
-            pendingSheetMoveRef.current=null;
-            if(pending)setSheetPositions(cur=>({...cur,[pending.slot]:pending.position}));
-          });
-        }
-      }
-    }
-    else{
-      const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio);
-      // Keep the resize anchor inside the paper edge; no artificial page margin lock.
-      const maxW=Math.min(left?s.x+s.w:canvas.width-s.x,(top?s.y+s.h:canvas.height-s.y)*ratio);
-      const wantedW=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2));
-      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot);
-      const makeRect=(w:number)=>({x:left?s.x+s.w-w:s.x,y:top?s.y+s.h-w/ratio:s.y,w,h:w/ratio});
-      const cuttingGap=sheetGap*300/25.4;
-      const collides=(rect:{x:number;y:number;w:number;h:number})=>others.some(r=>rect.x<r.x+r.w+cuttingGap&&rect.x+rect.w>r.x-cuttingGap&&rect.y<r.y+r.h+cuttingGap&&rect.y+rect.h>r.y-cuttingGap);
-      let low=Math.max(24,Math.min(s.w,s.h)*.18),high=wantedW;
-      if(collides(makeRect(high))){for(let i=0;i<14;i++){const mid=(low+high)/2;if(collides(makeRect(mid)))high=mid;else low=mid;} }
-      const next=makeRect(Math.max(low,Math.min(wantedW,high)));
-      // Keep the live selection outline and corner handles locked to the resized photo immediately.
-      sheetRectsRef.current=sheetRectsRef.current.map(rect=>rect.slot===drag.slot?{...rect,...next}:{...rect,w:next.w,h:next.h});
-      setSheetPositions(cur=>{
-        const synced:{[slot:number]:{x:number;y:number;w:number;h:number}}={...cur};
-        // The first photo sets the common print dimensions for every copy on this sheet.
-        for(const rect of sheetRectsRef.current)synced[rect.slot]={x:rect.x,y:rect.y,w:next.w,h:next.h};
-        synced[drag.slot]=next;
-        return synced;
-      });
-    }
-  };
-  const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { flushSheetMove(); const finishedDrag=activeSheetDragRef.current; if(finishedDrag?.duplicate&&!finishedDrag.moved){undoSheetAction();sheetRectsRef.current=sheetRectsRef.current.filter(rect=>rect.slot!==finishedDrag.slot);} activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if(event)event.currentTarget.style.cursor='grab'; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
 
   const [nudgeStepMm, setNudgeStepMm] = useState(1);
   const [lockSheetGroup, setLockSheetGroup] = useState(false);
@@ -871,9 +771,18 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <button onClick={() => signatureInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-blue-300 bg-white px-3 py-3 text-sm font-semibold text-blue-700"><Upload className="h-4 w-4" /> सिग्नेचर अपलोड करें</button>
             {signatureSrc && <>
               <p className="text-xs text-slate-500">{signatureName} · Drag the crop box to move and its corner to resize. फोटो पर signature को preview में सीधे drag करके रखें।</p>
-              <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border border-slate-300 bg-[linear-gradient(45deg,#eee_25%,transparent_25%),linear-gradient(-45deg,#eee_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#eee_75%),linear-gradient(-45deg,transparent_75%,#eee_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]">
-                <img src={signatureSrc} alt="Signature crop source" className="block max-h-48 w-full object-contain" />
-                <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{ left: signatureCrop.x + '%', top: signatureCrop.y + '%', width: signatureCrop.w + '%', height: signatureCrop.h + '%' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); signatureDragRef.current = { x: (e.clientX - parent.left) / parent.width * 100, y: (e.clientY - parent.top) / parent.height * 100, mode: (e.target as HTMLElement).dataset.resize === 'handle' ? 'resize' : 'move' }; }} onPointerMove={(e) => { if (e.buttons === 1) moveSignatureCrop(e as unknown as React.PointerEvent<HTMLDivElement>); }} onPointerUp={() => { signatureDragRef.current = null; }}><span data-resize="handle" className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-white bg-blue-600" /></div>
+              <div className="relative mx-auto max-w-full overflow-hidden rounded-lg border border-slate-300 bg-[linear-gradient(45deg,#eee_25%,transparent_25%),linear-gradient(-45deg,#eee_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#eee_75%),linear-gradient(-45deg,transparent_75%,#eee_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]" style={{ width: Math.min(384, 192 * signatureAspect), aspectRatio: String(signatureAspect), touchAction: 'none' }}>
+                <img src={signatureSrc} alt="Signature crop source" className="absolute inset-0 h-full w-full object-contain" draggable={false} />
+                <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{ left: signatureCrop.x + '%', top: signatureCrop.y + '%', width: signatureCrop.w + '%', height: signatureCrop.h + '%', touchAction: 'none' }}
+                  onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); const corner = (e.target as HTMLElement).dataset.resize as 'tl' | 'tr' | 'bl' | 'br' | undefined; signatureDragRef.current = { x: (e.clientX - parent.left) / parent.width * 100, y: (e.clientY - parent.top) / parent.height * 100, mode: corner ? 'resize' : 'move', corner, startCrop: { ...signatureCrop } }; }}
+                  onPointerMove={(e) => { if (e.buttons === 1) moveSignatureCrop(e); }}
+                  onPointerUp={() => { signatureDragRef.current = null; }}
+                  onPointerCancel={() => { signatureDragRef.current = null; }}>
+                  <span data-resize="tl" className="absolute -left-1.5 -top-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-white bg-blue-600 shadow" />
+                  <span data-resize="tr" className="absolute -right-1.5 -top-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border-2 border-white bg-blue-600 shadow" />
+                  <span data-resize="bl" className="absolute -left-1.5 -bottom-1.5 h-3 w-3 cursor-nesw-resize rounded-sm border-2 border-white bg-blue-600 shadow" />
+                  <span data-resize="br" className="absolute -right-1.5 -bottom-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-white bg-blue-600 shadow" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Slider label="Crop width (%)" min={5} max={100} value={signatureCrop.w} onChange={(v) => setSignatureCrop((c) => ({ ...c, w: Math.min(v, 100 - c.x) }))} />
