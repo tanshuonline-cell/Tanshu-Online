@@ -74,7 +74,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [sizeUnit, setSizeUnit] = useState<SizeUnit>('mm');
   const [paper, setPaper] = useState<Paper>('single');
   const [sheetMargin, setSheetMargin] = useState(5);
-  const [sheetGap, setSheetGap] = useState(3);
+  const [sheetGap, setSheetGap] = useState(2);
   const [sheetPhotoCount, setSheetPhotoCount] = useState(4);
   const [sheetPhotoOverrides, setSheetPhotoOverrides] = useState<Record<number, string>>({});
   const [background, setBackground] = useState('#ffffff');
@@ -409,7 +409,12 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       const nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx)),ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
       const tooClose=others.some(r=>nx<r.x+r.w+gap&&nx+s.w>r.x-gap&&ny<r.y+r.h+gap&&ny+s.h>r.y-gap);
       // Keep the last valid position if the cutting gap would be reduced.
-      if(!tooClose)setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
+      if(!tooClose){
+        const nextRect={...s,x:nx,y:ny};
+        // Update the selection geometry immediately so corner handles track the photo on the same pointer frame.
+        sheetRectsRef.current=sheetRectsRef.current.map(rect=>rect.slot===drag.slot?nextRect:rect);
+        setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
+      }
     }
     else{
       const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio);
@@ -423,6 +428,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       let low=Math.max(24,Math.min(s.w,s.h)*.18),high=wantedW;
       if(collides(makeRect(high))){for(let i=0;i<14;i++){const mid=(low+high)/2;if(collides(makeRect(mid)))high=mid;else low=mid;} }
       const next=makeRect(Math.max(low,Math.min(wantedW,high)));
+      // Keep the live selection outline and corner handles locked to the resized photo immediately.
+      sheetRectsRef.current=sheetRectsRef.current.map(rect=>rect.slot===drag.slot?{...rect,...next}:{...rect,w:next.w,h:next.h});
       setSheetPositions(cur=>{
         const synced:{[slot:number]:{x:number;y:number;w:number;h:number}}={...cur};
         // The first photo sets the common print dimensions for every copy on this sheet.
