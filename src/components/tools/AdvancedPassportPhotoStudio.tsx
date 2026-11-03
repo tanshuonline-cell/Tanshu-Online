@@ -70,7 +70,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [border, setBorder] = useState(1);
   const [borderDraft, setBorderDraft] = useState(1);
   const [activePanel, setActivePanel] = useState<'crop'|'remove-bg'|'color'|'border'|null>(null);
-  const [cropDrag, setCropDrag] = useState<{startX:number;startY:number;startCrop:PhotoEdit;mode:'move'|'resize'}|null>(null);
+  const [cropDrag, setCropDrag] = useState<{startX:number;startY:number;startCrop:PhotoEdit;mode:'move'|'resize';handle?:string}|null>(null);
   const [language, setLanguage] = useState<'en'|'hi'>('en');
   const [step, setStep] = useState<1|2|3>(1);
   const [error, setError] = useState('');
@@ -533,9 +533,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         <div className="relative mx-auto overflow-hidden rounded-lg border border-slate-200 bg-slate-100" style={{width:'100%',maxWidth:440,aspectRatio:'4/5',touchAction:'none'}}>
           <img src={selected.src} alt="Crop source" className="absolute inset-0 h-full w-full object-contain"/>
           <div className="absolute border-2 border-blue-600 bg-blue-300/10" style={{left:(photoEdits[selected.id]?.cropX??0)+'%',top:(photoEdits[selected.id]?.cropY??0)+'%',width:(photoEdits[selected.id]?.cropW??100)+'%',height:(photoEdits[selected.id]?.cropH??100)+'%',touchAction:'none'}}
-            onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);setCropDrag({startX:e.clientX,startY:e.clientY,startCrop:photoEdits[selected.id]||DEFAULT_EDIT,mode:(e.target as HTMLElement).dataset.resize?'resize':'move'});}}
-            onPointerMove={e=>{if(!cropDrag||e.buttons!==1)return;const b=e.currentTarget.parentElement!.getBoundingClientRect(),dx=(e.clientX-cropDrag.startX)/b.width*100,dy=(e.clientY-cropDrag.startY)/b.height*100,c=cropDrag.startCrop;setPhotoEdits(prev=>({...prev,[selected.id]:{...(prev[selected.id]||DEFAULT_EDIT),cropX:cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropW,c.cropX+dx)):Math.max(0,Math.min(c.cropX+c.cropW-10,c.cropX+(e.target as HTMLElement).dataset.resize?.includes('left')?dx:0)),cropY:cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropH,c.cropY+dy)):c.cropY,cropW:cropDrag.mode==='resize'?Math.max(10,Math.min(100-c.cropX,c.cropW+dx)):c.cropW,cropH:cropDrag.mode==='resize'?Math.max(10,Math.min(100-c.cropY,c.cropH+dy)):c.cropH}}));}}
-            onPointerUp={()=>setCropDrag(null)} onPointerCancel={()=>setCropDrag(null)}>
+            onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);setCropDrag({startX:e.clientX,startY:e.clientY,startCrop:photoEdits[selected.id]||DEFAULT_EDIT,mode:(e.target as HTMLElement).dataset.resize?'resize':'move',handle:(e.target as HTMLElement).dataset.resize||'bottom-right'});}}
+            onPointerMove={e=>{if(!cropDrag||e.buttons!==1)return;const box=e.currentTarget.parentElement!.getBoundingClientRect(),dx=(e.clientX-cropDrag.startX)/box.width*100,dy=(e.clientY-cropDrag.startY)/box.height*100,c=cropDrag.startCrop,handle=cropDrag.handle||'bottom-right',left=handle.includes('left'),top=handle.includes('top'),w=cropDrag.mode==='move'?c.cropW:Math.max(10,Math.min(left?c.cropW-dx:100-c.cropX,c.cropW+(left?-dx:dx))),h=cropDrag.mode==='move'?c.cropH:Math.max(10,Math.min(top?c.cropH-dy:100-c.cropY,c.cropH+(top?-dy:dy))),x=cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropW,c.cropX+dx)):left?c.cropX+c.cropW-w:c.cropX,y=cropDrag.mode==='move'?Math.max(0,Math.min(100-c.cropH,c.cropY+dy)):top?c.cropY+c.cropH-h:c.cropY;setPhotoEdits(prev=>({...prev,[selected.id]:{...(prev[selected.id]||DEFAULT_EDIT),cropX:x,cropY:y,cropW:w,cropH:h}}));}} onPointerUp={()=>setCropDrag(null)} onPointerCancel={()=>setCropDrag(null)}>
             {['top-left','top-right','bottom-left','bottom-right'].map(pos=><span key={pos} data-resize={pos} className={`absolute h-4 w-4 rounded-sm border-2 border-white bg-blue-600 shadow ${pos.includes('top')?'-top-2':'-bottom-2'} ${pos.includes('left')?'-left-2':'-right-2'} cursor-nwse-resize`}/>)}
           </div>
         </div>
