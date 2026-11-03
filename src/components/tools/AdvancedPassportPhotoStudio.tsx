@@ -66,15 +66,23 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     sheetImageCacheRef.current.set(src, pending);
     return pending;
   };
-  const activeSheetDragRef = useRef<{ slot: number; mode: 'move' | 'resize'; startX: number; startY: number; startRect: SheetRect; handle: 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
+  const activeSheetDragRef = useRef<{ slot: number; mode: 'move' | 'resize'; startX: number; startY: number; startRect: SheetRect; startGroup: SheetRect[]; handle: 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
   const sheetMoveFrameRef = useRef<number | null>(null);
   const pendingSheetMoveRef = useRef<{ slot: number; position: { x: number; y: number; w: number; h: number } } | null>(null);
+  const pendingSheetGroupRef = useRef<SheetRect[] | null>(null);
   const flushSheetMove = () => {
     if (sheetMoveFrameRef.current !== null) cancelAnimationFrame(sheetMoveFrameRef.current);
     sheetMoveFrameRef.current = null;
     const pending = pendingSheetMoveRef.current;
     pendingSheetMoveRef.current = null;
+    const pendingGroup = pendingSheetGroupRef.current;
+    pendingSheetGroupRef.current = null;
     if (pending) setSheetPositions(current => ({ ...current, [pending.slot]: pending.position }));
+    if (pendingGroup) setSheetPositions(current => {
+      const next = { ...current };
+      for (const rect of pendingGroup) next[rect.slot] = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+      return next;
+    });
   };
   const activeCanvasDragRef = useRef<{ kind: 'photo' | 'signature'; startX: number; startY: number; startMoveX: number; startMoveY: number; startSigX: number; startSigY: number; startSigWidth: number; resizeSignature: boolean } | null>(null);
   const [mode, setMode] = useState<Mode>('official');
@@ -408,7 +416,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if(paper==='single'){if(!selected)return;const photoW=canvas.width,photoH=canvas.height,sigW=photoW*signaturePlacement.width/100,sigH=signatureSrc?(()=>{const image=new Image();image.src=signatureSrc;return sigW*(image.naturalHeight||image.height||1)/(image.naturalWidth||image.width||1);})():0,sigX=photoW*signaturePlacement.x/100,sigY=photoH*signaturePlacement.y/100,onSignature=!!signatureSrc&&x>=sigX&&x<=sigX+sigW&&y>=sigY&&y<=sigY+sigH,resizeSignature=onSignature&&x>=sigX+sigW-Math.max(18,photoW*.035)&&y>=sigY+sigH-Math.max(18,photoH*.035),edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:onSignature?'signature':'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature};canvas.setPointerCapture(event.pointerId);return;}
     const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);setSelectedSheetSlots([]);canvas.style.cursor='grab';return;}if(event.ctrlKey||event.metaKey||event.shiftKey){setSelectedSheetSlots(current=>current.includes(hit.slot)?current.filter(slot=>slot!==hit.slot):[...current,hit.slot]);setSelectedSheetSlot(hit.slot);canvas.focus();return;}setSelectedSheetSlot(hit.slot);setSelectedSheetSlots([hit.slot]);canvas.focus();
     const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0,handle=t?(l?'tl':'tr'):(l?'bl':'br'),resizing=corner&&canResize;
-    event.preventDefault();canvas.style.cursor=resizing?(handle==='tl'||handle==='br'?'nwse-resize':'nesw-resize'):'grabbing';activeSheetDragRef.current={slot:hit.slot,mode:resizing?'resize':'move',startX:x,startY:y,startRect:hit,handle};canvas.setPointerCapture(event.pointerId);
+    event.preventDefault();canvas.style.cursor=resizing?(handle==='tl'||handle==='br'?'nwse-resize':'nesw-resize'):'grabbing';activeSheetDragRef.current={slot:hit.slot,mode:resizing?'resize':'move',startX:x,startY:y,startRect:hit,startGroup:sheetRectsRef.current.map(rect=>({...rect})),handle};canvas.setPointerCapture(event.pointerId);
   };
   const handleSheetPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas=canvasRef.current,cd=activeCanvasDragRef.current;if(cd&&canvas&&selected){const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-cd.startX,dy=y-cd.startY;if(cd.kind==='signature')setSignaturePlacement(p=>cd.resizeSignature?({...p,width:Math.max(5,Math.min(90,cd.startSigWidth+dx/canvas.width*100))}):({...p,x:Math.max(0,Math.min(100-p.width,cd.startSigX+dx/canvas.width*100)),y:Math.max(0,Math.min(100,cd.startSigY+dy/canvas.height*100))}));else setPhotoEdits(cur=>({...cur,[selected.id]:{...(cur[selected.id]||DEFAULT_EDIT),moveX:cd.startMoveX+dx,moveY:cd.startMoveY+dy}}));return;}
@@ -417,19 +425,30 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),gap=sheetGap*300/25.4;
       let nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx));
       let ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
-      if (lockSheetGroup && sheetRectsRef.current.length > 1) {
-        const group = sheetRectsRef.current;
+      if (lockSheetGroup && drag.startGroup.length > 1) {
+        // Always calculate from the pointer-down snapshot. Using the already
+        // moved rectangles here would add the full pointer delta repeatedly,
+        // making the group jump and accelerate during dragging.
+        const group = drag.startGroup;
         const minX = Math.min(...group.map(r => r.x)), minY = Math.min(...group.map(r => r.y));
         const maxX = Math.max(...group.map(r => r.x + r.w)), maxY = Math.max(...group.map(r => r.y + r.h));
-        const moveX = Math.max(-minX, Math.min(canvas.width - maxX, nx - s.x));
-        const moveY = Math.max(-minY, Math.min(canvas.height - maxY, ny - s.y));
+        const moveX = Math.max(-minX, Math.min(canvas.width - maxX, dx));
+        const moveY = Math.max(-minY, Math.min(canvas.height - maxY, dy));
         const moved = group.map(r => ({ ...r, x: r.x + moveX, y: r.y + moveY }));
         sheetRectsRef.current = moved;
-        setSheetPositions(current => {
-          const next = { ...current };
-          for (const rect of moved) next[rect.slot] = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
-          return next;
-        });
+        pendingSheetGroupRef.current = moved;
+        if (sheetMoveFrameRef.current === null) {
+          sheetMoveFrameRef.current = requestAnimationFrame(() => {
+            sheetMoveFrameRef.current = null;
+            const pendingGroup = pendingSheetGroupRef.current;
+            pendingSheetGroupRef.current = null;
+            if (pendingGroup) setSheetPositions(current => {
+              const next = { ...current };
+              for (const rect of pendingGroup) next[rect.slot] = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+              return next;
+            });
+          });
+        }
         return;
       }
       // Smart alignment: snap to a neighbour's top/centre/bottom line and
