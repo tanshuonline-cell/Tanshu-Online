@@ -66,6 +66,15 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     return pending;
   };
   const activeSheetDragRef = useRef<{ slot: number; mode: 'move' | 'resize'; startX: number; startY: number; startRect: SheetRect; handle: 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
+  const sheetMoveFrameRef = useRef<number | null>(null);
+  const pendingSheetMoveRef = useRef<{ slot: number; position: { x: number; y: number; w: number; h: number } } | null>(null);
+  const flushSheetMove = () => {
+    if (sheetMoveFrameRef.current !== null) cancelAnimationFrame(sheetMoveFrameRef.current);
+    sheetMoveFrameRef.current = null;
+    const pending = pendingSheetMoveRef.current;
+    pendingSheetMoveRef.current = null;
+    if (pending) setSheetPositions(current => ({ ...current, [pending.slot]: pending.position }));
+  };
   const activeCanvasDragRef = useRef<{ kind: 'photo' | 'signature'; startX: number; startY: number; startMoveX: number; startMoveY: number; startSigX: number; startSigY: number; startSigWidth: number; resizeSignature: boolean } | null>(null);
   const [mode, setMode] = useState<Mode>('official');
   const [preset, setPreset] = useState<PhotoPreset>('india');
@@ -405,15 +414,37 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const drag=activeSheetDragRef.current;if(!drag||!canvas){if(canvas&&paper!=='single'){const bounds=canvas.getBoundingClientRect(),px=(event.clientX-bounds.left)*canvas.width/bounds.width,py=(event.clientY-bounds.top)*canvas.height/bounds.height,hover=[...sheetRectsRef.current].reverse().find(r=>px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h);if(hover){const hs=Math.max(22,Math.min(42,Math.min(hover.w,hover.h)*.09)),left=px<=hover.x+hs,right=px>=hover.x+hover.w-hs,top=py<=hover.y+hs,bottom=py>=hover.y+hover.h-hs,isCorner=(left||right)&&(top||bottom);canvas.style.cursor=isCorner&&hover.slot===0?((top&&left)||(bottom&&right)?'nwse-resize':'nesw-resize'):'grab';}else canvas.style.cursor='grab';}return;}const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
     if(drag.mode==='move'){
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),gap=sheetGap*300/25.4;
-      // Free movement inside the paper, with a real cutting gap around every neighbouring photo.
-      const nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx)),ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
-      const tooClose=others.some(r=>nx<r.x+r.w+gap&&nx+s.w>r.x-gap&&ny<r.y+r.h+gap&&ny+s.h>r.y-gap);
-      // Keep the last valid position if the cutting gap would be reduced.
+      let nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx));
+      let ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
+      // Smart alignment: snap to a neighbour's top/centre/bottom line and
+      // to its left/right edge with the configured cutting gap.
+      const snapDistance=8*300/25.4;
+      const nearest=(value:number,candidates:number[])=>{
+        let best=value,bestDistance=snapDistance+1;
+        for(const candidate of candidates){
+          const distance=Math.abs(value-candidate);
+          if(distance<bestDistance){best=candidate;bestDistance=distance;}
+        }
+        return best;
+      };
+      nx=nearest(nx,others.flatMap(r=>[r.x,r.x+r.w+gap,r.x-gap-s.w]));
+      ny=nearest(ny,others.flatMap(r=>[r.y,r.y+(r.h-s.h)/2,r.y+r.h+gap,r.y-gap-s.h]));
+      nx=Math.max(0,Math.min(canvas.width-s.w,nx));
+      ny=Math.max(0,Math.min(canvas.height-s.h,ny));
+      const tooClose=others.some(r=>nx<r.x+r.w+gap-1&&nx+s.w>r.x-gap+1&&ny<r.y+r.h+gap-1&&ny+s.h>r.y-gap+1);
       if(!tooClose){
         const nextRect={...s,x:nx,y:ny};
-        // Update the selection geometry immediately so corner handles track the photo on the same pointer frame.
+        // Keep geometry in sync immediately; React/canvas repaint is coalesced to one frame.
         sheetRectsRef.current=sheetRectsRef.current.map(rect=>rect.slot===drag.slot?nextRect:rect);
-        setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
+        pendingSheetMoveRef.current={slot:drag.slot,position:{x:nx,y:ny,w:s.w,h:s.h}};
+        if(sheetMoveFrameRef.current===null){
+          sheetMoveFrameRef.current=requestAnimationFrame(()=>{
+            sheetMoveFrameRef.current=null;
+            const pending=pendingSheetMoveRef.current;
+            pendingSheetMoveRef.current=null;
+            if(pending)setSheetPositions(cur=>({...cur,[pending.slot]:pending.position}));
+          });
+        }
       }
     }
     else{
@@ -439,7 +470,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       });
     }
   };
-  const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if(event)event.currentTarget.style.cursor=paper==='single'?'grab':'grab'; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
+  const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { flushSheetMove(); activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if(event)event.currentTarget.style.cursor='grab'; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
 
   const resetSheetLayout = () => { setSheetPositions({}); setSelectedSheetSlot(null); };
   const autoArrangeSheet = () => {
