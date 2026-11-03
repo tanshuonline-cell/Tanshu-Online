@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { removeBackgroundAI } from './backgroundRemovalAI';
-import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision';
 import {
   Upload, Download, Printer, RefreshCw,
   ShieldCheck, Sparkles, SlidersHorizontal, Trash2
@@ -20,10 +19,12 @@ type SheetRect = { slot: number; photoId: string; x: number; y: number; w: numbe
 const DEFAULT_EDIT: PhotoEdit = { zoom: 1, moveX: 0, moveY: 0, cropX: 0, cropY: 0, cropW: 100, cropH: 100, brightness: 100, contrast: 100, saturation: 100, smooth: 0 };
 
 // MediaPipe Face Detector runs inference locally in the browser. The image itself is never uploaded.
-let faceDetectorPromise: Promise<FaceDetector> | null = null;
-const getLocalFaceDetector = async (): Promise<FaceDetector> => {
+let faceDetectorPromise: Promise<any> | null = null;
+const getLocalFaceDetector = async (): Promise<any> => {
   if (!faceDetectorPromise) {
     faceDetectorPromise = (async () => {
+      const moduleUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/+esm';
+      const { FaceDetector, FilesetResolver } = await import(/* @vite-ignore */ moduleUrl) as any;
       const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm');
       return FaceDetector.createFromOptions(vision, {
         baseOptions: {
