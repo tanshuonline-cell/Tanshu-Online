@@ -1,7 +1,7 @@
 /**
- * Browser-local face-skin segmentation and conservative skin retouch.
- * MediaPipe's selfie multiclass model provides a face-skin category mask.
- * Eyes, brows, lips, hair and background are excluded by the segmentation mask.
+ * Browser-local face-skin segmentation with conservative blemish reduction.
+ * Uses MediaPipe's face-skin class mask and a 3x3 local-median outlier pass.
+ * No whole-face blur is applied; eyes, brows, lips, hair and background are excluded.
  */
 let segmenterPromise: Promise<any> | null = null;
 
@@ -29,6 +29,11 @@ async function getSkinSegmenter(): Promise<any> {
   return segmenterPromise;
 }
 
+const median = (values: number[]): number => {
+  values.sort((a, b) => a - b);
+  return values[4];
+};
+
 export async function retouchFaceSkinLocally(
   image: HTMLImageElement,
   strength: number
@@ -50,54 +55,57 @@ export async function retouchFaceSkinLocally(
   const output = document.createElement('canvas');
   output.width = width;
   output.height = height;
-  const outputContext = output.getContext('2d');
-  if (!outputContext) throw new Error('Canvas उपलब्ध नहीं है।');
-  outputContext.drawImage(image, 0, 0, width, height);
+  const context = output.getContext('2d', { willReadFrequently: true });
+  if (!context) throw new Error('Canvas उपलब्ध नहीं है।');
+  context.drawImage(image, 0, 0, width, height);
 
   // Selfie Multiclass labels: 0 background, 1 hair, 2 body-skin,
-  // 3 face-skin, 4 clothes, 5 others. Retouch face-skin only.
-  const maskCanvas = document.createElement('canvas');
-  maskCanvas.width = width;
-  maskCanvas.height = height;
-  const maskContext = maskCanvas.getContext('2d');
-  if (!maskContext) throw new Error('Skin mask तैयार नहीं हो सका।');
-  const maskImage = maskContext.createImageData(maskWidth, maskHeight);
-  for (let i = 0; i < labels.length; i++) {
-    const alpha = labels[i] === 3 ? 255 : 0;
-    const offset = i * 4;
-    maskImage.data[offset] = 255;
-    maskImage.data[offset + 1] = 255;
-    maskImage.data[offset + 2] = 255;
-    maskImage.data[offset + 3] = alpha;
-  }
-  const smallMask = document.createElement('canvas');
-  smallMask.width = maskWidth;
-  smallMask.height = maskHeight;
-  smallMask.getContext('2d')?.putImageData(maskImage, 0, 0);
-  // Upscale and feather the segmentation edge to avoid visible cut-out borders.
-  maskContext.filter = 'blur(2px)';
-  maskContext.drawImage(smallMask, 0, 0, width, height);
-  maskContext.filter = 'none';
-
-  const blurred = document.createElement('canvas');
-  blurred.width = width;
-  blurred.height = height;
-  const blurredContext = blurred.getContext('2d');
-  if (!blurredContext) throw new Error('Retouch canvas तैयार नहीं हो सका।');
-  // Keep blur radius deliberately low so skin texture remains natural.
+  // 3 face-skin, 4 clothes, 5 others. Process face-skin only.
+  const original = context.getImageData(0, 0, width, height);
+  const pixels = original.data;
+  const edited = new Uint8ClampedArray(pixels);
   const safeStrength = Math.max(0, Math.min(100, strength));
-  const radius = 0.6 + safeStrength * 0.025;
-  blurredContext.filter = `blur(${radius.toFixed(2)}px)`;
-  blurredContext.drawImage(image, 0, 0, width, height);
-  blurredContext.filter = 'none';
-  blurredContext.globalCompositeOperation = 'destination-in';
-  blurredContext.drawImage(maskCanvas, 0, 0);
-  blurredContext.globalCompositeOperation = 'source-over';
+  const blendScale = safeStrength / 100;
 
-  // Cap blend to preserve pores and avoid the waxy/blurred look.
-  outputContext.globalAlpha = safeStrength / 100 * 0.38;
-  outputContext.drawImage(blurred, 0, 0);
-  outputContext.globalAlpha = 1;
+  // A local 3x3 median repairs isolated high-contrast blemish pixels only.
+  // It leaves normal skin texture intact and does not soften the whole face.
+  for (let y = 1; y < height - 1; y++) {
+    const maskY = Math.min(maskHeight - 1, Math.floor(y * maskHeight / height));
+    for (let x = 1; x < width - 1; x++) {
+      const maskX = Math.min(maskWidth - 1, Math.floor(x * maskWidth / width));
+      if (labels[maskY * maskWidth + maskX] !== 3) continue;
+
+      const red: number[] = [];
+      const green: number[] = [];
+      const blue: number[] = [];
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const offset = ((y + dy) * width + (x + dx)) * 4;
+          red.push(pixels[offset]);
+          green.push(pixels[offset + 1]);
+          blue.push(pixels[offset + 2]);
+        }
+      }
+      const center = (y * width + x) * 4;
+      const medR = median(red);
+      const medG = median(green);
+      const medB = median(blue);
+      const deviation = Math.max(
+        Math.abs(pixels[center] - medR),
+        Math.abs(pixels[center + 1] - medG),
+        Math.abs(pixels[center + 2] - medB)
+      );
+      // Ignore ordinary texture and only gently reduce isolated outliers.
+      if (deviation < 18 || blendScale === 0) continue;
+      const correction = blendScale * Math.min(0.55, (deviation - 18) / 55);
+      edited[center] = pixels[center] + (medR - pixels[center]) * correction;
+      edited[center + 1] = pixels[center + 1] + (medG - pixels[center + 1]) * correction;
+      edited[center + 2] = pixels[center + 2] + (medB - pixels[center + 2]) * correction;
+    }
+  }
+
+  original.data.set(edited);
+  context.putImageData(original, 0, 0);
   categoryMask.close?.();
   return output;
 }
