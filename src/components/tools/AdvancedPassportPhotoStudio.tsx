@@ -926,8 +926,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
               </label>
               {faceStatus && <p className="text-xs text-blue-900">{faceStatus}</p>}
               <p className="text-[11px] leading-5 text-blue-800">Face-skin segmentation आपके ब्राउज़र में चलती है। यह face-skin mask के भीतर छोटे isolated blemish-जैसे spots को हल्का करता है; पूरे चेहरे पर blur नहीं लगाता। फोटो सर्वर पर अपलोड नहीं होती। बेहतर परिणाम के लिए 10–25% से शुरू करें।</p>
-            </div>}
-          </div>
+            </div>
+          </div>}
 
           <div className="border-t border-slate-200 pt-4">
             <div className="mb-3 flex items-center justify-between"><h3 className="font-bold text-slate-900">6. Crop & Position</h3><button onClick={resetAdjustments} className="text-xs font-semibold text-blue-700"><RefreshCw className="mr-1 inline h-3 w-3" /> Reset</button></div>
