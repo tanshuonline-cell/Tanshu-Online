@@ -4,7 +4,7 @@ import { removeBackgroundAI } from './backgroundRemovalAI';
 import { retouchFaceSkinLocally } from './skinRetouch';
 import {
   Upload, Download, Printer, RefreshCw,
-  ShieldCheck, Sparkles, SlidersHorizontal, Trash2
+  ShieldCheck, Sparkles, SlidersHorizontal, Trash2, PenTool
 } from 'lucide-react';
 
 type Photo = { id: string; name: string; src: string };
