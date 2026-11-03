@@ -426,7 +426,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if (!sourcePhotos.length) { draw(); return; }
     let cancelled = false;
     Promise.all(sourcePhotos.map((photo) => loadSheetImage(photo.src))).then(async (originals) => {
-      const loaded = await Promise.all(sourcePhotos.map((photo, index) => aiCutouts[photo.id]
+      const loaded = await Promise.all(sourcePhotos.map((photo, index) => !previewOriginal && aiCutouts[photo.id]
         ? loadSheetImage(aiCutouts[photo.id]).then((cut) => cut || originals[index])
         : Promise.resolve(originals[index])));
       if (cancelled) return;
