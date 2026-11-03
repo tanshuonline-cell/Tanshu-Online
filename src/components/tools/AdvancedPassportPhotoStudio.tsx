@@ -209,7 +209,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [signatureCustomColor, setSignatureCustomColor] = useState('#ffffff');
   const [signatureRemoveWhite, setSignatureRemoveWhite] = useState(true);
   const [signatureAspect, setSignatureAspect] = useState(3.2);
-  const signaturePreviewDragRef = useRef<{ pointerId: number; startX: number; startY: number; start: { x: number; y: number; width: number }; corner: 'move' | 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
+  const signaturePreviewDragRef = useRef<{ pointerId: number; startX: number; startY: number; start: { x: number; y: number; width: number; height: number }; corner: 'move' | 'tl' | 'tr' | 'bl' | 'br' } | null>(null);
   const [signatureCrop, setSignatureCrop] = useState({ x: 0, y: 0, w: 100, h: 100 });
   const [signaturePlacement, setSignaturePlacement] = useState({ x: 58, y: 78, width: 32, height: 8 });
   const signatureInputRef = useRef<HTMLInputElement>(null);
