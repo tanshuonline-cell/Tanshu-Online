@@ -405,7 +405,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const handleSheetPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas=canvasRef.current;if(!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height;
     if(paper==='single'){if(!selected)return;const photoW=canvas.width,photoH=canvas.height,sigW=photoW*signaturePlacement.width/100,sigH=signatureSrc?(()=>{const image=new Image();image.src=signatureSrc;return sigW*(image.naturalHeight||image.height||1)/(image.naturalWidth||image.width||1);})():0,sigX=photoW*signaturePlacement.x/100,sigY=photoH*signaturePlacement.y/100,onSignature=!!signatureSrc&&x>=sigX&&x<=sigX+sigW&&y>=sigY&&y<=sigY+sigH,resizeSignature=onSignature&&x>=sigX+sigW-Math.max(18,photoW*.035)&&y>=sigY+sigH-Math.max(18,photoH*.035),edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:onSignature?'signature':'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature};canvas.setPointerCapture(event.pointerId);return;}
-    const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);canvas.style.cursor='grab';return;}setSelectedSheetSlot(hit.slot);
+    const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);canvas.style.cursor='grab';return;}setSelectedSheetSlot(hit.slot);canvas.focus();
     const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0,handle=t?(l?'tl':'tr'):(l?'bl':'br'),resizing=corner&&canResize;
     event.preventDefault();canvas.style.cursor=resizing?(handle==='tl'||handle==='br'?'nwse-resize':'nesw-resize'):'grabbing';activeSheetDragRef.current={slot:hit.slot,mode:resizing?'resize':'move',startX:x,startY:y,startRect:hit,handle};canvas.setPointerCapture(event.pointerId);
   };
@@ -485,8 +485,6 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const nextX = Math.max(0, Math.min((canvasRef.current?.width || 0) - master.w, master.x + dxMm * step));
     const nextY = Math.max(0, Math.min((canvasRef.current?.height || 0) - master.h, master.y + dyMm * step));
     const others = sheetRectsRef.current.filter((rect) => rect.slot !== 0);
-    const collides = others.some((rect) => nextX < rect.x + rect.w + gap - 1 && nextX + master.w > rect.x - gap + 1 && nextY < rect.y + rect.h + gap - 1 && nextY + master.h > rect.y - gap + 1);
-    if (collides) return;
     const nextRect = { ...master, x: nextX, y: nextY };
     sheetRectsRef.current = sheetRectsRef.current.map((rect) => rect.slot === 0 ? nextRect : rect);
     setSheetPositions((current) => ({ ...current, 0: { x: nextX, y: nextY, w: master.w, h: master.h } }));
