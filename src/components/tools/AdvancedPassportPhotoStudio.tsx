@@ -481,10 +481,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const master = sheetRectsRef.current.find((rect) => rect.slot === 0);
     if (!master) return;
     const step = 300 / 25.4;
-    const gap = sheetGap * step;
     const nextX = Math.max(0, Math.min((canvasRef.current?.width || 0) - master.w, master.x + dxMm * step));
     const nextY = Math.max(0, Math.min((canvasRef.current?.height || 0) - master.h, master.y + dyMm * step));
-    const others = sheetRectsRef.current.filter((rect) => rect.slot !== 0);
     const nextRect = { ...master, x: nextX, y: nextY };
     sheetRectsRef.current = sheetRectsRef.current.map((rect) => rect.slot === 0 ? nextRect : rect);
     setSheetPositions((current) => ({ ...current, 0: { x: nextX, y: nextY, w: master.w, h: master.h } }));
