@@ -396,29 +396,30 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const handleSheetPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas=canvasRef.current;if(!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height;
     if(paper==='single'){if(!selected)return;const photoW=canvas.width,photoH=canvas.height,sigW=photoW*signaturePlacement.width/100,sigH=signatureSrc?(()=>{const image=new Image();image.src=signatureSrc;return sigW*(image.naturalHeight||image.height||1)/(image.naturalWidth||image.width||1);})():0,sigX=photoW*signaturePlacement.x/100,sigY=photoH*signaturePlacement.y/100,onSignature=!!signatureSrc&&x>=sigX&&x<=sigX+sigW&&y>=sigY&&y<=sigY+sigH,resizeSignature=onSignature&&x>=sigX+sigW-Math.max(18,photoW*.035)&&y>=sigY+sigH-Math.max(18,photoH*.035),edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:onSignature?'signature':'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature};canvas.setPointerCapture(event.pointerId);return;}
-    const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);return;}setSelectedSheetSlot(hit.slot);
-    const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0;
-    event.preventDefault();activeSheetDragRef.current={slot:hit.slot,mode:corner&&canResize?'resize':'move',startX:x,startY:y,startRect:hit,handle:t?(l?'tl':'tr'):(l?'bl':'br')};canvas.setPointerCapture(event.pointerId);
+    const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);canvas.style.cursor='grab';return;}setSelectedSheetSlot(hit.slot);
+    const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0,handle=t?(l?'tl':'tr'):(l?'bl':'br'),resizing=corner&&canResize;
+    event.preventDefault();canvas.style.cursor=resizing?(handle==='tl'||handle==='br'?'nwse-resize':'nesw-resize'):'grabbing';activeSheetDragRef.current={slot:hit.slot,mode:resizing?'resize':'move',startX:x,startY:y,startRect:hit,handle};canvas.setPointerCapture(event.pointerId);
   };
   const handleSheetPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas=canvasRef.current,cd=activeCanvasDragRef.current;if(cd&&canvas&&selected){const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-cd.startX,dy=y-cd.startY;if(cd.kind==='signature')setSignaturePlacement(p=>cd.resizeSignature?({...p,width:Math.max(5,Math.min(90,cd.startSigWidth+dx/canvas.width*100))}):({...p,x:Math.max(0,Math.min(100-p.width,cd.startSigX+dx/canvas.width*100)),y:Math.max(0,Math.min(100,cd.startSigY+dy/canvas.height*100))}));else setPhotoEdits(cur=>({...cur,[selected.id]:{...(cur[selected.id]||DEFAULT_EDIT),moveX:cd.startMoveX+dx,moveY:cd.startMoveY+dy}}));return;}
-    const drag=activeSheetDragRef.current;if(!drag||!canvas)return;const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
+    const drag=activeSheetDragRef.current;if(!drag||!canvas){if(canvas&&paper!=='single'){const bounds=canvas.getBoundingClientRect(),px=(event.clientX-bounds.left)*canvas.width/bounds.width,py=(event.clientY-bounds.top)*canvas.height/bounds.height,hover=[...sheetRectsRef.current].reverse().find(r=>px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h);if(hover){const hs=Math.max(22,Math.min(42,Math.min(hover.w,hover.h)*.09)),left=px<=hover.x+hs,right=px>=hover.x+hover.w-hs,top=py<=hover.y+hs,bottom=py>=hover.y+hover.h-hs,isCorner=(left||right)&&(top||bottom);canvas.style.cursor=isCorner&&hover.slot===0?((top&&left)||(bottom&&right)?'nwse-resize':'nesw-resize'):'grab';}else canvas.style.cursor='grab';}return;}const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
     if(drag.mode==='move'){
-      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),m=sheetMargin*300/25.4;
-      // Free two-axis movement: no magnetic snapping or forced repositioning.
-      const nx=Math.max(m,Math.min(canvas.width-m-s.w,s.x+dx)),ny=Math.max(m,Math.min(canvas.height-m-s.h,s.y+dy));
-      const overlaps=others.some(r=>nx<r.x+r.w-1&&nx+s.w>r.x+1&&ny<r.y+r.h-1&&ny+s.h>r.y+1);
-      // Keep the last valid location if the dragged photo would cover another photo.
-      if(!overlaps)setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
+      const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),gap=sheetGap*300/25.4;
+      // Free movement inside the paper, with a real cutting gap around every neighbouring photo.
+      const nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx)),ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
+      const tooClose=others.some(r=>nx<r.x+r.w+gap&&nx+s.w>r.x-gap&&ny<r.y+r.h+gap&&ny+s.h>r.y-gap);
+      // Keep the last valid position if the cutting gap would be reduced.
+      if(!tooClose)setSheetPositions(cur=>({...cur,[drag.slot]:{x:nx,y:ny,w:s.w,h:s.h}}));
     }
     else{
-      const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio),margin=sheetMargin*300/25.4;
-      // Only the first photo defines the sheet's print size; other copies keep that exact size.
-      const maxW=Math.min(left?s.x+s.w-margin:canvas.width-margin-s.x,(top?s.y+s.h-margin:canvas.height-margin-s.y)*ratio);
+      const ratio=s.w/s.h,left=drag.handle==='tl'||drag.handle==='bl',top=drag.handle==='tl'||drag.handle==='tr',delta=(left?-dx:dx)+(top?-dy*ratio:dy*ratio);
+      // Keep the resize anchor inside the paper edge; no artificial page margin lock.
+      const maxW=Math.min(left?s.x+s.w:canvas.width-s.x,(top?s.y+s.h:canvas.height-s.y)*ratio);
       const wantedW=Math.max(Math.max(24,Math.min(s.w,s.h)*.18),Math.min(maxW,s.w+delta/2));
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot);
       const makeRect=(w:number)=>({x:left?s.x+s.w-w:s.x,y:top?s.y+s.h-w/ratio:s.y,w,h:w/ratio});
-      const collides=(rect:{x:number;y:number;w:number;h:number})=>others.some(r=>rect.x<r.x+r.w-1&&rect.x+rect.w>r.x+1&&rect.y<r.y+r.h-1&&rect.y+rect.h>r.y+1);
+      const cuttingGap=sheetGap*300/25.4;
+      const collides=(rect:{x:number;y:number;w:number;h:number})=>others.some(r=>rect.x<r.x+r.w+cuttingGap&&rect.x+rect.w>r.x-cuttingGap&&rect.y<r.y+r.h+cuttingGap&&rect.y+rect.h>r.y-cuttingGap);
       let low=Math.max(24,Math.min(s.w,s.h)*.18),high=wantedW;
       if(collides(makeRect(high))){for(let i=0;i<14;i++){const mid=(low+high)/2;if(collides(makeRect(mid)))high=mid;else low=mid;} }
       const next=makeRect(Math.max(low,Math.min(wantedW,high)));
@@ -431,7 +432,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       });
     }
   };
-  const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
+  const handleSheetPointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => { activeSheetDragRef.current = null; activeCanvasDragRef.current = null; if(event)event.currentTarget.style.cursor=paper==='single'?'grab':'grab'; if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); };
 
   const resetSheetLayout = () => { setSheetPositions({}); setSelectedSheetSlot(null); };
   const autoArrangeSheet = () => {
