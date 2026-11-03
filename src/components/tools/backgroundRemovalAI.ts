@@ -28,8 +28,8 @@ export async function removeBackgroundAI(source: string): Promise<Blob> {
   });
   const model = await getModel();
   const segmentation = await model.segmentPerson(image, {
-    internalResolution: 'medium',
-    segmentationThreshold: 0.45,
+    internalResolution: 'high',
+    segmentationThreshold: 0.35,
     maxDetections: 1,
     scoreThreshold: 0.2,
     nmsRadius: 20
@@ -46,8 +46,9 @@ export async function removeBackgroundAI(source: string): Promise<Blob> {
   const maskCtx = maskCanvas.getContext('2d');
   if (!maskCtx) throw new Error('AI mask could not be created.');
   const foregroundCount = segmentation.data.reduce((count, value) => count + (value > 0 ? 1 : 0), 0);
-  if (foregroundCount < segmentation.data.length * 0.005) {
-    throw new Error('AI व्यक्ति को पहचान नहीं पाया। साफ रोशनी वाली, पूरे चेहरे और कंधों की फोटो चुनकर दोबारा कोशिश करें।');
+  const foregroundRatio = foregroundCount / segmentation.data.length;
+  if (foregroundRatio < 0.015 || foregroundRatio > 0.97) {
+    throw new Error('इस फोटो में व्यक्ति साफ़ पहचान में नहीं आया। फोटो गायब करने के बजाय मूल फोटो सुरक्षित रखी गई है। बेहतर रोशनी और साफ़ subject वाली फोटो चुनकर दोबारा कोशिश करें।');
   }
   const maskImage = maskCtx.createImageData(segmentation.width, segmentation.height);
   for (let i = 0; i < segmentation.data.length; i++) {
@@ -60,7 +61,10 @@ export async function removeBackgroundAI(source: string): Promise<Blob> {
   }
   maskCtx.putImageData(maskImage, 0, 0);
   ctx.globalCompositeOperation = 'destination-in';
+  // Smooth the hard, low-resolution BodyPix mask to reduce jagged white fringes.
+  ctx.filter = 'blur(1.25px)';
   ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+  ctx.filter = 'none';
   ctx.globalCompositeOperation = 'source-over';
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('AI cutout export failed.')), 'image/png');
