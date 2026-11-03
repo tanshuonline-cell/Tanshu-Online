@@ -921,11 +921,11 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
                   }
                 }} className="rounded border border-slate-300 bg-white px-3 py-2 text-xs font-bold disabled:opacity-40">Detect Face</button>
               </div>
-              <label className="block text-xs font-semibold text-slate-700">Skin Retouch Strength: {retouchStrength}%
+              <label className="block text-xs font-semibold text-slate-700">Blemish Reduction Strength: {retouchStrength}%
                 <input type="range" min="0" max="60" value={retouchStrength} onChange={e => setRetouchStrength(Number(e.target.value))} className="mt-1 w-full" />
               </label>
               {faceStatus && <p className="text-xs text-blue-900">{faceStatus}</p>}
-              <p className="text-[11px] leading-5 text-blue-800">Face-skin segmentation आपके ब्राउज़र में चलती है। यह हल्का skin smoothing करता है; आँखों, होंठों और बालों पर blur नहीं लगाता। फोटो सर्वर पर अपलोड नहीं होती। बेहतर परिणाम के लिए 10–25% से शुरू करें।</p>
+              <p className="text-[11px] leading-5 text-blue-800">Face-skin segmentation आपके ब्राउज़र में चलती है। यह face-skin mask के भीतर छोटे isolated blemish-जैसे spots को हल्का करता है; पूरे चेहरे पर blur नहीं लगाता। फोटो सर्वर पर अपलोड नहीं होती। बेहतर परिणाम के लिए 10–25% से शुरू करें।</p>
             </div>
           </div>
 
