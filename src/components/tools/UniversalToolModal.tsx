@@ -103,13 +103,17 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         </div>
 
         <div className={`overflow-y-auto flex-1 space-y-6 ${tool.id === 'advanced-passport-photo-studio' ? 'p-3 sm:p-5 lg:p-6 bg-slate-50' : 'p-6 bg-white'}`}>
-          <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
-            <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">{tool.description}</p>
-              <p className="text-blue-800 text-[11px] mt-0.5">{tool.detailedInstructions}</p>
+          {tool.id === 'advanced-passport-photo-studio' ? (
+            <p className="px-1 text-[11px] leading-4 text-slate-500">Passport photos · Signature editing · 4×6 / A4 print sheets</p>
+          ) : (
+            <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
+              <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">{tool.description}</p>
+                <p className="text-blue-800 text-[11px] mt-0.5">{tool.detailedInstructions}</p>
+              </div>
             </div>
-          </div>
+          )}
           {renderToolComponent()}
         </div>
 
