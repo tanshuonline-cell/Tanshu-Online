@@ -8,6 +8,9 @@ import {
 
 type Photo = { id: string; name: string; src: string };
 type PhotoPreset = 'india' | 'stamp' | 'pan' | 'custom';
+type SizeUnit = 'mm' | 'cm' | 'in';
+const toMillimetres = (value: number, unit: SizeUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
+const fromMillimetres = (value: number, unit: SizeUnit) => value / (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 type Paper = 'single' | '4x6' | 'A4';
 type Mode = 'official' | 'beauty';
 type SignatureBackground = 'transparent' | 'white' | 'custom';
@@ -57,6 +60,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [preset, setPreset] = useState<PhotoPreset>('india');
   const [customWidth, setCustomWidth] = useState(35);
   const [customHeight, setCustomHeight] = useState(45);
+  const [sizeUnit, setSizeUnit] = useState<SizeUnit>('mm');
   const [paper, setPaper] = useState<Paper>('single');
   const [sheetMargin, setSheetMargin] = useState(4);
   const [sheetGap, setSheetGap] = useState(2);
@@ -521,13 +525,20 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
           </label>
           <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900">
             <div className="font-bold">Selected output size</div>
-            <div className="mt-1 text-sm font-semibold">{preset==='custom'?customWidth+' × '+customHeight+' mm':PRESETS[preset].label}</div>
-            <div className="mt-1">{(preset==='custom'?customWidth/25.4:dimensions.width/300*25.4).toFixed(2)} × {(preset==='custom'?customHeight/25.4:dimensions.height/300*25.4).toFixed(2)} in · 300 DPI</div>
+            <div className="mt-1 text-sm font-semibold">{preset==='custom'?fromMillimetres(customWidth,sizeUnit).toFixed(2)+' × '+fromMillimetres(customHeight,sizeUnit).toFixed(2)+' '+sizeUnit.toUpperCase():PRESETS[preset].label}</div>
+            <div className="mt-1">{(preset==='custom'?customWidth/25.4:dimensions.width/300*25.4).toFixed(2)} × {(preset==='custom'?customHeight/25.4:dimensions.height/300*25.4).toFixed(2)} in · {(preset==='custom'?customWidth/10:dimensions.width/300*25.4/10).toFixed(2)} × {(preset==='custom'?customHeight/10:dimensions.height/300*25.4/10).toFixed(2)} cm · 300 DPI</div>
           </div>
         </div>
-        {preset==='custom'&&<div className="grid grid-cols-2 gap-3">
-          <label className="text-xs text-slate-600">Width (mm)<input type="number" min="10" max="100" value={customWidth} onChange={e=>setCustomWidth(Math.max(10,Math.min(100,Number(e.target.value)||10)))} className="mt-1 w-full rounded-lg border p-2"/></label>
-          <label className="text-xs text-slate-600">Height (mm)<input type="number" min="10" max="100" value={customHeight} onChange={e=>setCustomHeight(Math.max(10,Math.min(100,Number(e.target.value)||10)))} className="mt-1 w-full rounded-lg border p-2"/></label>
+        {preset==='custom'&&<div className="space-y-3">
+          <label className="block text-xs font-semibold text-slate-700">Measurement unit
+            <select value={sizeUnit} onChange={e=>setSizeUnit(e.target.value as SizeUnit)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2">
+              <option value="mm">Millimetres (MM)</option><option value="cm">Centimetres (CM)</option><option value="in">Inches (IN)</option>
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-xs text-slate-600">Width ({sizeUnit.toUpperCase()})<input type="number" min="0.1" step="0.1" value={Number(fromMillimetres(customWidth,sizeUnit).toFixed(2))} onChange={e=>setCustomWidth(toMillimetres(Math.max(0.1,Number(e.target.value)||0.1),sizeUnit))} className="mt-1 w-full rounded-lg border p-2"/></label>
+            <label className="text-xs text-slate-600">Height ({sizeUnit.toUpperCase()})<input type="number" min="0.1" step="0.1" value={Number(fromMillimetres(customHeight,sizeUnit).toFixed(2))} onChange={e=>setCustomHeight(toMillimetres(Math.max(0.1,Number(e.target.value)||0.1),sizeUnit))} className="mt-1 w-full rounded-lg border p-2"/></label>
+          </div>
         </div>}
         <p className="text-xs text-slate-500">नीले बॉक्स को खींचकर जगह बदलें। चारों कोनों के हैंडल से crop का आकार बदलें। चुना गया साइज अंतिम प्रिंट फोटो का आउटपुट साइज तय करता है।</p>
         <div className="relative mx-auto overflow-hidden rounded-lg border border-slate-200 bg-slate-100" style={{width:'100%',maxWidth:440,aspectRatio:'4/5',touchAction:'none'}}>
