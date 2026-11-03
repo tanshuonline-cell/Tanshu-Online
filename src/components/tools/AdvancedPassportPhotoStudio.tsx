@@ -438,7 +438,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     if(paper==='single'){if(!selected)return;const photoW=canvas.width,photoH=canvas.height,sigW=photoW*signaturePlacement.width/100,sigH=signatureSrc?(()=>{const image=new Image();image.src=signatureSrc;return sigW*(image.naturalHeight||image.height||1)/(image.naturalWidth||image.width||1);})():0,sigX=photoW*signaturePlacement.x/100,sigY=photoH*signaturePlacement.y/100,onSignature=!!signatureSrc&&x>=sigX&&x<=sigX+sigW&&y>=sigY&&y<=sigY+sigH,resizeSignature=onSignature&&x>=sigX+sigW-Math.max(18,photoW*.035)&&y>=sigY+sigH-Math.max(18,photoH*.035),edit=photoEdits[selected.id]||DEFAULT_EDIT;activeCanvasDragRef.current={kind:onSignature?'signature':'photo',startX:x,startY:y,startMoveX:edit.moveX,startMoveY:edit.moveY,startSigX:signaturePlacement.x,startSigY:signaturePlacement.y,startSigWidth:signaturePlacement.width,resizeSignature};canvas.setPointerCapture(event.pointerId);return;}
     const hit=[...sheetRectsRef.current].reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(!hit){setSelectedSheetSlot(null);setSelectedSheetSlots([]);canvas.style.cursor='grab';return;}if(event.ctrlKey||event.metaKey||event.shiftKey){setSelectedSheetSlots(current=>current.includes(hit.slot)?current.filter(slot=>slot!==hit.slot):[...current,hit.slot]);setSelectedSheetSlot(hit.slot);canvas.focus();return;}setSelectedSheetSlot(hit.slot);setSelectedSheetSlots([hit.slot]);canvas.focus();
     const hs=Math.max(22,Math.min(42,Math.min(hit.w,hit.h)*.09)),l=x<=hit.x+hs,r=x>=hit.x+hit.w-hs,t=y<=hit.y+hs,b=y>=hit.y+hit.h-hs,corner=(l||r)&&(t||b),canResize=hit.slot===0,handle=t?(l?'tl':'tr'):(l?'bl':'br'),resizing=corner&&canResize;
-    const copyHandleSize=Math.max(34,Math.min(48,Math.min(hit.w,hit.h)*.14));
+    const copyHandleSize=Math.max(64,Math.min(100,Math.min(hit.w,hit.h)*.22));
     const onCopyHandle=selectedSheetSlot===hit.slot&&x>=hit.x+hit.w-copyHandleSize&&x<=hit.x+hit.w&&y>=hit.y&&y<=hit.y+copyHandleSize;
     if((event.altKey||onCopyHandle)&&!resizing){
       const currentCount=Math.min(sheetCapacity,sheetPhotoCount||sheetFitCapacity);
@@ -459,7 +459,6 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     const canvas=canvasRef.current,cd=activeCanvasDragRef.current;if(cd&&canvas&&selected){const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-cd.startX,dy=y-cd.startY;if(cd.kind==='signature')setSignaturePlacement(p=>cd.resizeSignature?({...p,width:Math.max(5,Math.min(90,cd.startSigWidth+dx/canvas.width*100))}):({...p,x:Math.max(0,Math.min(100-p.width,cd.startSigX+dx/canvas.width*100)),y:Math.max(0,Math.min(100,cd.startSigY+dy/canvas.height*100))}));else setPhotoEdits(cur=>({...cur,[selected.id]:{...(cur[selected.id]||DEFAULT_EDIT),moveX:cd.startMoveX+dx,moveY:cd.startMoveY+dy}}));return;}
     const drag=activeSheetDragRef.current;if(!drag||!canvas){if(canvas&&paper!=='single'){const bounds=canvas.getBoundingClientRect(),px=(event.clientX-bounds.left)*canvas.width/bounds.width,py=(event.clientY-bounds.top)*canvas.height/bounds.height,hover=[...sheetRectsRef.current].reverse().find(r=>px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h);if(hover){const hs=Math.max(22,Math.min(42,Math.min(hover.w,hover.h)*.09)),left=px<=hover.x+hs,right=px>=hover.x+hover.w-hs,top=py<=hover.y+hs,bottom=py>=hover.y+hover.h-hs,isCorner=(left||right)&&(top||bottom);canvas.style.cursor=isCorner&&hover.slot===0?((top&&left)||(bottom&&right)?'nwse-resize':'nesw-resize'):'grab';}else canvas.style.cursor='grab';}return;}const bounds=canvas.getBoundingClientRect(),x=(event.clientX-bounds.left)*canvas.width/bounds.width,y=(event.clientY-bounds.top)*canvas.height/bounds.height,dx=x-drag.startX,dy=y-drag.startY,s=drag.startRect;
     if(drag.mode==='move'){
-      if(drag.duplicate&&(Math.abs(dx)>3||Math.abs(dy)>3))drag.moved=true;
       const others=sheetRectsRef.current.filter(r=>r.slot!==drag.slot),gap=sheetGap*300/25.4;
       let nx=Math.max(0,Math.min(canvas.width-s.w,s.x+dx));
       let ny=Math.max(0,Math.min(canvas.height-s.h,s.y+dy));
@@ -509,6 +508,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
       ny=Math.max(0,Math.min(canvas.height-s.h,ny));
       const tooClose=others.some(r=>nx<r.x+r.w+gap-1&&nx+s.w>r.x-gap+1&&ny<r.y+r.h+gap-1&&ny+s.h>r.y-gap+1);
       if(!tooClose){
+        if(drag.duplicate&&(Math.abs(dx)>3||Math.abs(dy)>3))drag.moved=true;
         const nextRect={...s,x:nx,y:ny};
         // Keep geometry in sync immediately; React/canvas repaint is coalesced to one frame.
         sheetRectsRef.current=sheetRectsRef.current.map(rect=>rect.slot===drag.slot?nextRect:rect);
