@@ -131,7 +131,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
     }
   };
 
-  // Requirement: Identify the six Featured Tools to ensure All Tools initial cards are 100% distinct
+  // Keep all seven homepage Featured Tools out of the initial All Tools cards
   const featuredToolIds = useMemo(() => {
     const featuredOrder = [
       'advanced-passport-photo-studio',
@@ -146,12 +146,12 @@ export const AllToolsDirectory: React.FC<Props> = ({
       CONFIRMED_TOOLS
         .filter((tool) => tool.isFeatured)
         .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
-        .slice(0, 6)
+        .slice(0, 7)
         .map((tool) => tool.id)
     );
   }, []);
 
-  // Exactly six different tool cards for the initial homepage All Tools section
+  // Six different tool cards for the initial homepage All Tools section
   const initialSixTools = useMemo(() => {
     return CONFIRMED_TOOLS.filter((t) => !featuredToolIds.has(t.id)).slice(0, 6);
   }, [featuredToolIds]);
