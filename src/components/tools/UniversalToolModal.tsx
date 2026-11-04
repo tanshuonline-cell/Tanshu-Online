@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ShieldCheck, Info } from 'lucide-react';
 import { ToolItem } from '../../types';
 import { PassportPhotoTool } from './PassportPhotoTool';
 import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
+import { AdvancedPassportPhotoStudioWelcome } from './AdvancedPassportPhotoStudioWelcome';
 import { AutoDocumentCropperTool } from './AutoDocumentCropperTool';
 import { DocumentScannerTool } from './DocumentScannerTool';
 import { PdfToPvcTool } from './PdfToPvcTool';
@@ -28,6 +29,8 @@ interface Props {
 }
 
 export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
+  const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -38,10 +41,15 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
 
   if (!tool) return null;
 
+  const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
+  const showWelcome = isAdvancedStudio && !showAdvancedStudio;
+
   const renderToolComponent = () => {
     switch (tool.id) {
       case 'advanced-passport-photo-studio':
-        return <AdvancedPassportPhotoStudio />;
+        return showAdvancedStudio
+          ? <AdvancedPassportPhotoStudio />
+          : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />;
       case 'passport-size-photo-maker':
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
@@ -82,9 +90,9 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${tool.id === 'advanced-passport-photo-studio' ? 'p-0' : 'p-3 sm:p-6'}`}>
-      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${tool.id === 'advanced-passport-photo-studio' ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
-        <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${tool.id === 'advanced-passport-photo-studio' ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
+    <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isAdvancedStudio ? 'p-0' : 'p-3 sm:p-6'}`}>
+      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isAdvancedStudio ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
+        <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isAdvancedStudio ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
           <div className="flex items-center gap-3">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
@@ -94,7 +102,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                   <ShieldCheck className="w-3.5 h-3.5" /> Browser-side processing
                 </span>
               </div>
-              {tool.id !== 'advanced-passport-photo-studio' && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
+              {!isAdvancedStudio && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
@@ -102,19 +110,21 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </button>
         </div>
 
-        <div className={`${tool.id === 'advanced-passport-photo-studio' ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${tool.id === 'advanced-passport-photo-studio' ? 'p-3 sm:p-5 lg:p-6 bg-slate-50' : 'p-6 bg-white'}`}>
-          {tool.id === 'advanced-passport-photo-studio' ? (
-            null
+        <div className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : 'p-6 bg-white'}`}>
+          {isAdvancedStudio ? (
+            renderToolComponent()
           ) : (
-            <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
-              <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">{tool.description}</p>
-                <p className="text-blue-800 text-[11px] mt-0.5">{tool.detailedInstructions}</p>
+            <>
+              <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
+                <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">{tool.description}</p>
+                  <p className="text-blue-800 text-[11px] mt-0.5">{tool.detailedInstructions}</p>
+                </div>
               </div>
-            </div>
+              {renderToolComponent()}
+            </>
           )}
-          {renderToolComponent()}
         </div>
 
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
