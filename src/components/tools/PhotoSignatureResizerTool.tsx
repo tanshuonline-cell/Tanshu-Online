@@ -17,6 +17,7 @@ type Asset = {
   warning?: string;
   outputWidth?: number;
   outputHeight?: number;
+  outputQuality?: number;
 };
 type Preset = { label: string; photo: Settings; signature: Settings };
 
@@ -46,8 +47,8 @@ const canvasBlob = (canvas: HTMLCanvasElement, type: OutputFormat, quality: numb
   new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
 async function renderImage(asset: Asset, settings: Settings) {
-  const width = Math.max(20, Math.min(4000, Math.round(settings.width || 200)));
-  const height = Math.max(20, Math.min(4000, Math.round(settings.height || 230)));
+  const width = Math.max(5, Math.min(4000, Math.round(settings.width || 200)));
+  const height = Math.max(5, Math.min(4000, Math.round(settings.height || 230)));
   if (width * height > 12000000) throw new Error('Please choose dimensions under 12 megapixels.');
   const image = await readImage(asset.sourceUrl);
   const canvas = document.createElement('canvas');
@@ -69,30 +70,39 @@ async function renderImage(asset: Asset, settings: Settings) {
   context.drawImage(image, (width - drawWidth) / 2 - (overflowX / 2) * offsetX, (height - drawHeight) / 2 - (overflowY / 2) * offsetY, drawWidth, drawHeight);
 
   const targetBytes = Math.max(5, Math.min(5000, settings.targetKB || 50)) * 1024;
-  let blob = await canvasBlob(canvas, settings.format, settings.format === 'image/jpeg' ? Math.max(0.12, Math.min(1, settings.quality || 0.88)) : 0.92);
+  const maxQuality = Math.max(0.3, Math.min(1, settings.quality || 0.88));
+  let actualQuality = settings.format === 'image/jpeg' ? maxQuality : 1;
+  let blob = await canvasBlob(canvas, settings.format, settings.format === 'image/jpeg' ? maxQuality : 0.92);
   if (settings.format === 'image/jpeg') {
-    let low = 0.12;
-    let high = Math.max(0.12, Math.min(1, settings.quality || 0.88));
+    let low = 0.3;
+    let high = maxQuality;
     let best: Blob | null = blob.size <= targetBytes ? blob : null;
+    let bestQuality = best ? maxQuality : 0.3;
     for (let i = 0; i < 8; i++) {
       const quality = (low + high) / 2;
       const candidate = await canvasBlob(canvas, 'image/jpeg', quality);
       if (candidate.size <= targetBytes) {
         best = candidate;
+        bestQuality = quality;
         low = quality;
       } else {
         high = quality;
       }
     }
-    if (best) blob = best;
-    else blob = await canvasBlob(canvas, 'image/jpeg', 0.12);
+    if (best) {
+      blob = best;
+      actualQuality = bestQuality;
+    } else {
+      blob = await canvasBlob(canvas, 'image/jpeg', 0.3);
+      actualQuality = 0.3;
+    }
   }
   const warning = settings.format === 'image/png' && blob.size > targetBytes
     ? 'PNG compression cannot guarantee the target KB. Try JPG or smaller dimensions.'
     : blob.size > targetBytes
-      ? 'Target KB could not be reached at these dimensions. Reduce width and height.'
+      ? 'Target KB could not be reached at the minimum 30% quality. Reduce width and height or increase the target KB.'
       : '';
-  return { blob, width, height, warning };
+  return { blob, width, height, warning, actualQuality };
 }
 
 export const PhotoSignatureResizerTool: React.FC = () => {
@@ -100,6 +110,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   const [assets, setAssets] = useState<Record<Slot, Asset | null>>({ photo: null, signature: null });
   const assetsRef = useRef(assets);
   assetsRef.current = assets;
+  const revisionsRef = useRef<Record<Slot, number>>({ photo: 0, signature: 0 });
   const [settings, setSettings] = useState<Record<Slot, Settings>>({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE });
   const [activePreset, setActivePreset] = useState('custom');
   const [processing, setProcessing] = useState(false);
@@ -189,11 +200,14 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   }, []);
 
   const clearOutput = (slot: Slot) => {
+    revisionsRef.current[slot] += 1;
+    const existing = assetsRef.current[slot];
+    if (existing?.outputUrl) URL.revokeObjectURL(existing.outputUrl);
     setAssets((current) => {
       const asset = current[slot];
       if (!asset) return current;
       if (asset.outputUrl) URL.revokeObjectURL(asset.outputUrl);
-      const { outputUrl, outputBlob, outputBytes, warning, outputWidth, outputHeight, ...source } = asset;
+      const { outputUrl, outputBlob, outputBytes, warning, outputWidth, outputHeight, outputQuality, ...source } = asset;
       return { ...current, [slot]: source };
     });
   };
@@ -213,13 +227,12 @@ export const PhotoSignatureResizerTool: React.FC = () => {
       setStatus(isHindi ? 'फाइल 20 MB से बड़ी है।' : 'The selected file is larger than 20 MB.');
       return;
     }
+    revisionsRef.current[slot] += 1;
+    const previous = assetsRef.current[slot];
+    if (previous?.sourceUrl) URL.revokeObjectURL(previous.sourceUrl);
+    if (previous?.outputUrl) URL.revokeObjectURL(previous.outputUrl);
     const sourceUrl = URL.createObjectURL(file);
-    setAssets((current) => {
-      const previous = current[slot];
-      if (previous?.sourceUrl) URL.revokeObjectURL(previous.sourceUrl);
-      if (previous?.outputUrl) URL.revokeObjectURL(previous.outputUrl);
-      return { ...current, [slot]: { file, sourceUrl } };
-    });
+    setAssets((current) => ({ ...current, [slot]: { file, sourceUrl } }));
     setStatus((slot === 'photo' ? copy.onlyPhoto : copy.onlySign) + (isHindi ? ' अपलोड हो गया।' : ' uploaded successfully.'));
   };
 
@@ -230,27 +243,34 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     setStatus(copy.choosePreset);
   };
 
-  const processSlot = async (slot: Slot) => {
-    const asset = assets[slot];
-    if (!asset) return;
-    const result = await renderImage(asset, settings[slot]);
+  const processSlot = async (slot: Slot, revision: number, asset: Asset | null, slotSettings: Settings) => {
+    if (!asset) return true;
+    const result = await renderImage(asset, slotSettings);
+    if (revisionsRef.current[slot] !== revision || assetsRef.current[slot]?.sourceUrl !== asset.sourceUrl) return false;
     const outputUrl = URL.createObjectURL(result.blob);
+    const latest = assetsRef.current[slot];
+    if (latest?.outputUrl) URL.revokeObjectURL(latest.outputUrl);
     setAssets((current) => {
-      const latest = current[slot];
-      if (latest?.outputUrl) URL.revokeObjectURL(latest.outputUrl);
+      const currentAsset = current[slot];
+      if (!currentAsset || currentAsset.sourceUrl !== asset.sourceUrl || revisionsRef.current[slot] !== revision) {
+        URL.revokeObjectURL(outputUrl);
+        return current;
+      }
       return {
         ...current,
-        [slot]: latest ? {
-          ...latest,
+        [slot]: {
+          ...currentAsset,
           outputUrl,
           outputBlob: result.blob,
           outputBytes: result.blob.size,
           warning: result.warning,
           outputWidth: result.width,
-          outputHeight: result.height
-        } : latest
+          outputHeight: result.height,
+          outputQuality: result.actualQuality
+        }
       };
     });
+    return true;
   };
 
   const processAll = async () => {
@@ -258,11 +278,19 @@ export const PhotoSignatureResizerTool: React.FC = () => {
       setStatus(isHindi ? 'पहले फोटो या सिग्नेचर अपलोड करें।' : 'Upload a photo or signature first.');
       return;
     }
+    const run = {
+      photo: { asset: assets.photo, settings: { ...settings.photo }, revision: revisionsRef.current.photo },
+      signature: { asset: assets.signature, settings: { ...settings.signature }, revision: revisionsRef.current.signature }
+    };
     setProcessing(true);
     setStatus(isHindi ? 'आपकी फाइलें प्रोसेस हो रही हैं…' : 'Processing your files…');
     try {
-      if (assets.photo) await processSlot('photo');
-      if (assets.signature) await processSlot('signature');
+      const photoOk = await processSlot('photo', run.photo.revision, run.photo.asset, run.photo.settings);
+      const signatureOk = await processSlot('signature', run.signature.revision, run.signature.asset, run.signature.settings);
+      if (!photoOk || !signatureOk) {
+        setStatus(isHindi ? 'सेटिंग या फाइल बदल गई है। कृपया दोबारा Resize करें।' : 'A file or setting changed during processing. Please resize again.');
+        return;
+      }
       setStatus(copy.done);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Image processing failed.');
@@ -314,7 +342,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   const reset = () => {
     (['photo', 'signature'] as Slot[]).forEach((slot) => {
-      const asset = assets[slot];
+      revisionsRef.current[slot] += 1;
+      const asset = assetsRef.current[slot];
       if (asset?.sourceUrl) URL.revokeObjectURL(asset.sourceUrl);
       if (asset?.outputUrl) URL.revokeObjectURL(asset.outputUrl);
     });
@@ -443,7 +472,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
         </div>
         {asset?.outputUrl && (
           <>
-            <p className="mt-2 text-[10px] font-semibold text-slate-600">{asset.outputWidth} × {asset.outputHeight} px · {settings[slot].format === 'image/jpeg' ? 'JPG' : 'PNG'}</p>
+            <p className="mt-2 text-[10px] font-semibold text-slate-600">{asset.outputWidth} × {asset.outputHeight} px · {settings[slot].format === 'image/jpeg' ? `JPG · ${Math.round((asset.outputQuality || settings[slot].quality) * 100)}%` : 'PNG'}</p>
             {asset.warning && <p className="mt-1 rounded-lg bg-amber-50 p-2 text-[10px] leading-4 text-amber-800">{asset.warning}</p>}
             <button type="button" onClick={() => downloadSlot(slot)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-lg active:translate-y-0">
               <Download className="h-4 w-4" />{copy.download}
