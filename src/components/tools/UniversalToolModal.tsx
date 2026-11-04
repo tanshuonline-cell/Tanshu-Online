@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, ShieldCheck, Info } from 'lucide-react';
+import { ArrowLeft, X, ShieldCheck, Info } from 'lucide-react';
 import { ToolItem } from '../../types';
 import { PassportPhotoTool } from './PassportPhotoTool';
 import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
@@ -105,14 +105,34 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
               {!isAdvancedStudio && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isAdvancedStudio && showAdvancedStudio && (
+              <button
+                onClick={() => setShowAdvancedStudio(false)}
+                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                title="Back to Welcome & Demo"
+                aria-label="Back to Welcome and Demo"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Demo</span>
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)" aria-label="Close Tool">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : 'p-6 bg-white'}`}>
           {isAdvancedStudio ? (
-            renderToolComponent()
+            <>
+              <div className={showWelcome ? 'block' : 'hidden'}>
+                <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />
+              </div>
+              <div className={showWelcome ? 'hidden' : 'block'}>
+                <AdvancedPassportPhotoStudio />
+              </div>
+            </>
           ) : (
             <>
               <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
