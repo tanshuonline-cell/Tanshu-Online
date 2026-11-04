@@ -335,7 +335,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   },
 
   // ==========================================
-  // CATEGORY 3: PHOTO & SIGNATURE TOOLS (18 Tools)
+  // CATEGORY 3: PHOTO & SIGNATURE TOOLS (19 Tools)
   // ==========================================
   {
     id: 'ai-selfie-passport-photo-maker',
