@@ -1193,7 +1193,7 @@ function generateFallbackSvg(toolName: string, categoryLabel: string): string {
 // Main image getter function
 export function getToolPreviewImage(toolId: string, toolName?: string, categoryLabel?: string): string {
   switch (toolId) {
-    case 'passport-size-photo-maker':
+    case 'advanced-passport-photo-studio':
       return passportImg;
     case 'auto-document-cropper':
       return autoCropperImg;
