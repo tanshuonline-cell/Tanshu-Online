@@ -156,31 +156,63 @@ export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart, onBack 
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-7">
-        <div className="mx-auto mb-7 max-w-2xl text-center">
-          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-[.18em] text-blue-800">{tx('Explore the Studio', 'Explore the Studio')}</span>
-          <h2 className="mt-3 text-2xl font-black text-slate-900 sm:text-3xl">{tx('इस स्टूडियो में क्या-क्या कर सकते हैं?', 'What can you do in this studio?')}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{tx('हर फीचर को sample के साथ समझें — Upload से लेकर Download और Print Preview तक।', 'See each feature with a sample — from upload to download and print preview.')}</p>
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-8 lg:px-12">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="inline-flex items-center justify-center rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-cyan-50 px-4 py-2 text-xs font-black uppercase tracking-[.18em] text-blue-800 shadow-sm">{tx('Explore the Studio', 'Explore the Studio')}</p>
+          <h2 className="mt-2 inline-flex max-w-full items-center justify-center rounded-2xl border border-indigo-100 bg-gradient-to-r from-white via-blue-50 to-violet-50 px-4 py-2.5 text-2xl font-black uppercase tracking-tight text-slate-900 shadow-sm sm:text-3xl">{tx('इस स्टूडियो में आपको क्या मिलेगा', 'WHAT WILL YOU GET IN THIS STUDIO')}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{tx('हर फीचर को sample के साथ समझें — Upload से लेकर Download और Print Preview तक।', 'Explore every feature with samples — from upload to download and print preview.')}</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => {
+        <div className="space-y-6">
+          {features.map((feature, index) => {
             const Icon = feature.icon;
-            return (
-              <article key={feature.step} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/10">
-                <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50/70 p-4">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-xs font-black text-white shadow-md">{feature.step}</span>
-                  <div className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0 text-blue-600" /><h3 className="text-sm font-extrabold text-slate-900">{tx(feature.title, feature.titleEn)}</h3></div>
+            const sampleCard = (title: string, content: React.ReactNode, key: string) => (
+              <div key={key} className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">SAMPLE {key}</span>
+                  <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase text-blue-800">{title}</span>
                 </div>
-                <div className="p-4">
-                  <p className="min-h-[72px] text-xs leading-6 text-slate-600">{tx(feature.description, feature.descriptionEn)}</p>
-                  <div className="mt-3 max-h-[230px] space-y-3 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-slate-100 p-3 pr-2 shadow-inner [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
-                  {feature.sample === 'photo' && <div className="flex items-center justify-center gap-3 rounded-xl bg-white p-3"><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto variant="original" /></div><ArrowRight className="h-4 w-4 text-blue-500" /><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto /></div></div>}
-                  {feature.sample === 'signature' && <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3"><div className="h-16"><DemoSignature /></div><div className="mt-2 flex justify-between text-[9px] font-bold text-slate-500"><span>140 × 60 px</span><span>200 × 100 px</span></div></div>}
-                  {feature.sample === 'dpi' && <div className="grid grid-cols-3 gap-2 rounded-xl bg-white p-3">{['72 DPI','150 DPI','200 DPI','240 DPI','300 DPI','96 DPI'].map((dpi) => <span key={dpi} className={`rounded-lg border px-2 py-2 text-center text-[10px] font-extrabold ${dpi === '300 DPI' ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{dpi}</span>)}</div>}
-                  {feature.sample === 'size' && <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3"><div className="flex flex-wrap gap-2">{['10 KB','20 KB','50 KB','100 KB','200 KB','500 KB'].map((size) => <span key={size} className={`rounded-lg px-2.5 py-1.5 text-[9px] font-extrabold ${size === '50 KB' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700'}`}>{size}</span>)}</div><p className="mt-2 text-[9px] text-indigo-700">{tx('चुनी हुई सीमा अधिकतम है, exact size नहीं।', 'Selected size is a maximum, not an exact target.')}</p></div>}
-                  {feature.sample === 'preview' && <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3"><div className="rounded-lg border bg-slate-50 p-2"><p className="mb-1 text-center text-[9px] font-bold text-slate-500">{tx('Original','Original')}</p><div className="h-24 overflow-hidden rounded"><DemoPhoto variant="original" /></div></div><div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2"><p className="mb-1 text-center text-[9px] font-bold text-emerald-700">{tx('Live Preview','Live Preview')}</p><div className="h-24 overflow-hidden rounded"><DemoPhoto /></div></div></div>}
-                  {feature.sample === 'download' && <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3">{['JPG','PNG','WEBP','ZIP'].map((format) => <span key={format} className="flex items-center justify-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-2 text-[10px] font-extrabold text-emerald-800"><Download className="h-3 w-3" />{format}</span>)}</div>}
+                {content}
+              </div>
+            );
+            return (
+              <article key={feature.step} className="group relative grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/10 sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+                <div className="pointer-events-none absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b from-blue-500 to-cyan-400 opacity-80 transition-all group-hover:w-2.5" />
+                <div className="order-1 min-w-0 pl-1">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 px-2 text-lg font-black text-white shadow-lg ring-4 ring-blue-50">{feature.step}</span>
+                    <span className="rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-blue-800 shadow-sm">{tx(`FEATURE · STEP ${feature.step}`, `FEATURE · STEP ${feature.step}`)}</span>
+                  </div>
+                  <h3 className="inline-flex max-w-full rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-3 py-2 text-xl font-black uppercase text-blue-950 shadow-sm sm:text-2xl">{tx(feature.title, feature.titleEn)}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{tx(feature.description, feature.descriptionEn)}</p>
+                </div>
+                <div className="order-2 min-w-0">
+                  <div className="max-h-[390px] space-y-3 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-slate-100 p-3 pr-2 shadow-inner [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
+                    {feature.sample === 'photo' && <>
+                      {sampleCard('ORIGINAL PHOTO', <div className="grid grid-cols-2 gap-3 rounded-lg bg-white p-3"><div><div className="mx-auto h-32 max-w-28 overflow-hidden rounded border"><DemoPhoto variant="original" /></div><p className="mt-2 text-center text-[9px] font-bold text-slate-600">SOURCE IMAGE</p></div><div><div className="mx-auto h-32 max-w-28 overflow-hidden rounded border"><DemoPhoto /></div><p className="mt-2 text-center text-[9px] font-bold text-slate-600">RESIZED PHOTO</p></div></div>, '01')}
+                      {sampleCard('FRAME OPTIONS', <div className="grid grid-cols-3 gap-2 rounded-lg bg-white p-3">{['CONTAIN','COVER','CUSTOM'].map(x=><span key={x} className="rounded-lg border border-blue-100 bg-blue-50 px-2 py-3 text-center text-[9px] font-black text-blue-800">{x}</span>)}</div>, '02')}
+                      {sampleCard('PIXEL DIMENSIONS', <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-3">{['413 × 531 PX','300 × 400 PX','3.5 × 4.5 CM','CUSTOM SIZE'].map(x=><span key={x} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-3 text-center text-[9px] font-black text-slate-700">{x}</span>)}</div>, '03')}
+                    </>}
+                    {feature.sample === 'signature' && <>
+                      {sampleCard('SIGNATURE PREVIEW', <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4"><div className="h-20"><DemoSignature /></div><p className="mt-2 text-center text-[10px] font-black text-slate-600">140 × 60 PX</p></div>, '01')}
+                      {sampleCard('PRESET DIMENSIONS', <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-3">{['140 × 60 PX','200 × 100 PX','CUSTOM WIDTH','CUSTOM HEIGHT'].map(x=><span key={x} className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-3 text-center text-[9px] font-black text-indigo-800">{x}</span>)}</div>, '02')}
+                      {sampleCard('SIGNATURE OUTPUT', <div className="rounded-lg bg-white p-3"><div className="h-16"><DemoSignature /></div><p className="text-center text-[9px] font-bold text-slate-500">CLEAN · RESIZE · DOWNLOAD</p></div>, '03')}
+                    </>}
+                    {feature.sample === 'dpi' && sampleCard('PRINT DPI OPTIONS', <div className="grid grid-cols-3 gap-2 rounded-lg bg-white p-3">{['72 DPI','96 DPI','150 DPI','200 DPI','240 DPI','300 DPI'].map(dpi=><span key={dpi} className={`rounded-lg border px-2 py-3 text-center text-[10px] font-black ${dpi==='300 DPI'?'border-blue-500 bg-blue-600 text-white':'border-slate-200 bg-slate-50 text-slate-600'}`}>{dpi}</span>)}</div>, '01')}
+                    {feature.sample === 'size' && <>
+                      {sampleCard('KB TARGETS', <div className="grid grid-cols-3 gap-2 rounded-lg bg-white p-3">{['10 KB','20 KB','50 KB','100 KB','200 KB','500 KB'].map(size=><span key={size} className={`rounded-lg px-2 py-3 text-center text-[10px] font-black ${size==='50 KB'?'bg-indigo-600 text-white':'bg-indigo-50 text-indigo-800'}`}>{size}</span>)}</div>, '01')}
+                      {sampleCard('MB TARGETS', <div className="grid grid-cols-4 gap-2 rounded-lg bg-white p-3">{['1 MB','2 MB','5 MB','10 MB'].map(size=><span key={size} className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-3 text-center text-[10px] font-black text-indigo-800">{size}</span>)}</div>, '02')}
+                    </>}
+                    {feature.sample === 'preview' && <>
+                      {sampleCard('ORIGINAL DIMENSIONS', <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-3"><div className="h-28 overflow-hidden rounded"><DemoPhoto variant="original" /></div><div className="flex flex-col justify-center text-center"><p className="text-xs font-black text-slate-700">SOURCE</p><p className="mt-1 text-[10px] text-slate-500">UNCHANGED PIXELS</p></div></div>, '01')}
+                      {sampleCard('LIVE CROP PREVIEW', <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-3"><div className="h-28 overflow-hidden rounded"><DemoPhoto /></div><div className="flex flex-col justify-center gap-2 text-[9px] font-black text-emerald-800"><span className="rounded bg-emerald-50 px-2 py-2">ZOOM</span><span className="rounded bg-emerald-50 px-2 py-2">POSITION X / Y</span></div></div>, '02')}
+                      {sampleCard('COMPRESS ONLY', <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center"><p className="text-sm font-black text-emerald-800">KEEP ORIGINAL FRAME</p><p className="mt-1 text-[10px] text-emerald-700">NO CROP · NO RESIZE</p></div>, '03')}
+                    </>}
+                    {feature.sample === 'download' && <>
+                      {sampleCard('IMAGE FORMATS', <div className="grid grid-cols-3 gap-2 rounded-lg bg-white p-3">{['JPG','PNG','WEBP'].map(format=><span key={format} className="rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-3 text-center text-[10px] font-black text-emerald-800">{format}</span>)}</div>, '01')}
+                      {sampleCard('ZIP DOWNLOAD', <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center"><Download className="mx-auto h-6 w-6 text-emerald-700"/><p className="mt-2 text-xs font-black text-emerald-800">PHOTO + SIGNATURE</p></div>, '02')}
+                      {sampleCard('PRINT PREVIEW', <div className="rounded-lg border border-slate-200 bg-white p-3 text-center"><Printer className="mx-auto h-6 w-6 text-slate-600"/><p className="mt-2 text-xs font-black text-slate-700">CHECK PRINT LAYOUT</p></div>, '03')}
+                    </>}
                   </div>
                 </div>
               </article>
