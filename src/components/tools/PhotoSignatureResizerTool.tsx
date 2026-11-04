@@ -221,7 +221,7 @@ async function renderImage(asset: Asset, settings: Settings) {
   const image = await readImage(asset.sourceUrl);
   const canvas = document.createElement('canvas');
   const { width, height } = drawImageToCanvas(canvas, image, settings);
-  const targetBytes = Math.max(5, Math.min(5000, settings.targetKB || 50)) * 1024;
+  const targetBytes = Math.max(5, Math.min(50 * 1024, settings.targetKB || 50)) * 1024;
   const maxQuality = Math.max(0.3, Math.min(1, settings.quality || 0.88));
   let actualQuality = settings.format === 'image/jpeg' ? maxQuality : 1;
   let blob = await canvasBlob(canvas, settings.format, settings.format === 'image/jpeg' ? maxQuality : 0.92);
@@ -268,6 +268,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   const revisionsRef = useRef<Record<Slot, number>>({ photo: 0, signature: 0 });
   const [settings, setSettings] = useState<Record<Slot, Settings>>({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE });
   const [dimensionUnits, setDimensionUnits] = useState<Record<Slot, DimensionUnit>>({ photo: 'px', signature: 'px' });
+  const [sizeUnits, setSizeUnits] = useState<Record<Slot, 'KB' | 'MB'>>({ photo: 'KB', signature: 'KB' });
   const [activePreset, setActivePreset] = useState('custom');
   const [processing, setProcessing] = useState(false);
   const [status, setStatus] = useState('');
@@ -284,7 +285,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     settings: '03 · अलग-अलग आउटपुट सेटिंग',
     width: 'चौड़ाई',
     height: 'ऊँचाई',
-    target: 'अधिकतम फाइल साइज़ (KB)',
+    target: 'अधिकतम फाइल साइज़',
     dimensionUnit: 'डाइमेंशन यूनिट',
     dpi: 'प्रिंट DPI',
     dpiHint: 'DPI प्रिंट की डेंसिटी बताता है; असली डिटेल पिक्सेल पर निर्भर करती है।',
@@ -327,7 +328,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     settings: '03 · Separate Output Settings',
     width: 'Width',
     height: 'Height',
-    target: 'Maximum File Size (KB)',
+    target: 'Maximum File Size',
     dimensionUnit: 'Dimension unit',
     dpi: 'Print DPI',
     dpiHint: 'DPI sets print density; actual image detail depends on pixel dimensions.',
@@ -616,10 +617,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     const heading = slot === 'photo' ? copy.onlyPhoto : copy.onlySign;
     const unit = dimensionUnits[slot];
     const unitSuffix = unit === 'in' ? 'in' : unit;
+    const sizeUnit = sizeUnits[slot];
     const fields: { key: 'width' | 'height' | 'targetKB'; label: string }[] = [
       { key: 'width', label: `${copy.width} (${unitSuffix})` },
       { key: 'height', label: `${copy.height} (${unitSuffix})` },
-      { key: 'targetKB', label: copy.target }
+      { key: 'targetKB', label: `${copy.target} (${sizeUnit})` }
     ];
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -639,24 +641,24 @@ export const PhotoSignatureResizerTool: React.FC = () => {
               {field.label}
               <input
                 type="number"
-                min={field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1}
-                max={field.key === 'targetKB' ? 5000 : unit === 'px' ? 4000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2))}
-                value={field.key === 'targetKB' ? current.targetKB : fromPixels(current[field.key], unit, current.dpi)}
-                step={field.key === 'targetKB' || unit === 'px' ? 1 : 0.01}
+                min={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1}
+                max={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 50 : 50 * 1024) : unit === 'px' ? 4000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2))}
+                value={field.key === 'targetKB' ? Number((sizeUnit === 'MB' ? current.targetKB / 1024 : current.targetKB).toFixed(2)) : fromPixels(current[field.key], unit, current.dpi)}
+                step={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 1) : unit === 'px' ? 1 : 0.01}
                 onChange={(event) => {
                   const raw = event.target.value;
                   if (raw === '') return;
                   const parsed = Number(raw);
                   if (Number.isFinite(parsed)) {
-                    const stored = field.key === 'targetKB' ? parsed : toPixels(parsed, unit, current.dpi);
+                    const stored = field.key === 'targetKB' ? parsed * (sizeUnit === 'MB' ? 1024 : 1) : toPixels(parsed, unit, current.dpi);
                     updateSetting(slot, field.key, stored);
                   }
                 }}
                 onBlur={(event) => {
-                  const entered = Number(event.currentTarget.value) || (field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1);
-                  const maximum = field.key === 'targetKB' ? 5000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2));
+                  const entered = Number(event.currentTarget.value) || (field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1);
+                  const maximum = field.key === 'targetKB' ? (sizeUnit === 'MB' ? 50 : 50 * 1024) : Number(fromPixels(4000, unit, current.dpi).toFixed(2));
                   const normalized = field.key === 'targetKB'
-                    ? Math.max(5, Math.min(maximum, Math.round(entered)))
+                    ? Math.max(sizeUnit === 'MB' ? 0.01 * 1024 : 5, Math.min(maximum, entered * (sizeUnit === 'MB' ? 1024 : 1)))
                     : Math.max(5, Math.min(4000, toPixels(Math.min(entered, maximum), unit, current.dpi)));
                   if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
                   if ((field.key === 'height' && current.width * normalized > 12000000) ||
@@ -682,12 +684,19 @@ export const PhotoSignatureResizerTool: React.FC = () => {
             <span className="mt-1 block text-[9px] font-medium leading-4 text-slate-400">{copy.dpiHint}</span>
           </label>
           <div className="col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-3">
-            <p className="mb-2 text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
-            <div className="flex flex-wrap gap-2">
-              {[10, 20, 50, 100, 200].map((kb) => (
-                <button key={kb} type="button" onClick={() => updateSetting(slot, 'targetKB', kb)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition ${current.targetKB === kb ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}>{kb} KB</button>
-              ))}
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
+              <select aria-label={isHindi ? 'फाइल साइज़ यूनिट' : 'File size unit'} value={sizeUnit} onChange={(event) => setSizeUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as 'KB' | 'MB' }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 text-[10px] font-bold text-indigo-800">
+                <option value="KB">KB</option><option value="MB">MB</option>
+              </select>
             </div>
+            <div className="flex flex-wrap gap-2">
+              {(sizeUnit === 'KB' ? [10, 20, 50, 100, 200, 500] : [1, 2, 5, 10]).map((amount) => {
+                const kb = sizeUnit === 'MB' ? amount * 1024 : amount;
+                return <button key={`${sizeUnit}-${amount}`} type="button" onClick={() => updateSetting(slot, 'targetKB', kb)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition ${Math.abs(current.targetKB - kb) < 0.5 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}>{amount} {sizeUnit}</button>;
+              })}
+            </div>
+            <p className="mt-2 text-[9px] leading-4 text-slate-500">{isHindi ? 'KB और MB दोनों में कस्टम साइज़ ऊपर दर्ज कर सकते हैं। यह अधिकतम सीमा है।' : 'Enter a custom size above in KB or MB. This is a maximum file-size limit.'}</p>
           </div>
           <label className="text-[10px] font-bold text-slate-500">{copy.format}
             <select value={current.format} onChange={(event) => updateSetting(slot, 'format', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
