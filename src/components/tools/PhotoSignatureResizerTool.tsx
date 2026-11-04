@@ -182,14 +182,6 @@ const CropPreview: React.FC<{ sourceUrl: string; settings: Settings; label: stri
   />;
 };
 
-const crc32 = (data: Uint8Array) => {
-  let crc = 0xffffffff;
-  for (const byte of data) {
-    crc ^= byte;
-    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-};
 const addDpiMetadata = async (blob: Blob, dpi: number): Promise<Blob> => {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const density = Math.max(1, Math.min(65535, Math.round(dpi)));
