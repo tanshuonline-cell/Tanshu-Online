@@ -125,6 +125,119 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
         </div>
       </section>
 
+
+      <section className="relative overflow-hidden bg-[#090d1a] px-4 py-12 text-white sm:px-8 lg:px-12">
+        <div className="pointer-events-none absolute -left-28 top-0 h-80 w-80 rounded-full bg-violet-600/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl">
+          <div className="mx-auto mb-8 max-w-3xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-[11px] font-extrabold tracking-[.16em] text-violet-200">
+              <WandSparkles className="h-4 w-4" /> SMART BEAUTY EDITING
+            </span>
+            <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Beauty Mode — Professional Photo Retouching</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+              अपनी फोटो को दें एक साफ़, नेचुरल और प्रोफेशनल लुक — बिना चेहरे की असली पहचान बदले।
+              Beauty Mode में skin retouch और हल्के image adjustments को अपने नियंत्रण में रखें।
+            </p>
+          </div>
+
+          <div className="grid items-stretch gap-5 lg:grid-cols-[1.05fr_.95fr]">
+            <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] p-3 shadow-2xl shadow-black/30 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <div>
+                  <p className="text-sm font-extrabold">Full Portrait · Before &amp; After</p>
+                  <p className="mt-1 text-xs text-slate-400">Same fictional demo subject · illustrative example</p>
+                </div>
+                <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Natural Finish</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-700 to-slate-900">
+                  <div className="aspect-[4/5]">
+                    <img src="/images/beauty-mode/beauty_mode_before_full.jpg" alt="Original unretouched fictional portrait demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    <div className="flex h-full min-h-40 items-center justify-center p-4 text-center text-xs text-slate-400">Original portrait image will appear here</div>
+                  </div>
+                  <span className="absolute left-2 top-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] font-extrabold tracking-wider">BEFORE</span>
+                </div>
+                <div className="relative overflow-hidden rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-900/60 to-blue-950">
+                  <div className="aspect-[4/5]">
+                    <img src="/images/beauty-mode/beauty_mode_after_full.jpg" alt="Subtly retouched fictional portrait demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    <div className="flex h-full min-h-40 items-center justify-center p-4 text-center text-xs text-violet-200/70">Retouched portrait image will appear here</div>
+                  </div>
+                  <span className="absolute left-2 top-2 rounded-md bg-violet-600 px-2 py-1 text-[10px] font-extrabold tracking-wider">AFTER</span>
+                </div>
+              </div>
+              <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">डेमो फोटो केवल फीचर समझाने के लिए हैं। आपकी फोटो का परिणाम आपकी original image और चुनी गई settings पर निर्भर करेगा।</p>
+            </article>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 sm:p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-amber-100/20 to-violet-300/20">
+                    <img src="/images/beauty-mode/beauty_skin_closeup_before.jpg" alt="Skin texture before retouch demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold">AI Skin Retouch</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-300">चेहरे की skin area पर हल्का, mask-based retouch; eyes, lips और hair को सुरक्षित रखने के लिए segmentation mask का उपयोग।</p>
+                  </div>
+                </div>
+              </article>
+              <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 sm:p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-rose-100/20 to-blue-300/20">
+                    <img src="/images/beauty-mode/beauty_skin_closeup_retouched.jpg" alt="Skin texture after subtle retouch demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold">Blemish Reduction</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-300">Face-skin mask के अंदर छोटे isolated blemish-जैसे spots को हल्का कम करने का control — पूरी skin को blur नहीं करता।</p>
+                  </div>
+                </div>
+              </article>
+              <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 sm:p-5 sm:col-span-2 lg:col-span-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/20 to-violet-500/20">
+                    <Sparkles className="h-8 w-8 text-violet-200" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold">Natural Softening</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-300">Softening slider से बहुत हल्का finish चुनें। जरूरत से ज्यादा smoothing से बचें ताकि फोटो natural दिखे।</p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { title: 'AI Skin Retouch', detail: 'Face-skin segmentation के आधार पर स्थानीय retouch; बाल, आँख और होंठ को mask से अलग रखा जाता है।' },
+              { title: 'Blemish Reduction', detail: 'छोटे isolated spots को कम करने के लिए adjustable 0–60% strength control।' },
+              { title: 'Brightness', detail: 'पूरी फोटो की brightness को जरूरत के अनुसार manually adjust करें।' },
+              { title: 'Contrast', detail: 'पूरी फोटो के light और dark areas का contrast नियंत्रित करें।' },
+              { title: 'Saturation', detail: 'पूरी फोटो के रंगों की intensity को कम या ज्यादा करें।' },
+              { title: 'Softening', detail: '0–10 range में subtle softening चुनें; natural detail बनाए रखें।' },
+              { title: 'Face Detection', detail: 'Retouch के लिए face area पहचानने में मदद; परिणाम फोटो और browser support पर निर्भर।' },
+              { title: 'Before / After Preview', detail: 'Original और edited photo की तुलना करके बदलाव जाँचें।' },
+              { title: 'Undo · Redo · Reset', detail: 'अपने बदलाव वापस लें, दोबारा लागू करें या Beauty adjustments reset करें।' }
+            ].map(({ title, detail }, index) => (
+              <article key={title} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 transition hover:-translate-y-0.5 hover:border-violet-300/30 hover:bg-slate-800/80">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/10 text-xs font-black text-violet-200">{String(index + 1).padStart(2, '0')}</span>
+                  <h3 className="text-sm font-extrabold text-white">{title}</h3>
+                </div>
+                <p className="text-xs leading-6 text-slate-300">{detail}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] p-4 sm:flex-row sm:items-center sm:p-5">
+            <ShieldCheck className="h-8 w-8 shrink-0 text-emerald-300" />
+            <div>
+              <p className="text-sm font-extrabold text-emerald-100">Your Photo, Your Privacy</p>
+              <p className="mt-1 text-xs leading-6 text-slate-300">Beauty retouch processing आपके browser में locally होती है। इस retouch के लिए आपकी फोटो TANSHU ONLINE के app server पर upload नहीं की जाती। अपने browser और device की सुरक्षा बनाए रखें।</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="border-y border-slate-200 bg-white px-4 py-10 sm:px-8 lg:px-12">
         <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-2">
           <div>
