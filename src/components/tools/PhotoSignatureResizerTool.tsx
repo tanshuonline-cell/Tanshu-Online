@@ -186,7 +186,7 @@ async function renderImage(asset: Asset, settings: Settings) {
       let high = maxQuality;
       let best: Blob | null = null;
       let bestQuality = 0.3;
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 12; i++) {
         const quality = (low + high) / 2;
         const candidate = await canvasBlob(canvas, 'image/jpeg', quality);
         if (candidate.size <= targetBytes) {
@@ -327,7 +327,27 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   };
 
   const updateSetting = (slot: Slot, key: keyof Settings, value: string | number) => {
-    setSettings((current) => ({ ...current, [slot]: { ...current[slot], [key]: value } as Settings }));
+    let safeValue: string | number = value;
+    if (key === 'width' || key === 'height' || key === 'targetKB') {
+      const maximum = key === 'targetKB' ? 5000 : 4000;
+      safeValue = Math.max(5, Math.min(maximum, Math.round(Number(value) || 5)));
+    } else if (key === 'quality') {
+      safeValue = Math.max(0.3, Math.min(1, Number(value)));
+    } else if (key === 'zoom') {
+      safeValue = Math.max(1, Math.min(3, Number(value)));
+    } else if (key === 'cropX' || key === 'cropY') {
+      safeValue = Math.max(-1, Math.min(1, Number(value)));
+    }
+    setSettings((current) => {
+      const next = { ...current, [slot]: { ...current[slot], [key]: safeValue } as Settings };
+      if (next[slot].width * next[slot].height > 12000000) {
+        setStatus(isHindi
+          ? 'कुल आउटपुट 12 मेगापिक्सेल से अधिक है। चौड़ाई या ऊँचाई कम करें।'
+          : 'Output exceeds 12 megapixels. Reduce the width or height.');
+      }
+      return next;
+    });
+    setActivePreset('custom');
     clearOutput(slot);
   };
 
@@ -371,7 +391,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     }
     setAssets((current) => {
       const currentAsset = current[slot];
-      if (!currentAsset || currentAsset.sourceUrl !== asset.sourceUrl || revisionsRef.current[slot] !== revision) return current;
+      if (!currentAsset || currentAsset.sourceUrl !== asset.sourceUrl || revisionsRef.current[slot] !== revision) {
+        URL.revokeObjectURL(outputUrl);
+        return current;
+      }
       return {
         ...current,
         [slot]: {
@@ -526,7 +549,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <ImagePlus className="mb-2 h-7 w-7 text-blue-600 transition-transform duration-200 group-hover:scale-110" />
           <span className="text-xs font-bold text-slate-800">{asset ? (isHindi ? 'दूसरी फाइल चुनें' : 'Choose another file') : copy.clickUpload}</span>
           <span className="mt-1 text-[10px] text-slate-500">{copy.limit}</span>
-          <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => handleFile(slot, event.target.files?.[0])} />
+          <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+            const input = event.currentTarget;
+            handleFile(slot, input.files?.[0]);
+            input.value = '';
+          }} />
         </label>
         {asset ? (
           <div className="mt-3 flex items-center gap-3 rounded-xl bg-slate-50 p-2.5">
