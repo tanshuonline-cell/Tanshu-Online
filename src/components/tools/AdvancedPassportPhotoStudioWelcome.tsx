@@ -78,7 +78,7 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
             <button type="button" onClick={() => setLanguage("hi")} aria-pressed={language === "hi"} className={`rounded-md px-2 py-1.5 text-[10px] font-extrabold transition sm:text-xs ${language === "hi" ? "bg-white text-slate-900 shadow" : "text-blue-100 hover:bg-white/10"}`}>हिंदी</button>
             <button type="button" onClick={() => setLanguage("en")} aria-pressed={language === "en"} className={`rounded-md px-2 py-1.5 text-[10px] font-extrabold transition sm:text-xs ${language === "en" ? "bg-white text-slate-900 shadow" : "text-blue-100 hover:bg-white/10"}`}>EN</button>
           </div>
-          <button onClick={onStart} className="ml-auto inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-200/30 bg-gradient-to-r from-amber-400 to-yellow-300 px-2.5 py-1.5 text-[11px] font-extrabold text-slate-950 shadow-md shadow-black/20 transition duration-300 hover:-translate-y-0.5 hover:from-amber-300 hover:to-yellow-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-200/60 sm:px-3 sm:text-xs">
+          <button onClick={onStart} className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-200/30 bg-gradient-to-r from-amber-400 to-yellow-300 px-2.5 py-1.5 text-[11px] font-extrabold text-slate-950 shadow-md shadow-black/20 transition duration-300 hover:-translate-y-0.5 hover:from-amber-300 hover:to-yellow-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-200/60 sm:px-3 sm:text-xs">
             {tx("Next Page")} <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
