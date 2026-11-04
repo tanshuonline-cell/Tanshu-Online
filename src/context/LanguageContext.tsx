@@ -23,7 +23,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.videos': 'Latest Videos',
     'nav.about': 'About',
     'btn.exploreTools': 'Explore Tools',
-    'btn.exploreAllTools': 'Explore All 89 Tools',
+    'btn.exploreAllTools': 'Explore All 90 Tools',
 
     // Hero
     'hero.tools': 'TOOLS',
@@ -31,14 +31,14 @@ const translations: Record<Language, Record<string, string>> = {
     'hero.schemes': 'SCHEMES',
     'hero.videos': 'VIDEOS',
     'hero.subtitle': 'PDF, photo, signature, online tools and government scheme information — simplified and organized.',
-    'hero.searchPlaceholder': 'Search 89 tools, Bihar & Central services, schemes (e.g. Voter, Aadhaar, Caste, PM Kisan)...',
+    'hero.searchPlaceholder': 'Search 90 tools, Bihar & Central services, schemes (e.g. Voter, Aadhaar, Caste, PM Kisan)...',
     'hero.searchBtn': 'Search',
     'hero.viewSchemes': 'View Schemes',
 
     // Category Navigation Section
     'catNav.kicker': 'Sarkari Navigation Hub · Centralized Citizen Directory',
     'catNav.title': 'Browse by Government Category',
-    'catNav.desc': 'Direct access to verified Bihar state portals, Central citizen services, DBT welfare subsidies, and 89 online cyber cafe utility tools.',
+    'catNav.desc': 'Direct access to verified Bihar state portals, Central citizen services, DBT welfare subsidies, and 90 online cyber cafe utility tools.',
     'catNav.biharSrv': 'Bihar Govt Services',
     'catNav.biharSrvHi': 'बिहार सरकारी सेवाएं',
     'catNav.biharSrvDesc': 'RTPS Caste, Income, Residence, Bihar Bhumi Dakhil-Kharij, Jamabandi, LPC & EPDS Ration Card.',
@@ -58,7 +58,7 @@ const translations: Record<Language, Record<string, string>> = {
     'catNav.allTools': 'All Online Tools',
     'catNav.allToolsHi': 'सभी ऑनलाइन टूल्स',
     'catNav.allToolsDesc': 'Passport photo maker, PVC card layout, PDF compress, Hindi typing & cyber cafe utilities.',
-    'catNav.allToolsBtn': 'Explore All 89 Tools',
+    'catNav.allToolsBtn': 'Explore All 90 Tools',
     'catNav.backBtn': 'Back to Categories',
     'catNav.topBtn': 'Top of Page ↑',
 
@@ -129,7 +129,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.videos': 'नवीनतम वीडियो',
     'nav.about': 'परिचय',
     'btn.exploreTools': 'टूल्स देखें',
-    'btn.exploreAllTools': 'सभी 89 टूल्स देखें',
+    'btn.exploreAllTools': 'सभी 90 टूल्स देखें',
 
     // Hero
     'hero.tools': 'टूल्स',
@@ -137,14 +137,14 @@ const translations: Record<Language, Record<string, string>> = {
     'hero.schemes': 'योजनाएं',
     'hero.videos': 'वीडियो',
     'hero.subtitle': 'PDF, फोटो, सिग्नेचर, ऑनलाइन टूल्स और सरकारी योजनाओं की जानकारी — आसान और व्यवस्थित तरीके से।',
-    'hero.searchPlaceholder': '89 टूल्स, बिहार व केंद्र की सेवाएं, योजनाएं खोजें (जैसे: वोटर, आधार, जाति, किसान)...',
+    'hero.searchPlaceholder': '90 टूल्स, बिहार व केंद्र की सेवाएं, योजनाएं खोजें (जैसे: वोटर, आधार, जाति, किसान)...',
     'hero.searchBtn': 'खोजें',
     'hero.viewSchemes': 'योजनाएं देखें',
 
     // Category Navigation Section
     'catNav.kicker': 'सरकारी नेविगेशन हब · केंद्रीकृत नागरिक डायरेक्टरी',
     'catNav.title': 'श्रेणी अनुसार सरकारी सेवाएं व योजनाएं',
-    'catNav.desc': 'सत्यापित बिहार राज्य पोर्टल, केंद्रीय नागरिक सेवाएं, डीबीटी कल्याणकारी सब्सिडी और 89 ऑनलाइन साइबर कैफ़े टूल्स तक सीधी पहुंच।',
+    'catNav.desc': 'सत्यापित बिहार राज्य पोर्टल, केंद्रीय नागरिक सेवाएं, डीबीटी कल्याणकारी सब्सिडी और 90 ऑनलाइन साइबर कैफ़े टूल्स तक सीधी पहुंच।',
     'catNav.biharSrv': 'बिहार सरकारी सेवाएं',
     'catNav.biharSrvHi': 'Bihar Govt Services',
     'catNav.biharSrvDesc': 'आरटीपीएस जाति, आय, निवास प्रमाण पत्र, बिहार भूमि दाखिल-खारिज, जमाबंदी, एलपीसी एवं राशन कार्ड।',
@@ -164,7 +164,7 @@ const translations: Record<Language, Record<string, string>> = {
     'catNav.allTools': 'सभी ऑनलाइन टूल्स',
     'catNav.allToolsHi': 'All Online Tools',
     'catNav.allToolsDesc': 'पासपोर्ट फोटो मेकर, पीवीसी कार्ड लेआउट, पीडीएफ कंप्रेस, हिंदी टाइपिंग और साइबर कैफ़े उपयोगिताएं।',
-    'catNav.allToolsBtn': 'सभी 89 टूल्स देखें',
+    'catNav.allToolsBtn': 'सभी 90 टूल्स देखें',
     'catNav.backBtn': '← श्रेणियों पर वापस जाएं',
     'catNav.topBtn': 'पेज के शीर्ष पर जाएं ↑',
 
@@ -175,7 +175,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // All Tools Directory
     'at.kicker': 'संपूर्ण डिजिटल उपयोगिता लाइब्रेरी',
-    'at.title': 'सभी 89 टूल्स डायरेक्टरी',
+    'at.title': 'सभी 90 टूल्स डायरेक्टरी',
     'at.desc': 'सीएससी व बिजनेस, पीवीसी आईडी कार्ड, फोटो स्टूडियो, पीडीएफ टूल्स, इमेज कनवर्टर, कैलकुलेटर व व्हाट्सएप टूल्स।',
     'at.searchPlaceholder': 'नाम, विवरण या कीवर्ड द्वारा टूल खोजें...',
     'at.allCategory': 'सभी टूल्स',
