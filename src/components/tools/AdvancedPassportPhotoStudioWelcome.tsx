@@ -89,9 +89,9 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
               <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-200">Interactive Demo</span>
             </div>
             <div className="relative mx-auto aspect-[4/4.3] max-w-[340px] overflow-hidden rounded-xl border-4 border-white/80 bg-white shadow-xl">
-              <PortraitArtwork background="#f8fafc" />
+              <img src={BEAUTY_DEMO_PHOTO} alt="Passport photo sample after subtle enhancement" className="absolute inset-0 h-full w-full object-cover object-center" style={{ filter: 'brightness(1.08) contrast(.98) saturate(1.06)' }} />
               <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - comparison}% 0 0)` }}>
-                <PortraitArtwork background="#a1a1aa" muted />
+                <img src={BEAUTY_DEMO_PHOTO} alt="Same portrait sample before enhancement" className="h-full w-full object-cover object-center" style={{ filter: 'contrast(1.12) saturate(.82) brightness(.88)' }} />
               </div>
               <span className="absolute left-2 top-2 rounded-md bg-slate-950/75 px-2 py-1 text-[10px] font-bold text-white">BEFORE</span>
               <span className="absolute right-2 top-2 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white">AFTER</span>
