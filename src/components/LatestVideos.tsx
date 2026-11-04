@@ -186,6 +186,9 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
             const isPremium = Boolean(video.isPremium || video.accessType === 'premium');
             const isPurchased = Boolean(purchasedVideos[video.id]);
             const price = video.price || 99;
+            const displayTitle = isHindi && video.hindiTitle ? video.hindiTitle : video.title;
+            const displayDescription = isHindi && video.hindiDescription ? video.hindiDescription : video.description;
+            const displayCategory = isHindi ? 'वीडियो गाइड' : video.category;
 
             return (
               <div
@@ -269,14 +272,14 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
 
                     {/* Category (Top Right) */}
                     <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
-                      {video.category}
+                      {displayCategory}
                     </div>
                   </div>
 
                   {/* Card Content Details */}
                   <div className="p-4 sm:p-5">
                     <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
-                      <span>By {video.instructor}</span>
+                      <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
                       {video.level && (
                         <span className="text-[10px] uppercase font-bold text-slate-400">
                           {video.level}
@@ -288,11 +291,11 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       onClick={() => handleVideoClick(video)}
                       className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight mb-2 hover:text-blue-700 transition-colors cursor-pointer line-clamp-2 leading-snug"
                     >
-                      {video.title}
+                      {displayTitle}
                     </h3>
 
                     <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                      {video.description}
+                      {displayDescription}
                     </p>
 
                     {/* Key Chapters / Topics Covered */}
@@ -364,7 +367,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                     {isHindi ? 'मुफ़्त ट्यूटोरियल' : 'FREE TUTORIAL'}
                   </span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-xs font-semibold text-blue-700">{activeFreeVideo.category}</span>
+                  <span className="text-xs font-semibold text-blue-700">{isHindi ? 'वीडियो गाइड' : activeFreeVideo.category}</span>
                   <span className="text-slate-300">·</span>
                   <span className="text-xs text-slate-500 font-mono">{activeFreeVideo.duration}</span>
                 </div>
@@ -381,7 +384,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                 <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center shadow-lg mb-4 animate-pulse">
                   <Play className="w-7 h-7 fill-current ml-1" />
                 </div>
-                <h4 className="text-base font-bold text-center max-w-lg mb-1">{activeFreeVideo.title}</h4>
+                <h4 className="text-base font-bold text-center max-w-lg mb-1">{isHindi && activeFreeVideo.hindiTitle ? activeFreeVideo.hindiTitle : activeFreeVideo.title}</h4>
                 <p className="text-xs text-slate-400 text-center">{t('video.freeStream', 'Free High-Definition Tutorial Stream (1080p)')}</p>
 
                 {/* Progress bar */}
@@ -394,7 +397,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
               <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-700">
                 <div>
                   <h5 className="font-bold text-slate-900 text-sm mb-1">{t('video.synopsis', 'Tutorial Summary')}</h5>
-                  <p className="leading-relaxed text-slate-600">{activeFreeVideo.description}</p>
+                  <p className="leading-relaxed text-slate-600">{isHindi && activeFreeVideo.hindiDescription ? activeFreeVideo.hindiDescription : activeFreeVideo.description}</p>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
