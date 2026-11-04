@@ -26,6 +26,36 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
+
+  // Confirm the HttpOnly admin session with the server before allowing copy access.
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/auth/check', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active) setAdminCopyAllowed(Boolean(data?.authenticated && data?.user?.role));
+      })
+      .catch(() => {
+        if (active) setAdminCopyAllowed(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  // Deter ordinary copy attempts while preserving text selection and tool workspaces.
+  useEffect(() => {
+    const handleCopy = (event: ClipboardEvent) => {
+      if (adminCopyAllowed) return;
+      const selection = window.getSelection();
+      const anchorNode = selection?.anchorNode;
+      const element = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement;
+      if (element?.closest('input, textarea, select, [contenteditable="true"], [data-copy-allowed], pre, code')) return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"], [data-copy-allowed], pre, code')) return;
+      event.preventDefault();
+    };
+    document.addEventListener('copy', handleCopy);
+    return () => document.removeEventListener('copy', handleCopy);
+  }, [adminCopyAllowed]);
   const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [customerAuthOpen, setCustomerAuthOpen] = useState(false);
   
