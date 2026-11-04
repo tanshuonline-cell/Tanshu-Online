@@ -21,7 +21,7 @@ export async function removeBackgroundAI(
   try {
     const result = await removeBackground(input, {
       quality: 'quality',
-      onProgress: ({ stage, progress, message }) => {
+      onProgress: ({ progress }) => {
         const percent = typeof progress === 'number'
           ? ` ${Math.round(progress * 100)}%`
           : '';
