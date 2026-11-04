@@ -114,7 +114,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </button>
         </div>
 
-        <div className={`${isImmersiveTool ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isImmersiveTool ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
+        <div className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : isPhotoSignatureResizer ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
           {isImmersiveTool ? (
             renderToolComponent()
           ) : (
@@ -145,7 +145,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           )}
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">TANSHU ONLINE</span><span>·</span>
-            <span>{isImmersiveTool ? 'Photo and signature files are processed locally in your browser.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
+            <span>{isPhotoSignatureResizer ? 'Photo and signature files are processed locally in your browser.' : isAdvancedStudio ? 'Photos are processed in your browser in this studio.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
           </div>
           <button onClick={onClose} className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Close Workspace</button>
         </div>
