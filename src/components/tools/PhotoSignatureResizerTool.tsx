@@ -54,8 +54,12 @@ function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, s
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas is not available in this browser.');
-  context.fillStyle = '#ffffff';
-  context.fillRect(0, 0, width, height);
+  // Preserve transparent pixels for PNG; flatten JPEG on white.
+  context.clearRect(0, 0, width, height);
+  if (settings.format === 'image/jpeg') {
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+  }
   const scale = settings.fit === 'cover'
     ? Math.max(width / image.naturalWidth, height / image.naturalHeight)
     : Math.min(width / image.naturalWidth, height / image.naturalHeight);
@@ -152,6 +156,9 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     contain: 'पूरा फोटो दिखाएँ',
     cover: 'फ्रेम भरें (क्रॉप)',
     process: 'दोनों Resize करें',
+    processBoth: 'दोनों Resize करें',
+    processPhoto: 'फोटो Resize करें',
+    processSignature: 'सिग्नेचर Resize करें',
     downloadBoth: 'दोनों डाउनलोड करें',
     print: 'Print Preview',
     reset: 'रीसेट',
@@ -188,6 +195,9 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     contain: 'Fit inside',
     cover: 'Fill frame (crop)',
     process: 'Resize Both',
+    processBoth: 'Resize Both',
+    processPhoto: 'Resize Photo',
+    processSignature: 'Resize Signature',
     downloadBoth: 'Download Both',
     print: 'Print Preview',
     reset: 'Reset',
@@ -268,6 +278,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     const outputUrl = URL.createObjectURL(result.blob);
     const latest = assetsRef.current[slot];
     if (latest?.outputUrl) URL.revokeObjectURL(latest.outputUrl);
+    if (revisionsRef.current[slot] !== revision || assetsRef.current[slot]?.sourceUrl !== asset.sourceUrl) {
+      URL.revokeObjectURL(outputUrl);
+      return false;
+    }
     setAssets((current) => {
       const currentAsset = current[slot];
       if (!currentAsset || currentAsset.sourceUrl !== asset.sourceUrl || revisionsRef.current[slot] !== revision) return current;
@@ -288,6 +302,26 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     return true;
   };
 
+  const processOne = async (slot: Slot) => {
+    const asset = assets[slot];
+    if (!asset) {
+      setStatus(isHindi ? (slot === 'photo' ? 'पहले फोटो अपलोड करें।' : 'पहले सिग्नेचर अपलोड करें।') : (slot === 'photo' ? 'Upload a photo first.' : 'Upload a signature first.'));
+      return;
+    }
+    const revision = revisionsRef.current[slot];
+    const slotSettings = { ...settings[slot] };
+    setProcessing(true);
+    setStatus(isHindi ? 'फाइल प्रोसेस हो रही है…' : 'Processing file…');
+    try {
+      const ok = await processSlot(slot, revision, asset, slotSettings);
+      setStatus(ok ? (isHindi ? 'प्रोसेसिंग पूरी हुई।' : 'Processing complete.') : (isHindi ? 'फाइल या सेटिंग बदल गई। दोबारा Resize करें।' : 'File or settings changed. Please resize again.'));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Image processing failed.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const processAll = async () => {
     if (!assets.photo && !assets.signature) {
       setStatus(isHindi ? 'पहले फोटो या सिग्नेचर अपलोड करें।' : 'Upload a photo or signature first.');
@@ -301,6 +335,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     setStatus(isHindi ? 'आपकी फाइलें प्रोसेस हो रही हैं…' : 'Processing your files…');
     try {
       const photoOk = await processSlot('photo', run.photo.revision, run.photo.asset, run.photo.settings);
+      if (!photoOk) {
+        setStatus(isHindi ? 'फोटो की सेटिंग या फाइल बदल गई। दोबारा Resize करें।' : 'Photo changed during processing. Please resize again.');
+        return;
+      }
       const signatureOk = await processSlot('signature', run.signature.revision, run.signature.asset, run.signature.settings);
       if (!photoOk || !signatureOk) {
         setStatus(isHindi ? 'सेटिंग या फाइल बदल गई है। कृपया दोबारा Resize करें।' : 'A file or setting changed during processing. Please resize again.');
@@ -487,9 +525,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <>
             <p className="mt-2 text-[10px] font-semibold text-slate-600">{asset.outputWidth} × {asset.outputHeight} px · {settings[slot].format === 'image/jpeg' ? `JPG · ${Math.round((asset.outputQuality || settings[slot].quality) * 100)}%` : 'PNG'}</p>
             {asset.warning && <p className="mt-1 rounded-lg bg-amber-50 p-2 text-[10px] leading-4 text-amber-800">{asset.warning}</p>}
-            <button type="button" onClick={() => downloadSlot(slot)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-lg active:translate-y-0">
-              <Download className="h-4 w-4" />{copy.download}
-            </button>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" disabled={processing} onClick={() => processOne(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-blue-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-blue-700 disabled:opacity-50"><Zap className="h-3.5 w-3.5" />{slot === 'photo' ? copy.processPhoto : copy.processSignature}</button>
+              <button type="button" onClick={() => downloadSlot(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-emerald-700"><Download className="h-3.5 w-3.5" />{copy.download}</button>
+            </div>
           </>
         )}
       </div>
@@ -559,7 +598,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <button type="button" disabled={processing} onClick={processAll} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-3 text-xs font-black text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-wait disabled:opacity-60"><Zap className="h-4 w-4" />{processing ? (isHindi ? 'प्रोसेस हो रहा है…' : 'Processing…') : copy.process}</button>
+          <button type="button" disabled={processing} onClick={processAll} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-3 text-xs font-black text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-wait disabled:opacity-60"><Zap className="h-4 w-4" />{processing ? (isHindi ? 'प्रोसेस हो रहा है…' : 'Processing…') : copy.processBoth}</button>
           <button type="button" onClick={downloadBoth} className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-extrabold text-emerald-800 transition hover:-translate-y-0.5 hover:bg-emerald-100"><Download className="h-4 w-4" />{copy.downloadBoth}</button>
           <button type="button" onClick={printPreview} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-extrabold text-slate-700 transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700"><Printer className="h-4 w-4" />{copy.print}</button>
           <button type="button" onClick={reset} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-extrabold text-slate-600 transition hover:-translate-y-0.5 hover:border-rose-300 hover:text-rose-700"><RefreshCw className="h-4 w-4" />{copy.reset}</button>
