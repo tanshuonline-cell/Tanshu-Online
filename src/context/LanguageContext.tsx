@@ -109,6 +109,102 @@ const translations: Record<Language, Record<string, string>> = {
     'vid.takeaways': 'Key Takeaways',
     'vid.by': 'By',
 
+    // Homepage sections and shared controls
+    'hero.mainTitle': 'Digital Tools & Citizen Services, All in One Place',
+    'hero.mainTitleSuffix': '',
+    'header.citizenToolkit': 'Citizen Toolkit',
+    'quick.photo': 'Photo & Signature',
+    'quick.pdf': 'PDF Tools',
+    'quick.idPrint': 'ID Card & Print',
+    'quick.business': 'Invoice & Business',
+    'quick.whatsapp': 'WhatsApp & QR',
+    'quick.citizen': 'Student & Citizen',
+    'quick.schemes': 'Government Schemes',
+    'quick.videos': 'Video Guides',
+    'common.openTool': 'Open Tool',
+    'common.close': 'Close',
+    'common.backToCategories': 'Back to Categories',
+    'about.kicker': 'About TANSHU ONLINE',
+    'about.title': 'Built for India’s Digital Kiosks, Cyber Cafes & Every Citizen.',
+    'about.intro': 'Every day, citizens visit Common Service Centers (CSC) and cyber cafes across India for passport photos, exam form submissions, PVC Aadhaar prints, and government certificates. Operators face daily hurdles with uneven mobile photos, skewed WhatsApp documents, and complex print margins.',
+    'about.story': 'TANSHU ONLINE was created to simplify this work. We build fast, installation-free browser tools that run on your existing printer, computer, or smartphone.',
+    'about.utilities': 'Available Utilities',
+    'about.release': 'Current Release',
+    'about.private': 'Private & Client-Side',
+    'about.zeroUpload': 'No Server Uploads',
+    'about.empowerment': 'Digital Empowerment',
+    'about.empowermentDesc': 'Helping local entrepreneurs deliver faster, more reliable citizen services.',
+    'about.privacyTitle': '100% In-Browser Privacy',
+    'about.privacyDesc': 'Your sensitive Aadhaar files, passport portraits, and documents stay on your device. Cropping, filtering, and PDF generation run inside your browser.',
+    'about.sizingTitle': 'Hardware & Paper Sizing',
+    'about.sizingDesc': 'Tools are designed around practical print sizes, including CR80 ID cards, 4×6 photo sheets, and legal stamp paper.',
+    'about.guidanceTitle': 'Reliable Public Guidance',
+    'about.guidanceDesc': 'Clear, step-by-step information for government schemes and services, with links to official portals.',
+    'about.transparencyTitle': 'Independent Platform Transparency Declaration',
+    'about.disclaimer': 'TANSHU ONLINE is an independent digital tool platform and public information directory. It is not affiliated with UIDAI, the Election Commission of India, the Income Tax Department, or any central or state government department.',
+    'about.disclaimer2': 'We do not collect government application fees, issue official identity documents, or approve government applications. Official services must be submitted through authorized government websites.',
+    'footer.contact': 'Contact',
+    'footer.popularTools': 'Popular Tools',
+    'footer.quickLinks': 'Quick Links',
+    'footer.legal': 'Legal Disclaimer',
+    'footer.empowering': 'Empowering Digital India with',
+    'video.premium': 'Premium Masterclasses',
+    'video.paymentSecurity': 'Secure UPI & card payments • Protected video access',
+    'video.purchased': 'PURCHASED',
+    'video.watchUnlocked': 'Watch Purchased Masterclass',
+    'video.unlock': 'Unlock Masterclass',
+    'video.watchFree': 'Watch Free Tutorial',
+    'video.freeStream': 'Free High-Definition Tutorial Stream (1080p)',
+    'video.synopsis': 'Tutorial Summary',
+
+    // Homepage sections and shared controls
+    'hero.mainTitle': 'डिजिटल टूल्स और नागरिक सेवाएँ',
+    'hero.mainTitleSuffix': 'अब एक ही जगह',
+    'header.citizenToolkit': 'नागरिक सेवा टूलकिट',
+    'quick.photo': 'फोटो और सिग्नेचर',
+    'quick.pdf': 'PDF टूल्स',
+    'quick.idPrint': 'ID कार्ड और प्रिंट',
+    'quick.business': 'इनवॉइस और बिजनेस',
+    'quick.whatsapp': 'व्हाट्सऐप और QR',
+    'quick.citizen': 'छात्र और नागरिक सेवाएँ',
+    'quick.schemes': 'सरकारी योजनाएँ',
+    'quick.videos': 'वीडियो गाइड',
+    'common.openTool': 'टूल खोलें',
+    'common.close': 'बंद करें',
+    'common.backToCategories': 'श्रेणियों पर वापस जाएँ',
+    'about.kicker': 'तंशु ऑनलाइन के बारे में',
+    'about.title': 'भारत के डिजिटल सेवा केंद्रों, साइबर कैफ़े और हर नागरिक के लिए।',
+    'about.intro': 'हर दिन देशभर के नागरिक पासपोर्ट फोटो, परीक्षा फॉर्म, PVC आधार प्रिंट और सरकारी प्रमाणपत्रों के लिए CSC केंद्रों और साइबर कैफ़े जाते हैं। ऑपरेटरों को मोबाइल फोटो, तिरछे WhatsApp दस्तावेज़ और प्रिंट मार्जिन जैसी समस्याओं का सामना करना पड़ता है।',
+    'about.story': 'तंशु ऑनलाइन इन कामों को आसान बनाने के लिए बनाया गया है। यहाँ तेज़ और बिना इंस्टॉल किए चलने वाले ब्राउज़र टूल मिलते हैं, जो आपके कंप्यूटर, प्रिंटर या मोबाइल पर काम करते हैं।',
+    'about.utilities': 'उपलब्ध उपयोगी टूल',
+    'about.release': 'वर्तमान संस्करण',
+    'about.private': 'निजी और आपके डिवाइस पर',
+    'about.zeroUpload': 'सर्वर पर अपलोड नहीं',
+    'about.empowerment': 'डिजिटल सशक्तिकरण',
+    'about.empowermentDesc': 'स्थानीय सेवा संचालकों को नागरिकों की बेहतर और तेज़ सेवा देने में मदद।',
+    'about.privacyTitle': '100% ब्राउज़र में सुरक्षित',
+    'about.privacyDesc': 'आपकी आधार फाइलें, पासपोर्ट फोटो और दस्तावेज़ आपके डिवाइस से बाहर नहीं जाते। क्रॉपिंग, फ़िल्टर और PDF बनाना आपके ब्राउज़र में ही होता है।',
+    'about.sizingTitle': 'प्रिंटर और कागज़ के सही माप',
+    'about.sizingDesc': 'टूल CR80 ID कार्ड, 4×6 फोटो शीट और कानूनी स्टाम्प पेपर जैसे व्यावहारिक प्रिंट मापों के अनुसार बनाए गए हैं।',
+    'about.guidanceTitle': 'विश्वसनीय सरकारी जानकारी',
+    'about.guidanceDesc': 'सरकारी योजनाओं और सेवाओं की आसान, चरण-दर-चरण जानकारी और आधिकारिक पोर्टल के लिंक।',
+    'about.transparencyTitle': 'स्वतंत्र प्लेटफ़ॉर्म की पारदर्शिता घोषणा',
+    'about.disclaimer': 'तंशु ऑनलाइन एक स्वतंत्र डिजिटल टूल प्लेटफ़ॉर्म और सार्वजनिक जानकारी निर्देशिका है। इसका UIDAI, भारत निर्वाचन आयोग, आयकर विभाग या किसी केंद्र/राज्य सरकारी विभाग से कोई संबंध नहीं है।',
+    'about.disclaimer2': 'हम सरकारी आवेदन शुल्क नहीं लेते, आधिकारिक पहचान पत्र जारी नहीं करते और सरकारी आवेदनों को मंज़ूरी नहीं देते। आधिकारिक सेवाओं के लिए अधिकृत सरकारी वेबसाइट का ही उपयोग करें।',
+    'footer.contact': 'संपर्क',
+    'footer.popularTools': 'लोकप्रिय टूल्स',
+    'footer.quickLinks': 'महत्वपूर्ण लिंक',
+    'footer.legal': 'कानूनी सूचना',
+    'footer.empowering': 'डिजिटल भारत को सशक्त बनाते हुए',
+    'video.premium': 'प्रीमियम मास्टरक्लास',
+    'video.paymentSecurity': 'सुरक्षित UPI और कार्ड भुगतान • सुरक्षित वीडियो एक्सेस',
+    'video.purchased': 'खरीदा गया',
+    'video.watchUnlocked': 'खरीदी गई मास्टरक्लास देखें',
+    'video.unlock': 'मास्टरक्लास अनलॉक करें',
+    'video.watchFree': 'मुफ़्त ट्यूटोरियल देखें',
+    'video.freeStream': 'मुफ़्त हाई-डेफिनिशन वीडियो (1080p)',
+    'video.synopsis': 'ट्यूटोरियल का सारांश',
+
     // Search Component
     'search.type.tool': 'Tool',
     'search.type.service': 'Government Service',
@@ -266,14 +362,26 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [language]);
 
   const t = (key: string, fallback?: string): string => {
+    // Keep older component key names connected to the canonical dictionary keys.
+    const aliases: Record<string, string> = {
+      'featured.kicker': 'ft.kicker',
+      'featured.title': 'ft.title',
+      'featured.desc': 'ft.desc',
+      'services.kicker': 'gs.kicker',
+      'services.title': 'gs.title',
+      'services.desc': 'gs.desc',
+      'schemes.kicker': 'sch.kicker',
+      'schemes.title': 'sch.title',
+      'schemes.desc': 'sch.desc',
+      'videos.kicker': 'vid.kicker',
+      'videos.title': 'vid.title',
+      'videos.desc': 'vid.desc',
+    };
+    const resolvedKey = aliases[key] || key;
     const currentDict = translations[language];
-    if (currentDict && currentDict[key]) {
-      return currentDict[key];
-    }
+    if (currentDict && currentDict[resolvedKey]) return currentDict[resolvedKey];
     const defaultDict = translations.en;
-    if (defaultDict && defaultDict[key]) {
-      return defaultDict[key];
-    }
+    if (defaultDict && defaultDict[resolvedKey]) return defaultDict[resolvedKey];
     return fallback || key;
   };
 
