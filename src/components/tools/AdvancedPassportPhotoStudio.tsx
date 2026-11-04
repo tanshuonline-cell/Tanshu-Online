@@ -241,8 +241,13 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [brushSize, setBrushSize] = useState(24);
   const [brushMode, setBrushMode] = useState<'erase'|'restore'>('erase');
   const [brushActive, setBrushActive] = useState(false);
+  const [brushReady, setBrushReady] = useState(false);
+  const brushLastPointRef = useRef<{x:number;y:number}|null>(null);
   const brushCanvasRef = useRef<HTMLCanvasElement>(null);
   const brushOriginalRef = useRef<HTMLCanvasElement|null>(null);
+  const brushBaseRef = useRef<HTMLCanvasElement|null>(null);
+  const brushMaskRef = useRef<HTMLCanvasElement|null>(null);
+  const brushRestoreLayerRef = useRef<HTMLCanvasElement|null>(null);
   const [aiProgressMessage, setAiProgressMessage] = useState('');
   const [border, setBorder] = useState(1);
   const [borderDraft, setBorderDraft] = useState(1);
@@ -328,7 +333,106 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     });
   }, [activePanel, selected?.id, dimensions.width, dimensions.height, cropImageDimensions.width, cropImageDimensions.height]);
 
-  useEffect(() => { if(activePanel!=='remove-bg'||!selected)return; const canvas=brushCanvasRef.current; if(!canvas)return; const image=new Image(); image.onload=()=>{canvas.width=image.naturalWidth||image.width;canvas.height=image.naturalHeight||image.height;const ctx=canvas.getContext('2d');if(!ctx)return;ctx.drawImage(image,0,0);const original=document.createElement('canvas');original.width=canvas.width;original.height=canvas.height;original.getContext('2d')?.drawImage(image,0,0);brushOriginalRef.current=original;};image.src=selected.src; },[activePanel,selected?.id,selected?.src]);
+  useEffect(() => {
+    if (activePanel !== 'remove-bg' || !selected) return;
+    const canvas = brushCanvasRef.current;
+    if (!canvas) return;
+    let cancelled = false;
+    setBrushReady(false);
+    setBrushActive(false);
+    brushLastPointRef.current = null;
+    const workingSource = backgroundRemoved[selected.id] && aiCutouts[selected.id]
+      ? aiCutouts[selected.id]
+      : selected.src;
+
+    Promise.all([
+      loadImageForDetection(workingSource),
+      loadImageForDetection(selected.src)
+    ]).then(([workingImage, originalImage]) => {
+      if (cancelled) return;
+      const width = workingImage.naturalWidth || workingImage.width;
+      const height = workingImage.naturalHeight || workingImage.height;
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas उपलब्ध नहीं है।');
+      context.clearRect(0, 0, width, height);
+      context.drawImage(workingImage, 0, 0, width, height);
+
+      const makeCanvas = () => {
+        const result = document.createElement('canvas');
+        result.width = width;
+        result.height = height;
+        return result;
+      };
+      const base = makeCanvas();
+      base.getContext('2d')?.drawImage(workingImage, 0, 0, width, height);
+      const original = makeCanvas();
+      original.getContext('2d')?.drawImage(originalImage, 0, 0, width, height);
+      brushBaseRef.current = base;
+      brushOriginalRef.current = original;
+      brushMaskRef.current = makeCanvas();
+      brushRestoreLayerRef.current = makeCanvas();
+      setBrushReady(true);
+    }).catch((loadError) => {
+      if (!cancelled) setError(loadError instanceof Error ? loadError.message : 'Brush preview लोड नहीं हो सका।');
+    });
+
+    return () => { cancelled = true; };
+  }, [activePanel, selected?.id, selected?.src, selected ? backgroundRemoved[selected.id] : false, selected ? aiCutouts[selected.id] : undefined]);
+
+  const paintBrushSegment = (startX: number, startY: number, endX: number, endY: number) => {
+    const canvas = brushCanvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = brushSize * Math.max(canvas.width / Math.max(1, rect.width), canvas.height / Math.max(1, rect.height));
+
+    if (brushMode === 'erase') {
+      context.save();
+      context.globalCompositeOperation = 'destination-out';
+      context.lineWidth = width;
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.beginPath();
+      context.moveTo(startX, startY);
+      context.lineTo(endX, endY);
+      context.stroke();
+      context.restore();
+      return;
+    }
+
+    const original = brushOriginalRef.current;
+    const mask = brushMaskRef.current;
+    const restoreLayer = brushRestoreLayerRef.current;
+    const maskContext = mask?.getContext('2d');
+    const layerContext = restoreLayer?.getContext('2d');
+    if (!original || !mask || !restoreLayer || !maskContext || !layerContext) return;
+
+    maskContext.clearRect(0, 0, mask.width, mask.height);
+    maskContext.save();
+    maskContext.strokeStyle = '#ffffff';
+    maskContext.lineWidth = width;
+    maskContext.lineCap = 'round';
+    maskContext.lineJoin = 'round';
+    maskContext.beginPath();
+    maskContext.moveTo(startX, startY);
+    maskContext.lineTo(endX, endY);
+    maskContext.stroke();
+    maskContext.restore();
+
+    layerContext.clearRect(0, 0, restoreLayer.width, restoreLayer.height);
+    layerContext.globalCompositeOperation = 'source-over';
+    layerContext.drawImage(original, 0, 0);
+    layerContext.globalCompositeOperation = 'destination-in';
+    layerContext.drawImage(mask, 0, 0);
+    layerContext.globalCompositeOperation = 'source-over';
+
+    context.save();
+    context.globalCompositeOperation = 'source-over';
+    context.drawImage(restoreLayer, 0, 0);
+    context.restore();
+  };
 
   useEffect(() => {
     const canvas = cropPreviewRef.current;
@@ -1161,7 +1265,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
         </div>
         <p className="text-[11px] text-amber-700">ध्यान दें: फोटो साइज का अंतिम नियम संबंधित फॉर्म/विभाग की आधिकारिक गाइडलाइन से मिलाएँ।</p>
       </div>}
-      {activePanel==='remove-bg'&&selected&&<div className="space-y-4"><p className="text-sm text-slate-600">{language==='hi'?'AI आपके ब्राउज़र में फोटो का बैकग्राउंड हटाता है। फोटो हमारे ऐप सर्वर पर अपलोड नहीं होती।':'AI removes the photo background locally in your browser. Your photo is not uploaded to our app server.'}</p><div className="rounded-xl border p-3 space-y-2"><h4 className="text-sm font-bold">Manual Brush Eraser</h4><p className="text-xs text-slate-600">ब्रश से मिटाएँ और Restore से वापस पेंट करें।</p><div className="flex flex-wrap items-center gap-2"><label className="text-xs">Size <input type="range" min="4" max="100" value={brushSize} onChange={e=>setBrushSize(Number(e.target.value))}/></label><button type="button" onClick={()=>setBrushMode('erase')} className="rounded border px-2 py-1 text-xs">Erase</button><button type="button" onClick={()=>setBrushMode('restore')} className="rounded border px-2 py-1 text-xs">Restore</button><button type="button" onClick={()=>{const c=brushCanvasRef.current,o=brushOriginalRef.current;if(c&&o)c.getContext('2d')?.drawImage(o,0,0);}} className="rounded border px-2 py-1 text-xs">Reset</button><button type="button" onClick={()=>{const c=brushCanvasRef.current;if(!c||!selected)return;setAiCutouts(v=>({...v,[selected.id]:c.toDataURL('image/png')}));setBackgroundRemoved(v=>({...v,[selected.id]:true}));setActivePanel(null);}} className="rounded bg-blue-600 px-2 py-1 text-xs font-bold text-white">Apply</button></div><div className="overflow-auto bg-slate-100 p-2"><canvas ref={brushCanvasRef} className="mx-auto block max-h-[360px] max-w-full touch-none" onPointerDown={e=>{const c=e.currentTarget;c.setPointerCapture(e.pointerId);setBrushActive(true);const ctx=c.getContext('2d'),r=c.getBoundingClientRect();if(ctx){ctx.globalCompositeOperation=brushMode==='erase'?'destination-out':'source-over';ctx.lineWidth=brushSize*Math.max(c.width/r.width,c.height/r.height);ctx.lineCap='round';ctx.beginPath();ctx.moveTo((e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height);ctx.lineTo((e.clientX-r.left)*c.width/r.width+0.1,(e.clientY-r.top)*c.height/r.height+0.1);ctx.stroke();}}} onPointerMove={e=>{if(!brushActive)return;const c=e.currentTarget,ctx=c.getContext('2d'),r=c.getBoundingClientRect();if(!ctx)return;ctx.globalCompositeOperation=brushMode==='erase'?'destination-out':'source-over';ctx.lineWidth=brushSize*Math.max(c.width/r.width,c.height/r.height);ctx.lineCap='round';ctx.lineTo((e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height);ctx.stroke();}} onPointerUp={()=>setBrushActive(false)} onPointerCancel={()=>setBrushActive(false)}/></div></div><div className="flex flex-wrap gap-2"><button disabled={aiProcessing} onClick={async()=>{const targetPhoto=selected;if(!targetPhoto)return;setAiProcessing(true);setAiProgressMessage('AI तैयार हो रहा है…');setError('');let completed=false;try{setAiProgressMessage('AI तैयार हो रहा है…');const blob=await removeBackgroundAI(targetPhoto.src,(message)=>setAiProgressMessage(message));const url=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('Could not read AI output'));reader.onerror=()=>reject(new Error('Could not read AI output'));reader.readAsDataURL(blob);});setAiCutouts(c=>({...c,[targetPhoto.id]:url}));setBackgroundRemoved(c=>({...c,[targetPhoto.id]:true}));setSelectedId(targetPhoto.id);completed=true;}catch(e){setError(e instanceof Error?e.message:'AI background removal failed.');}finally{setAiProcessing(false);setAiProgressMessage('');if(completed)setActivePanel(null);}}} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{aiProcessing?(language==='hi'?'AI मॉडल चल रहा है… कृपया प्रतीक्षा करें':'Processing AI… please wait'):(language==='hi'?'AI से बैकग्राउंड हटाएँ':'Remove Background with AI')}</button><button onClick={()=>{setBackgroundRemoved(c=>({...c,[selected.id]:false}));setAiCutouts(c=>{const n={...c};delete n[selected.id];return n;});}} className="rounded-lg border px-4 py-2 text-sm">{language==='hi'?'मूल फोटो':'Restore Original'}</button></div><p className="text-xs text-slate-500">{language==='hi'?'पहली बार AI से फोटो का बैकग्राउंड हटाने में लगभग 1–3 मिनट लग सकते हैं। आपके डिवाइस या इंटरनेट के अनुसार कभी-कभी 5 मिनट भी लग सकते हैं। कृपया धैर्य रखें। अगली बार आमतौर पर इतना समय नहीं लगेगा।':'The first AI background removal may take about 1–3 minutes, and sometimes up to 5 minutes depending on your device or internet. Please be patient. The next time usually takes much less time.'}</p></div>}
+      {activePanel==='remove-bg'&&selected&&<div className="space-y-4"><p className="text-sm text-slate-600">{language==='hi'?'AI आपके ब्राउज़र में फोटो का बैकग्राउंड हटाता है। फोटो हमारे ऐप सर्वर पर अपलोड नहीं होती।':'AI removes the photo background locally in your browser. Your photo is not uploaded to our app server.'}</p><div className="rounded-xl border p-3 space-y-2"><h4 className="text-sm font-bold">Manual Brush Eraser</h4><p className="text-xs text-slate-600">ब्रश से मिटाएँ और Restore से वापस पेंट करें।</p><div className="flex flex-wrap items-center gap-2"><label className="text-xs">Size <input type="range" min="4" max="100" value={brushSize} onChange={e=>setBrushSize(Number(e.target.value))}/></label><button type="button" onClick={()=>setBrushMode('erase')} className="rounded border px-2 py-1 text-xs">Erase</button><button type="button" onClick={()=>setBrushMode('restore')} className="rounded border px-2 py-1 text-xs">Restore</button><button type="button" disabled={!brushReady} onClick={()=>{const c=brushCanvasRef.current,b=brushBaseRef.current,ctx=c?.getContext('2d');if(c&&b&&ctx){ctx.globalCompositeOperation='source-over';ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(b,0,0);}}} className="rounded border px-2 py-1 text-xs disabled:opacity-40">Reset</button><button type="button" disabled={!brushReady} onClick={()=>{const c=brushCanvasRef.current;if(!c||!selected||!brushReady)return;setAiCutouts(v=>({...v,[selected.id]:c.toDataURL('image/png')}));setBackgroundRemoved(v=>({...v,[selected.id]:true}));setActivePanel(null);}} className="rounded bg-blue-600 px-2 py-1 text-xs font-bold text-white disabled:opacity-40">Apply</button></div><div className="overflow-auto bg-slate-100 p-2"><canvas ref={brushCanvasRef} className="mx-auto block max-h-[360px] max-w-full touch-none" onPointerDown={e=>{if(!brushReady)return;const c=e.currentTarget;c.setPointerCapture(e.pointerId);const r=c.getBoundingClientRect(),point={x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height};setBrushActive(true);brushLastPointRef.current=point;paintBrushSegment(point.x,point.y,point.x+0.1,point.y+0.1);}} onPointerMove={e=>{if(!brushActive)return;const c=e.currentTarget,r=c.getBoundingClientRect(),point={x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height},previous=brushLastPointRef.current;if(previous)paintBrushSegment(previous.x,previous.y,point.x,point.y);brushLastPointRef.current=point;}} onPointerUp={()=>{setBrushActive(false);brushLastPointRef.current=null;}} onPointerCancel={()=>{setBrushActive(false);brushLastPointRef.current=null;}}/></div></div><div className="flex flex-wrap gap-2"><button disabled={aiProcessing} onClick={async()=>{const targetPhoto=selected;if(!targetPhoto)return;setAiProcessing(true);setAiProgressMessage('AI तैयार हो रहा है…');setError('');let completed=false;try{setAiProgressMessage('AI तैयार हो रहा है…');const blob=await removeBackgroundAI(targetPhoto.src,(message)=>setAiProgressMessage(message));const url=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('Could not read AI output'));reader.onerror=()=>reject(new Error('Could not read AI output'));reader.readAsDataURL(blob);});setAiCutouts(c=>({...c,[targetPhoto.id]:url}));setBackgroundRemoved(c=>({...c,[targetPhoto.id]:true}));setSelectedId(targetPhoto.id);completed=true;}catch(e){setError(e instanceof Error?e.message:'AI background removal failed.');}finally{setAiProcessing(false);setAiProgressMessage('');if(completed)setActivePanel(null);}}} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{aiProcessing?(language==='hi'?'AI मॉडल चल रहा है… कृपया प्रतीक्षा करें':'Processing AI… please wait'):(language==='hi'?'AI से बैकग्राउंड हटाएँ':'Remove Background with AI')}</button><button onClick={()=>{setBackgroundRemoved(c=>({...c,[selected.id]:false}));setAiCutouts(c=>{const n={...c};delete n[selected.id];return n;});}} className="rounded-lg border px-4 py-2 text-sm">{language==='hi'?'मूल फोटो':'Restore Original'}</button></div><p className="text-xs text-slate-500">{language==='hi'?'पहली बार AI से फोटो का बैकग्राउंड हटाने में लगभग 1–3 मिनट लग सकते हैं। आपके डिवाइस या इंटरनेट के अनुसार कभी-कभी 5 मिनट भी लग सकते हैं। कृपया धैर्य रखें। अगली बार आमतौर पर इतना समय नहीं लगेगा।':'The first AI background removal may take about 1–3 minutes, and sometimes up to 5 minutes depending on your device or internet. Please be patient. The next time usually takes much less time.'}</p></div>}
       {activePanel==='color'&&<div className="space-y-4"><div className="flex flex-wrap gap-2">{[{name:'White',value:'#ffffff'},{name:'Blue',value:'#1d4ed8'},{name:'Light Blue',value:'#dbeafe'},{name:'Gray',value:'#e5e7eb'},{name:'Cream',value:'#fff7ed'}].map(c=><button key={c.value} onClick={()=>setBackgroundDraft(c.value)} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"><span className="h-5 w-5 rounded border border-slate-300" style={{backgroundColor:c.value}} />{c.name}</button>)}</div><label className="flex items-center gap-3 text-sm">{language==='hi'?'कस्टम रंग':'Custom color'}<input type="color" value={backgroundDraft} onChange={e=>setBackgroundDraft(e.target.value)}/></label><div className="flex justify-end"><button onClick={()=>{setBackground(backgroundDraft);setActivePanel(null);}} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white">{language==='hi'?'ओके':'OK'}</button></div></div>}
       {activePanel==='border'&&<div className="space-y-4"><label className="block text-sm">{language==='hi'?'बॉर्डर मोटाई':'Border width'}: {borderDraft}<input type="range" min="0" max="8" value={borderDraft} onChange={e=>setBorderDraft(Number(e.target.value))} className="mt-2 w-full"/></label><div className="flex justify-end gap-2"><button onClick={()=>{setBorderDraft(border);setActivePanel(null);}} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">{language==='hi'?'रद्द करें':'Cancel'}</button><button onClick={()=>{setBorder(borderDraft);setActivePanel(null);}} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white">{language==='hi'?'ओके':'OK'}</button></div></div>}
       </div></div>}
