@@ -660,8 +660,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {fields.map((field) => (
-              <label key={field.key} className="text-[10px] font-bold text-slate-500">
-                {field.label}
+              <label key={field.key} className="flex min-w-0 flex-col text-[10px] font-bold text-slate-500">
+                <span className="flex min-h-[26px] items-end leading-tight">{field.label}</span>
                 <input
                   type="number"
                   min={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1}
@@ -694,7 +694,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
                         : 'Output exceeds 12 megapixels. Reduce the width or height.');
                     }
                   }}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  className="mt-1 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </label>
             ))}
