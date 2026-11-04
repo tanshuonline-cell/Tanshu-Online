@@ -650,10 +650,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
                 }}
                 onBlur={(event) => {
                   const entered = Number(event.currentTarget.value) || (field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1);
-                  const maximum = field.key === 'targetKB' ? 5000 : 4000;
+                  const maximum = field.key === 'targetKB' ? 5000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2));
                   const normalized = field.key === 'targetKB'
                     ? Math.max(5, Math.min(maximum, Math.round(entered)))
-                    : Math.max(5, Math.min(maximum, toPixels(entered, unit, current.dpi)));
+                    : Math.max(5, Math.min(4000, toPixels(Math.min(entered, maximum), unit, current.dpi)));
                   if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
                   if ((field.key === 'height' && current.width * normalized > 12000000) ||
                       (field.key === 'width' && normalized * current.height > 12000000)) {
