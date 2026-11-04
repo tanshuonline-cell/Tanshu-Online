@@ -5,6 +5,7 @@ import { PassportPhotoTool } from './PassportPhotoTool';
 import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
 import { AdvancedPassportPhotoStudioWelcome } from './AdvancedPassportPhotoStudioWelcome';
 import { PhotoSignatureResizerTool } from './PhotoSignatureResizerTool';
+import { PhotoSignatureResizerWelcome } from './PhotoSignatureResizerWelcome';
 import { AutoDocumentCropperTool } from './AutoDocumentCropperTool';
 import { DocumentScannerTool } from './DocumentScannerTool';
 import { PdfToPvcTool } from './PdfToPvcTool';
@@ -31,6 +32,7 @@ interface Props {
 
 export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
+  const [showPhotoSignatureStudio, setShowPhotoSignatureStudio] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,7 +47,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
   const isPhotoSignatureResizer = tool.id === 'photo-signature-resizer';
   const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer;
-  const showWelcome = isAdvancedStudio && !showAdvancedStudio;
+  const showWelcome = (isAdvancedStudio && !showAdvancedStudio) || (isPhotoSignatureResizer && !showPhotoSignatureStudio);
 
   const renderToolComponent = () => {
     switch (tool.id) {
@@ -54,7 +56,9 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           ? <AdvancedPassportPhotoStudio />
           : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />;
       case 'photo-signature-resizer':
-        return <PhotoSignatureResizerTool />;
+        return showPhotoSignatureStudio
+          ? <PhotoSignatureResizerTool />
+          : <PhotoSignatureResizerWelcome onStart={() => setShowPhotoSignatureStudio(true)} />;
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
       case 'auto-document-cropper':
@@ -132,10 +136,13 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         </div>
 
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
-          {isAdvancedStudio && showAdvancedStudio && (
+          {((isAdvancedStudio && showAdvancedStudio) || (isPhotoSignatureResizer && showPhotoSignatureStudio)) && (
             <button
               type="button"
-              onClick={() => window.setTimeout(() => setShowAdvancedStudio(false), 600)}
+              onClick={() => {
+                if (isAdvancedStudio) window.setTimeout(() => setShowAdvancedStudio(false), 600);
+                if (isPhotoSignatureResizer) setShowPhotoSignatureStudio(false);
+              }}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-950 bg-slate-950 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all duration-200 ease-out hover:-translate-y-1 hover:border-slate-800 hover:bg-slate-800 hover:text-white hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
               title="Return to Live Demo"
             >
