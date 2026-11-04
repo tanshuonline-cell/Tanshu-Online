@@ -46,12 +46,10 @@ const readImage = (url: string): Promise<HTMLImageElement> => new Promise((resol
 const canvasBlob = (canvas: HTMLCanvasElement, type: OutputFormat, quality: number): Promise<Blob> =>
   new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
-async function renderImage(asset: Asset, settings: Settings) {
+function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, settings: Settings) {
   const width = Math.max(5, Math.min(4000, Math.round(settings.width || 200)));
   const height = Math.max(5, Math.min(4000, Math.round(settings.height || 230)));
   if (width * height > 12000000) throw new Error('Please choose dimensions under 12 megapixels.');
-  const image = await readImage(asset.sourceUrl);
-  const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext('2d');
@@ -68,7 +66,25 @@ async function renderImage(asset: Asset, settings: Settings) {
   const offsetX = Math.max(-1, Math.min(1, settings.cropX || 0));
   const offsetY = Math.max(-1, Math.min(1, settings.cropY || 0));
   context.drawImage(image, (width - drawWidth) / 2 - (overflowX / 2) * offsetX, (height - drawHeight) / 2 - (overflowY / 2) * offsetY, drawWidth, drawHeight);
+  return { width, height };
+}
 
+const CropPreview: React.FC<{ sourceUrl: string; settings: Settings; label: string }> = ({ sourceUrl, settings, label }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let cancelled = false;
+    readImage(sourceUrl).then((image) => {
+      if (!cancelled && canvasRef.current) drawImageToCanvas(canvasRef.current, image, settings);
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [sourceUrl, settings.width, settings.height, settings.fit, settings.zoom, settings.cropX, settings.cropY]);
+  return <canvas ref={canvasRef} aria-label={label} className="block h-auto w-full max-w-[240px] rounded-lg bg-white" />;
+};
+
+async function renderImage(asset: Asset, settings: Settings) {
+  const image = await readImage(asset.sourceUrl);
+  const canvas = document.createElement('canvas');
+  const { width, height } = drawImageToCanvas(canvas, image, settings);
   const targetBytes = Math.max(5, Math.min(5000, settings.targetKB || 50)) * 1024;
   const maxQuality = Math.max(0.3, Math.min(1, settings.quality || 0.88));
   let actualQuality = settings.format === 'image/jpeg' ? maxQuality : 1;
@@ -396,9 +412,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {assets[slot] && <div className="mb-3 overflow-hidden rounded-xl border border-blue-100 bg-slate-100 p-2">
           <p className="mb-2 text-[10px] font-extrabold text-slate-600">{isHindi ? 'लाइव क्रॉप प्रीव्यू' : 'Live crop preview'}</p>
-          <div className="mx-auto flex h-36 max-w-[240px] items-center justify-center overflow-hidden rounded-lg bg-white">
-            <img src={assets[slot]!.sourceUrl} alt={heading + ' crop preview'} className="h-full w-full" style={{ objectFit: current.fit, objectPosition: `${50 + current.cropX * 50}% ${50 + current.cropY * 50}%`, transform: `scale(${current.zoom})` }} />
-          </div>
+          <div className="mx-auto flex max-w-[240px] items-center justify-center overflow-hidden rounded-lg bg-white">\n            <CropPreview sourceUrl={assets[slot]!.sourceUrl} settings={current} label={heading + " crop preview"} />\n          </div>
         </div>}
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-sm font-extrabold text-slate-900">{slot === 'photo' ? '📷 ' : '✍️ '}{heading}</h3>
