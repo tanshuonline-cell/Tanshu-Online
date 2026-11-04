@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 type Slot = 'photo' | 'signature';
-type OutputFormat = 'image/jpeg' | 'image/png';
+type OutputFormat = 'image/jpeg' | 'image/png' | 'image/webp' | 'original';
 type FitMode = 'contain' | 'cover';
 type DimensionUnit = 'px' | 'cm' | 'mm' | 'in';
 const fromPixels = (pixels: number, unit: DimensionUnit, dpi: number) => {
@@ -130,7 +130,7 @@ const readImage = (url: string): Promise<HTMLImageElement> => new Promise((resol
   image.onerror = () => reject(new Error('The selected image could not be opened.'));
   image.src = url;
 });
-const canvasBlob = (canvas: HTMLCanvasElement, type: OutputFormat, quality: number): Promise<Blob> =>
+const canvasBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> =>
   new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
 function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, settings: Settings) {
@@ -141,7 +141,7 @@ function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, s
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas is not available in this browser.');
-  // Preserve transparent pixels for PNG; flatten JPEG on white.
+  // Preserve transparent pixels for PNG/WebP; flatten JPEG on white.
   context.clearRect(0, 0, width, height);
   if (settings.format === 'image/jpeg') {
     context.fillStyle = '#ffffff';
@@ -219,13 +219,15 @@ const addDpiMetadata = async (blob: Blob, dpi: number): Promise<Blob> => {
 
 async function renderImage(asset: Asset, settings: Settings) {
   const image = await readImage(asset.sourceUrl);
+  const sourceType = ['image/jpeg', 'image/png', 'image/webp'].includes(asset.file.type) ? asset.file.type : 'image/jpeg';
+  const outputType = settings.format === 'original' ? sourceType : settings.format;
   const canvas = document.createElement('canvas');
   const { width, height } = drawImageToCanvas(canvas, image, settings);
   const targetBytes = Math.max(5, Math.min(50 * 1024, settings.targetKB || 50)) * 1024;
   const maxQuality = Math.max(0.3, Math.min(1, settings.quality || 0.88));
-  let actualQuality = settings.format === 'image/jpeg' ? maxQuality : 1;
-  let blob = await canvasBlob(canvas, settings.format, settings.format === 'image/jpeg' ? maxQuality : 0.92);
-  if (settings.format === 'image/jpeg') {
+  let actualQuality = outputType === 'image/jpeg' || outputType === 'image/webp' ? maxQuality : 1;
+  let blob = await canvasBlob(canvas, outputType, outputType === 'image/jpeg' || outputType === 'image/webp' ? maxQuality : 0.92);
+  if (outputType === 'image/jpeg' || outputType === 'image/webp') {
     if (blob.size > targetBytes) {
       let low = 0.3;
       let high = maxQuality;
@@ -233,7 +235,7 @@ async function renderImage(asset: Asset, settings: Settings) {
       let bestQuality = 0.3;
       for (let i = 0; i < 12; i++) {
         const quality = (low + high) / 2;
-        const candidate = await canvasBlob(canvas, 'image/jpeg', quality);
+        const candidate = await canvasBlob(canvas, outputType, quality);
         if (candidate.size <= targetBytes) {
           best = candidate;
           bestQuality = quality;
@@ -246,14 +248,14 @@ async function renderImage(asset: Asset, settings: Settings) {
         blob = best;
         actualQuality = bestQuality;
       } else {
-        blob = await canvasBlob(canvas, 'image/jpeg', 0.3);
+        blob = await canvasBlob(canvas, outputType, 0.3);
         actualQuality = 0.3;
       }
     }
   }
-  blob = await addDpiMetadata(blob, settings.dpi);
-  const warning = settings.format === 'image/png' && blob.size > targetBytes
-    ? 'PNG compression cannot guarantee the target KB. Try JPG or smaller dimensions.'
+  if (blob.type === 'image/jpeg' || blob.type === 'image/png') blob = await addDpiMetadata(blob, settings.dpi);
+  const warning = (outputType === 'image/png' || outputType === 'image/webp') && blob.size > targetBytes
+    ? `${outputType === 'image/png' ? 'PNG' : 'WEBP'} compression may not reach the maximum KB. Try JPG or smaller dimensions.`
     : blob.size > targetBytes
       ? 'Target KB could not be reached at the minimum 30% quality. Reduce width and height or increase the target KB.'
       : '';
@@ -290,7 +292,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     dpi: 'प्रिंट DPI',
     dpiHint: 'DPI प्रिंट की डेंसिटी बताता है; असली डिटेल पिक्सेल पर निर्भर करती है।',
     quickSizes: 'जल्दी KB चुनें',
-    format: 'फॉर्मेट',
+    format: 'Save Image As',
     fit: 'फिटिंग',
     contain: 'पूरा फोटो दिखाएँ',
     cover: 'फ्रेम भरें (क्रॉप)',
@@ -333,7 +335,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     dpi: 'Print DPI',
     dpiHint: 'DPI sets print density; actual image detail depends on pixel dimensions.',
     quickSizes: 'Quick KB targets',
-    format: 'Format',
+    format: 'Save Image As',
     fit: 'Fit mode',
     contain: 'Fit inside',
     cover: 'Fill frame (crop)',
@@ -504,7 +506,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   const downloadSlot = (slot: Slot) => {
     const asset = assets[slot];
     if (!asset?.outputUrl) return;
-    const extension = settings[slot].format === 'image/png' ? 'png' : 'jpg';
+    const outputType = asset.outputBlob?.type || 'image/jpeg';
+    const extension = outputType === 'image/png' ? 'png' : outputType === 'image/webp' ? 'webp' : 'jpg';
     const link = document.createElement('a');
     link.href = asset.outputUrl;
     link.download = 'tanshu-online-' + slot + '.' + extension;
@@ -522,7 +525,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     try {
       const files = ready.map((slot) => {
         const asset = assets[slot]!;
-        const extension = asset.outputBlob?.type === 'image/png' ? 'png' : 'jpg';
+        const extension = asset.outputBlob?.type === 'image/png' ? 'png' : asset.outputBlob?.type === 'image/webp' ? 'webp' : 'jpg';
         return { name: 'tanshu-online-' + slot + '.' + extension, blob: asset.outputBlob! };
       });
       const archive = await createZip(files);
@@ -700,7 +703,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           </div>
           <label className="text-[10px] font-bold text-slate-500">{copy.format}
             <select value={current.format} onChange={(event) => updateSetting(slot, 'format', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
-              <option value="image/jpeg">JPG</option><option value="image/png">PNG</option>
+              <option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WEBP</option><option value="original">Original</option>
             </select>
           </label>
           <label className="text-[10px] font-bold text-slate-500">{copy.fit}
@@ -724,8 +727,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           </div>
           <div className="col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 sm:col-span-3">
             <div className="flex items-center justify-between gap-2"><label className="text-[10px] font-extrabold text-slate-700">{copy.quality}</label><span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{Math.round(current.quality * 100)}%</span></div>
-            <input type="range" min="0.3" max="1" step="0.01" value={current.quality} onChange={(event) => updateSetting(slot, 'quality', Number(event.target.value))} className="mt-2 w-full accent-emerald-600" disabled={current.format === 'image/png'} />
-            <p className="mt-1 text-[10px] leading-4 text-slate-500">{copy.qualityHint}{current.format === 'image/png' ? (isHindi ? ' PNG में यह सेटिंग लागू नहीं होती।' : ' This setting does not apply to PNG.') : ''}</p>
+            <input type="range" min="0.3" max="1" step="0.01" value={current.quality} onChange={(event) => updateSetting(slot, 'quality', Number(event.target.value))} className="mt-2 w-full accent-emerald-600" disabled={current.format === 'image/png' || (current.format === 'original' && assets[slot]?.file.type === 'image/png')} />
+            <p className="mt-1 text-[10px] leading-4 text-slate-500">{copy.qualityHint}{current.format === 'image/png' || (current.format === 'original' && assets[slot]?.file.type === 'image/png') ? (isHindi ? ' PNG में यह सेटिंग लागू नहीं होती।' : ' This setting does not apply to PNG.') : ''}</p>
           </div>
         </div>
       </div>
