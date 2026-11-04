@@ -159,7 +159,17 @@ const CropPreview: React.FC<{ sourceUrl: string; settings: Settings; label: stri
     }).catch(() => undefined);
     return () => { cancelled = true; };
   }, [sourceUrl, settings.width, settings.height, settings.format, settings.fit, settings.zoom, settings.cropX, settings.cropY]);
-  return <canvas ref={canvasRef} aria-label={label} className="block h-auto w-full max-w-[240px] rounded-lg bg-white" />;
+  return <canvas
+    ref={canvasRef}
+    aria-label={label}
+    className="block h-auto w-full max-w-[240px] rounded-lg"
+    style={{
+      backgroundColor: '#ffffff',
+      backgroundImage: 'linear-gradient(45deg,#e2e8f0 25%,transparent 25%),linear-gradient(-45deg,#e2e8f0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e2e8f0 75%),linear-gradient(-45deg,transparent 75%,#e2e8f0 75%)',
+      backgroundSize: '16px 16px',
+      backgroundPosition: '0 0,0 8px,8px -8px,-8px 0px'
+    }}
+  />;
 };
 
 async function renderImage(asset: Asset, settings: Settings) {
@@ -417,7 +427,9 @@ export const PhotoSignatureResizerTool: React.FC = () => {
         return;
       }
       const signatureOk = await processSlot('signature', run.signature.revision, run.signature.asset, run.signature.settings);
-      if (!photoOk || !signatureOk) {
+      const photoStillCurrent = revisionsRef.current.photo === run.photo.revision;
+      const signatureStillCurrent = revisionsRef.current.signature === run.signature.revision;
+      if (!photoOk || !signatureOk || !photoStillCurrent || !signatureStillCurrent) {
         setStatus(isHindi ? 'सेटिंग या फाइल बदल गई है। कृपया दोबारा Resize करें।' : 'A file or setting changed during processing. Please resize again.');
         return;
       }
