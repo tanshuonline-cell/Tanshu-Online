@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  ArrowRight, ArrowLeft, Camera, CheckCircle2, Download, FileImage,
-  Gauge, ImagePlus, Monitor, Printer, ShieldCheck, Smartphone, SlidersHorizontal,
+  ArrowRight, Camera, CheckCircle2, Download, FileImage,
+  Gauge, ImagePlus, Monitor, ShieldCheck, Smartphone, SlidersHorizontal,
   Sparkles, Upload, WandSparkles
 } from 'lucide-react';
 
@@ -35,42 +35,54 @@ const features = [
     step: '01',
     icon: Camera,
     title: 'पासपोर्ट / फॉर्म फोटो Resize',
+    titleEn: 'Resize Passport / Form Photos',
     description: 'फोटो की Width और Height pixels में या cm, mm और inches में सेट करें। सही फ्रेम के लिए Contain या Cover चुनें।',
+    descriptionEn: 'Set photo width and height in pixels, cm, mm or inches. Choose Contain or Cover to fit the required frame.',
     sample: 'photo'
   },
   {
     step: '02',
     icon: WandSparkles,
     title: 'सिग्नेचर Resize',
+    titleEn: 'Resize Signatures',
     description: 'सिग्नेचर को अलग सेटिंग से तैयार करें। 140 × 60 px और 200 × 100 px जैसे पुराने उपयोगी presets भी उपलब्ध हैं।',
+    descriptionEn: 'Prepare signatures with separate settings. Useful presets such as 140 × 60 px and 200 × 100 px are also available.',
     sample: 'signature'
   },
   {
     step: '03',
     icon: Gauge,
     title: 'Print DPI सेट करें',
+    titleEn: 'Set Print DPI',
     description: '72, 96, 150, 200, 240 या 300 DPI चुनें। DPI प्रिंट density metadata बताता है; वास्तविक image detail pixels पर निर्भर करती है।',
+    descriptionEn: 'Choose 72, 96, 150, 200, 240 or 300 DPI. DPI describes print-density metadata; actual image detail depends on pixel dimensions.',
     sample: 'dpi'
   },
   {
     step: '04',
     icon: SlidersHorizontal,
     title: 'KB / MB के अनुसार Compress',
+    titleEn: 'Compress to a KB / MB Limit',
     description: '10 KB से 500 KB तक quick targets या MB चुनें। Custom maximum file size भी दर्ज करें। फाइल का आकार चुनी हुई सीमा से कम हो सकता है।',
+    descriptionEn: 'Choose quick targets from 10 KB to 500 KB or switch to MB. Enter a custom maximum size; the final file may be smaller than the selected limit.',
     sample: 'size'
   },
   {
     step: '05',
     icon: ImagePlus,
     title: 'Live Crop और Preview',
+    titleEn: 'Live Crop & Preview',
     description: 'Zoom और X/Y position से फोटो को फ्रेम में सेट करें। Original dimensions और framing बचाने के लिए Compress Only mode भी है।',
+    descriptionEn: 'Position the photo in its frame using zoom and X/Y controls. Compress Only mode keeps the original dimensions and framing.',
     sample: 'preview'
   },
   {
     step: '06',
     icon: FileImage,
     title: 'JPG, PNG, WEBP और ZIP Download',
+    titleEn: 'Download JPG, PNG, WEBP & ZIP',
     description: 'फोटो और सिग्नेचर अलग-अलग डाउनलोड करें या दोनों को ZIP में लें। Print Preview से प्रिंट लेआउट भी जाँचें।',
+    descriptionEn: 'Download the photo and signature separately or together in a ZIP. Check the print layout with Print Preview.',
     sample: 'download'
   }
 ];
@@ -157,10 +169,10 @@ export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart }) => {
               <article key={feature.step} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/10">
                 <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50/70 p-4">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-xs font-black text-white shadow-md">{feature.step}</span>
-                  <div className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0 text-blue-600" /><h3 className="text-sm font-extrabold text-slate-900">{tx(feature.title, feature.title)}</h3></div>
+                  <div className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0 text-blue-600" /><h3 className="text-sm font-extrabold text-slate-900">{tx(feature.title, feature.titleEn)}</h3></div>
                 </div>
                 <div className="p-4">
-                  <p className="min-h-[72px] text-xs leading-6 text-slate-600">{tx(feature.description, feature.description)}</p>
+                  <p className="min-h-[72px] text-xs leading-6 text-slate-600">{tx(feature.description, feature.descriptionEn)}</p>
                   {feature.sample === 'photo' && <div className="mt-3 flex items-center justify-center gap-3 rounded-xl bg-slate-100 p-3"><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto variant="original" /></div><ArrowRight className="h-4 w-4 text-blue-500" /><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto /></div></div>}
                   {feature.sample === 'signature' && <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3"><div className="h-16"><DemoSignature /></div><div className="mt-2 flex justify-between text-[9px] font-bold text-slate-500"><span>140 × 60 px</span><span>200 × 100 px</span></div></div>}
                   {feature.sample === 'dpi' && <div className="mt-3 grid grid-cols-3 gap-2">{['72 DPI','150 DPI','200 DPI','240 DPI','300 DPI','96 DPI'].map((dpi) => <span key={dpi} className={`rounded-lg border px-2 py-2 text-center text-[10px] font-extrabold ${dpi === '300 DPI' ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{dpi}</span>)}</div>}
