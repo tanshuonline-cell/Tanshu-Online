@@ -1373,4 +1373,19 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       '100% private in-browser decoding with zero data upload'
     ]
   }
+  {
+    id: 'advanced-passport-photo-studio',
+    name: 'Advanced Passport Photo Studio',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    iconName: 'Camera',
+    description: 'Passport photos, signature editing and print-ready 4×6 / A4 sheets.',
+    detailedInstructions: 'Upload one or more photos, select the required document size, adjust each photo, edit a signature and export a single photo or print sheet.',
+    keyFeatures: [
+      'Multiple photos with independent crop and adjustment settings',
+      'Passport, stamp, PAN and custom dimensions',
+      'Signature crop, background and photo overlay',
+      '4×6 and A4 print sheets with manual layout and PDF export'
+    ]
+  },
 ];
