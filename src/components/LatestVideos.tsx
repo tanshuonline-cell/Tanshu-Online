@@ -255,7 +255,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                         <div className="flex items-center gap-1">
                           <div className="px-2.5 py-0.5 bg-amber-500 text-slate-950 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
                             <Lock className="w-2.5 h-2.5 text-slate-950" />
-                            <span>PREMIUM • ₹{price}</span>
+                            <span>{isHindi ? 'प्रीमियम' : 'PREMIUM'} • ₹{price}</span>
                           </div>
                           {video.isSample && (
                             <div className="px-1.5 py-0.5 bg-indigo-950/90 text-indigo-300 border border-indigo-500/40 rounded text-[9px] font-bold tracking-wider">
@@ -282,7 +282,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
                       {video.level && (
                         <span className="text-[10px] uppercase font-bold text-slate-400">
-                          {video.level}
+                          {isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : video.level}
                         </span>
                       )}
                     </div>
@@ -301,7 +301,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                     {/* Key Chapters / Topics Covered */}
                     <div className="pt-2.5 border-t border-slate-100 mb-2">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                        Key Curriculum Chapters:
+                        {isHindi ? 'मुख्य पाठ्यक्रम के अध्याय:' : 'Key Curriculum Chapters:'}
                       </span>
                       <ul className="space-y-1 text-xs text-slate-700">
                         {video.topics.slice(0, 3).map((topic, idx) => (
