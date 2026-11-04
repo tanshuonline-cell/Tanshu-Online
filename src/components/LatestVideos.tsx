@@ -304,7 +304,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                         {isHindi ? 'मुख्य पाठ्यक्रम के अध्याय:' : 'Key Curriculum Chapters:'}
                       </span>
                       <ul className="space-y-1 text-xs text-slate-700">
-                        {video.topics.slice(0, 3).map((topic, idx) => (
+                        {(isHindi && video.hindiTopics ? video.hindiTopics : video.topics).slice(0, 3).map((topic, idx) => (
                           <li key={idx} className="flex items-center gap-2 truncate">
                             <span
                               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -405,7 +405,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                     {isHindi ? 'चरण-दर-चरण शामिल विषय' : 'Step-by-Step Chapters Covered'}
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {activeFreeVideo.topics.map((t, idx) => (
+                    {(isHindi && activeFreeVideo.hindiTopics ? activeFreeVideo.hindiTopics : activeFreeVideo.topics).map((t, idx) => (
                       <div key={idx} className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
                         <span className="font-mono text-blue-700 font-bold">0{idx + 1}.</span>
                         <span className="text-slate-700">{t}</span>
