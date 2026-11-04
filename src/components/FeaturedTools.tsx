@@ -112,7 +112,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
                   onClick={() => onOpenTool(tool)}
                   className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-semibold tracking-wide transition-colors cursor-pointer mt-auto shadow-2xs"
                 >
-                  <span>Open Tool</span>
+                  <span>{t('common.openTool', 'Open Tool')}</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
               </div>
