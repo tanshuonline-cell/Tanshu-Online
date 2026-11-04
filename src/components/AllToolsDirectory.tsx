@@ -236,9 +236,14 @@ export const AllToolsDirectory: React.FC<Props> = ({
             {displayDescription}
           </p>
 
-          {/* Key Features Bullet List */}
+          {/* Key Features: keep the selected language consistent in the card */}
           <ul className="space-y-1 mb-3 pt-2 border-t border-slate-100">
-            {tool.keyFeatures.slice(0, 2).map((feat, i) => (
+            {isHindi ? (
+              <li className="text-[10px] sm:text-[11px] text-slate-500 flex items-start gap-1.5">
+                <span className="text-blue-600 font-bold shrink-0">✓</span>
+                <span className="line-clamp-1">{t('common.featureDetails', 'Open the tool to view its available features.')}</span>
+              </li>
+            ) : tool.keyFeatures.slice(0, 2).map((feat, i) => (
               <li key={i} className="text-[10px] sm:text-[11px] text-slate-500 flex items-start gap-1.5">
                 <span className="text-blue-600 font-bold shrink-0">✓</span>
                 <span className="line-clamp-1">{feat}</span>
@@ -349,8 +354,8 @@ export const AllToolsDirectory: React.FC<Props> = ({
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                aria-label="Close all tools modal"
-                title="Close (Esc)"
+                aria-label={isHindi ? "सभी टूल्स की विंडो बंद करें" : "Close all tools modal"}
+                title={isHindi ? "बंद करें (Esc)" : "Close (Esc)"}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -379,7 +384,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
                       type="button"
                       onClick={() => setSearchTerm('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700 p-1"
-                      aria-label="Clear search"
+                      aria-label={isHindi ? "खोज साफ़ करें" : "Clear search"}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -397,7 +402,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
               {/* Category Filter Tabs across all 89 tools */}
               <div
                 role="tablist"
-                aria-label="Tool Categories"
+                aria-label={isHindi ? "टूल श्रेणियाँ" : "Tool Categories"}
                 className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none"
               >
                 {categories.map((cat) => {
