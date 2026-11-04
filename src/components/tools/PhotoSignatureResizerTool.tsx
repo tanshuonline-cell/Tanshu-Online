@@ -7,6 +7,10 @@ import {
 type Slot = 'photo' | 'signature';
 type OutputFormat = 'image/jpeg' | 'image/png';
 type FitMode = 'contain' | 'cover';
+type DimensionUnit = 'px' | 'cm' | 'mm' | 'in';
+const UNIT_TO_INCH: Record<DimensionUnit, number> = { px: 1 / 96, in: 1, cm: 1 / 2.54, mm: 1 / 25.4 };
+const fromPixels = (pixels: number, unit: DimensionUnit) => unit === 'px' ? pixels : Number((pixels * UNIT_TO_INCH[unit] * (unit === 'in' ? 1 : unit === 'cm' ? 2.54 : 25.4)).toFixed(2));
+const toPixels = (value: number, unit: DimensionUnit) => unit === 'px' ? value : Math.round(value / UNIT_TO_INCH[unit] / 96);
 type Settings = { width: number; height: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number };
 type Asset = {
   file: File;
@@ -33,7 +37,9 @@ const PRESETS: Preset[] = [
   makePreset('UPSC Starter', { width: 300, height: 350, targetKB: 100 }, { width: 140, height: 60, targetKB: 20 }),
   makePreset('Railway Starter', { width: 200, height: 230, targetKB: 50 }, { width: 140, height: 60, targetKB: 20 }),
   makePreset('Bihar Exam Starter', { width: 200, height: 230, targetKB: 50 }, { width: 140, height: 60, targetKB: 20 }),
-  makePreset('Compact Upload', { width: 100, height: 120, targetKB: 20 }, { width: 100, height: 40, targetKB: 10 })
+  makePreset('Compact Upload', { width: 100, height: 120, targetKB: 20 }, { width: 100, height: 40, targetKB: 10 }),
+  makePreset('Legacy Signature 140×60 · 10–20 KB', {}, { width: 140, height: 60, targetKB: 20 }),
+  makePreset('Legacy Signature 200×100', {}, { width: 200, height: 100, targetKB: 20 })
 ];
 
 
@@ -221,6 +227,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   assetsRef.current = assets;
   const revisionsRef = useRef<Record<Slot, number>>({ photo: 0, signature: 0 });
   const [settings, setSettings] = useState<Record<Slot, Settings>>({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE });
+  const [dimensionUnits, setDimensionUnits] = useState<Record<Slot, DimensionUnit>>({ photo: 'px', signature: 'px' });
   const [activePreset, setActivePreset] = useState('custom');
   const [processing, setProcessing] = useState(false);
   const [status, setStatus] = useState('');
@@ -235,9 +242,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     clickUpload: 'फाइल चुनने के लिए क्लिक करें',
     presets: '02 · तैयार फॉर्म Presets',
     settings: '03 · अलग-अलग आउटपुट सेटिंग',
-    width: 'चौड़ाई (px)',
-    height: 'ऊँचाई (px)',
+    width: 'चौड़ाई',
+    height: 'ऊँचाई',
     target: 'लक्षित साइज़ (KB)',
+    dimensionUnit: 'डाइमेंशन यूनिट',
+    quickSizes: 'जल्दी KB चुनें',
     format: 'फॉर्मेट',
     fit: 'फिटिंग',
     contain: 'पूरा फोटो दिखाएँ',
@@ -274,9 +283,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     clickUpload: 'Click to choose a file',
     presets: '02 · Ready-made Form Presets',
     settings: '03 · Separate Output Settings',
-    width: 'Width (px)',
-    height: 'Height (px)',
+    width: 'Width',
+    height: 'Height',
     target: 'Target Size (KB)',
+    dimensionUnit: 'Dimension unit',
+    quickSizes: 'Quick KB targets',
     format: 'Format',
     fit: 'Fit mode',
     contain: 'Fit inside',
@@ -555,9 +566,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   const renderSettings = (slot: Slot) => {
     const current = settings[slot];
     const heading = slot === 'photo' ? copy.onlyPhoto : copy.onlySign;
-    const fields: { key: keyof Settings; label: string }[] = [
-      { key: 'width', label: copy.width },
-      { key: 'height', label: copy.height },
+    const unit = dimensionUnits[slot];
+    const unitSuffix = unit === 'in' ? 'in' : unit;
+    const fields: { key: 'width' | 'height' | 'targetKB'; label: string }[] = [
+      { key: 'width', label: `${copy.width} (${unitSuffix})` },
+      { key: 'height', label: `${copy.height} (${unitSuffix})` },
       { key: 'targetKB', label: copy.target }
     ];
     return (
@@ -578,22 +591,28 @@ export const PhotoSignatureResizerTool: React.FC = () => {
               {field.label}
               <input
                 type="number"
-                min="5"
-                max={field.key === 'targetKB' ? 5000 : 4000}
-                value={current[field.key] as number}
-                step="1"
+                min={field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1}
+                max={field.key === 'targetKB' ? 5000 : unit === 'px' ? 4000 : Number(fromPixels(4000, unit).toFixed(2))}
+                value={field.key === 'targetKB' ? current.targetKB : fromPixels(current[field.key], unit)}
+                step={field.key === 'targetKB' || unit === 'px' ? 1 : 0.01}
                 onChange={(event) => {
                   const raw = event.target.value;
                   if (raw === '') return;
                   const parsed = Number(raw);
-                  if (Number.isFinite(parsed)) updateSetting(slot, field.key, parsed);
+                  if (Number.isFinite(parsed)) {
+                    const stored = field.key === 'targetKB' ? parsed : toPixels(parsed, unit);
+                    updateSetting(slot, field.key, stored);
+                  }
                 }}
                 onBlur={(event) => {
+                  const entered = Number(event.currentTarget.value) || (field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1);
                   const maximum = field.key === 'targetKB' ? 5000 : 4000;
-                  const normalized = Math.max(5, Math.min(maximum, Math.round(Number(event.currentTarget.value) || 5)));
+                  const normalized = field.key === 'targetKB'
+                    ? Math.max(5, Math.min(maximum, Math.round(entered)))
+                    : Math.max(5, Math.min(maximum, toPixels(entered, unit)));
                   if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
-                  if (field.key === 'height' && current.width * normalized > 12000000 ||
-                      field.key === 'width' && normalized * current.height > 12000000) {
+                  if ((field.key === 'height' && current.width * normalized > 12000000) ||
+                      (field.key === 'width' && normalized * current.height > 12000000)) {
                     setStatus(isHindi
                       ? 'कुल आउटपुट 12 मेगापिक्सेल से अधिक है। चौड़ाई या ऊँचाई कम करें।'
                       : 'Output exceeds 12 megapixels. Reduce the width or height.');
@@ -603,6 +622,19 @@ export const PhotoSignatureResizerTool: React.FC = () => {
               />
             </label>
           ))}
+          <label className="text-[10px] font-bold text-slate-500">{copy.dimensionUnit}
+            <select value={unit} onChange={(event) => setDimensionUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as DimensionUnit }))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
+              <option value="px">Pixels (px)</option><option value="cm">Centimeters (cm)</option><option value="mm">Millimeters (mm)</option><option value="in">Inches (in)</option>
+            </select>
+          </label>
+          <div className="col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-3">
+            <p className="mb-2 text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
+            <div className="flex flex-wrap gap-2">
+              {[20, 50, 100, 200].map((kb) => (
+                <button key={kb} type="button" onClick={() => updateSetting(slot, 'targetKB', kb)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition ${current.targetKB === kb ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}>{kb} KB</button>
+              ))}
+            </div>
+          </div>
           <label className="text-[10px] font-bold text-slate-500">{copy.format}
             <select value={current.format} onChange={(event) => updateSetting(slot, 'format', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
               <option value="image/jpeg">JPG</option><option value="image/png">PNG</option>
