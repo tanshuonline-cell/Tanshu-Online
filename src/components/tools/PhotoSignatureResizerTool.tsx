@@ -701,11 +701,6 @@ export const PhotoSignatureResizerTool: React.FC = () => {
             </div>
             <p className="mt-2 text-[9px] leading-4 text-slate-500">{isHindi ? 'KB और MB दोनों में कस्टम साइज़ ऊपर दर्ज कर सकते हैं। यह अधिकतम सीमा है।' : 'Enter a custom size above in KB or MB. This is a maximum file-size limit.'}</p>
           </div>
-          <label className="text-[10px] font-bold text-slate-500">{copy.format}
-            <select value={current.format} onChange={(event) => updateSetting(slot, 'format', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
-              <option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WEBP</option><option value="original">Original</option>
-            </select>
-          </label>
           <label className="text-[10px] font-bold text-slate-500">{copy.fit}
             <select value={current.fit} onChange={(event) => updateSetting(slot, 'fit', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
               <option value="contain">{copy.contain}</option><option value="cover">{copy.cover}</option>
@@ -738,6 +733,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   const renderResult = (slot: Slot) => {
     const asset = assets[slot];
     const title = slot === 'photo' ? copy.onlyPhoto : copy.onlySign;
+    const outputMime = asset?.outputBlob?.type || '';
+    const outputFormatLabel = outputMime === 'image/jpeg' ? 'JPG' : outputMime === 'image/png' ? 'PNG' : outputMime === 'image/webp' ? 'WEBP' : '';
+    const qualityLabel = outputMime === 'image/jpeg' || outputMime === 'image/webp'
+      ? ` · ${Math.round((asset?.outputQuality || settings[slot].quality) * 100)}%`
+      : '';
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="mb-3 text-sm font-extrabold text-slate-900">{slot === 'photo' ? '📷 ' : '✍️ '}{title}</h3>
@@ -755,10 +755,18 @@ export const PhotoSignatureResizerTool: React.FC = () => {
         </div>
         {asset?.outputUrl && (
           <>
-            <p className="mt-2 text-[10px] font-semibold text-slate-600">{asset.outputWidth} × {asset.outputHeight} px · {settings[slot].format === 'image/jpeg' ? `JPG · ${Math.round((asset.outputQuality || settings[slot].quality) * 100)}%` : 'PNG'}</p>
+            <p className="mt-2 text-[10px] font-semibold text-slate-600">{asset.outputWidth} × {asset.outputHeight} px · {outputFormatLabel}{qualityLabel}</p>
             {asset.warning && <p className="mt-1 rounded-lg bg-amber-50 p-2 text-[10px] leading-4 text-amber-800">{asset.warning}</p>}
           </>
         )}
+        {asset && <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+          <label className="block text-[10px] font-extrabold text-slate-700">{copy.format}
+            <select value={settings[slot].format} onChange={(event) => updateSetting(slot, 'format', event.target.value)} className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-500">
+              <option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WEBP</option><option value="original">Original Format</option>
+            </select>
+          </label>
+          {settings[slot].format === 'original' && <p className="mt-2 text-[9px] leading-4 text-slate-600">{isHindi ? 'Original Format में फाइल का JPG/PNG/WEBP प्रकार रखा जाता है, लेकिन चुने हुए आकार के अनुसार इमेज resize/crop और दोबारा encode होती है।' : 'Keeps the input JPG/PNG/WEBP format, but still resizes/crops and re-encodes the image; it is not a byte-for-byte copy.'}</p>}
+        </div>}
         {asset && <div className="mt-3 grid grid-cols-2 gap-2">
           <button type="button" disabled={processing} onClick={() => processOne(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-blue-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-blue-700 disabled:opacity-50"><Zap className="h-3.5 w-3.5" />{slot === 'photo' ? copy.processPhoto : copy.processSignature}</button>
           <button type="button" disabled={!asset.outputUrl} onClick={() => downloadSlot(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-emerald-700 disabled:opacity-40"><Download className="h-3.5 w-3.5" />{copy.download}</button>
