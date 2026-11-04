@@ -89,13 +89,13 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">{isHindi ? 'आधिकारिक सरकारी पोर्टल' : 'Official Govt Portals'}</h4>
             <ul className="space-y-2">
               {[
-                { name: 'UIDAI myAadhaar', url: 'https://myaadhaar.uidai.gov.in' },
-                { name: 'ECI Voters Portal', url: 'https://voters.eci.gov.in' },
-                { name: 'Sarathi Parivahan (DL/RC)', url: 'https://parivahan.gov.in' },
-                { name: 'Protean TIN-NSDL (PAN)', url: 'https://www.onlineservices.nsdl.com' },
-                { name: 'Passport Seva Portal', url: 'https://www.passportindia.gov.in' },
-                { name: 'NFSA Food Security', url: 'https://nfsa.gov.in' },
-                { name: 'National Portal of India', url: 'https://india.gov.in' },
+                { name: isHindi ? 'UIDAI माई आधार पोर्टल' : 'UIDAI myAadhaar', url: 'https://myaadhaar.uidai.gov.in' },
+                { name: isHindi ? 'ECI वोटर पोर्टल' : 'ECI Voters Portal', url: 'https://voters.eci.gov.in' },
+                { name: isHindi ? 'सारथी परिवहन (DL/RC)' : 'Sarathi Parivahan (DL/RC)', url: 'https://parivahan.gov.in' },
+                { name: isHindi ? 'Protean TIN-NSDL (PAN)' : 'Protean TIN-NSDL (PAN)', url: 'https://www.onlineservices.nsdl.com' },
+                { name: isHindi ? 'पासपोर्ट सेवा पोर्टल' : 'Passport Seva Portal', url: 'https://www.passportindia.gov.in' },
+                { name: isHindi ? 'NFSA खाद्य सुरक्षा पोर्टल' : 'NFSA Food Security', url: 'https://nfsa.gov.in' },
+                { name: isHindi ? 'भारत का राष्ट्रीय पोर्टल' : 'National Portal of India', url: 'https://india.gov.in' },
               ].map((link) => (
                 <li key={link.name}>
                   <a
