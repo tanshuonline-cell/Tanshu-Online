@@ -1372,7 +1372,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Decodes e-Invoice B2B and UPI transaction QR codes',
       '100% private in-browser decoding with zero data upload'
     ]
-  }
+  },
   {
     id: 'advanced-passport-photo-studio',
     name: 'Advanced Passport Photo Studio',
