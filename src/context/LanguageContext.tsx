@@ -163,6 +163,10 @@ const translations: Record<Language, Record<string, string>> = {
     'video.watchFree': 'Watch Free Tutorial',
     'video.freeStream': 'Free High-Definition Tutorial Stream (1080p)',
     'video.synopsis': 'Tutorial Summary',
+    'vlc.kicker': 'Practical Training & CSC Masterclasses',
+    'vlc.title': 'Video Learning Center',
+    'vlc.desc': 'Learn practical workflows through step-by-step video lessons and masterclasses.',
+    'vlc.viewAll': 'View All Videos',
 
     // Homepage sections and shared controls
     'hero.mainTitle': 'डिजिटल टूल्स और नागरिक सेवाएँ',
@@ -218,6 +222,10 @@ const translations: Record<Language, Record<string, string>> = {
     'video.watchFree': 'मुफ़्त ट्यूटोरियल देखें',
     'video.freeStream': 'मुफ़्त हाई-डेफिनिशन वीडियो (1080p)',
     'video.synopsis': 'ट्यूटोरियल का सारांश',
+    'vlc.kicker': 'व्यावहारिक प्रशिक्षण और CSC मास्टरक्लास',
+    'vlc.title': 'वीडियो लर्निंग सेंटर',
+    'vlc.desc': 'चरण-दर-चरण वीडियो पाठ और मास्टरक्लास के माध्यम से उपयोगी काम सीखें।',
+    'vlc.viewAll': 'सभी वीडियो देखें',
 
     // Search Component
     'search.type.tool': 'Tool',
