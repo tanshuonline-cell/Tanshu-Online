@@ -564,7 +564,9 @@ export const PhotoSignatureResizerTool: React.FC = () => {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {assets[slot] && <div className="mb-3 overflow-hidden rounded-xl border border-blue-100 bg-slate-100 p-2">
           <p className="mb-2 text-[10px] font-extrabold text-slate-600">{isHindi ? 'लाइव क्रॉप प्रीव्यू' : 'Live crop preview'}</p>
-          <div className="mx-auto flex max-w-[240px] items-center justify-center overflow-hidden rounded-lg bg-white">\n            <CropPreview sourceUrl={assets[slot]!.sourceUrl} settings={current} label={heading + " crop preview"} />\n          </div>
+          <div className="mx-auto flex max-w-[240px] items-center justify-center overflow-hidden rounded-lg bg-white">
+            <CropPreview sourceUrl={assets[slot]!.sourceUrl} settings={current} label={heading + " crop preview"} />
+          </div>
         </div>}
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-sm font-extrabold text-slate-900">{slot === 'photo' ? '📷 ' : '✍️ '}{heading}</h3>
