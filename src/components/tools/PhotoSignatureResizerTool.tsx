@@ -8,9 +8,13 @@ type Slot = 'photo' | 'signature';
 type OutputFormat = 'image/jpeg' | 'image/png';
 type FitMode = 'contain' | 'cover';
 type DimensionUnit = 'px' | 'cm' | 'mm' | 'in';
-const UNIT_TO_INCH: Record<DimensionUnit, number> = { px: 1 / 96, in: 1, cm: 1 / 2.54, mm: 1 / 25.4 };
-const fromPixels = (pixels: number, unit: DimensionUnit) => unit === 'px' ? pixels : Number((pixels * UNIT_TO_INCH[unit] * (unit === 'in' ? 1 : unit === 'cm' ? 2.54 : 25.4)).toFixed(2));
-const toPixels = (value: number, unit: DimensionUnit) => unit === 'px' ? value : Math.round(value / UNIT_TO_INCH[unit] / 96);
+const fromPixels = (pixels: number, unit: DimensionUnit) => {
+  const converted = unit === 'px' ? pixels : unit === 'in' ? pixels / 96 : unit === 'cm' ? pixels * 2.54 / 96 : pixels * 25.4 / 96;
+  return unit === 'px' ? Math.round(converted) : Number(converted.toFixed(2));
+};
+const toPixels = (value: number, unit: DimensionUnit) => Math.round(
+  unit === 'px' ? value : unit === 'in' ? value * 96 : unit === 'cm' ? value * 96 / 2.54 : value * 96 / 25.4
+);
 type Settings = { width: number; height: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number };
 type Asset = {
   file: File;
