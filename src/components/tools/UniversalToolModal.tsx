@@ -99,7 +99,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                 <span>{tool.categoryLabel}</span>
                 <span className="text-slate-300">·</span>
                 <span className="text-emerald-700 font-medium flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Browser-side processing
+                  <ShieldCheck className="w-3.5 h-3.5" /> {isAdvancedStudio ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
                 </span>
               </div>
               {!isAdvancedStudio && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
@@ -141,7 +141,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           )}
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">TANSHU ONLINE</span><span>·</span>
-            <span>Photos are processed in your browser in this studio.</span>
+            <span>{isAdvancedStudio ? 'Photos are processed in your browser in this studio.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
           </div>
           <button onClick={onClose} className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Close Workspace</button>
         </div>
