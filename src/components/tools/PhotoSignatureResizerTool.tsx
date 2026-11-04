@@ -126,6 +126,70 @@ async function createZip(files: Array<{ name: string; blob: Blob }>) {
 }
 
 const formatBytes = (bytes: number) => bytes < 1024 ? bytes + ' B' : (bytes / 1024).toFixed(1) + ' KB';
+
+type SavedAsset = Omit<Asset, 'file' | 'sourceUrl' | 'outputUrl'> & {
+  fileBlob: Blob;
+  fileName: string;
+  fileType: string;
+  fileLastModified: number;
+};
+type ResizerDraft = {
+  version: 1;
+  savedAt: number;
+  assets: Record<Slot, SavedAsset | null>;
+  settings: Record<Slot, Settings>;
+  dimensionUnits: Record<Slot, DimensionUnit>;
+  sizeUnits: Record<Slot, 'KB' | 'MB'>;
+  activePreset: string;
+};
+
+const openResizerDraftDB = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
+  if (typeof indexedDB === 'undefined') {
+    reject(new Error('This browser does not support local draft backup.'));
+    return;
+  }
+  const request = indexedDB.open('tanshu-photo-signature-resizer', 1);
+  request.onupgradeneeded = () => {
+    if (!request.result.objectStoreNames.contains('drafts')) request.result.createObjectStore('drafts');
+  };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error || new Error('Could not open local backup storage.'));
+});
+
+const saveResizerDraft = async (draft: ResizerDraft) => {
+  const db = await openResizerDraftDB();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('drafts', 'readwrite');
+    transaction.objectStore('drafts').put(draft, 'current');
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Could not save the local backup.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Local backup was interrupted.'));
+  }).finally(() => db.close());
+};
+
+const readResizerDraft = async (): Promise<ResizerDraft | null> => {
+  const db = await openResizerDraftDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('drafts', 'readonly');
+    const request = transaction.objectStore('drafts').get('current');
+    request.onsuccess = () => resolve((request.result as ResizerDraft | undefined) || null);
+    request.onerror = () => reject(request.error || new Error('Could not read the local backup.'));
+    transaction.oncomplete = () => db.close();
+    transaction.onerror = () => { db.close(); reject(transaction.error || new Error('Could not read the local backup.')); };
+  });
+};
+
+const deleteResizerDraft = async () => {
+  const db = await openResizerDraftDB();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('drafts', 'readwrite');
+    transaction.objectStore('drafts').delete('current');
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Could not delete the local backup.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Could not delete the local backup.'));
+  }).finally(() => db.close());
+};
+
 const readImage = (url: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
   const image = new Image();
   image.onload = () => resolve(image);
@@ -280,6 +344,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   const [activePreset, setActivePreset] = useState('custom');
   const [processing, setProcessing] = useState(false);
   const [status, setStatus] = useState('');
+  const [draftInitialized, setDraftInitialized] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<ResizerDraft | null>(null);
+  const [draftStatus, setDraftStatus] = useState('');
+  const [draftSaving, setDraftSaving] = useState(false);
   const isHindi = language === 'hi';
 
   const copy = useMemo(() => isHindi ? {
@@ -370,6 +438,69 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     onlySign: 'Signature'
   }, [isHindi]);
 
+  useEffect(() => {
+    let cancelled = false;
+    readResizerDraft().then((draft) => {
+      if (cancelled) return;
+      const hasFiles = Boolean(draft && (draft.assets.photo || draft.assets.signature));
+      if (hasFiles) setPendingDraft(draft);
+      else setDraftInitialized(true);
+    }).catch(() => {
+      if (!cancelled) {
+        setDraftStatus(isHindi ? 'स्थानीय बैकअप पढ़ा नहीं जा सका। आप नया काम शुरू कर सकते हैं।' : 'The local backup could not be read. You can start a new session.');
+        setDraftInitialized(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!draftInitialized || pendingDraft) return;
+    const timeout = window.setTimeout(async () => {
+      const hasFiles = Boolean(assets.photo || assets.signature);
+      if (!hasFiles) {
+        try { await deleteResizerDraft(); } catch { /* Keep the editor usable if local storage is unavailable. */ }
+        return;
+      }
+      const savedAssets = {} as Record<Slot, SavedAsset | null>;
+      (['photo', 'signature'] as Slot[]).forEach((slot) => {
+        const asset = assets[slot];
+        savedAssets[slot] = asset ? {
+          fileBlob: asset.file,
+          fileName: asset.file.name,
+          fileType: asset.file.type,
+          fileLastModified: asset.file.lastModified,
+          outputBlob: asset.outputBlob,
+          outputBytes: asset.outputBytes,
+          warning: asset.warning,
+          outputWidth: asset.outputWidth,
+          outputHeight: asset.outputHeight,
+          outputQuality: asset.outputQuality,
+          sourceWidth: asset.sourceWidth,
+          sourceHeight: asset.sourceHeight
+        } : null;
+      });
+      setDraftSaving(true);
+      try {
+        await saveResizerDraft({
+          version: 1,
+          savedAt: Date.now(),
+          assets: savedAssets,
+          settings,
+          dimensionUnits,
+          sizeUnits,
+          activePreset
+        });
+        setDraftStatus(isHindi ? 'बैकअप सुरक्षित है' : 'Backup saved on this device');
+      } catch {
+        setDraftStatus(isHindi ? 'बैकअप सेव नहीं हो पाया। ब्राउज़र स्टोरेज की जगह जाँचें।' : 'Backup could not be saved. Check available browser storage.');
+      } finally {
+        setDraftSaving(false);
+      }
+    }, 650);
+    return () => window.clearTimeout(timeout);
+  }, [assets, settings, dimensionUnits, sizeUnits, activePreset, draftInitialized, pendingDraft, isHindi]);
+
   useEffect(() => () => {
     (['photo', 'signature'] as Slot[]).forEach((slot) => {
       const asset = assetsRef.current[slot];
@@ -377,6 +508,51 @@ export const PhotoSignatureResizerTool: React.FC = () => {
       if (asset?.outputUrl) URL.revokeObjectURL(asset.outputUrl);
     });
   }, []);
+
+  const restoreSavedDraft = () => {
+    if (!pendingDraft) return;
+    const restoredAssets = {} as Record<Slot, Asset | null>;
+    (['photo', 'signature'] as Slot[]).forEach((slot) => {
+      const saved = pendingDraft.assets[slot];
+      if (!saved) {
+        restoredAssets[slot] = null;
+        return;
+      }
+      const file = new File([saved.fileBlob], saved.fileName, { type: saved.fileType, lastModified: saved.fileLastModified });
+      restoredAssets[slot] = {
+        file,
+        sourceUrl: URL.createObjectURL(file),
+        outputUrl: saved.outputBlob ? URL.createObjectURL(saved.outputBlob) : undefined,
+        outputBlob: saved.outputBlob,
+        outputBytes: saved.outputBytes,
+        warning: saved.warning,
+        outputWidth: saved.outputWidth,
+        outputHeight: saved.outputHeight,
+        outputQuality: saved.outputQuality,
+        sourceWidth: saved.sourceWidth,
+        sourceHeight: saved.sourceHeight
+      };
+    });
+    setAssets(restoredAssets);
+    setSettings(pendingDraft.settings);
+    setDimensionUnits(pendingDraft.dimensionUnits);
+    setSizeUnits(pendingDraft.sizeUnits);
+    setActivePreset(pendingDraft.activePreset);
+    setPendingDraft(null);
+    setDraftInitialized(true);
+    setDraftStatus(isHindi ? 'आपका पिछला काम वापस आ गया है।' : 'Your previous work has been restored.');
+  };
+
+  const startFreshSession = async () => {
+    try {
+      await deleteResizerDraft();
+      setPendingDraft(null);
+      setDraftInitialized(true);
+      setDraftStatus(isHindi ? 'पुराना बैकअप हट गया। नया काम शुरू करें।' : 'Previous backup deleted. Start a new session.');
+    } catch {
+      setDraftStatus(isHindi ? 'पुराना बैकअप नहीं हट सका। दोबारा कोशिश करें।' : 'Could not delete the previous backup. Please try again.');
+    }
+  };
 
   const clearOutput = (slot: Slot) => {
     revisionsRef.current[slot] += 1;
@@ -587,7 +763,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     popup.focus();
   };
 
-  const reset = () => {
+  const reset = async () => {
     (['photo', 'signature'] as Slot[]).forEach((slot) => {
       revisionsRef.current[slot] += 1;
       const asset = assetsRef.current[slot];
@@ -598,6 +774,12 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     setSettings({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE });
     setActivePreset('custom');
     setStatus(copy.ready);
+    try {
+      await deleteResizerDraft();
+      setDraftStatus(isHindi ? 'काम रीसेट हुआ और बैकअप भी हटा दिया गया।' : 'Work reset and saved backup deleted.');
+    } catch {
+      setDraftStatus(isHindi ? 'काम रीसेट हुआ, लेकिन पुराना बैकअप नहीं हट सका।' : 'Work reset, but the old backup could not be deleted.');
+    }
   };
 
   const renderUpload = (slot: Slot) => {
@@ -845,6 +1027,30 @@ export const PhotoSignatureResizerTool: React.FC = () => {
         </div>
       </header>
 
+      {pendingDraft && (
+        <section className="mx-auto max-w-6xl px-3 pt-4 sm:px-6">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><RefreshCw className="h-5 w-5" /></div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-black text-amber-950">{isHindi ? 'आपका पिछला काम मिल गया!' : 'We found your previous work!'}</h2>
+                <p className="mt-1 text-xs leading-5 text-amber-900">{isHindi ? 'फोटो, सिग्नेचर, DPI, साइज़ और बाकी सेटिंग्स का बैकअप इस डिवाइस में सुरक्षित मिला है। क्या आप वहीं से जारी रखना चाहते हैं?' : 'A local backup of your photo, signature, DPI, dimensions and settings was found on this device. Would you like to continue where you left off?'}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={restoreSavedDraft} className="rounded-lg bg-amber-600 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-amber-700">{isHindi ? 'पिछला काम वापस लाएँ' : 'Restore Previous Work'}</button>
+                  <button type="button" onClick={startFreshSession} className="rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-xs font-extrabold text-amber-900 hover:bg-amber-100">{isHindi ? 'पुराना बैकअप हटाकर नया शुरू करें' : 'Delete Backup & Start Fresh'}</button>
+                </div>
+                <p className="mt-2 text-[9px] leading-4 text-amber-800">{isHindi ? 'यह बैकअप केवल इसी ब्राउज़र में रहता है।' : 'This backup is stored only in this browser.'}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+      {draftStatus && (
+        <div className="mx-auto max-w-6xl px-3 pt-2 sm:px-6">
+          <p role="status" className="text-[10px] font-semibold text-slate-500">{draftSaving ? (isHindi ? 'बैकअप सेव हो रहा है…' : 'Saving backup…') : draftStatus}</p>
+        </div>
+      )}
+
       <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#07152f] via-[#102d58] to-[#155e91] px-4 py-8 text-white sm:px-7 sm:py-10">
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 left-1/4 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl" />
@@ -895,6 +1101,9 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <button type="button" onClick={downloadBoth} className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-extrabold text-emerald-800 transition hover:-translate-y-0.5 hover:bg-emerald-100"><Download className="h-4 w-4" />{copy.downloadBoth}</button>
           <button type="button" onClick={printPreview} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-extrabold text-slate-700 transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700"><Printer className="h-4 w-4" />{copy.print}</button>
           <button type="button" onClick={reset} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-extrabold text-slate-600 transition hover:-translate-y-0.5 hover:border-rose-300 hover:text-rose-700"><RefreshCw className="h-4 w-4" />{copy.reset}</button>
+          <button type="button" onClick={() => {
+            if (window.confirm(isHindi ? 'क्या आप इस डिवाइस से फोटो, सिग्नेचर और सेव किया हुआ पूरा बैकअप हमेशा के लिए हटाना चाहते हैं?' : 'Delete all saved photo, signature and backup data from this device?')) reset();
+          }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-extrabold text-rose-700 transition hover:-translate-y-0.5 hover:bg-rose-100"><Trash2 className="h-4 w-4" />{isHindi ? 'सेव काम मिटाएँ' : 'Delete Saved Work'}</button>
         </div>
         {status && <div role="status" className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold leading-5 text-blue-900">{status}</div>}
 
