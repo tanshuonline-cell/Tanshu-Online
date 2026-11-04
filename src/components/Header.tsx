@@ -144,7 +144,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               <button
                 type="button"
                 onClick={onOpenCustomerAuth}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                className="inline-flex h-8 w-[150px] flex-none items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 text-xs font-bold transition-colors cursor-pointer shadow-2xs whitespace-nowrap hover:bg-slate-50 hover:border-slate-300"
                 title={language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Access'}
               >
                 <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -157,7 +157,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             {/* Explore Tools Action */}
             <button
               onClick={() => handleLinkClick('all-tools')}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-xs whitespace-nowrap"
+              className="hidden sm:flex h-8 w-[150px] flex-none items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-2 py-1.5 text-xs font-bold tracking-wide text-white transition-colors cursor-pointer shadow-xs whitespace-nowrap hover:bg-blue-800"
             >
               <span>{t('btn.exploreTools', 'Explore Tools')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
