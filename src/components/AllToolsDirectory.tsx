@@ -86,12 +86,12 @@ export const AllToolsDirectory: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen]);
 
-  // Category counts and definitions across all 89 tools
+  // Category counts and definitions across all 90 tools
   const categories: { id: ToolCategory; label: string; hindiLabel: string; count: number }[] = [
-    { id: 'all', label: 'All Tools', hindiLabel: 'सभी टूल्स', count: 89 },
+    { id: 'all', label: 'All Tools', hindiLabel: 'सभी टूल्स', count: 90 },
     { id: 'business', label: 'CSC & Business', hindiLabel: 'CSC और व्यापार', count: 11 },
     { id: 'pvc-id', label: 'ID Card & Print', hindiLabel: 'पहचान पत्र व प्रिंटिंग', count: 7 },
-    { id: 'photo', label: 'Photo & Signature', hindiLabel: 'फोटो और हस्ताक्षर', count: 18 },
+    { id: 'photo', label: 'Photo & Signature', hindiLabel: 'फोटो और हस्ताक्षर', count: 19 },
     { id: 'pdf', label: 'PDF Tools', hindiLabel: 'PDF टूल्स', count: 22 },
     { id: 'converter', label: 'Image & Utilities', hindiLabel: 'इमेज व उपयोगिताएँ', count: 8 },
     { id: 'calculator', label: 'Calculator & Finance', hindiLabel: 'कैलकुलेटर व वित्त', count: 15 },
@@ -133,8 +133,21 @@ export const AllToolsDirectory: React.FC<Props> = ({
 
   // Requirement: Identify the six Featured Tools to ensure All Tools initial cards are 100% distinct
   const featuredToolIds = useMemo(() => {
+    const featuredOrder = [
+      'advanced-passport-photo-studio',
+      'photo-signature-resizer',
+      'auto-document-cropper',
+      'document-scanner-image-rectifier',
+      'pdf-to-pvc-card-auto-cropper',
+      'id-card-front-back-print-layout-maker',
+      'invoice-generator',
+    ];
     return new Set(
-      CONFIRMED_TOOLS.filter((t) => t.isFeatured).slice(0, 6).map((t) => t.id)
+      CONFIRMED_TOOLS
+        .filter((tool) => tool.isFeatured)
+        .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
+        .slice(0, 6)
+        .map((tool) => tool.id)
     );
   }, []);
 
@@ -143,7 +156,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
     return CONFIRMED_TOOLS.filter((t) => !featuredToolIds.has(t.id)).slice(0, 6);
   }, [featuredToolIds]);
 
-  // Filtered tools across all 89 tools (active inside the modal)
+  // Filtered tools across all 90 tools (active inside the modal)
   const filteredTools = useMemo(() => {
     return CONFIRMED_TOOLS.filter((tool) => {
       const effectiveCategory =
