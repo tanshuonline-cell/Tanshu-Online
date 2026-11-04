@@ -69,7 +69,7 @@ async function renderImage(asset: Asset, settings: Settings) {
   context.drawImage(image, (width - drawWidth) / 2 - (overflowX / 2) * offsetX, (height - drawHeight) / 2 - (overflowY / 2) * offsetY, drawWidth, drawHeight);
 
   const targetBytes = Math.max(5, Math.min(5000, settings.targetKB || 50)) * 1024;
-  let blob = await canvasBlob(canvas, settings.format, 0.92);
+  let blob = await canvasBlob(canvas, settings.format, settings.format === 'image/jpeg' ? Math.max(0.12, Math.min(1, settings.quality || 0.88)) : 0.92);
   if (settings.format === 'image/jpeg') {
     let low = 0.12;
     let high = Math.max(0.12, Math.min(1, settings.quality || 0.88));
@@ -365,6 +365,12 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     ];
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        {assets[slot] && <div className="mb-3 overflow-hidden rounded-xl border border-blue-100 bg-slate-100 p-2">
+          <p className="mb-2 text-[10px] font-extrabold text-slate-600">{isHindi ? 'लाइव क्रॉप प्रीव्यू' : 'Live crop preview'}</p>
+          <div className="mx-auto flex h-36 max-w-[240px] items-center justify-center overflow-hidden rounded-lg bg-white">
+            <img src={assets[slot]!.sourceUrl} alt={heading + ' crop preview'} className="h-full w-full" style={{ objectFit: current.fit, objectPosition: `${50 + current.cropX * 50}% ${50 + current.cropY * 50}%`, transform: `scale(${current.zoom})` }} />
+          </div>
+        </div>}
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-sm font-extrabold text-slate-900">{slot === 'photo' ? '📷 ' : '✍️ '}{heading}</h3>
           <SlidersHorizontal className="h-4 w-4 text-blue-600" />
