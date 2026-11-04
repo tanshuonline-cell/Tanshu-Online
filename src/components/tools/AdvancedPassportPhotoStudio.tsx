@@ -1059,7 +1059,7 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
             <button onClick={()=>{setBackgroundDraft(background);setActivePanel('color');}} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-200 bg-gradient-to-r from-cyan-50 to-white px-3 py-2.5 text-xs font-bold text-cyan-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-400 hover:from-cyan-100 hover:shadow-md"><Palette className="h-4 w-4 shrink-0" /><span className="whitespace-nowrap">{language==='hi'?'बैकग्राउंड रंग':'Background Color'}</span></button>
             <button onClick={()=>{setBorderDraft(border);setActivePanel('border');}} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-3 py-2.5 text-xs font-bold text-indigo-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-400 hover:from-indigo-100 hover:shadow-md disabled:opacity-40"><Square className="h-4 w-4 shrink-0" /><span className="whitespace-nowrap">{language==='hi'?'बॉर्डर सेट करें':'Border Settings'}</span></button>
             <button onClick={openCropEditor} disabled={!selected} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-sky-300 bg-gradient-to-r from-sky-100 via-sky-50 to-white px-3 py-3 text-sm font-extrabold text-sky-900 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500 hover:from-sky-200 hover:to-sky-50 hover:shadow-md disabled:opacity-40"><Scissors className="h-5 w-5 shrink-0" /><span className="whitespace-nowrap">{language==='hi'?'फोटो क्रॉप करें':'Crop Photo'}</span></button>
-          </div><p className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2.5 text-xs leading-5 text-emerald-900">{language==='hi'?'पहली बार AI से फोटो का बैकग्राउंड हटाने में आपके डिवाइस और इंटरनेट के अनुसार लगभग 1–5 मिनट लग सकते हैं। कृपया थोड़ा धैर्य रखें। अगली बार आमतौर पर प्रक्रिया जल्दी पूरी होगी।':'The first AI background removal may take about 1–5 minutes, depending on your device and internet connection. Please be patient. The next time is usually much faster.'}</p>
+          </div><p className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2.5 text-xs leading-5 text-emerald-900">{language==='hi'?'पहली बार AI से फोटो का बैकग्राउंड हटाने में आपके डिवाइस और इंटरनेट के अनुसार लगभग 1–3 मिनट लग सकते हैं। कभी-कभी 5 मिनट भी लग सकते हैं। कृपया धैर्य रखें। अगली बार आमतौर पर प्रक्रिया जल्दी पूरी होगी।':'The first AI background removal may take about 1–3 minutes, and sometimes up to 5 minutes depending on your device or internet. Please be patient. The next time usually takes much less time.'}</p>
 
 
           <div className="space-y-3 border-t border-slate-200 pt-4">
@@ -1163,6 +1163,13 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
                 <input type="range" min="0" max="60" value={retouchStrength} onChange={e => setRetouchStrength(Number(e.target.value))} className="mt-1 w-full" />
               </label>
               {faceStatus && <p className="text-xs text-blue-900">{faceStatus}</p>}
+              {faceRect && selected && <div className="rounded-lg border border-emerald-200 bg-white p-2">
+                <p className="mb-2 text-xs font-semibold text-emerald-800">Detected face area · adjust crop manually if needed</p>
+                <div className="relative mx-auto max-h-56 w-full max-w-[220px] overflow-hidden rounded-md bg-slate-100" style={{ aspectRatio: `${cropImageDimensions.width} / ${cropImageDimensions.height}` }}>
+                  <img src={selected.src} alt="Face detection preview" className="absolute inset-0 h-full w-full object-fill" />
+                  <div className="absolute border-2 border-emerald-500 bg-emerald-300/10" style={{ left: `${faceRect.x * 100}%`, top: `${faceRect.y * 100}%`, width: `${faceRect.width * 100}%`, height: `${faceRect.height * 100}%` }} />
+                </div>
+              </div>}
               <p className="text-[11px] leading-5 text-blue-800">Face-skin segmentation आपके ब्राउज़र में चलती है। यह face-skin mask के भीतर छोटे isolated blemish-जैसे spots को हल्का करता है; पूरे चेहरे पर blur नहीं लगाता। फोटो सर्वर पर अपलोड नहीं होती। बेहतर परिणाम के लिए 10–25% से शुरू करें।</p>
             </div>
           </div>}
