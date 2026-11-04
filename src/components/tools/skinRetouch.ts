@@ -73,6 +73,8 @@ export async function retouchFaceSkinLocally(
   const green = new Array<number>(9);
   const blue = new Array<number>(9);
   for (let y = 1; y < height - 1; y++) {
+    // Yield periodically so large photos do not monopolize the browser's main thread.
+    if (y % 16 === 0) await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
     const maskY = Math.min(maskHeight - 1, Math.floor(y * maskHeight / height));
     for (let x = 1; x < width - 1; x++) {
       const maskX = Math.min(maskWidth - 1, Math.floor(x * maskWidth / width));
