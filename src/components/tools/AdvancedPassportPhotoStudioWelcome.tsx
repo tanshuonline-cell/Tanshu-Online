@@ -32,14 +32,7 @@ const SignatureArtwork: React.FC<{ light?: boolean }> = ({ light = false }) => (
   </svg>
 );
 
-const featureItems = [
-  { icon: Eraser, title: 'AI Background Removal', text: 'फोटो का बैकग्राउंड हटाएँ और नया रंग चुनें।' },
-  { icon: Crop, title: 'Crop, Move & Resize', text: 'फोटो को पकड़कर अपनी पसंद की जगह और साइज पर सेट करें।' },
-  { icon: PenTool, title: 'Signature Cleaner', text: 'सिग्नेचर का पेपर बैकग्राउंड साफ करके तैयार करें।' },
-  { icon: LayoutGrid, title: '4×6 & A4 Photo Sheets', text: 'एक शीट पर कई फोटो व्यवस्थित करें।' },
-  { icon: Move, title: 'Manual + Auto Arrange', text: 'एक क्लिक में लेआउट बनाएँ या हर फोटो खुद सेट करें।' },
-  { icon: Printer, title: 'High-Resolution Export', text: 'प्रिंट के लिए तैयार फाइल डाउनलोड करें।' }
-];
+
 
 const BEAUTY_DEMO_PHOTO = 'https://images.unsplash.com/photo-1658724683584-2ab54d31d180?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000';
 
