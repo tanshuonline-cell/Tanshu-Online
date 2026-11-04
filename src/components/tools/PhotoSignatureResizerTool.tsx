@@ -644,7 +644,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
               <input
                 type="number"
                 min={field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1}
-                max={field.key === 'targetKB' ? 5000 : unit === 'px' ? 4000 : Number(fromPixels(4000, unit).toFixed(2))}
+                max={field.key === 'targetKB' ? 5000 : unit === 'px' ? 4000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2))}
                 value={field.key === 'targetKB' ? current.targetKB : fromPixels(current[field.key], unit, current.dpi)}
                 step={field.key === 'targetKB' || unit === 'px' ? 1 : 0.01}
                 onChange={(event) => {
@@ -688,7 +688,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <div className="col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-3">
             <p className="mb-2 text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
             <div className="flex flex-wrap gap-2">
-              {[20, 50, 100, 200].map((kb) => (
+              {[10, 20, 50, 100, 200].map((kb) => (
                 <button key={kb} type="button" onClick={() => updateSetting(slot, 'targetKB', kb)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition ${current.targetKB === kb ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}>{kb} KB</button>
               ))}
             </div>
