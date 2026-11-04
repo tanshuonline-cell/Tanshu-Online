@@ -138,6 +138,9 @@ const canvasBlob = (canvas: HTMLCanvasElement, type: string, quality: number): P
 function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, settings: Settings) {
   const width = settings.preserveOriginal ? image.naturalWidth : Math.max(5, Math.min(4000, Math.round(settings.width || 200)));
   const height = settings.preserveOriginal ? image.naturalHeight : Math.max(5, Math.min(4000, Math.round(settings.height || 230)));
+  if (settings.preserveOriginal && (image.naturalWidth > 4000 || image.naturalHeight > 4000)) {
+    throw new Error('The original image exceeds 4000 px on one side. Turn off original-dimension mode and choose smaller dimensions.');
+  }
   if (width * height > 12000000) throw new Error('Please choose dimensions under 12 megapixels.');
   canvas.width = width;
   canvas.height = height;
@@ -761,7 +764,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <div className="relative rounded-xl border border-blue-100 bg-slate-50 p-2 shadow-inner">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-[10px] font-extrabold text-slate-700">{isHindi ? 'लाइव प्रीव्यू' : 'Live preview'}</p>
-              {asset && <button type="button" onClick={() => clearAsset(slot)} aria-label={isHindi ? 'फोटो हटाएँ' : 'Remove image'} title={isHindi ? 'फाइल हटाएँ' : 'Remove file'} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /></button>}
+              {asset && <button type="button" onClick={() => clearAsset(slot)} aria-label={isHindi ? (slot === 'photo' ? 'फोटो हटाएँ' : 'सिग्नेचर हटाएँ') : (slot === 'photo' ? 'Remove photo' : 'Remove signature')} title={isHindi ? 'फाइल हटाएँ' : 'Remove file'} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /></button>}
             </div>
             {asset ? (
               <>
