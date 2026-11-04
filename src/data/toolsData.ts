@@ -1362,7 +1362,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     name: 'Photo & Signature Resizer',
     category: 'photo',
     categoryLabel: 'Photo & Signature',
-    isFeatured: true,
+    isFeatured: false,
     iconName: 'Camera',
     description: 'Resize and compress application photos and signatures with separate dimensions, KB targets, form starter presets, preview, and print-ready downloads.',
     detailedInstructions: 'Upload a photo and/or signature, choose a starter preset or enter exact requirements, then process each file separately in your browser.',
