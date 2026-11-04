@@ -259,13 +259,13 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                           </div>
                           {video.isSample && (
                             <div className="px-1.5 py-0.5 bg-indigo-950/90 text-indigo-300 border border-indigo-500/40 rounded text-[9px] font-bold tracking-wider">
-                              SAMPLE
+                              {isHindi ? 'नमूना' : 'SAMPLE'}
                             </div>
                           )}
                         </div>
                       ) : (
                         <div className="px-2 py-0.5 bg-slate-900/90 text-emerald-400 border border-slate-700/60 rounded text-[10px] font-bold">
-                          FREE
+                          {isHindi ? 'मुफ़्त' : 'FREE'}
                         </div>
                       )}
                     </div>
