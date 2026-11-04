@@ -17,6 +17,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       'Matte vs Glossy card stock comparison',
       'Preventing roller scratches and ink smudge'
     ],
+    hindiTopics: [
+      "PVC कार्ड ट्रे का चयन (Epson L805 / Canon)",
+      "CR80 लेआउट टेम्पलेट को सही जगह सेट करना",
+      "मैट और ग्लॉसी कार्ड की तुलना"
+    ],
     videoId: 'pvc-printing-masterclass',
     youtubeUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
     accessType: 'free',
@@ -65,6 +70,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       'Uploading head-of-family bank passbook and gas book',
       'Adding new child name with birth certificate',
       'Solving common rejection reasons by Food Supply Officer'
+    ],
+    hindiTopics: [
+      "BPL, AAY और प्राथमिकता परिवारों की पात्रता",
+      "परिवार के दस्तावेज़ अपलोड करना",
+      "जन्म प्रमाणपत्र से बच्चे का नाम जोड़ना"
     ],
     videoId: 'ration-card-walkthrough',
     youtubeUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
@@ -117,6 +127,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       'Signature contrast enhancement on plain white paper',
       'Testing pixel dimensions (100x120px vs 140x160px)'
     ],
+    hindiTopics: [
+      "SSC, UPSC और रेलवे फॉर्म की KB सीमा",
+      "फोटो का सफेद बैकग्राउंड ठीक करना",
+      "हस्ताक्षर की स्पष्टता बढ़ाना"
+    ],
     videoId: 'photo-signature-compress',
     youtubeUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
     accessType: 'free',
@@ -163,6 +178,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       'Generating HOF request and sending approval link',
       'Accepting OTP within 30-day window on parent mobile',
       'Tracking SRN service request number and download'
+    ],
+    hindiTopics: [
+      "myAadhaar पर HOF संबंध सत्यापन",
+      "HOF अनुरोध और स्वीकृति लिंक भेजना",
+      "अभिभावक के मोबाइल पर OTP से स्वीकृति"
     ],
     videoId: 'aadhaar-hof-guide',
     youtubeUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
@@ -213,6 +233,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       'Adding UPI QR code for contactless counter payments',
       'Preserving records for yearly income tax filing'
     ],
+    hindiTopics: [
+      "ऑनलाइन फॉर्म, प्रिंट और लैमिनेशन का बिल",
+      "छोटे सेवा केंद्रों के लिए GST नियम",
+      "UPI QR कोड से भुगतान लेना"
+    ],
     videoId: 'csc-billing-guide',
     youtubeUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
     accessType: 'free',
@@ -260,6 +285,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       'Optimizing grayscale thresholding for laser printers',
       'Speeding up customer checkout at peak morning hours'
     ],
+    hindiTopics: [
+      "पीली रोशनी और डेस्क की छाया हटाना",
+      "टेढ़ी रसीद और मार्कशीट सीधी करना",
+      "लेज़र प्रिंट के लिए ग्रेस्केल सेट करना"
+    ],
     videoId: 'whatsapp-doc-fix',
     youtubeUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
     accessType: 'free',
@@ -301,6 +331,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
     id: 'video_1793562264012',
     title: 'Aadhaar Card Father Name Update - Complete Step-by-Step Guide',
     hindiTitle: 'आधार कार्ड में पिता का नाम अपडेट करें: पूरी चरण-दर-चरण गाइड',
+    hindiDescription: "इस वीडियो में आधार कार्ड में पिता के नाम से जुड़ी जानकारी अपडेट या सुधारने की प्रक्रिया, UIDAI के महत्वपूर्ण नियम, आवश्यक सहायक दस्तावेज़ और आवेदन से पहले ध्यान रखने वाली सावधानियाँ आसान भाषा में समझाई गई हैं। यह जानकारी आवेदकों और ऑनलाइन सेवा संचालकों के लिए उपयोगी है। यह केवल शैक्षणिक मार्गदर्शन है; अपडेट की मंज़ूरी UIDAI के नियमों और दस्तावेज़ सत्यापन पर निर्भर करती है।",
     duration: '14:23',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -314,6 +345,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       "How to Understand and Follow the Update Procedure",
       "Important Information to Know Before Making Changes",
       "Complete Educational Guide to Aadhaar Name and Address Updates"
+    ],
+    hindiTopics: [
+      "आधार कार्ड अपडेट की जानकारी",
+      "पिता के नाम से जुड़ी जानकारी समझना",
+      "पिता के नाम की जानकारी में सुधार की प्रक्रिया"
     ],
     videoId: 'video_1793562264012',
     accessType: 'premium',
@@ -332,6 +368,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
     id: 'video_1793576406875',
     title: 'Aadhaar Father Name Update – Complete Document List, Document Examples & Step-by-Step Application Guide',
     hindiTitle: 'आधार में पिता का नाम अपडेट: दस्तावेज़ों की पूरी सूची और आवेदन प्रक्रिया',
+    hindiDescription: "इस प्रीमियम मास्टरक्लास में आधार कार्ड में पिता के नाम से जुड़ी जानकारी अपडेट करने के लिए आवश्यक दस्तावेज़ों की सूची, उनके वास्तविक उदाहरण, सही प्रारूप और आवेदन प्रक्रिया विस्तार से समझाई गई है। व्यक्तिगत जानकारी की गोपनीयता का ध्यान रखते हुए व्यावहारिक उदाहरण दिए गए हैं।",
     duration: '24:30',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -348,6 +385,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       "Step-by-Step Application Process",
       "Important Points to Remember Before Applying",
       "Complete Documentation and Application Guidance"
+    ],
+    hindiTopics: [
+      "आधार में पिता का नाम अपडेट करने के दस्तावेज़",
+      "अलग-अलग दस्तावेज़ों के प्रकार और उदाहरण",
+      "दस्तावेज़ का सही प्रारूप पहचानना"
     ],
     videoId: 'video_1793576406875',
     accessType: 'premium',
@@ -366,6 +408,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
     id: 'video_1793570249064',
     title: 'Aadhaar C/O Father Name Update – Complete Document List With Live Proof (Step-by-Step Guide) | Level 3 Part 2',
     hindiTitle: 'आधार C/O में पिता का नाम अपडेट: दस्तावेज़ और लाइव उदाहरण (लेवल 3, भाग 2)',
+    hindiDescription: "इस प्रीमियम मास्टरक्लास में आधार कार्ड के C/O, S/O, D/O और W/O विकल्पों का अर्थ, उपयोग और आवेदन प्रक्रिया समझाई गई है। इसमें पता विवरण में इन विकल्पों की भूमिका, आवश्यक दस्तावेज़ और आवेदन से जुड़ी सावधानियाँ शामिल हैं। यह वीडियो केवल शैक्षणिक जानकारी के लिए है।",
     duration: '16:02',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -388,6 +431,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       "Step-by-Step Application Guidance",
       "Important UIDAI Rules and Verification"
     ],
+    hindiTopics: [
+      "C/O (Care Of) का अर्थ और उपयोग",
+      "S/O, D/O और W/O का अर्थ समझना",
+      "C/O, S/O, D/O और W/O में अंतर"
+    ],
     videoId: 'video_1793570249064',
     accessType: 'premium',
     isPremium: true,
@@ -405,6 +453,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
     id: 'video_1793569224346',
     title: 'Aadhaar C/O, S/O & D/O Update – Complete Application Process & Step-by-Step Guide | Level 3 Part 1',
     hindiTitle: 'आधार C/O, S/O और D/O अपडेट: पूरी आवेदन प्रक्रिया (लेवल 3, भाग 1)',
+    hindiDescription: "इस वीडियो में आधार कार्ड के C/O, S/O और D/O अपडेट विकल्प, आवेदन जमा करने की प्रक्रिया, संभावित प्रोसेसिंग समय, स्थिति जाँचने का तरीका और UIDAI के महत्वपूर्ण नियम व सावधानियाँ समझाई गई हैं। यह आवेदकों और ऑनलाइन सेवा पेशेवरों के लिए शैक्षणिक मार्गदर्शन है।",
     duration: '12:57',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -417,6 +466,11 @@ export const LATEST_VIDEOS: VideoGuide[] = [
       "Expected processing time and status checking",
       "Important UIDAI guidelines and precautions",
       "Common application mistakes to avoid"
+    ],
+    hindiTopics: [
+      "C/O, S/O और D/O अपडेट के विकल्प",
+      "आवेदन करने की चरण-दर-चरण प्रक्रिया",
+      "अपडेट अनुरोध जमा करना और स्थिति जाँचना"
     ],
     videoId: 'video_1793569224346',
     accessType: 'premium',
