@@ -25,12 +25,12 @@ export async function removeBackgroundAI(
         const percent = typeof progress === 'number'
           ? ` ${Math.round(progress * 100)}%`
           : '';
-        onProgress?.(message || `BiRefNet ${stage}${percent}`);
+        onProgress?.(`AI प्रोसेसिंग चल रही है…${percent}`);
       }
     });
     return result.blob;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'AI background removal failed.';
-    throw new Error(`BiRefNet: ${message}`);
+    throw new Error(`AI background removal: ${message}`);
   }
 }
