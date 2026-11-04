@@ -41,12 +41,15 @@ const featureItems = [
   { icon: Printer, title: 'High-Resolution Export', text: 'प्रिंट के लिए तैयार फाइल डाउनलोड करें।' }
 ];
 
+const BEAUTY_DEMO_PHOTO = 'https://images.unsplash.com/photo-1658724683584-2ab54d31d180?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000';
+
 export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart }) => {
   const [comparison, setComparison] = useState(54);
   const [paper, setPaper] = useState<'4x6' | 'A4'>('4x6');
   const [copies, setCopies] = useState(8);
   const [signatureBg, setSignatureBg] = useState<'transparent' | 'white' | 'blue'>('transparent');
 
+  const copyOptions = paper === '4x6' ? [4, 8, 12] : [4, 8, 12, 20, 24];
   const slots = Math.min(copies, paper === '4x6' ? 12 : 24);
 
   return (
@@ -153,15 +156,14 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-700 to-slate-900">
                   <div className="relative aspect-[4/5]">
-                    <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-slate-400">Original portrait image will appear here</div>
-                    <img src="/images/beauty-mode/beauty_mode_before_full.jpg" alt="Original unretouched fictional portrait demo" className="absolute inset-0 z-10 h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    <img src={BEAUTY_DEMO_PHOTO} alt="Original portrait sample before Beauty Mode" className="absolute inset-0 z-10 h-full w-full object-cover object-center" style={{ filter: 'contrast(1.08) saturate(.88) brightness(.94)' }} loading="lazy" />
                   </div>
                   <span className="absolute left-2 top-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] font-extrabold tracking-wider">BEFORE</span>
                 </div>
                 <div className="relative overflow-hidden rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-900/60 to-blue-950">
                   <div className="relative aspect-[4/5]">
-                    <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-violet-200/70">Retouched portrait image will appear here</div>
-                    <img src="/images/beauty-mode/beauty_mode_after_full.jpg" alt="Subtly retouched fictional portrait demo" className="absolute inset-0 z-10 h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    <img src={BEAUTY_DEMO_PHOTO} alt="Same portrait sample with a subtle Beauty Mode preview finish" className="absolute inset-0 z-10 h-full w-full object-cover object-center" style={{ filter: 'brightness(1.08) contrast(.98) saturate(1.06)' }} loading="lazy" />
+                    <div className="pointer-events-none absolute inset-0 z-20 bg-rose-100/5" />
                   </div>
                   <span className="absolute left-2 top-2 rounded-md bg-violet-600 px-2 py-1 text-[10px] font-extrabold tracking-wider">AFTER</span>
                 </div>
@@ -173,7 +175,7 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
               <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 sm:p-5">
                 <div className="flex items-center gap-3">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-amber-100/20 to-violet-300/20">
-                    <img src="/images/beauty-mode/beauty_skin_closeup_before.jpg" alt="Skin texture before retouch demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    <img src={BEAUTY_DEMO_PHOTO} alt="Portrait skin detail sample before retouch" className="h-full w-full object-cover object-[50%_28%] scale-150" style={{ filter: 'contrast(1.1) saturate(.9)' }} loading="lazy" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-extrabold">AI Skin Retouch</p>
@@ -184,7 +186,7 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
               <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 sm:p-5">
                 <div className="flex items-center gap-3">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-rose-100/20 to-blue-300/20">
-                    <img src="/images/beauty-mode/beauty_skin_closeup_retouched.jpg" alt="Skin texture after subtle retouch demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    <img src={BEAUTY_DEMO_PHOTO} alt="Portrait skin detail sample with a subtle retouch preview" className="h-full w-full object-cover object-[50%_28%] scale-150" style={{ filter: 'brightness(1.06) contrast(.96) saturate(1.04)' }} loading="lazy" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-extrabold">Blemish Reduction</p>
@@ -208,15 +210,17 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { title: 'AI Skin Retouch', detail: 'Face-skin segmentation के आधार पर स्थानीय retouch; बाल, आँख और होंठ को mask से अलग रखा जाता है।' },
-              { title: 'Blemish Reduction', detail: 'छोटे isolated spots को कम करने के लिए adjustable 0–60% strength control।' },
-              { title: 'Brightness', detail: 'पूरी फोटो की brightness को जरूरत के अनुसार manually adjust करें।' },
-              { title: 'Contrast', detail: 'पूरी फोटो के light और dark areas का contrast नियंत्रित करें।' },
-              { title: 'Saturation', detail: 'पूरी फोटो के रंगों की intensity को कम या ज्यादा करें।' },
-              { title: 'Softening', detail: '0–10 range में subtle softening चुनें; natural detail बनाए रखें।' },
-              { title: 'Face Detection', detail: 'Retouch के लिए face area पहचानने में मदद; परिणाम फोटो और browser support पर निर्भर।' },
-              { title: 'Before / After Preview', detail: 'Original और edited photo की तुलना करके बदलाव जाँचें।' },
-              { title: 'Undo · Redo · Reset', detail: 'अपने बदलाव वापस लें, दोबारा लागू करें या Beauty adjustments reset करें।' }
+              { title: 'AI Skin Retouch', detail: 'चेहरे की skin area पर targeted retouch का डेमो। इसका उद्देश्य त्वचा को साफ दिखाना है, जबकि आँखों, होंठों, बालों और चेहरे की पहचान जैसे जरूरी विवरण सुरक्षित रहें।' },
+              { title: 'Blemish & Spot Reduction', detail: 'छोटे दाग-धब्बों और isolated spots को हल्का कम करने के लिए 0–60% तक adjustable strength control। जरूरत के अनुसार कम या ज्यादा प्रभाव चुनें।' },
+              { title: 'Face Brightness', detail: 'चेहरे पर कम रोशनी होने पर face area को हल्का brighten करने का विकल्प, ताकि फोटो में चेहरा साफ और संतुलित दिखाई दे।' },
+              { title: 'Brightness', detail: 'पूरी फोटो की overall light को adjust करें। बहुत dark या over-exposed फोटो को संतुलित करने में मदद मिलती है।' },
+              { title: 'Contrast', detail: 'फोटो के light और dark हिस्सों के बीच अंतर को नियंत्रित करें, ताकि चेहरा और फोटो के details साफ दिखें।' },
+              { title: 'Saturation', detail: 'रंगों की intensity कम या ज्यादा करें। Skin tone को जरूरत से ज्यादा लाल, पीला या artificial दिखने से बचाने के लिए छोटे बदलाव करें।' },
+              { title: 'Natural Skin Softening', detail: 'हल्का softening effect चुनें। मकसद skin texture को पूरी तरह मिटाना नहीं, बल्कि छोटे rough areas को subtle तरीके से smooth दिखाना है।' },
+              { title: 'Natural Beauty Enhancement', detail: 'Brightness, contrast और softening के संतुलित संयोजन से साफ, natural और professional look का preview देखें — चेहरे की पहचान बदले बिना।' },
+              { title: 'Face Detection', detail: 'फोटो में face area पहचानने में मदद करता है, ताकि retouch सही हिस्से पर केंद्रित रहे। पहचान की गुणवत्ता फोटो और browser support पर निर्भर करती है।' },
+              { title: 'Before / After Comparison', detail: 'Original photo और edited preview को साथ देखकर हर बदलाव जाँचें। जरूरत से ज्यादा editing लगे तो strength कम करें।' },
+              { title: 'Undo · Redo · Reset', detail: 'आखिरी बदलाव वापस लें, redo करें या Beauty Mode की settings को शुरुआती स्थिति में reset करें।' }
             ].map(({ title, detail }, index) => (
               <article key={title} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 transition hover:-translate-y-0.5 hover:border-violet-300/30 hover:bg-slate-800/80">
                 <div className="mb-2 flex items-center gap-2">
@@ -269,12 +273,12 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
         <div className="grid items-center gap-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[.8fr_1.2fr]">
           <div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => setPaper('4x6')} className={`rounded-lg px-4 py-2 text-sm font-bold ${paper === '4x6' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700'}`}>4×6 Inch</button>
+              <button onClick={() => { setPaper('4x6'); setCopies(Math.min(copies, 12)); }} className={`rounded-lg px-4 py-2 text-sm font-bold ${paper === '4x6' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700'}`}>4×6 Inch</button>
               <button onClick={() => setPaper('A4')} className={`rounded-lg px-4 py-2 text-sm font-bold ${paper === 'A4' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700'}`}>A4 Sheet</button>
             </div>
             <p className="mt-5 text-sm font-bold text-slate-800">Demo में फोटो की संख्या चुनें</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {[4, 8, 12, 20].map((count) => (
+              {copyOptions.map((count) => (
                 <button key={count} onClick={() => setCopies(count)} className={`h-9 min-w-10 rounded-lg border px-3 text-sm font-bold ${copies === count ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600'}`}>{count}</button>
               ))}
             </div>
@@ -285,10 +289,10 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
             </div>
           </div>
           <div className="rounded-xl bg-slate-100 p-3 sm:p-5">
-            <div className={`mx-auto grid gap-1.5 rounded-md border border-slate-300 bg-white p-3 shadow-md ${paper === 'A4' ? 'aspect-[1/1.414] max-w-[310px] grid-cols-4' : 'aspect-[6/4] max-w-[390px] grid-cols-4'}`}>
+            <div className={`mx-auto grid gap-1.5 rounded-md border border-slate-300 bg-white p-3 shadow-md ${paper === 'A4' ? 'aspect-[1/1.414] max-w-[310px] grid-cols-4' : 'aspect-[6/4] max-w-[390px] grid-cols-3'}`}>
               {Array.from({ length: slots }, (_, index) => (
-                <div key={index} className="overflow-hidden rounded-[2px] border border-slate-200 bg-slate-50">
-                  <PortraitArtwork background="#f8fafc" />
+                <div key={index} className="relative aspect-[3/4] overflow-hidden rounded-[2px] border border-slate-200 bg-slate-50">
+                  <img src={BEAUTY_DEMO_PHOTO} alt={`Sample passport photo ${index + 1}`} className="h-full w-full object-cover object-center" loading="lazy" />
                 </div>
               ))}
             </div>
