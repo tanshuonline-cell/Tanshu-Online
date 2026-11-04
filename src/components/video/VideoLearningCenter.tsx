@@ -90,7 +90,7 @@ export const VideoLearningCenter: React.FC<Props> = ({
                   <div className="absolute top-1.5 left-1.5 z-10">
                     <div className="px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
                       <Lock className="w-2.5 h-2.5" />
-                      <span>PREMIUM • ₹{price}</span>
+                      <span>{isHindi ? 'प्रीमियम' : 'PREMIUM'} • ₹{price}</span>
                     </div>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export const VideoLearningCenter: React.FC<Props> = ({
                     <div className="w-full flex flex-col items-center gap-1.5">
                       <div className="flex items-center justify-between w-full text-xs px-0.5">
                         <span className="text-[11px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">₹{price} INR</span>
-                        <span className="text-[10px] font-semibold text-slate-500">{video.level || 'Intermediate'}</span>
+                        <span className="text-[10px] font-semibold text-slate-500">{isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : (video.level || 'Intermediate')}</span>
                       </div>
                       <button type="button" onClick={() => onSelectVideo(video)} className="w-full max-w-[170px] py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                         <Lock className="w-3 h-3 text-amber-300" />
