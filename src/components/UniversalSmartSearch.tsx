@@ -212,7 +212,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || defaultPlaceholder}
-          aria-label="Universal Search"
+          aria-label={isHindi ? "सभी सेवाओं में खोजें" : "Universal Search"}
           autoComplete="off"
           spellCheck="false"
           className="flex-1 w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none px-1 py-1 font-medium"
@@ -223,7 +223,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
             type="button"
             onClick={handleClear}
             className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
-            aria-label="Clear Search"
+            aria-label={isHindi ? "खोज साफ़ करें" : "Clear Search"}
             title={isHindi ? 'खोज साफ़ करें' : 'Clear search'}
           >
             <X className="w-4 h-4" />
@@ -235,7 +235,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
             type="button"
             onClick={() => setIsOpen(false)}
             className="hidden sm:inline-flex px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-            title="Close results"
+            title={isHindi ? "परिणाम बंद करें" : "Close results"}
           >
             {isHindi ? 'बंद करें' : 'Close'}
           </button>
@@ -264,7 +264,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
               type="button"
               onClick={() => setIsOpen(false)}
               className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200/60 cursor-pointer"
-              title="Close search"
+              title={isHindi ? "खोज बंद करें" : "Close search"}
             >
               <X className="w-3.5 h-3.5" />
             </button>
