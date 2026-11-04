@@ -29,7 +29,7 @@ type Asset = {
 };
 type Preset = { label: string; photo: Settings; signature: Settings };
 
-const DEFAULT_PHOTO: Settings = { width: 200, height: 230, dpi: 300, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
+const DEFAULT_PHOTO: Settings = { width: 413, height: 531, dpi: 300, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.98, zoom: 1, cropX: 0, cropY: 0 };
 const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, dpi: 300, targetKB: 20, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
 const makePreset = (label: string, photo: Partial<Settings>, signature: Partial<Settings>): Preset => ({
   label,
@@ -37,10 +37,10 @@ const makePreset = (label: string, photo: Partial<Settings>, signature: Partial<
   signature: { ...DEFAULT_SIGNATURE, ...signature }
 });
 const PRESETS: Preset[] = [
-  makePreset('SSC / Exam Starter', { width: 200, height: 230, targetKB: 50 }, { width: 140, height: 60, targetKB: 20 }),
+  makePreset('SSC / Exam Starter', { width: 413, height: 531, targetKB: 50, quality: 0.98 }, { width: 140, height: 60, targetKB: 20 }),
   makePreset('UPSC Starter', { width: 300, height: 350, targetKB: 100 }, { width: 140, height: 60, targetKB: 20 }),
-  makePreset('Railway Starter', { width: 200, height: 230, targetKB: 50 }, { width: 140, height: 60, targetKB: 20 }),
-  makePreset('Bihar Exam Starter', { width: 200, height: 230, targetKB: 50 }, { width: 140, height: 60, targetKB: 20 }),
+  makePreset('Railway Starter', { width: 413, height: 531, targetKB: 50, quality: 0.98 }, { width: 140, height: 60, targetKB: 20 }),
+  makePreset('Bihar Exam Starter', { width: 413, height: 531, targetKB: 50, quality: 0.98 }, { width: 140, height: 60, targetKB: 20 }),
   makePreset('Compact Upload', { width: 100, height: 120, targetKB: 20 }, { width: 100, height: 40, targetKB: 10 }),
   makePreset('Legacy Signature 140×60 · 10–20 KB', {}, { width: 140, height: 60, targetKB: 20 }),
   makePreset('Legacy Signature 200×100', {}, { width: 200, height: 100, targetKB: 20 })
@@ -275,7 +275,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   const copy = useMemo(() => isHindi ? {
     subtitle: 'सरकारी फॉर्म, नौकरी आवेदन और ऑनलाइन सेवाओं के लिए फोटो और सिग्नेचर तैयार करें।',
-    quality: 'JPG क्वालिटी', zoom: 'क्रॉप ज़ूम', cropX: 'बाएँ / दाएँ', cropY: 'ऊपर / नीचे', qualityHint: 'ज़्यादा क्वालिटी = बेहतर डिटेल, बड़ा KB', cropHint: 'फोटो को फ्रेम में सही जगह सेट करें।',
+    quality: 'JPG क्वालिटी', zoom: 'क्रॉप ज़ूम', cropX: 'बाएँ / दाएँ', cropY: 'ऊपर / नीचे', qualityHint: 'ज़्यादा क्वालिटी = बेहतर डिटेल, बड़ा KB। चुना हुआ KB अधिकतम सीमा है, फाइल का ठीक उतना होना जरूरी नहीं।', cropHint: 'फोटो को फ्रेम में सही जगह सेट करें।',
     upload: '01 · अपनी फाइल अपलोड करें',
     photo: 'पासपोर्ट / फॉर्म फोटो',
     signature: 'सिग्नेचर',
@@ -284,7 +284,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     settings: '03 · अलग-अलग आउटपुट सेटिंग',
     width: 'चौड़ाई',
     height: 'ऊँचाई',
-    target: 'लक्षित साइज़ (KB)',
+    target: 'अधिकतम फाइल साइज़ (KB)',
     dimensionUnit: 'डाइमेंशन यूनिट',
     dpi: 'प्रिंट DPI',
     dpiHint: 'DPI प्रिंट की डेंसिटी बताता है; असली डिटेल पिक्सेल पर निर्भर करती है।',
@@ -318,7 +318,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     onlySign: 'सिग्नेचर'
   } : {
     subtitle: 'Prepare photo and signature files for government forms, job applications and online services.',
-    quality: 'JPG Quality', zoom: 'Crop zoom', cropX: 'Left / Right', cropY: 'Up / Down', qualityHint: 'Higher quality keeps more detail but increases KB.', cropHint: 'Position the image inside the frame.',
+    quality: 'JPG Quality', zoom: 'Crop zoom', cropX: 'Left / Right', cropY: 'Up / Down', qualityHint: 'Higher quality keeps more detail but increases KB. Target KB is a maximum, not an exact file size.', cropHint: 'Position the image inside the frame.',
     upload: '01 · Upload Your Files',
     photo: 'Passport / Form Photo',
     signature: 'Signature',
@@ -327,7 +327,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     settings: '03 · Separate Output Settings',
     width: 'Width',
     height: 'Height',
-    target: 'Target Size (KB)',
+    target: 'Maximum File Size (KB)',
     dimensionUnit: 'Dimension unit',
     dpi: 'Print DPI',
     dpiHint: 'DPI sets print density; actual image detail depends on pixel dimensions.',
