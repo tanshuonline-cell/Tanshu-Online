@@ -198,14 +198,14 @@ const addDpiMetadata = async (blob: Blob, dpi: number): Promise<Blob> => {
     segment.set([0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01], 0);
     segment[12] = density >> 8; segment[13] = density & 255;
     segment[14] = density >> 8; segment[15] = density & 255;
-    let insertAt = 2;
+    let replaceUntil = 2;
     if (bytes[2] === 0xff && bytes[3] === 0xe0 && bytes[6] === 0x4a && bytes[7] === 0x46 && bytes[8] === 0x49 && bytes[9] === 0x46) {
-      insertAt = 2 + 2 + ((bytes[4] << 8) | bytes[5]);
+      replaceUntil = 2 + 2 + ((bytes[4] << 8) | bytes[5]);
     }
-    const output = new Uint8Array(bytes.length + segment.length);
-    output.set(bytes.subarray(0, insertAt));
-    output.set(segment, insertAt);
-    output.set(bytes.subarray(insertAt), insertAt + segment.length);
+    const output = new Uint8Array(bytes.length - (replaceUntil - 2) + segment.length);
+    output.set(bytes.subarray(0, 2));
+    output.set(segment, 2);
+    output.set(bytes.subarray(replaceUntil), 2 + segment.length);
     return new Blob([output], { type: blob.type });
   }
   if (blob.type === 'image/png' && bytes[0] === 0x89 && bytes[1] === 0x50) {
