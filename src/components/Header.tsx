@@ -74,7 +74,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           {/* Mobile Right: Compact Citizen Badge */}
           <div className="flex md:hidden items-center gap-1 text-[10px] text-emerald-400 font-semibold bg-emerald-950/70 border border-emerald-800/80 px-2 py-0.5 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            <span>Citizen Toolkit</span>
+            <span>{t('header.citizenToolkit', 'Citizen Toolkit')}</span>
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           {/* Left on Mobile / Tablet: Quick section label */}
           <div className="lg:hidden flex items-center gap-1.5 text-xs font-bold text-slate-800">
             <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-            <span className="truncate">Digital Public Services Hub</span>
+            <span className="truncate">{t('header.citizenToolkit', 'Digital Public Services Hub')}</span>
           </div>
 
           {/* Right: Language Switcher ("हिंदी | English") + Customer Access + Explore Tools Action */}
