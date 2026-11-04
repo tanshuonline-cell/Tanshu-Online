@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Lock, Clock, ArrowRight, GraduationCap } from 'lucide-react';
 import { VideoGuide } from '../../types';
 import { LATEST_VIDEOS } from '../../data/videosData';
@@ -52,8 +52,6 @@ export const VideoLearningCenter: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Paid videos only: free-guide tabs are intentionally hidden from the public site. */}
-        <div className="mb-6" />
         {/* Public catalog shows paid videos only. */}
         {/* Responsive Grid: 4 cards on desktop (lg:grid-cols-4), 3 on tablet (md:grid-cols-3), 2 on mobile (grid-cols-2) */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -88,7 +86,7 @@ export const VideoLearningCenter: React.FC<Props> = ({
                     <span>{video.duration}</span>
                   </div>
 
-                  {/* Free or Premium Badge (Top Left) */}
+                  {/* Premium Badge (Top Left) */}
                   <div className="absolute top-1.5 left-1.5 z-10">
                     <div className="px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
                       <Lock className="w-2.5 h-2.5" />
