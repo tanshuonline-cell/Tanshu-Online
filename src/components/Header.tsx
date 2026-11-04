@@ -8,10 +8,9 @@ interface Props {
   onNavigate: (sectionId: string) => void;
   activeSection: string;
   onOpenCustomerAuth?: () => void;
-  isHomePage?: boolean;
 }
 
-export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCustomerAuth, isHomePage = false }) => {
+export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCustomerAuth }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
@@ -111,24 +110,32 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Prominent Language Switcher showing both "हिंदी | English" */}
             <div
-              className={isHomePage ? "inline-flex items-center gap-1 rounded-lg border border-white/15 bg-[#07152f] p-0.5 shadow-md shadow-slate-900/15 select-none" : "inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"}
+              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
               title="भाषा बदलें / Switch Language"
               aria-label="Language selection"
             >
               <button
                 type="button"
                 onClick={() => setLanguage('hi')}
-                className={isHomePage ? `rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${language === 'hi' ? 'bg-white text-slate-900 shadow-md' : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'}` : `px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${language === 'hi' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
+                  language === 'hi'
+                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
               >
                 हिंदी
               </button>
-              <span className={isHomePage ? "hidden" : "text-slate-300 px-0.5"}>|</span>
+              <span className="text-slate-300 px-0.5">|</span>
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={isHomePage ? `rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${language === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'}` : `px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${language === 'en' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
+                  language === 'en'
+                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
               >
-                {isHomePage ? 'EN' : 'English'}
+                English
               </button>
             </div>
 
@@ -137,7 +144,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               <button
                 type="button"
                 onClick={onOpenCustomerAuth}
-                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs ${isHomePage ? "sm:w-[150px] sm:justify-center" : ""}`}
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                 title={language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Access'}
               >
                 <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -150,7 +157,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             {/* Explore Tools Action */}
             <button
               onClick={() => handleLinkClick('all-tools')}
-              className={`hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-xs whitespace-nowrap ${isHomePage ? "sm:w-[160px] sm:justify-center" : ""}`}
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-xs whitespace-nowrap"
             >
               <span>{t('btn.exploreTools', 'Explore Tools')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
