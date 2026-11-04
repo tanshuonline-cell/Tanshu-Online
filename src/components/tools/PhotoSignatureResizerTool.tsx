@@ -387,7 +387,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     });
   };
 
-  const updateSetting = (slot: Slot, key: keyof Settings, value: string | number) => {
+  const updateSetting = (slot: Slot, key: keyof Settings, value: string | number | boolean) => {
     setSettings((current) => ({ ...current, [slot]: { ...current[slot], [key]: value } as Settings }));
     setActivePreset('custom');
     clearOutput(slot);
@@ -728,7 +728,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
             </label>
             <div className="col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-3">
               <label className="flex cursor-pointer items-start gap-2 text-[10px] font-extrabold leading-5 text-slate-800">
-                <input type="checkbox" checked={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'preserveOriginal', event.target.checked ? 1 : 0)} className="mt-1 h-4 w-4 accent-blue-600" />
+                <input type="checkbox" checked={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'preserveOriginal', event.target.checked)} className="mt-1 h-4 w-4 accent-blue-600" />
                 <span>{isHindi ? 'सिर्फ KB कम करें — मूल फोटो का आकार और फ्रेमिंग न बदलें' : 'Compress only — keep original dimensions and framing'}</span>
               </label>
               <p className="mt-1 text-[9px] leading-4 text-slate-500">{isHindi ? 'इस विकल्प में फोटो Crop, Zoom या Position नहीं होगी। केवल चुने हुए फॉर्मेट और KB लक्ष्य के अनुसार फाइल दोबारा सेव होगी।' : 'This mode does not crop, zoom, or reposition the image. It only re-encodes it using the selected format and file-size target.'}</p>
