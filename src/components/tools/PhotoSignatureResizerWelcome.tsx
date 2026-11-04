@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
-  ArrowRight, Camera, CheckCircle2, Download, FileImage,
+  ArrowLeft, ArrowRight, Camera, CheckCircle2, Download, FileImage,
   Gauge, ImagePlus, Monitor, ShieldCheck, Smartphone, SlidersHorizontal,
   Sparkles, Upload, WandSparkles
 } from 'lucide-react';
 
 interface Props {
   onStart: () => void;
+  onBack: () => void;
 }
 
 const DemoPhoto: React.FC<{ variant?: 'original' | 'clean' }> = ({ variant = 'clean' }) => (
@@ -87,7 +88,7 @@ const features = [
   }
 ];
 
-export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart }) => {
+export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart, onBack }) => {
   const [language, setLanguage] = useState<'hi' | 'en'>('hi');
   const hi = language === 'hi';
   const tx = (hindi: string, english: string) => hi ? hindi : english;
@@ -95,18 +96,18 @@ export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart }) => {
   return (
     <main className="min-h-full bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#07152f]/95 px-4 py-3 text-white shadow-lg backdrop-blur-md sm:px-7">
-        <div className="mx-auto flex max-w-6xl items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
-            <Camera className="h-5 w-5 text-white" />
-          </div>
+        <div className="mx-auto flex max-w-6xl items-center gap-2 sm:gap-3">
+          <button type="button" onClick={onBack} className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 text-[10px] font-extrabold text-blue-50 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/15"><ArrowLeft className="h-3.5 w-3.5" />{tx('होम', 'BACK')}</button>
+          <img src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online profile" className="h-9 w-9 shrink-0 rounded-full border-2 border-blue-400 object-cover shadow-md sm:h-10 sm:w-10" />
           <div className="min-w-0">
             <p className="text-sm font-black tracking-wide">TANSHU <span className="text-cyan-300">ONLINE</span></p>
-            <p className="text-[10px] font-semibold text-blue-100/75">{tx('Photo & Signature Resizer Studio', 'Photo & Signature Resizer Studio')}</p>
+            <p className="text-[10px] font-semibold text-blue-100/75">PHOTO &amp; SIGNATURE RESIZER STUDIO</p>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-white/15 bg-white/10 p-0.5">
             <button type="button" onClick={() => setLanguage('hi')} aria-pressed={hi} className={`rounded-md px-2.5 py-1.5 text-[10px] font-extrabold ${hi ? 'bg-white text-slate-900' : 'text-blue-100 hover:bg-white/10'}`}>हिंदी</button>
             <button type="button" onClick={() => setLanguage('en')} aria-pressed={!hi} className={`rounded-md px-2.5 py-1.5 text-[10px] font-extrabold ${!hi ? 'bg-white text-slate-900' : 'text-blue-100 hover:bg-white/10'}`}>EN</button>
           </div>
+          <button type="button" onClick={onStart} className="ml-1 inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-200/30 bg-gradient-to-r from-amber-400 to-yellow-300 px-2.5 py-1.5 text-[10px] font-black text-slate-950 shadow-md transition hover:-translate-y-0.5 hover:from-amber-300 hover:to-yellow-200 sm:px-3 sm:text-xs">{tx('आगे', 'NEXT')} <ArrowRight className="h-3.5 w-3.5" /></button>
         </div>
       </header>
 
@@ -119,7 +120,7 @@ export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart }) => {
               <ShieldCheck className="h-3.5 w-3.5" /> {tx('लोकल ब्राउज़र प्रोसेसिंग', 'LOCAL BROWSER PROCESSING')}
             </span>
             <p className="mt-5 text-xs font-black uppercase tracking-[.2em] text-cyan-200">{tx('Professional Photo & Signature Studio', 'Professional Photo & Signature Studio')}</p>
-            <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight tracking-tight sm:text-5xl">{tx('फोटो और सिग्नेचर को सही Size में तैयार करें', 'Prepare Photos & Signatures with Precision')}</h1>
+            <h1 className="mt-3 max-w-2xl text-3xl font-black uppercase leading-tight tracking-wide sm:text-5xl">{tx('फोटो और सिग्नेचर को सही Size में तैयार करें', 'PREPARE PHOTOS & SIGNATURES WITH PRECISION')}</h1>
             <p className="mt-4 max-w-xl text-sm leading-7 text-blue-100/90">{tx('एडिटर खोलने से पहले इसके फीचर्स और नमूने देखें। फोटो Resize करें, सिग्नेचर सेट करें, Print DPI चुनें और KB के अनुसार फाइल तैयार करें।', 'Explore the features and sample outputs before opening the editor. Resize photos, prepare signatures, choose print DPI and compress to a target file size.')}</p>
             <div className="mt-6 flex flex-wrap gap-2">
               {['📷 Photo Resize', '✍️ Signature', '🎯 KB Target', '🖨️ Print DPI'].map((item) => <span key={item} className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[10px] font-bold text-blue-50">{item}</span>)}
@@ -173,12 +174,14 @@ export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart }) => {
                 </div>
                 <div className="p-4">
                   <p className="min-h-[72px] text-xs leading-6 text-slate-600">{tx(feature.description, feature.descriptionEn)}</p>
-                  {feature.sample === 'photo' && <div className="mt-3 flex items-center justify-center gap-3 rounded-xl bg-slate-100 p-3"><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto variant="original" /></div><ArrowRight className="h-4 w-4 text-blue-500" /><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto /></div></div>}
-                  {feature.sample === 'signature' && <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3"><div className="h-16"><DemoSignature /></div><div className="mt-2 flex justify-between text-[9px] font-bold text-slate-500"><span>140 × 60 px</span><span>200 × 100 px</span></div></div>}
-                  {feature.sample === 'dpi' && <div className="mt-3 grid grid-cols-3 gap-2">{['72 DPI','150 DPI','200 DPI','240 DPI','300 DPI','96 DPI'].map((dpi) => <span key={dpi} className={`rounded-lg border px-2 py-2 text-center text-[10px] font-extrabold ${dpi === '300 DPI' ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{dpi}</span>)}</div>}
-                  {feature.sample === 'size' && <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3"><div className="flex flex-wrap gap-2">{['10 KB','20 KB','50 KB','100 KB','200 KB','500 KB'].map((size) => <span key={size} className={`rounded-lg px-2.5 py-1.5 text-[9px] font-extrabold ${size === '50 KB' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700'}`}>{size}</span>)}</div><p className="mt-2 text-[9px] text-indigo-700">{tx('चुनी हुई सीमा अधिकतम है, exact size नहीं।', 'Selected size is a maximum, not an exact target.')}</p></div>}
-                  {feature.sample === 'preview' && <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-lg border bg-slate-50 p-2"><p className="mb-1 text-center text-[9px] font-bold text-slate-500">{tx('Original','Original')}</p><div className="h-24 overflow-hidden rounded"><DemoPhoto variant="original" /></div></div><div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2"><p className="mb-1 text-center text-[9px] font-bold text-emerald-700">{tx('Live Preview','Live Preview')}</p><div className="h-24 overflow-hidden rounded"><DemoPhoto /></div></div></div>}
-                  {feature.sample === 'download' && <div className="mt-3 grid grid-cols-2 gap-2">{['JPG','PNG','WEBP','ZIP'].map((format) => <span key={format} className="flex items-center justify-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-2 text-[10px] font-extrabold text-emerald-800"><Download className="h-3 w-3" />{format}</span>)}</div>}
+                  <div className="mt-3 max-h-[230px] space-y-3 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-slate-100 p-3 pr-2 shadow-inner [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
+                  {feature.sample === 'photo' && <div className="flex items-center justify-center gap-3 rounded-xl bg-white p-3"><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto variant="original" /></div><ArrowRight className="h-4 w-4 text-blue-500" /><div className="h-24 w-20 overflow-hidden rounded border border-slate-200 bg-white"><DemoPhoto /></div></div>}
+                  {feature.sample === 'signature' && <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3"><div className="h-16"><DemoSignature /></div><div className="mt-2 flex justify-between text-[9px] font-bold text-slate-500"><span>140 × 60 px</span><span>200 × 100 px</span></div></div>}
+                  {feature.sample === 'dpi' && <div className="grid grid-cols-3 gap-2 rounded-xl bg-white p-3">{['72 DPI','150 DPI','200 DPI','240 DPI','300 DPI','96 DPI'].map((dpi) => <span key={dpi} className={`rounded-lg border px-2 py-2 text-center text-[10px] font-extrabold ${dpi === '300 DPI' ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{dpi}</span>)}</div>}
+                  {feature.sample === 'size' && <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3"><div className="flex flex-wrap gap-2">{['10 KB','20 KB','50 KB','100 KB','200 KB','500 KB'].map((size) => <span key={size} className={`rounded-lg px-2.5 py-1.5 text-[9px] font-extrabold ${size === '50 KB' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700'}`}>{size}</span>)}</div><p className="mt-2 text-[9px] text-indigo-700">{tx('चुनी हुई सीमा अधिकतम है, exact size नहीं।', 'Selected size is a maximum, not an exact target.')}</p></div>}
+                  {feature.sample === 'preview' && <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3"><div className="rounded-lg border bg-slate-50 p-2"><p className="mb-1 text-center text-[9px] font-bold text-slate-500">{tx('Original','Original')}</p><div className="h-24 overflow-hidden rounded"><DemoPhoto variant="original" /></div></div><div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2"><p className="mb-1 text-center text-[9px] font-bold text-emerald-700">{tx('Live Preview','Live Preview')}</p><div className="h-24 overflow-hidden rounded"><DemoPhoto /></div></div></div>}
+                  {feature.sample === 'download' && <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3">{['JPG','PNG','WEBP','ZIP'].map((format) => <span key={format} className="flex items-center justify-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-2 text-[10px] font-extrabold text-emerald-800"><Download className="h-3 w-3" />{format}</span>)}</div>}
+                  </div>
                 </div>
               </article>
             );

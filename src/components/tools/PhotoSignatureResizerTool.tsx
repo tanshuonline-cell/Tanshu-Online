@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Upload, Download, Printer, RefreshCw, ImagePlus, ShieldCheck,
+  ArrowLeft, Upload, Download, Printer, RefreshCw, ImagePlus, ShieldCheck,
   Sparkles, CheckCircle2, Zap, SlidersHorizontal, FileDown, Trash2
 } from 'lucide-react';
 
@@ -332,7 +332,7 @@ async function renderImage(asset: Asset, settings: Settings) {
   return { blob, width, height, warning, actualQuality };
 }
 
-export const PhotoSignatureResizerTool: React.FC = () => {
+export const PhotoSignatureResizerTool: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [language, setLanguage] = useState<'hi' | 'en'>('hi');
   const [assets, setAssets] = useState<Record<Slot, Asset | null>>({ photo: null, signature: null });
   const assetsRef = useRef(assets);
@@ -1020,10 +1020,10 @@ export const PhotoSignatureResizerTool: React.FC = () => {
             <span className="text-sm font-black tracking-wide text-blue-300 sm:text-lg">ONLINE</span>
           </div>
           <span className="hidden text-xs font-medium text-blue-100/80 md:block">Photo & Signature Resizer</span>
-          <div className="ml-auto inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/10 p-0.5 shadow-sm" aria-label="Choose language">
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={onBack} className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-1.5 text-[10px] font-extrabold text-blue-50 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/15"><ArrowLeft className="h-3.5 w-3.5" />{isHindi ? 'होम' : 'BACK'}</button><div className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/10 p-0.5 shadow-sm" aria-label="Choose language">
             <button type="button" onClick={() => setLanguage('hi')} aria-pressed={isHindi} className={'rounded-md px-2 py-1.5 text-[10px] font-extrabold transition ' + (isHindi ? 'bg-white text-slate-900 shadow' : 'text-blue-100 hover:bg-white/10')}>हिंदी</button>
             <button type="button" onClick={() => setLanguage('en')} aria-pressed={!isHindi} className={'rounded-md px-2 py-1.5 text-[10px] font-extrabold transition ' + (!isHindi ? 'bg-white text-slate-900 shadow' : 'text-blue-100 hover:bg-white/10')}>EN</button>
-          </div>
+          </div></div>
         </div>
       </header>
 

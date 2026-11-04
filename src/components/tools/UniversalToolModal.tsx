@@ -53,12 +53,12 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
     switch (tool.id) {
       case 'advanced-passport-photo-studio':
         return showAdvancedStudio
-          ? <AdvancedPassportPhotoStudio />
-          : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />;
+          ? <AdvancedPassportPhotoStudio onBack={onClose} />
+          : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} onBack={onClose} />;
       case 'photo-signature-resizer':
         return showPhotoSignatureStudio
-          ? <PhotoSignatureResizerTool />
-          : <PhotoSignatureResizerWelcome onStart={() => setShowPhotoSignatureStudio(true)} />;
+          ? <PhotoSignatureResizerTool onBack={onClose} />
+          : <PhotoSignatureResizerWelcome onStart={() => setShowPhotoSignatureStudio(true)} onBack={onClose} />;
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
       case 'auto-document-cropper':
