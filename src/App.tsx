@@ -120,7 +120,11 @@ export default function App() {
         const id = pathname.startsWith('/video/')
           ? pathname.replace('/video/', '')
           : hash.replace('#video/', '');
-        const found = catalogVideos.find((v) => v.id === id) || LATEST_VIDEOS.find((v) => v.id === id);
+        // Public video detail routes are restricted to active paid masterclasses.
+        const isPaidActive = (video: VideoGuide) =>
+          video.isActive !== false && (video.isPremium || video.accessType === 'premium');
+        const found = catalogVideos.find((v) => v.id === id && isPaidActive(v)) ||
+          LATEST_VIDEOS.find((v) => v.id === id && isPaidActive(v));
         if (found) {
           setSelectedDetailVideo(found);
           setCurrentPage('video-detail');
