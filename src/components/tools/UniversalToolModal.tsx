@@ -50,7 +50,6 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         return showAdvancedStudio
           ? <AdvancedPassportPhotoStudio />
           : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />;
-      case 'passport-size-photo-maker':
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
       case 'auto-document-cropper':
