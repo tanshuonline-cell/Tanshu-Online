@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ArrowLeft, Play, Lock, Clock, Sparkles, Filter, X } from 'lucide-react';
+import { Search, ArrowLeft, Lock, Clock, Sparkles, X } from 'lucide-react';
 import { VideoGuide } from '../../types';
 import { LATEST_VIDEOS } from '../../data/videosData';
 import { useLanguage } from '../../context/LanguageContext';
@@ -121,12 +121,10 @@ export const CompleteVideoCatalog: React.FC<Props> = ({
 
                     {/* Price / Type Badge */}
                     <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
-                      {isPremium ? (
-                        <div className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                          <Lock className="w-2.5 h-2.5" />
-                          <span>PREMIUM • ₹{price}</span>
-                        </div>
-                      ) : null}
+                      <div className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>PREMIUM • ₹{price}</span>
+                      </div>
                       {video.isSample && (
                         <div className="px-1.5 py-0.5 bg-slate-900/90 text-slate-200 rounded text-[8px] font-mono font-bold">
                           SAMPLE
@@ -151,14 +149,12 @@ export const CompleteVideoCatalog: React.FC<Props> = ({
                     </div>
 
                     <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                      {isPremium ? (
-                        <>
-                          <div className="text-xs font-extrabold text-amber-700">₹{price} INR</div>
-                          <span className="text-[11px] font-bold text-blue-700 group-hover:underline">
-                            Unlock Masterclass
-                          </span>
-                        </>
-                      ) : null}
+                      <>
+                        <div className="text-xs font-extrabold text-amber-700">₹{price} INR</div>
+                        <span className="text-[11px] font-bold text-blue-700 group-hover:underline">
+                          Unlock Masterclass
+                        </span>
+                      </>
                     </div>
                   </div>
                 </div>
