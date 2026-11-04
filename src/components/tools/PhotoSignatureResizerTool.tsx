@@ -525,12 +525,12 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <>
             <p className="mt-2 text-[10px] font-semibold text-slate-600">{asset.outputWidth} × {asset.outputHeight} px · {settings[slot].format === 'image/jpeg' ? `JPG · ${Math.round((asset.outputQuality || settings[slot].quality) * 100)}%` : 'PNG'}</p>
             {asset.warning && <p className="mt-1 rounded-lg bg-amber-50 p-2 text-[10px] leading-4 text-amber-800">{asset.warning}</p>}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button type="button" disabled={processing} onClick={() => processOne(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-blue-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-blue-700 disabled:opacity-50"><Zap className="h-3.5 w-3.5" />{slot === 'photo' ? copy.processPhoto : copy.processSignature}</button>
-              <button type="button" onClick={() => downloadSlot(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-emerald-700"><Download className="h-3.5 w-3.5" />{copy.download}</button>
-            </div>
           </>
         )}
+        {asset && <div className="mt-3 grid grid-cols-2 gap-2">
+          <button type="button" disabled={processing} onClick={() => processOne(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-blue-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-blue-700 disabled:opacity-50"><Zap className="h-3.5 w-3.5" />{slot === 'photo' ? copy.processPhoto : copy.processSignature}</button>
+          <button type="button" disabled={!asset.outputUrl} onClick={() => downloadSlot(slot)} className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-2 py-2.5 text-[11px] font-extrabold text-white transition hover:bg-emerald-700 disabled:opacity-40"><Download className="h-3.5 w-3.5" />{copy.download}</button>
+        </div>}
       </div>
     );
   };
