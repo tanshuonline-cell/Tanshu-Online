@@ -327,26 +327,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
   };
 
   const updateSetting = (slot: Slot, key: keyof Settings, value: string | number) => {
-    let safeValue: string | number = value;
-    if (key === 'width' || key === 'height' || key === 'targetKB') {
-      const maximum = key === 'targetKB' ? 5000 : 4000;
-      safeValue = Math.max(5, Math.min(maximum, Math.round(Number(value) || 5)));
-    } else if (key === 'quality') {
-      safeValue = Math.max(0.3, Math.min(1, Number(value)));
-    } else if (key === 'zoom') {
-      safeValue = Math.max(1, Math.min(3, Number(value)));
-    } else if (key === 'cropX' || key === 'cropY') {
-      safeValue = Math.max(-1, Math.min(1, Number(value)));
-    }
-    setSettings((current) => {
-      const next = { ...current, [slot]: { ...current[slot], [key]: safeValue } as Settings };
-      if (next[slot].width * next[slot].height > 12000000) {
-        setStatus(isHindi
-          ? 'कुल आउटपुट 12 मेगापिक्सेल से अधिक है। चौड़ाई या ऊँचाई कम करें।'
-          : 'Output exceeds 12 megapixels. Reduce the width or height.');
-      }
-      return next;
-    });
+    setSettings((current) => ({ ...current, [slot]: { ...current[slot], [key]: value } as Settings }));
     setActivePreset('custom');
     clearOutput(slot);
   };
@@ -598,7 +579,24 @@ export const PhotoSignatureResizerTool: React.FC = () => {
                 min="5"
                 max={field.key === 'targetKB' ? 5000 : 4000}
                 value={current[field.key] as number}
-                onChange={(event) => updateSetting(slot, field.key, Number(event.target.value))}
+                step="1"
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  if (raw === '') return;
+                  const parsed = Number(raw);
+                  if (Number.isFinite(parsed)) updateSetting(slot, field.key, parsed);
+                }}
+                onBlur={(event) => {
+                  const maximum = field.key === 'targetKB' ? 5000 : 4000;
+                  const normalized = Math.max(5, Math.min(maximum, Math.round(Number(event.currentTarget.value) || 5)));
+                  if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
+                  if (field.key === 'height' && current.width * normalized > 12000000 ||
+                      field.key === 'width' && normalized * current.height > 12000000) {
+                    setStatus(isHindi
+                      ? 'कुल आउटपुट 12 मेगापिक्सेल से अधिक है। चौड़ाई या ऊँचाई कम करें।'
+                      : 'Output exceeds 12 megapixels. Reduce the width or height.');
+                  }
+                }}
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </label>
