@@ -316,6 +316,8 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
     setActivePanel('crop');
   };
 
+  useEffect(() => { setFaceRect(null); setFaceStatus(''); }, [selected?.id]);
+
   useEffect(() => {
     if (!selected) return;
     const image = new Image();
