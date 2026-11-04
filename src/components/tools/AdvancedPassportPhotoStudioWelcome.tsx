@@ -58,18 +58,26 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-300/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-36 left-1/4 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl" />
         <div className="relative mx-auto max-w-6xl">
-          <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-extrabold tracking-[.12em] text-blue-100">
-              <Sparkles className="h-4 w-4 text-amber-300" /> TANSHU ONLINE · PHOTO STUDIO
+          <div className="mb-7 flex flex-col items-center gap-3 text-center">
+            <h1 className="whitespace-nowrap text-[clamp(0.68rem,3.2vw,2rem)] font-black leading-tight tracking-[.035em] text-white">
+              PROFESSIONAL PHOTO &amp; SIGNATURE STUDIO
+            </h1>
+            <div className="flex items-center justify-center gap-2.5">
+              <img
+                src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg"
+                alt="Tanshu Online"
+                className="h-9 w-9 rounded-full border-2 border-blue-400 object-cover shadow-md sm:h-11 sm:w-11"
+              />
+              <div className="flex items-center gap-1 font-sans tracking-tight">
+                <span className="text-base font-black tracking-wide text-white sm:text-lg">TANSHU</span>
+                <span className="text-base font-black tracking-wide text-blue-300 sm:text-lg">ONLINE</span>
+              </div>
             </div>
             <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-bold tracking-wide text-emerald-100">MOBILE & DESKTOP READY</span>
           </div>
           <div className="grid items-center gap-8 lg:grid-cols-[1.04fr_.96fr]">
             <div>
               <p className="mb-3 text-[10px] font-extrabold uppercase tracking-[.2em] text-cyan-200 sm:text-xs">PHOTO · SIGNATURE · BACKGROUND · PRINT PROCESSING</p>
-              <h1 className="max-w-2xl text-3xl font-black leading-[1.12] tracking-tight sm:text-4xl lg:text-[3.25rem]">
-                Professional Photo &amp; Signature Studio
-              </h1>
               <p className="mt-3 text-lg font-bold text-blue-100 sm:text-xl">पासपोर्ट फोटो और सिग्नेचर — सब एक ही जगह</p>
               <p className="mt-4 max-w-xl text-sm leading-7 text-blue-100/85 sm:text-base">
                 पासपोर्ट फोटो तैयार करें, बैकग्राउंड बदलें, सिग्नेचर साफ करें और 4×6 या A4 प्रिंट शीट बनाएँ। मोबाइल और कंप्यूटर दोनों पर आसानी से इस्तेमाल करें।
