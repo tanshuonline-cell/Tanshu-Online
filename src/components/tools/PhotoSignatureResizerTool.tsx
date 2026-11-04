@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Upload, Download, Printer, RefreshCw, ImagePlus, FileImage, ShieldCheck,
-  Sparkles, Languages, CheckCircle2, Zap, SlidersHorizontal, FileDown
+  Upload, Download, Printer, RefreshCw, ImagePlus, ShieldCheck,
+  Sparkles, CheckCircle2, Zap, SlidersHorizontal, FileDown
 } from 'lucide-react';
 
 type Slot = 'photo' | 'signature';
