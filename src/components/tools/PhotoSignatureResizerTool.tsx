@@ -7,7 +7,7 @@ import {
 type Slot = 'photo' | 'signature';
 type OutputFormat = 'image/jpeg' | 'image/png';
 type FitMode = 'contain' | 'cover';
-type Settings = { width: number; height: number; targetKB: number; format: OutputFormat; fit: FitMode };
+type Settings = { width: number; height: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number };
 type Asset = {
   file: File;
   sourceUrl: string;
@@ -20,8 +20,8 @@ type Asset = {
 };
 type Preset = { label: string; photo: Settings; signature: Settings };
 
-const DEFAULT_PHOTO: Settings = { width: 200, height: 230, targetKB: 50, format: 'image/jpeg', fit: 'contain' };
-const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, targetKB: 20, format: 'image/jpeg', fit: 'contain' };
+const DEFAULT_PHOTO: Settings = { width: 200, height: 230, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
+const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, targetKB: 20, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
 const makePreset = (label: string, photo: Partial<Settings>, signature: Partial<Settings>): Preset => ({
   label,
   photo: { ...DEFAULT_PHOTO, ...photo },
@@ -60,15 +60,19 @@ async function renderImage(asset: Asset, settings: Settings) {
   const scale = settings.fit === 'cover'
     ? Math.max(width / image.naturalWidth, height / image.naturalHeight)
     : Math.min(width / image.naturalWidth, height / image.naturalHeight);
-  const drawWidth = image.naturalWidth * scale;
-  const drawHeight = image.naturalHeight * scale;
-  context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+  const drawWidth = image.naturalWidth * scale * Math.max(1, settings.zoom || 1);
+  const drawHeight = image.naturalHeight * scale * Math.max(1, settings.zoom || 1);
+  const overflowX = Math.max(0, drawWidth - width);
+  const overflowY = Math.max(0, drawHeight - height);
+  const offsetX = Math.max(-1, Math.min(1, settings.cropX || 0));
+  const offsetY = Math.max(-1, Math.min(1, settings.cropY || 0));
+  context.drawImage(image, (width - drawWidth) / 2 - (overflowX / 2) * offsetX, (height - drawHeight) / 2 - (overflowY / 2) * offsetY, drawWidth, drawHeight);
 
   const targetBytes = Math.max(5, Math.min(5000, settings.targetKB || 50)) * 1024;
   let blob = await canvasBlob(canvas, settings.format, 0.92);
   if (settings.format === 'image/jpeg') {
     let low = 0.12;
-    let high = 0.92;
+    let high = Math.max(0.12, Math.min(1, settings.quality || 0.88));
     let best: Blob | null = blob.size <= targetBytes ? blob : null;
     for (let i = 0; i < 8; i++) {
       const quality = (low + high) / 2;
@@ -104,6 +108,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   const copy = useMemo(() => isHindi ? {
     subtitle: 'सरकारी फॉर्म, नौकरी आवेदन और ऑनलाइन सेवाओं के लिए फोटो और सिग्नेचर तैयार करें।',
+    quality: 'JPG क्वालिटी', zoom: 'क्रॉप ज़ूम', cropX: 'बाएँ / दाएँ', cropY: 'ऊपर / नीचे', qualityHint: 'ज़्यादा क्वालिटी = बेहतर डिटेल, बड़ा KB', cropHint: 'फोटो को फ्रेम में सही जगह सेट करें।',
     upload: '01 · अपनी फाइल अपलोड करें',
     photo: 'पासपोर्ट / फॉर्म फोटो',
     signature: 'सिग्नेचर',
@@ -139,6 +144,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     onlySign: 'सिग्नेचर'
   } : {
     subtitle: 'Prepare photo and signature files for government forms, job applications and online services.',
+    quality: 'JPG Quality', zoom: 'Crop zoom', cropX: 'Left / Right', cropY: 'Up / Down', qualityHint: 'Higher quality keeps more detail but increases KB.', cropHint: 'Position the image inside the frame.'
     upload: '01 · Upload Your Files',
     photo: 'Passport / Form Photo',
     signature: 'Signature',
@@ -182,11 +188,19 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     });
   }, []);
 
+  const clearOutput = (slot: Slot) => {
+    setAssets((current) => {
+      const asset = current[slot];
+      if (!asset) return current;
+      if (asset.outputUrl) URL.revokeObjectURL(asset.outputUrl);
+      const { outputUrl, outputBlob, outputBytes, warning, outputWidth, outputHeight, ...source } = asset;
+      return { ...current, [slot]: source };
+    });
+  };
+
   const updateSetting = (slot: Slot, key: keyof Settings, value: string | number) => {
-    setSettings((current) => ({
-      ...current,
-      [slot]: { ...current[slot], [key]: value } as Settings
-    }));
+    setSettings((current) => ({ ...current, [slot]: { ...current[slot], [key]: value } as Settings }));
+    clearOutput(slot);
   };
 
   const handleFile = (slot: Slot, file?: File) => {
@@ -211,6 +225,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   const applyPreset = (preset: Preset) => {
     setSettings({ photo: preset.photo, signature: preset.signature });
+    (['photo', 'signature'] as Slot[]).forEach(clearOutput);
     setActivePreset(preset.label);
     setStatus(copy.choosePreset);
   };
@@ -378,6 +393,25 @@ export const PhotoSignatureResizerTool: React.FC = () => {
               <option value="contain">{copy.contain}</option><option value="cover">{copy.cover}</option>
             </select>
           </label>
+          <div className="col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-3">
+            <div className="mb-2 flex items-center justify-between gap-2"><span className="text-[11px] font-extrabold text-slate-800">{copy.cropHint}</span><span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-blue-700">{current.zoom.toFixed(1)}×</span></div>
+            <label className="block text-[10px] font-bold text-slate-600">{copy.zoom}
+              <input type="range" min="1" max="3" step="0.05" value={current.zoom} onChange={(event) => updateSetting(slot, 'zoom', Number(event.target.value))} className="mt-2 w-full accent-blue-600" />
+            </label>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <label className="text-[10px] font-bold text-slate-600">{copy.cropX}
+                <input type="range" min="-1" max="1" step="0.02" value={current.cropX} onChange={(event) => updateSetting(slot, 'cropX', Number(event.target.value))} className="mt-2 w-full accent-blue-600" />
+              </label>
+              <label className="text-[10px] font-bold text-slate-600">{copy.cropY}
+                <input type="range" min="-1" max="1" step="0.02" value={current.cropY} onChange={(event) => updateSetting(slot, 'cropY', Number(event.target.value))} className="mt-2 w-full accent-blue-600" />
+              </label>
+            </div>
+          </div>
+          <div className="col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 sm:col-span-3">
+            <div className="flex items-center justify-between gap-2"><label className="text-[10px] font-extrabold text-slate-700">{copy.quality}</label><span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{Math.round(current.quality * 100)}%</span></div>
+            <input type="range" min="0.3" max="1" step="0.01" value={current.quality} onChange={(event) => updateSetting(slot, 'quality', Number(event.target.value))} className="mt-2 w-full accent-emerald-600" disabled={current.format === 'image/png'} />
+            <p className="mt-1 text-[10px] leading-4 text-slate-500">{copy.qualityHint}{current.format === 'image/png' ? (isHindi ? ' PNG में यह सेटिंग लागू नहीं होती।' : ' This setting does not apply to PNG.') : ''}</p>
+          </div>
         </div>
       </div>
     );
@@ -466,7 +500,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
           <div className="mb-3 flex items-center gap-2"><Sparkles className="h-4 w-4 text-blue-600" /><h2 className="text-sm font-black text-slate-900">{copy.presets}</h2></div>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((preset) => <button key={preset.label} type="button" onClick={() => applyPreset(preset)} className={'rounded-xl border px-3 py-2 text-[10px] font-extrabold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98] ' + (activePreset === preset.label ? 'border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-blue-100 bg-white text-blue-800 hover:border-blue-400')}>{preset.label}</button>)}
-            <button type="button" onClick={() => { setSettings({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE }); setActivePreset('custom'); }} className={'rounded-xl border px-3 py-2 text-[10px] font-extrabold transition-all ' + (activePreset === 'custom' ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-200 bg-white text-slate-700')}>Custom</button>
+            <button type="button" onClick={() => { setSettings({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE }); (['photo', 'signature'] as Slot[]).forEach(clearOutput); setActivePreset('custom'); }} className={'rounded-xl border px-3 py-2 text-[10px] font-extrabold transition-all ' + (activePreset === 'custom' ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-200 bg-white text-slate-700')}>Custom</button>
           </div>
           <p className="mt-3 text-[10px] leading-5 text-slate-500">{copy.note}</p>
         </div>
