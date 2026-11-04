@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload, Download, Printer, RefreshCw, ImagePlus, ShieldCheck,
-  Sparkles, CheckCircle2, Zap, SlidersHorizontal, FileDown
+  Sparkles, CheckCircle2, Zap, SlidersHorizontal, FileDown, Trash2
 } from 'lucide-react';
 
 type Slot = 'photo' | 'signature';
@@ -15,7 +15,7 @@ const fromPixels = (pixels: number, unit: DimensionUnit, dpi: number) => {
 const toPixels = (value: number, unit: DimensionUnit, dpi: number) => Math.round(
   unit === 'px' ? value : unit === 'in' ? value * dpi : unit === 'cm' ? value * dpi / 2.54 : value * dpi / 25.4
 );
-type Settings = { width: number; height: number; dpi: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number };
+type Settings = { width: number; height: number; dpi: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number; preserveOriginal: boolean };
 type Asset = {
   file: File;
   sourceUrl: string;
@@ -26,11 +26,13 @@ type Asset = {
   outputWidth?: number;
   outputHeight?: number;
   outputQuality?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
 };
 type Preset = { label: string; photo: Settings; signature: Settings };
 
-const DEFAULT_PHOTO: Settings = { width: 413, height: 531, dpi: 300, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.98, zoom: 1, cropX: 0, cropY: 0 };
-const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, dpi: 300, targetKB: 20, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
+const DEFAULT_PHOTO: Settings = { width: 413, height: 531, dpi: 300, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.98, zoom: 1, cropX: 0, cropY: 0, preserveOriginal: false };
+const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, dpi: 300, targetKB: 20, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0, preserveOriginal: false };
 const makePreset = (label: string, photo: Partial<Settings>, signature: Partial<Settings>): Preset => ({
   label,
   photo: { ...DEFAULT_PHOTO, ...photo },
@@ -134,8 +136,8 @@ const canvasBlob = (canvas: HTMLCanvasElement, type: string, quality: number): P
   new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
 function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, settings: Settings) {
-  const width = Math.max(5, Math.min(4000, Math.round(settings.width || 200)));
-  const height = Math.max(5, Math.min(4000, Math.round(settings.height || 230)));
+  const width = settings.preserveOriginal ? image.naturalWidth : Math.max(5, Math.min(4000, Math.round(settings.width || 200)));
+  const height = settings.preserveOriginal ? image.naturalHeight : Math.max(5, Math.min(4000, Math.round(settings.height || 230)));
   if (width * height > 12000000) throw new Error('Please choose dimensions under 12 megapixels.');
   canvas.width = width;
   canvas.height = height;
@@ -147,15 +149,16 @@ function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, s
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, width, height);
   }
-  const scale = settings.fit === 'cover'
+  const scale = settings.preserveOriginal ? 1 : settings.fit === 'cover'
     ? Math.max(width / image.naturalWidth, height / image.naturalHeight)
     : Math.min(width / image.naturalWidth, height / image.naturalHeight);
-  const drawWidth = image.naturalWidth * scale * Math.max(1, settings.zoom || 1);
-  const drawHeight = image.naturalHeight * scale * Math.max(1, settings.zoom || 1);
+  const zoom = settings.preserveOriginal ? 1 : Math.max(1, settings.zoom || 1);
+  const drawWidth = image.naturalWidth * scale * zoom;
+  const drawHeight = image.naturalHeight * scale * zoom;
   const overflowX = Math.max(0, drawWidth - width);
   const overflowY = Math.max(0, drawHeight - height);
-  const offsetX = Math.max(-1, Math.min(1, settings.cropX || 0));
-  const offsetY = Math.max(-1, Math.min(1, settings.cropY || 0));
+  const offsetX = settings.preserveOriginal ? 0 : Math.max(-1, Math.min(1, settings.cropX || 0));
+  const offsetY = settings.preserveOriginal ? 0 : Math.max(-1, Math.min(1, settings.cropY || 0));
   context.drawImage(image, (width - drawWidth) / 2 - (overflowX / 2) * offsetX, (height - drawHeight) / 2 - (overflowY / 2) * offsetY, drawWidth, drawHeight);
   return { width, height };
 }
@@ -168,7 +171,7 @@ const CropPreview: React.FC<{ sourceUrl: string; settings: Settings; label: stri
       if (!cancelled && canvasRef.current) drawImageToCanvas(canvasRef.current, image, settings);
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [sourceUrl, settings.width, settings.height, settings.format, settings.fit, settings.zoom, settings.cropX, settings.cropY]);
+  }, [sourceUrl, settings.width, settings.height, settings.format, settings.fit, settings.zoom, settings.cropX, settings.cropY, settings.preserveOriginal]);
   return <canvas
     ref={canvasRef}
     aria-label={label}
@@ -390,6 +393,15 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     clearOutput(slot);
   };
 
+  const clearAsset = (slot: Slot) => {
+    revisionsRef.current[slot] += 1;
+    const previous = assetsRef.current[slot];
+    if (previous?.sourceUrl) URL.revokeObjectURL(previous.sourceUrl);
+    if (previous?.outputUrl) URL.revokeObjectURL(previous.outputUrl);
+    setAssets((current) => ({ ...current, [slot]: null }));
+    setStatus(isHindi ? (slot === 'photo' ? 'फोटो हटा दी गई।' : 'सिग्नेचर हटा दिया गया।') : `${slot === 'photo' ? 'Photo' : 'Signature'} removed.`);
+  };
+
   const handleFile = (slot: Slot, file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
@@ -406,6 +418,11 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     if (previous?.outputUrl) URL.revokeObjectURL(previous.outputUrl);
     const sourceUrl = URL.createObjectURL(file);
     setAssets((current) => ({ ...current, [slot]: { file, sourceUrl } }));
+    readImage(sourceUrl).then((image) => {
+      setAssets((current) => current[slot]?.sourceUrl === sourceUrl
+        ? { ...current, [slot]: { ...current[slot]!, sourceWidth: image.naturalWidth, sourceHeight: image.naturalHeight } }
+        : current);
+    }).catch(() => undefined);
     setStatus((slot === 'photo' ? copy.onlyPhoto : copy.onlySign) + (isHindi ? ' अपलोड हो गया।' : ' uploaded successfully.'));
   };
 
@@ -617,6 +634,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   const renderSettings = (slot: Slot) => {
     const current = settings[slot];
+    const asset = assets[slot];
     const heading = slot === 'photo' ? copy.onlyPhoto : copy.onlySign;
     const unit = dimensionUnits[slot];
     const unitSuffix = unit === 'in' ? 'in' : unit;
@@ -626,106 +644,138 @@ export const PhotoSignatureResizerTool: React.FC = () => {
       { key: 'height', label: `${copy.height} (${unitSuffix})` },
       { key: 'targetKB', label: `${copy.target} (${sizeUnit})` }
     ];
+    const displayedWidth = current.preserveOriginal && asset?.sourceWidth
+      ? fromPixels(asset.sourceWidth, unit, current.dpi) : fromPixels(current.width, unit, current.dpi);
+    const displayedHeight = current.preserveOriginal && asset?.sourceHeight
+      ? fromPixels(asset.sourceHeight, unit, current.dpi) : fromPixels(current.height, unit, current.dpi);
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        {assets[slot] && <div className="mb-3 overflow-hidden rounded-xl border border-blue-100 bg-slate-100 p-2">
-          <p className="mb-2 text-[10px] font-extrabold text-slate-600">{isHindi ? 'लाइव क्रॉप प्रीव्यू' : 'Live crop preview'}</p>
-          <div className="mx-auto flex max-w-[240px] items-center justify-center overflow-hidden rounded-lg bg-white">
-            <CropPreview sourceUrl={assets[slot]!.sourceUrl} settings={current} label={heading + " crop preview"} />
+      <div className="grid min-h-[360px] grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px] sm:gap-4 sm:p-4">
+        <div className="min-w-0 max-h-[62vh] overflow-y-auto overscroll-contain pr-1 sm:max-h-[68vh]">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-extrabold text-slate-900">{slot === 'photo' ? '📷 ' : '✍️ '}{heading}</h3>
+            <SlidersHorizontal className="h-4 w-4 shrink-0 text-blue-600" />
           </div>
-        </div>}
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-extrabold text-slate-900">{slot === 'photo' ? '📷 ' : '✍️ '}{heading}</h3>
-          <SlidersHorizontal className="h-4 w-4 text-blue-600" />
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {fields.map((field) => (
-            <label key={field.key} className="text-[10px] font-bold text-slate-500">
-              {field.label}
-              <input
-                type="number"
-                min={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1}
-                max={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 50 : 50 * 1024) : unit === 'px' ? 4000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2))}
-                value={field.key === 'targetKB' ? Number((sizeUnit === 'MB' ? current.targetKB / 1024 : current.targetKB).toFixed(2)) : fromPixels(current[field.key], unit, current.dpi)}
-                step={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 1) : unit === 'px' ? 1 : 0.01}
-                onChange={(event) => {
-                  const raw = event.target.value;
-                  if (raw === '') return;
-                  const parsed = Number(raw);
-                  if (Number.isFinite(parsed)) {
-                    const stored = field.key === 'targetKB' ? parsed * (sizeUnit === 'MB' ? 1024 : 1) : toPixels(parsed, unit, current.dpi);
-                    updateSetting(slot, field.key, stored);
-                  }
-                }}
-                onBlur={(event) => {
-                  const entered = Number(event.currentTarget.value) || (field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1);
-                  const maximum = field.key === 'targetKB' ? (sizeUnit === 'MB' ? 50 : 50 * 1024) : Number(fromPixels(4000, unit, current.dpi).toFixed(2));
-                  const normalized = field.key === 'targetKB'
-                    ? Math.max(sizeUnit === 'MB' ? 0.01 * 1024 : 5, Math.min(maximum, entered * (sizeUnit === 'MB' ? 1024 : 1)))
-                    : Math.max(5, Math.min(4000, toPixels(Math.min(entered, maximum), unit, current.dpi)));
-                  if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
-                  if ((field.key === 'height' && current.width * normalized > 12000000) ||
-                      (field.key === 'width' && normalized * current.height > 12000000)) {
-                    setStatus(isHindi
-                      ? 'कुल आउटपुट 12 मेगापिक्सेल से अधिक है। चौड़ाई या ऊँचाई कम करें।'
-                      : 'Output exceeds 12 megapixels. Reduce the width or height.');
-                  }
-                }}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </label>
-          ))}
-          <label className="text-[10px] font-bold text-slate-500">{copy.dimensionUnit}
-            <select value={unit} onChange={(event) => setDimensionUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as DimensionUnit }))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
-              <option value="px">Pixels (px)</option><option value="cm">Centimeters (cm)</option><option value="mm">Millimeters (mm)</option><option value="in">Inches (in)</option>
-            </select>
-          </label>
-          <label className="text-[10px] font-bold text-slate-500">{copy.dpi}
-            <select value={current.dpi} onChange={(event) => updateSetting(slot, 'dpi', Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
-              <option value={72}>72 DPI · Screen</option><option value={96}>96 DPI · Screen</option><option value={150}>150 DPI · General print</option><option value={200}>200 DPI · Print</option><option value={240}>240 DPI · Photo print</option><option value={300}>300 DPI · High-quality print</option>
-            </select>
-            <span className="mt-1 block text-[9px] font-medium leading-4 text-slate-400">{copy.dpiHint}</span>
-          </label>
-          <div className="col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
-              <select aria-label={isHindi ? 'फाइल साइज़ यूनिट' : 'File size unit'} value={sizeUnit} onChange={(event) => setSizeUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as 'KB' | 'MB' }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 text-[10px] font-bold text-indigo-800">
-                <option value="KB">KB</option><option value="MB">MB</option>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {fields.map((field) => (
+              <label key={field.key} className="text-[10px] font-bold text-slate-500">
+                {field.label}
+                <input
+                  type="number"
+                  min={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1}
+                  max={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 50 : 50 * 1024) : unit === 'px' ? 4000 : Number(fromPixels(4000, unit, current.dpi).toFixed(2))}
+                  value={field.key === 'targetKB'
+                    ? Number((sizeUnit === 'MB' ? current.targetKB / 1024 : current.targetKB).toFixed(2))
+                    : field.key === 'width' ? displayedWidth : displayedHeight}
+                  step={field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 1) : unit === 'px' ? 1 : 0.01}
+                  disabled={current.preserveOriginal && field.key !== 'targetKB'}
+                  onChange={(event) => {
+                    const raw = event.target.value;
+                    if (raw === '') return;
+                    const parsed = Number(raw);
+                    if (Number.isFinite(parsed)) {
+                      const stored = field.key === 'targetKB' ? parsed * (sizeUnit === 'MB' ? 1024 : 1) : toPixels(parsed, unit, current.dpi);
+                      updateSetting(slot, field.key, stored);
+                    }
+                  }}
+                  onBlur={(event) => {
+                    const entered = Number(event.currentTarget.value) || (field.key === 'targetKB' ? (sizeUnit === 'MB' ? 0.01 : 5) : unit === 'px' ? 5 : 0.1);
+                    const maximum = field.key === 'targetKB' ? (sizeUnit === 'MB' ? 50 : 50 * 1024) : Number(fromPixels(4000, unit, current.dpi).toFixed(2));
+                    const normalized = field.key === 'targetKB'
+                      ? Math.max(sizeUnit === 'MB' ? 0.01 * 1024 : 5, Math.min(maximum, entered * (sizeUnit === 'MB' ? 1024 : 1)))
+                      : Math.max(5, Math.min(4000, toPixels(Math.min(entered, maximum), unit, current.dpi)));
+                    if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
+                    if ((field.key === 'height' && current.width * normalized > 12000000) ||
+                        (field.key === 'width' && normalized * current.height > 12000000)) {
+                      setStatus(isHindi
+                        ? 'कुल आउटपुट 12 मेगापिक्सेल से अधिक है। चौड़ाई या ऊँचाई कम करें।'
+                        : 'Output exceeds 12 megapixels. Reduce the width or height.');
+                    }
+                  }}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                />
+              </label>
+            ))}
+            <label className="text-[10px] font-bold text-slate-500">{copy.dimensionUnit}
+              <select value={unit} onChange={(event) => setDimensionUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as DimensionUnit }))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
+                <option value="px">Pixels (px)</option><option value="cm">Centimeters (cm)</option><option value="mm">Millimeters (mm)</option><option value="in">Inches (in)</option>
               </select>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(sizeUnit === 'KB' ? [10, 20, 50, 100, 200, 500] : [1, 2, 5, 10]).map((amount) => {
-                const kb = sizeUnit === 'MB' ? amount * 1024 : amount;
-                return <button key={`${sizeUnit}-${amount}`} type="button" onClick={() => updateSetting(slot, 'targetKB', kb)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition ${Math.abs(current.targetKB - kb) < 0.5 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}>{amount} {sizeUnit}</button>;
-              })}
-            </div>
-            <p className="mt-2 text-[9px] leading-4 text-slate-500">{isHindi ? 'KB और MB दोनों में कस्टम साइज़ ऊपर दर्ज कर सकते हैं। यह अधिकतम सीमा है।' : 'Enter a custom size above in KB or MB. This is a maximum file-size limit.'}</p>
-          </div>
-          <label className="text-[10px] font-bold text-slate-500">{copy.fit}
-            <select value={current.fit} onChange={(event) => updateSetting(slot, 'fit', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
-              <option value="contain">{copy.contain}</option><option value="cover">{copy.cover}</option>
-            </select>
-          </label>
-          <div className="col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-3">
-            <div className="mb-2 flex items-center justify-between gap-2"><span className="text-[11px] font-extrabold text-slate-800">{copy.cropHint}</span><span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-blue-700">{current.zoom.toFixed(1)}×</span></div>
-            <label className="block text-[10px] font-bold text-slate-600">{copy.zoom}
-              <input type="range" min="1" max="3" step="0.05" value={current.zoom} onChange={(event) => updateSetting(slot, 'zoom', Number(event.target.value))} className="mt-2 w-full accent-blue-600" />
             </label>
-            <div className="mt-2 grid grid-cols-2 gap-3">
-              <label className="text-[10px] font-bold text-slate-600">{copy.cropX}
-                <input type="range" min="-1" max="1" step="0.02" value={current.cropX} onChange={(event) => updateSetting(slot, 'cropX', Number(event.target.value))} className="mt-2 w-full accent-blue-600" />
-              </label>
-              <label className="text-[10px] font-bold text-slate-600">{copy.cropY}
-                <input type="range" min="-1" max="1" step="0.02" value={current.cropY} onChange={(event) => updateSetting(slot, 'cropY', Number(event.target.value))} className="mt-2 w-full accent-blue-600" />
-              </label>
+            <label className="text-[10px] font-bold text-slate-500">{copy.dpi}
+              <select value={current.dpi} onChange={(event) => updateSetting(slot, 'dpi', Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
+                <option value={72}>72 DPI · Screen</option><option value={96}>96 DPI · Screen</option><option value={150}>150 DPI · General print</option><option value={200}>200 DPI · Print</option><option value={240}>240 DPI · Photo print</option><option value={300}>300 DPI · High-quality print</option>
+              </select>
+              <span className="mt-1 block text-[9px] font-medium leading-4 text-slate-400">{copy.dpiHint}</span>
+            </label>
+            <div className="col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
+                <select aria-label={isHindi ? 'फाइल साइज़ यूनिट' : 'File size unit'} value={sizeUnit} onChange={(event) => setSizeUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as 'KB' | 'MB' }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 text-[10px] font-bold text-indigo-800">
+                  <option value="KB">KB</option><option value="MB">MB</option>
+                </select>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(sizeUnit === 'KB' ? [10, 20, 50, 100, 200, 500] : [1, 2, 5, 10]).map((amount) => {
+                  const kb = sizeUnit === 'MB' ? amount * 1024 : amount;
+                  return <button key={`${sizeUnit}-${amount}`} type="button" onClick={() => updateSetting(slot, 'targetKB', kb)} className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition ${Math.abs(current.targetKB - kb) < 0.5 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}>{amount} {sizeUnit}</button>;
+                })}
+              </div>
+              <p className="mt-2 text-[9px] leading-4 text-slate-500">{isHindi ? 'KB और MB दोनों में कस्टम साइज़ ऊपर दर्ज कर सकते हैं। यह अधिकतम सीमा है।' : 'Enter a custom size above in KB or MB. This is a maximum file-size limit.'}</p>
             </div>
-          </div>
-          <div className="col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 sm:col-span-3">
-            <div className="flex items-center justify-between gap-2"><label className="text-[10px] font-extrabold text-slate-700">{copy.quality}</label><span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{Math.round(current.quality * 100)}%</span></div>
-            <input type="range" min="0.3" max="1" step="0.01" value={current.quality} onChange={(event) => updateSetting(slot, 'quality', Number(event.target.value))} className="mt-2 w-full accent-emerald-600" disabled={current.format === 'image/png' || (current.format === 'original' && assets[slot]?.file.type === 'image/png')} />
-            <p className="mt-1 text-[10px] leading-4 text-slate-500">{copy.qualityHint}{current.format === 'image/png' || (current.format === 'original' && assets[slot]?.file.type === 'image/png') ? (isHindi ? ' PNG में यह सेटिंग लागू नहीं होती।' : ' This setting does not apply to PNG.') : ''}</p>
+            <label className="text-[10px] font-bold text-slate-500">{copy.fit}
+              <select value={current.fit} disabled={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'fit', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="contain">{copy.contain}</option><option value="cover">{copy.cover}</option>
+              </select>
+            </label>
+            <div className="col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-3">
+              <label className="flex cursor-pointer items-start gap-2 text-[10px] font-extrabold leading-5 text-slate-800">
+                <input type="checkbox" checked={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'preserveOriginal', event.target.checked ? 1 : 0)} className="mt-1 h-4 w-4 accent-blue-600" />
+                <span>{isHindi ? 'सिर्फ KB कम करें — मूल फोटो का आकार और फ्रेमिंग न बदलें' : 'Compress only — keep original dimensions and framing'}</span>
+              </label>
+              <p className="mt-1 text-[9px] leading-4 text-slate-500">{isHindi ? 'इस विकल्प में फोटो Crop, Zoom या Position नहीं होगी। केवल चुने हुए फॉर्मेट और KB लक्ष्य के अनुसार फाइल दोबारा सेव होगी।' : 'This mode does not crop, zoom, or reposition the image. It only re-encodes it using the selected format and file-size target.'}</p>
+            </div>
+            <div className="col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-3">
+              <div className="mb-2 flex items-center justify-between gap-2"><span className="text-[11px] font-extrabold text-slate-800">{copy.cropHint}</span><span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-blue-700">{Math.round(current.zoom * 100)}%</span></div>
+              <label className="block text-[10px] font-bold text-slate-600">{copy.zoom}
+                <input type="range" min="1" max="3" step="0.05" value={current.zoom} disabled={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'zoom', Number(event.target.value))} className="mt-2 w-full accent-blue-600 disabled:opacity-40" />
+              </label>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <label className="text-[10px] font-bold text-slate-600">{copy.cropX}
+                  <span className="float-right rounded bg-white px-1.5 py-0.5 text-[9px] font-extrabold text-blue-700">{current.cropX > 0 ? '+' : ''}{Math.round(current.cropX * 100)}%</span>
+                  <input type="range" min="-1" max="1" step="0.02" value={current.cropX} disabled={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'cropX', Number(event.target.value))} className="mt-2 w-full accent-blue-600 disabled:opacity-40" />
+                </label>
+                <label className="text-[10px] font-bold text-slate-600">{copy.cropY}
+                  <span className="float-right rounded bg-white px-1.5 py-0.5 text-[9px] font-extrabold text-blue-700">{current.cropY > 0 ? '+' : ''}{Math.round(current.cropY * 100)}%</span>
+                  <input type="range" min="-1" max="1" step="0.02" value={current.cropY} disabled={current.preserveOriginal} onChange={(event) => updateSetting(slot, 'cropY', Number(event.target.value))} className="mt-2 w-full accent-blue-600 disabled:opacity-40" />
+                </label>
+              </div>
+              {current.preserveOriginal && <p className="mt-2 text-[9px] font-semibold text-blue-800">{isHindi ? 'मूल फोटो सुरक्षित मोड चालू है — Crop/Zoom/Position लागू नहीं होंगे।' : 'Original-image mode is on — crop, zoom and position controls are paused.'}</p>}
+            </div>
+            <div className="col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 sm:col-span-3">
+              <div className="flex items-center justify-between gap-2"><label className="text-[10px] font-extrabold text-slate-700">{copy.quality}</label><span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{Math.round(current.quality * 100)}%</span></div>
+              <input type="range" min="0.3" max="1" step="0.01" value={current.quality} onChange={(event) => updateSetting(slot, 'quality', Number(event.target.value))} className="mt-2 w-full accent-emerald-600" disabled={current.format === 'image/png' || (current.format === 'original' && asset?.file.type === 'image/png')} />
+              <p className="mt-1 text-[10px] leading-4 text-slate-500">{copy.qualityHint}{current.format === 'image/png' || (current.format === 'original' && asset?.file.type === 'image/png') ? (isHindi ? ' PNG में यह सेटिंग लागू नहीं होती।' : ' This setting does not apply to PNG.') : ''}</p>
+            </div>
           </div>
         </div>
+        <aside className="min-w-0 self-start sm:sticky sm:top-2">
+          <div className="relative rounded-xl border border-blue-100 bg-slate-50 p-2 shadow-inner">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-[10px] font-extrabold text-slate-700">{isHindi ? 'लाइव प्रीव्यू' : 'Live preview'}</p>
+              {asset && <button type="button" onClick={() => clearAsset(slot)} aria-label={isHindi ? 'फोटो हटाएँ' : 'Remove image'} title={isHindi ? 'फाइल हटाएँ' : 'Remove file'} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /></button>}
+            </div>
+            {asset ? (
+              <>
+                <div className="flex min-h-36 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
+                  <CropPreview sourceUrl={asset.sourceUrl} settings={current} label={heading + " live preview"} />
+                </div>
+                <p className="mt-2 break-words text-[9px] font-semibold text-slate-600">{current.preserveOriginal && asset.sourceWidth ? `${asset.sourceWidth} × ${asset.sourceHeight} px · ` : ''}{isHindi ? 'रियल-टाइम सेटिंग प्रीव्यू' : 'Real-time settings preview'}</p>
+                <p className="mt-1 text-[9px] leading-4 text-slate-500">{isHindi ? 'सेटिंग बदलते ही यह प्रीव्यू अपडेट होगा।' : 'This preview updates as you adjust the controls.'}</p>
+              </>
+            ) : (
+              <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-4 text-center text-[10px] text-slate-400"><ImagePlus className="mb-2 h-6 w-6" />{copy.noFile}</div>
+            )}
+          </div>
+        </aside>
       </div>
     );
   };
