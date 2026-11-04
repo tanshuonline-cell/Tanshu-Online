@@ -1358,6 +1358,23 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     ]
   },
   {
+    id: 'photo-signature-resizer',
+    name: 'Photo & Signature Resizer',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    isFeatured: true,
+    iconName: 'Camera',
+    description: 'Resize and compress application photos and signatures with separate dimensions, KB targets, form starter presets, preview, and print-ready downloads.',
+    detailedInstructions: 'Upload a photo and/or signature, choose a starter preset or enter exact requirements, then process each file separately in your browser.',
+    keyFeatures: [
+      'Separate photo and signature dimensions and KB targets',
+      'Editable exam-form starter presets with official-specification reminder',
+      'JPG and PNG output with aspect-fit or fill-and-crop modes',
+      'Original vs final preview, individual downloads, combined downloads, and print preview',
+      'Local browser processing without sending citizen images to the app server'
+    ]
+  },
+  {
     id: 'advanced-passport-photo-studio',
     name: 'Advanced Passport Photo Studio',
     category: 'photo',
