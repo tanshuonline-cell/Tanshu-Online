@@ -164,7 +164,7 @@ export const PhotoSignatureResizerWelcome: React.FC<Props> = ({ onStart, onBack 
         </div>
 
         <div className="space-y-6">
-          {features.map((feature, index) => {
+          {features.map((feature) => {
             const Icon = feature.icon;
             const sampleCard = (title: string, content: React.ReactNode, key: string) => (
               <div key={key} className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
