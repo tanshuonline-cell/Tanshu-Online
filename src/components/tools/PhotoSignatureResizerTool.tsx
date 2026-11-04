@@ -703,8 +703,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
                 <option value="px">Pixels (px)</option><option value="cm">Centimeters (cm)</option><option value="mm">Millimeters (mm)</option><option value="in">Inches (in)</option>
               </select>
             </label>
-            <label className="text-[10px] font-bold text-slate-500">{copy.dpi}
-              <select value={current.dpi} onChange={(event) => updateSetting(slot, 'dpi', Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
+            <label className="col-span-2 min-w-0 text-[10px] font-bold text-slate-500 sm:col-span-2">{copy.dpi}
+              <select value={current.dpi} onChange={(event) => updateSetting(slot, 'dpi', Number(event.target.value))} className="mt-1 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
                 <option value={72}>72 DPI · Screen</option><option value={96}>96 DPI · Screen</option><option value={150}>150 DPI · General print</option><option value={200}>200 DPI · Print</option><option value={240}>240 DPI · Photo print</option><option value={300}>300 DPI · High-quality print</option>
               </select>
               <span className="mt-1 block text-[9px] font-medium leading-4 text-slate-400">{copy.dpiHint}</span>
