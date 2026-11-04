@@ -88,10 +88,10 @@ export const AllToolsDirectory: React.FC<Props> = ({
 
   // Category counts and definitions across all 90 tools
   const categories: { id: ToolCategory; label: string; hindiLabel: string; count: number }[] = [
-    { id: 'all', label: 'All Tools', hindiLabel: 'सभी टूल्स', count: 90 },
+    { id: 'all', label: 'All Tools', hindiLabel: 'सभी टूल्स', count: 89 },
     { id: 'business', label: 'CSC & Business', hindiLabel: 'CSC और व्यापार', count: 11 },
     { id: 'pvc-id', label: 'ID Card & Print', hindiLabel: 'पहचान पत्र व प्रिंटिंग', count: 7 },
-    { id: 'photo', label: 'Photo & Signature', hindiLabel: 'फोटो और हस्ताक्षर', count: 19 },
+    { id: 'photo', label: 'Photo & Signature', hindiLabel: 'फोटो और हस्ताक्षर', count: 18 },
     { id: 'pdf', label: 'PDF Tools', hindiLabel: 'PDF टूल्स', count: 22 },
     { id: 'converter', label: 'Image & Utilities', hindiLabel: 'इमेज व उपयोगिताएँ', count: 8 },
     { id: 'calculator', label: 'Calculator & Finance', hindiLabel: 'कैलकुलेटर व वित्त', count: 15 },
