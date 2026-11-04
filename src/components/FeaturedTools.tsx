@@ -23,7 +23,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
 
   const getToolImage = (id: string) => {
     switch (id) {
-      case 'passport-size-photo-maker':
+      case 'advanced-passport-photo-studio':
         return passportImg;
       case 'auto-document-cropper':
         return autoCropperImg;
