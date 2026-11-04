@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Camera, CheckCircle2, Download, FileImage,
-  Gauge, ImagePlus, Monitor, ShieldCheck, Smartphone, SlidersHorizontal,
+  Gauge, ImagePlus, Monitor, Printer, ShieldCheck, Smartphone, SlidersHorizontal,
   Sparkles, Upload, WandSparkles
 } from 'lucide-react';
 
