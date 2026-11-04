@@ -110,14 +110,14 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Prominent Language Switcher showing both "हिंदी | English" */}
             <div
-              className="inline-flex h-8 w-[142px] items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
+              className="inline-flex h-8 w-[142px] flex-none items-center justify-center gap-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
               title="भाषा बदलें / Switch Language"
               aria-label="Language selection"
             >
               <button
                 type="button"
                 onClick={() => setLanguage('hi')}
-                className={`h-[26px] min-w-[58px] px-2 py-1 rounded-md transition-colors duration-150 cursor-pointer text-center text-[11px] sm:text-xs ${
+                className={`inline-flex h-[26px] w-[62px] flex-none items-center justify-center rounded-md px-1 py-1 transition-colors duration-300 cursor-pointer text-center text-[11px] sm:text-xs ${
                   language === 'hi'
                     ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -125,11 +125,11 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               >
                 हिंदी
               </button>
-              <span className="text-slate-300 px-0.5">|</span>
+              <span aria-hidden="true" className="w-[10px] flex-none text-center text-slate-300">|</span>
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`h-[26px] min-w-[58px] px-2 py-1 rounded-md transition-colors duration-150 cursor-pointer text-center text-[11px] sm:text-xs ${
+                className={`inline-flex h-[26px] w-[62px] flex-none items-center justify-center rounded-md px-1 py-1 transition-colors duration-300 cursor-pointer text-center text-[11px] sm:text-xs ${
                   language === 'en'
                     ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
