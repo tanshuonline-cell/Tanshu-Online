@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { ToolItem, ToolCategory } from '../types';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
+import { TOOL_HINDI_TRANSLATIONS } from '../data/toolTranslations';
 import { getToolPreviewImage } from '../data/toolPreviewImages';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -190,6 +191,11 @@ export const AllToolsDirectory: React.FC<Props> = ({
   // Helper renderer for standard tool card
   const renderToolCard = (tool: ToolItem) => {
     const previewImg = getToolPreviewImage(tool.id, tool.name, tool.categoryLabel);
+    const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
+    const displayName = hindiCopy?.name || tool.name;
+    const displayDescription = hindiCopy?.description || tool.description;
+    const categoryNames: Record<string, string> = { business: 'CSC और बिजनेस', 'pvc-id': 'ID कार्ड और प्रिंट', photo: 'फोटो और सिग्नेचर', pdf: 'PDF टूल्स', converter: 'इमेज और उपयोगिताएँ', calculator: 'कैलकुलेटर', whatsapp: 'WhatsApp और QR' };
+    const displayCategory = isHindi ? (categoryNames[tool.category] || tool.categoryLabel) : tool.categoryLabel;
     return (
       <div
         key={tool.id}
@@ -200,13 +206,13 @@ export const AllToolsDirectory: React.FC<Props> = ({
           <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 border border-slate-200/80 shadow-2xs">
             <img
               src={previewImg}
-              alt={tool.name}
+              alt={displayName}
               loading="lazy"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-slate-950/80 backdrop-blur-xs text-white text-[9px] sm:text-[10px] font-bold rounded-md">
-              {tool.categoryLabel}
+              {displayCategory}
             </div>
           </div>
 
@@ -222,12 +228,12 @@ export const AllToolsDirectory: React.FC<Props> = ({
 
           {/* Tool Name */}
           <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight mb-1 line-clamp-2 leading-snug group-hover:text-blue-700 transition-colors">
-            {tool.name}
+            {displayName}
           </h3>
 
           {/* Tool Description */}
           <p className="text-[11px] sm:text-xs text-slate-600 line-clamp-2 leading-relaxed mb-2.5">
-            {tool.description}
+            {displayDescription}
           </p>
 
           {/* Key Features Bullet List */}
