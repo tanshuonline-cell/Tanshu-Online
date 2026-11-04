@@ -136,23 +136,73 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-8 lg:px-12">
-        <div className="mx-auto mb-7 max-w-2xl text-center">
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-8 lg:px-12">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">Explore the Studio</p>
           <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">इस स्टूडियो में आपको क्या मिलेगा?</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">फोटो एडिटिंग से लेकर प्रिंट शीट तैयार करने तक — सभी जरूरी टूल एक ही जगह।</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">हर फीचर को sample के साथ देखें — फोटो एडिटिंग से लेकर प्रिंट शीट तैयार करने तक।</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featureItems.map(({ icon: Icon, title, text }) => (
-            <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><Icon className="h-5 w-5" /></div>
-              <h3 className="text-base font-extrabold text-slate-900">{title}</h3>
-              <p className="mt-1.5 text-sm leading-6 text-slate-600">{text}</p>
-            </article>
-          ))}
+        <div className="space-y-7">
+          <article className="grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="order-2 lg:order-1">
+              <div className="mb-3 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-sm font-black text-blue-800">01</span><span className="text-xs font-bold uppercase tracking-wider text-blue-700">Background tools</span></div>
+              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">AI Background Removal</h3>
+              <p className="mt-2 text-sm leading-7 text-slate-600">फोटो का पुराना बैकग्राउंड हटाकर White, Blue या अपनी पसंद का नया रंग चुनें। नीचे अलग-अलग background पर sample preview देखें।</p>
+              <p className="mt-3 text-xs text-slate-500">Illustrative sample — वास्तविक परिणाम आपकी फोटो और editor की processing पर निर्भर करेगा।</p>
+            </div>
+            <div className="order-1 grid grid-cols-3 gap-2 lg:order-2">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg"><img src={BEAUTY_DEMO_PHOTO} alt="Original portrait sample" className="h-full w-full object-cover" /></div><p className="mt-2 text-center text-[10px] font-bold text-slate-600 sm:text-xs">Original</p></div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg bg-white"><img src={BEAUTY_DEMO_PHOTO} alt="Portrait on white background sample" className="h-full w-full object-cover" style={{ filter: 'brightness(1.08) saturate(.92)' }} /></div><p className="mt-2 text-center text-[10px] font-bold text-slate-600 sm:text-xs">White BG</p></div>
+              <div className="overflow-hidden rounded-xl border border-blue-200 bg-blue-600 p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg bg-blue-600"><img src={BEAUTY_DEMO_PHOTO} alt="Portrait on blue background sample" className="h-full w-full object-cover" /></div><p className="mt-2 text-center text-[10px] font-bold text-white sm:text-xs">Blue BG</p></div>
+            </div>
+          </article>
+
+          <article className="grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="overflow-hidden rounded-2xl bg-slate-100 p-4 sm:p-6">
+              <div className="relative mx-auto aspect-[4/3] max-w-md overflow-hidden rounded-xl border-2 border-dashed border-blue-500 bg-white p-5">
+                <div className="absolute left-3 top-3 rounded-md bg-slate-900/80 px-2 py-1 text-[10px] font-bold text-white">CROP AREA</div>
+                <div className="absolute inset-8 overflow-hidden rounded-lg border-2 border-blue-400 shadow-lg"><img src={BEAUTY_DEMO_PHOTO} alt="Portrait crop and resize sample" className="h-full w-full object-cover object-center scale-125" /></div>
+                <span className="absolute bottom-2 right-2 rounded-md bg-blue-700 px-2 py-1 text-[10px] font-bold text-white">3:4 PHOTO</span>
+              </div>
+              <div className="mt-3 flex justify-center gap-2 text-[10px] font-bold text-slate-600 sm:text-xs"><span className="rounded-full bg-white px-3 py-1.5">Crop</span><span className="rounded-full bg-white px-3 py-1.5">Move</span><span className="rounded-full bg-white px-3 py-1.5">Resize</span></div>
+            </div>
+            <div><div className="mb-3 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-sm font-black text-blue-800">02</span><span className="text-xs font-bold uppercase tracking-wider text-blue-700">Photo positioning</span></div><h3 className="text-xl font-black text-slate-900 sm:text-2xl">Crop, Move &amp; Resize</h3><p className="mt-2 text-sm leading-7 text-slate-600">फोटो को सही फ्रेम में Crop करें, अपनी पसंद की जगह पर Move करें और जरूरत के अनुसार Resize करें। dashed frame sample में crop area दिखाया गया है।</p></div>
+          </article>
+
+          <article className="grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="order-2 lg:order-1"><div className="mb-3 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-sm font-black text-emerald-800">03</span><span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Signature tools</span></div><h3 className="text-xl font-black text-slate-900 sm:text-2xl">Signature Cleaner</h3><p className="mt-2 text-sm leading-7 text-slate-600">सिग्नेचर की फोटो से पेपर जैसा background साफ करने और Transparent, White या Blue background पर preview देखने का विकल्प।</p></div>
+            <div className="order-1 rounded-2xl border border-slate-200 bg-[linear-gradient(45deg,#e2e8f0_25%,transparent_25%),linear-gradient(-45deg,#e2e8f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e2e8f0_75%),linear-gradient(-45deg,transparent_75%,#e2e8f0_75%)] bg-[length:22px_22px] bg-[position:0_0,0_11px,11px_-11px,-11px_0px] p-4 sm:p-6 lg:order-2">
+              <div className="rounded-xl bg-white/90 p-3 shadow-sm"><p className="mb-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">Original paper sample</p><div className="h-20"><SignatureArtwork /></div></div>
+              <div className="mt-3 rounded-xl border border-blue-200 bg-blue-700 p-3"><p className="mb-2 text-center text-[10px] font-bold uppercase tracking-wider text-blue-100">Clean signature preview</p><div className="h-20"><SignatureArtwork light /></div></div>
+            </div>
+          </article>
+
+          <article className="grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="overflow-hidden rounded-2xl bg-slate-100 p-3 sm:p-5">
+              <div className="mx-auto grid aspect-[6/4] max-w-sm grid-cols-3 gap-1.5 rounded-lg border border-slate-300 bg-white p-2 shadow-md">{Array.from({ length: 6 }, (_, i) => <div key={i} className="overflow-hidden rounded-sm border border-slate-200"><img src={BEAUTY_DEMO_PHOTO} alt="Print sheet photo sample" className="h-full w-full object-cover" /></div>)}</div>
+              <p className="mt-3 text-center text-xs font-bold text-slate-600">4×6 INCH · MULTIPLE PHOTO COPIES</p>
+            </div>
+            <div><div className="mb-3 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-100 text-sm font-black text-violet-800">04</span><span className="text-xs font-bold uppercase tracking-wider text-violet-700">Print layout</span></div><h3 className="text-xl font-black text-slate-900 sm:text-2xl">4×6 &amp; A4 Photo Sheets</h3><p className="mt-2 text-sm leading-7 text-slate-600">एक ही शीट पर कई पासपोर्ट फोटो व्यवस्थित करें। 4×6 inch और A4 जैसे print layouts का sample देखें और editor में अपनी जरूरत के अनुसार copies चुनें।</p></div>
+          </article>
+
+          <article className="grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="order-2 lg:order-1"><div className="mb-3 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-sm font-black text-amber-800">05</span><span className="text-xs font-bold uppercase tracking-wider text-amber-700">Layout control</span></div><h3 className="text-xl font-black text-slate-900 sm:text-2xl">Manual + Auto Arrange</h3><p className="mt-2 text-sm leading-7 text-slate-600">Auto Arrange से फोटो को एक क्लिक में grid में लगाएँ या Manual mode में हर फोटो को खुद Move और Resize करके अपनी पसंद का layout बनाएँ।</p></div>
+            <div className="order-1 grid grid-cols-2 gap-3 rounded-2xl bg-slate-100 p-3 sm:p-5 lg:order-2">
+              <div className="rounded-xl border border-slate-200 bg-white p-2"><p className="mb-2 text-center text-[10px] font-extrabold text-slate-600">AUTO</p><div className="grid grid-cols-2 gap-1.5">{Array.from({ length: 4 }, (_, i) => <img key={i} src={BEAUTY_DEMO_PHOTO} alt="Auto arranged photo sample" className="aspect-[3/4] w-full rounded-sm object-cover" />)}</div><p className="mt-2 text-center text-[10px] font-bold text-emerald-700">Even grid</p></div>
+              <div className="rounded-xl border border-slate-200 bg-white p-2"><p className="mb-2 text-center text-[10px] font-extrabold text-slate-600">MANUAL</p><div className="relative aspect-square rounded-lg border-2 border-dashed border-blue-300 bg-slate-50"><img src={BEAUTY_DEMO_PHOTO} alt="Manually positioned photo sample" className="absolute left-2 top-2 h-[48%] w-[42%] rounded-sm object-cover shadow" /><img src={BEAUTY_DEMO_PHOTO} alt="Second manually positioned photo sample" className="absolute bottom-2 right-2 h-[48%] w-[42%] rounded-sm object-cover shadow" /></div><p className="mt-2 text-center text-[10px] font-bold text-blue-700">Free positioning</p></div>
+            </div>
+          </article>
+
+          <article className="grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="flex min-h-44 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-blue-50 p-5">
+              <div className="flex w-full max-w-sm items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg"><div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><Download className="h-7 w-7" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold text-slate-800">passport-photo-print.png</p><p className="mt-1 text-xs text-slate-500">High-resolution · Print ready</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full w-full rounded-full bg-emerald-500" /></div></div><CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" /></div>
+            </div>
+            <div><div className="mb-3 flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-100 text-sm font-black text-rose-800">06</span><span className="text-xs font-bold uppercase tracking-wider text-rose-700">Final output</span></div><h3 className="text-xl font-black text-slate-900 sm:text-2xl">High-Resolution Export</h3><p className="mt-2 text-sm leading-7 text-slate-600">तैयार फोटो या print sheet को high-resolution image के रूप में export करें, ताकि प्रिंट के समय साफ output मिले। यह download card केवल output का illustrative sample है।</p></div>
+          </article>
         </div>
       </section>
+
 
 
       <section className="relative overflow-hidden bg-[#090d1a] px-4 py-12 text-white sm:px-8 lg:px-12">
