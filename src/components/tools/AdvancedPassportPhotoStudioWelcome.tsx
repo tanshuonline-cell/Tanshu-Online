@@ -36,6 +36,19 @@ const SignatureArtwork: React.FC<{ light?: boolean }> = ({ light = false }) => (
 
 const BEAUTY_DEMO_PHOTO = 'https://images.unsplash.com/photo-1658724683584-2ab54d31d180?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000';
 
+const SampleScroller: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="max-h-[390px] space-y-3 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-slate-100 p-3 pr-2 shadow-inner [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
+    {children}
+  </div>
+);
+
+const SampleHeading: React.FC<{ index: string; title: string }> = ({ index, title }) => (
+  <div className="mb-2 flex items-center justify-between gap-2">
+    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Sample {index}</span>
+    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-800">{title}</span>
+  </div>
+);
+
 export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart }) => {
   const [comparison, setComparison] = useState(54);
   const [paper, setPaper] = useState<'4x6' | 'A4'>('4x6');
@@ -137,18 +150,6 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
         </div>
 
 
-const SampleScroller: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="max-h-[390px] space-y-3 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-slate-100 p-3 pr-2 shadow-inner [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
-    {children}
-  </div>
-);
-
-const SampleHeading: React.FC<{ index: string; title: string }> = ({ index, title }) => (
-  <div className="mb-2 flex items-center justify-between gap-2">
-    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Sample {index}</span>
-    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-800">{title}</span>
-  </div>
-);
         <div className="space-y-7">
           <article className="group relative grid items-center gap-5 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/10 sm:p-6 lg:grid-cols-[1.1fr_.9fr]">
             <div className="pointer-events-none absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b from-blue-500 to-cyan-400 opacity-80 transition-all group-hover:w-2.5" />
