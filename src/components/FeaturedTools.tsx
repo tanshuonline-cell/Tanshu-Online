@@ -19,7 +19,18 @@ interface Props {
 export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const { t } = useLanguage();
   // Exactly the six featured tools from the confirmed tools list
-  const featuredTools = CONFIRMED_TOOLS.filter((t) => t.isFeatured).slice(0, 6);
+  const featuredOrder = [
+    'advanced-passport-photo-studio',
+    'auto-document-cropper',
+    'document-scanner-image-rectifier',
+    'pdf-to-pvc-card-auto-cropper',
+    'id-card-front-back-print-layout-maker',
+    'invoice-generator',
+  ];
+  const featuredTools = CONFIRMED_TOOLS
+    .filter((tool) => tool.isFeatured)
+    .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
+    .slice(0, 6);
 
   const getToolImage = (id: string) => {
     switch (id) {
