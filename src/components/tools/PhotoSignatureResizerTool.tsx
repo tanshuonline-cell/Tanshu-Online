@@ -8,14 +8,14 @@ type Slot = 'photo' | 'signature';
 type OutputFormat = 'image/jpeg' | 'image/png';
 type FitMode = 'contain' | 'cover';
 type DimensionUnit = 'px' | 'cm' | 'mm' | 'in';
-const fromPixels = (pixels: number, unit: DimensionUnit) => {
-  const converted = unit === 'px' ? pixels : unit === 'in' ? pixels / 96 : unit === 'cm' ? pixels * 2.54 / 96 : pixels * 25.4 / 96;
+const fromPixels = (pixels: number, unit: DimensionUnit, dpi: number) => {
+  const converted = unit === 'px' ? pixels : unit === 'in' ? pixels / dpi : unit === 'cm' ? pixels * 2.54 / dpi : pixels * 25.4 / dpi;
   return unit === 'px' ? Math.round(converted) : Number(converted.toFixed(2));
 };
-const toPixels = (value: number, unit: DimensionUnit) => Math.round(
-  unit === 'px' ? value : unit === 'in' ? value * 96 : unit === 'cm' ? value * 96 / 2.54 : value * 96 / 25.4
+const toPixels = (value: number, unit: DimensionUnit, dpi: number) => Math.round(
+  unit === 'px' ? value : unit === 'in' ? value * dpi : unit === 'cm' ? value * dpi / 2.54 : value * dpi / 25.4
 );
-type Settings = { width: number; height: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number };
+type Settings = { width: number; height: number; dpi: number; targetKB: number; format: OutputFormat; fit: FitMode; quality: number; zoom: number; cropX: number; cropY: number };
 type Asset = {
   file: File;
   sourceUrl: string;
@@ -29,8 +29,8 @@ type Asset = {
 };
 type Preset = { label: string; photo: Settings; signature: Settings };
 
-const DEFAULT_PHOTO: Settings = { width: 200, height: 230, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
-const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, targetKB: 20, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
+const DEFAULT_PHOTO: Settings = { width: 200, height: 230, dpi: 300, targetKB: 50, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
+const DEFAULT_SIGNATURE: Settings = { width: 140, height: 60, dpi: 300, targetKB: 20, format: 'image/jpeg', fit: 'contain', quality: 0.88, zoom: 1, cropX: 0, cropY: 0 };
 const makePreset = (label: string, photo: Partial<Settings>, signature: Partial<Settings>): Preset => ({
   label,
   photo: { ...DEFAULT_PHOTO, ...photo },
@@ -182,6 +182,49 @@ const CropPreview: React.FC<{ sourceUrl: string; settings: Settings; label: stri
   />;
 };
 
+const crc32 = (data: Uint8Array) => {
+  let crc = 0xffffffff;
+  for (const byte of data) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+};
+const addDpiMetadata = async (blob: Blob, dpi: number): Promise<Blob> => {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const density = Math.max(1, Math.min(65535, Math.round(dpi)));
+  if (blob.type === 'image/jpeg' && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    const segment = new Uint8Array(18);
+    segment.set([0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01], 0);
+    segment[12] = density >> 8; segment[13] = density & 255;
+    segment[14] = density >> 8; segment[15] = density & 255;
+    let insertAt = 2;
+    if (bytes[2] === 0xff && bytes[3] === 0xe0 && bytes[6] === 0x4a && bytes[7] === 0x46 && bytes[8] === 0x49 && bytes[9] === 0x46) {
+      insertAt = 2 + 2 + ((bytes[4] << 8) | bytes[5]);
+    }
+    const output = new Uint8Array(bytes.length + segment.length);
+    output.set(bytes.subarray(0, insertAt));
+    output.set(segment, insertAt);
+    output.set(bytes.subarray(insertAt), insertAt + segment.length);
+    return new Blob([output], { type: blob.type });
+  }
+  if (blob.type === 'image/png' && bytes[0] === 0x89 && bytes[1] === 0x50) {
+    const ppm = Math.round(density / 0.0254);
+    const chunk = new Uint8Array(21);
+    const view = new DataView(chunk.buffer);
+    view.setUint32(0, 9, false);
+    chunk.set([0x70, 0x48, 0x59, 0x73], 4);
+    view.setUint32(8, ppm, false); view.setUint32(12, ppm, false); chunk[16] = 1;
+    view.setUint32(17, crc32(chunk.subarray(4, 17)), false);
+    const output = new Uint8Array(bytes.length + chunk.length);
+    output.set(bytes.subarray(0, 33), 0);
+    output.set(chunk, 33);
+    output.set(bytes.subarray(33), 54);
+    return new Blob([output], { type: blob.type });
+  }
+  return blob;
+};
+
 async function renderImage(asset: Asset, settings: Settings) {
   const image = await readImage(asset.sourceUrl);
   const canvas = document.createElement('canvas');
@@ -216,6 +259,7 @@ async function renderImage(asset: Asset, settings: Settings) {
       }
     }
   }
+  blob = await addDpiMetadata(blob, settings.dpi);
   const warning = settings.format === 'image/png' && blob.size > targetBytes
     ? 'PNG compression cannot guarantee the target KB. Try JPG or smaller dimensions.'
     : blob.size > targetBytes
@@ -250,6 +294,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     height: 'ऊँचाई',
     target: 'लक्षित साइज़ (KB)',
     dimensionUnit: 'डाइमेंशन यूनिट',
+    dpi: 'प्रिंट DPI',
+    dpiHint: 'DPI प्रिंट की डेंसिटी बताता है; असली डिटेल पिक्सेल पर निर्भर करती है।',
     quickSizes: 'जल्दी KB चुनें',
     format: 'फॉर्मेट',
     fit: 'फिटिंग',
@@ -291,6 +337,8 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     height: 'Height',
     target: 'Target Size (KB)',
     dimensionUnit: 'Dimension unit',
+    dpi: 'Print DPI',
+    dpiHint: 'DPI sets print density; actual image detail depends on pixel dimensions.',
     quickSizes: 'Quick KB targets',
     format: 'Format',
     fit: 'Fit mode',
@@ -597,14 +645,14 @@ export const PhotoSignatureResizerTool: React.FC = () => {
                 type="number"
                 min={field.key === 'targetKB' ? 5 : unit === 'px' ? 5 : 0.1}
                 max={field.key === 'targetKB' ? 5000 : unit === 'px' ? 4000 : Number(fromPixels(4000, unit).toFixed(2))}
-                value={field.key === 'targetKB' ? current.targetKB : fromPixels(current[field.key], unit)}
+                value={field.key === 'targetKB' ? current.targetKB : fromPixels(current[field.key], unit, current.dpi)}
                 step={field.key === 'targetKB' || unit === 'px' ? 1 : 0.01}
                 onChange={(event) => {
                   const raw = event.target.value;
                   if (raw === '') return;
                   const parsed = Number(raw);
                   if (Number.isFinite(parsed)) {
-                    const stored = field.key === 'targetKB' ? parsed : toPixels(parsed, unit);
+                    const stored = field.key === 'targetKB' ? parsed : toPixels(parsed, unit, current.dpi);
                     updateSetting(slot, field.key, stored);
                   }
                 }}
@@ -613,7 +661,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
                   const maximum = field.key === 'targetKB' ? 5000 : 4000;
                   const normalized = field.key === 'targetKB'
                     ? Math.max(5, Math.min(maximum, Math.round(entered)))
-                    : Math.max(5, Math.min(maximum, toPixels(entered, unit)));
+                    : Math.max(5, Math.min(maximum, toPixels(entered, unit, current.dpi)));
                   if (normalized !== current[field.key]) updateSetting(slot, field.key, normalized);
                   if ((field.key === 'height' && current.width * normalized > 12000000) ||
                       (field.key === 'width' && normalized * current.height > 12000000)) {
@@ -630,6 +678,12 @@ export const PhotoSignatureResizerTool: React.FC = () => {
             <select value={unit} onChange={(event) => setDimensionUnits((currentUnits) => ({ ...currentUnits, [slot]: event.target.value as DimensionUnit }))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
               <option value="px">Pixels (px)</option><option value="cm">Centimeters (cm)</option><option value="mm">Millimeters (mm)</option><option value="in">Inches (in)</option>
             </select>
+          </label>
+          <label className="text-[10px] font-bold text-slate-500">{copy.dpi}
+            <select value={current.dpi} onChange={(event) => updateSetting(slot, 'dpi', Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
+              <option value={72}>72 DPI · Screen</option><option value={96}>96 DPI · Screen</option><option value={150}>150 DPI · General print</option><option value={200}>200 DPI · Print</option><option value={240}>240 DPI · Photo print</option><option value={300}>300 DPI · High-quality print</option>
+            </select>
+            <span className="mt-1 block text-[9px] font-medium leading-4 text-slate-400">{copy.dpiHint}</span>
           </label>
           <div className="col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-3">
             <p className="mb-2 text-[10px] font-extrabold text-slate-700">{copy.quickSizes}</p>
