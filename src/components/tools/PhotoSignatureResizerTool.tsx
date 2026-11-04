@@ -144,7 +144,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     onlySign: 'सिग्नेचर'
   } : {
     subtitle: 'Prepare photo and signature files for government forms, job applications and online services.',
-    quality: 'JPG Quality', zoom: 'Crop zoom', cropX: 'Left / Right', cropY: 'Up / Down', qualityHint: 'Higher quality keeps more detail but increases KB.', cropHint: 'Position the image inside the frame.'
+    quality: 'JPG Quality', zoom: 'Crop zoom', cropX: 'Left / Right', cropY: 'Up / Down', qualityHint: 'Higher quality keeps more detail but increases KB.', cropHint: 'Position the image inside the frame.',
     upload: '01 · Upload Your Files',
     photo: 'Passport / Form Photo',
     signature: 'Signature',
