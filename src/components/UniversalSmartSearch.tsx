@@ -3,6 +3,7 @@ import { Search, X, ArrowRight, Wrench, Building2, Award, Play, ChevronRight, Sp
 import { searchUniversal, SearchResultItem } from '../utils/searchIndex';
 import { ToolItem, GovernmentService, GovernmentScheme, VideoGuide } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { TOOL_HINDI_TRANSLATIONS } from '../data/toolTranslations';
 
 interface Props {
   onSelectTool: (tool: ToolItem) => void;
@@ -129,6 +130,24 @@ export const UniversalSmartSearch: React.FC<Props> = ({
   const handleClear = () => {
     setQuery('');
     setSelectedIndex(-1);
+  };
+
+  const getDisplayTitle = (item: SearchResultItem): string => {
+    if (!isHindi) return item.title;
+    if (item.type === 'tool') return TOOL_HINDI_TRANSLATIONS[item.id]?.name || item.title;
+    if (item.type === 'service') return (item.rawItem as GovernmentService).hindiTitle || item.title;
+    if (item.type === 'scheme') return (item.rawItem as GovernmentScheme).hindiName || item.title;
+    if (item.type === 'video') return (item.rawItem as VideoGuide).hindiTitle || item.title;
+    return item.title;
+  };
+
+  const getDisplaySubtitle = (item: SearchResultItem): string => {
+    if (!isHindi) return item.subtitle;
+    if (item.type === 'tool') return TOOL_HINDI_TRANSLATIONS[item.id]?.description || item.subtitle;
+    if (item.type === 'service') return (item.rawItem as GovernmentService).hindiSummary || item.subtitle;
+    if (item.type === 'scheme') return (item.rawItem as GovernmentScheme).hindiSummary || item.subtitle;
+    if (item.type === 'video') return (item.rawItem as VideoGuide).hindiDescription || item.subtitle;
+    return item.subtitle;
   };
 
   const getItemBadge = (item: SearchResultItem) => {
@@ -288,17 +307,12 @@ export const UniversalSmartSearch: React.FC<Props> = ({
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             {getItemBadge(item)}
-                            {item.hindiTitle && (
-                              <span className="text-xs font-semibold text-slate-500 font-sans">
-                                {item.hindiTitle}
-                              </span>
-                            )}
                           </div>
                           <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-1">
-                            {item.title}
+                            {getDisplayTitle(item)}
                           </div>
                           <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                            {item.subtitle}
+                            {getDisplaySubtitle(item)}
                           </div>
                         </div>
 
