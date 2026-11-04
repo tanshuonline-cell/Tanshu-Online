@@ -54,58 +54,73 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
 
   return (
     <main className="w-full bg-slate-50 text-slate-900">
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 px-4 py-10 text-white sm:px-8 sm:py-14 lg:px-12">
-        <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-36 left-1/3 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[1.08fr_.92fr]">
-          <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-blue-100">
-              <Sparkles className="h-4 w-4 text-amber-300" /> TANSHU ONLINE PHOTO STUDIO
+      <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#07152f] via-[#102d58] to-[#155e91] px-4 py-9 text-white sm:px-8 sm:py-12 lg:px-12">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-300/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-36 left-1/4 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl">
+          <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-extrabold tracking-[.12em] text-blue-100">
+              <Sparkles className="h-4 w-4 text-amber-300" /> TANSHU ONLINE · PHOTO STUDIO
             </div>
-            <h1 className="max-w-2xl text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-              Passport Photo &amp; Signature Maker
-            </h1>
-            <p className="mt-3 text-lg font-semibold text-blue-100 sm:text-xl">पासपोर्ट फोटो और सिग्नेचर मेकर</p>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-blue-100/90 sm:text-base">
-              Create professional passport photos and clean signatures in minutes. मोबाइल और कंप्यूटर पर, बिना Photoshop इंस्टॉल किए।
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-blue-50">
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-2">✓ Photo Editing</span>
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-2">✓ Signature Cleaning</span>
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-2">✓ Print Layouts</span>
-            </div>
-            <button onClick={onStart} className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus:ring-4 focus:ring-amber-200/40">
-              Start Creating Photos <ArrowRight className="h-5 w-5" />
-            </button>
-            <p className="mt-3 text-xs text-blue-100/70">पहले फीचर्स देखें, फिर अपनी फोटो एडिट करना शुरू करें।</p>
+            <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-bold tracking-wide text-emerald-100">MOBILE & DESKTOP READY</span>
           </div>
+          <div className="grid items-center gap-8 lg:grid-cols-[1.04fr_.96fr]">
+            <div>
+              <p className="mb-3 text-[10px] font-extrabold uppercase tracking-[.2em] text-cyan-200 sm:text-xs">PHOTO · SIGNATURE · BACKGROUND · PRINT PROCESSING</p>
+              <h1 className="max-w-2xl text-3xl font-black leading-[1.12] tracking-tight sm:text-4xl lg:text-[3.25rem]">
+                Professional Photo &amp; Signature Studio
+              </h1>
+              <p className="mt-3 text-lg font-bold text-blue-100 sm:text-xl">पासपोर्ट फोटो और सिग्नेचर — सब एक ही जगह</p>
+              <p className="mt-4 max-w-xl text-sm leading-7 text-blue-100/85 sm:text-base">
+                पासपोर्ट फोटो तैयार करें, बैकग्राउंड बदलें, सिग्नेचर साफ करें और 4×6 या A4 प्रिंट शीट बनाएँ। मोबाइल और कंप्यूटर दोनों पर आसानी से इस्तेमाल करें।
+              </p>
+              <div className="mt-6 grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { icon: Camera, title: 'Passport Photo', sub: 'फोटो एडिटिंग' },
+                  { icon: PenTool, title: 'Signature', sub: 'साफ सिग्नेचर' },
+                  { icon: WandSparkles, title: 'Beauty Mode', sub: 'नेचुरल रिटच' },
+                  { icon: Printer, title: 'Print Sheet', sub: '4×6 और A4' }
+                ].map(({ icon: Icon, title, sub }) => (
+                  <div key={title} className="rounded-xl border border-white/15 bg-white/[0.08] p-3 backdrop-blur-sm">
+                    <Icon className="mb-2 h-5 w-5 text-cyan-200" />
+                    <p className="text-xs font-extrabold text-white">{title}</p>
+                    <p className="mt-1 text-[10px] text-blue-100/75">{sub}</p>
+                  </div>
+                ))}
+              </div>
+              <button onClick={onStart} className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus:ring-4 focus:ring-amber-200/40">
+                Start Creating Photos <ArrowRight className="h-5 w-5" />
+              </button>
+              <p className="mt-3 text-xs text-blue-100/70">फीचर्स का डेमो देखें और फिर अपनी फोटो बनाना शुरू करें।</p>
+            </div>
 
-          <div className="rounded-2xl border border-white/20 bg-white/10 p-3 shadow-2xl backdrop-blur-sm sm:p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold">Before / After Preview</p>
-                <p className="text-xs text-blue-100/75">Sample photo transformation</p>
+            <div className="rounded-2xl border border-white/20 bg-white/[0.10] p-3 shadow-2xl backdrop-blur-md sm:p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-extrabold">Before / After Preview</p>
+                  <p className="text-xs text-blue-100/75">Interactive sample comparison</p>
+                </div>
+                <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-200">Live Demo</span>
               </div>
-              <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-200">Interactive Demo</span>
-            </div>
-            <div className="relative mx-auto aspect-[4/4.3] max-w-[340px] overflow-hidden rounded-xl border-4 border-white/80 bg-white shadow-xl">
-              <img src={BEAUTY_DEMO_PHOTO} alt="Passport photo sample after subtle enhancement" className="absolute inset-0 h-full w-full object-cover object-center" style={{ filter: 'brightness(1.08) contrast(.98) saturate(1.06)' }} />
-              <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - comparison}% 0 0)` }}>
-                <img src={BEAUTY_DEMO_PHOTO} alt="Same portrait sample before enhancement" className="h-full w-full object-cover object-center" style={{ filter: 'contrast(1.12) saturate(.82) brightness(.88)' }} />
+              <div className="relative mx-auto aspect-[4/4.3] max-w-[340px] overflow-hidden rounded-xl border-4 border-white/80 bg-white shadow-xl">
+                <img src={BEAUTY_DEMO_PHOTO} alt="Illustrative passport portrait sample" className="absolute inset-0 h-full w-full object-cover object-center" style={{ filter: 'brightness(1.08) contrast(.98) saturate(1.06)' }} />
+                <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - comparison}% 0 0)` }}>
+                  <img src={BEAUTY_DEMO_PHOTO} alt="Same illustrative portrait with a different preview filter" className="h-full w-full object-cover object-center" style={{ filter: 'contrast(1.12) saturate(.82) brightness(.88)' }} />
+                </div>
+                <span className="absolute left-2 top-2 rounded-md bg-slate-950/75 px-2 py-1 text-[10px] font-bold text-white">BEFORE</span>
+                <span className="absolute right-2 top-2 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white">PREVIEW</span>
+                <div className="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-lg" style={{ left: `${comparison}%` }}>
+                  <span className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-lg">↔</span>
+                </div>
               </div>
-              <span className="absolute left-2 top-2 rounded-md bg-slate-950/75 px-2 py-1 text-[10px] font-bold text-white">BEFORE</span>
-              <span className="absolute right-2 top-2 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white">AFTER</span>
-              <div className="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-lg" style={{ left: `${comparison}%` }}>
-                <span className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-lg">↔</span>
+              <div className="mx-auto mt-4 max-w-[340px]">
+                <label className="mb-2 flex items-center justify-between text-xs font-medium text-blue-100">
+                  <span>Before</span><span>Slide to compare</span><span>Preview</span>
+                </label>
+                <input aria-label="Compare illustrative before and after sample" type="range" min="8" max="92" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} className="w-full accent-amber-400" />
               </div>
+              <p className="mt-2 text-center text-[10px] text-blue-100/70">Illustrative sample preview — असली एडिटिंग स्टूडियो के अंदर करें।</p>
             </div>
-            <div className="mx-auto mt-4 max-w-[340px]">
-              <label className="mb-2 flex items-center justify-between text-xs font-medium text-blue-100">
-                <span>Before</span><span>Slide to compare</span><span>After</span>
-              </label>
-              <input aria-label="Compare before and after sample" type="range" min="8" max="92" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} className="w-full accent-amber-400" />
-            </div>
-            <p className="mt-2 text-center text-[10px] text-blue-100/70">Illustrative sample preview — अपनी फोटो का एडिट आप स्टूडियो में करेंगे।</p>
           </div>
         </div>
       </section>
