@@ -5,22 +5,6 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   // FEATURED TOOLS (Preserved for Homepage)
   // ==========================================
   {
-    id: 'passport-size-photo-maker',
-    name: 'Passport Size Photo Maker',
-    category: 'photo',
-    categoryLabel: 'Photo & Signature',
-    isFeatured: true,
-    iconName: 'Camera',
-    description: 'Create compliant 3.5×4.5 cm Indian passport photos with custom borders, white/blue background, and 8-photo 4×6 print sheet layout.',
-    detailedInstructions: 'Upload a clear portrait, position the face within standard oval guides, adjust contrast, and generate instant 4×6 or A4 print sheets ready for your color printer.',
-    keyFeatures: [
-      'Standard 3.5 × 4.5 cm & custom stamp sizes',
-      'Solid border generator (1px - 3px)',
-      '4×6 inch (8 photos) & A4 (32 photos) layouts',
-      'High-resolution 300 DPI print output'
-    ]
-  },
-  {
     id: 'auto-document-cropper',
     name: 'Auto Document Cropper',
     category: 'converter',
@@ -335,7 +319,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   },
 
   // ==========================================
-  // CATEGORY 3: PHOTO & SIGNATURE TOOLS (19 Tools)
+  // CATEGORY 3: PHOTO & SIGNATURE TOOLS (18 Tools)
   // ==========================================
   {
     id: 'ai-selfie-passport-photo-maker',
@@ -1378,6 +1362,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     name: 'Advanced Passport Photo Studio',
     category: 'photo',
     categoryLabel: 'Photo & Signature',
+    isFeatured: true,
     iconName: 'Camera',
     description: 'Passport photos, signature editing and print-ready 4×6 / A4 sheets.',
     detailedInstructions: 'Upload one or more photos, select the required document size, adjust each photo, edit a signature and export a single photo or print sheet.',
