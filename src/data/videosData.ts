@@ -300,6 +300,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
   {
     id: 'video_1793562264012',
     title: 'Aadhaar Card Father Name Update - Complete Step-by-Step Guide',
+    hindiTitle: 'आधार कार्ड में पिता का नाम अपडेट करें: पूरी चरण-दर-चरण गाइड',
     duration: '14:23',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -330,6 +331,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
   {
     id: 'video_1793576406875',
     title: 'Aadhaar Father Name Update – Complete Document List, Document Examples & Step-by-Step Application Guide',
+    hindiTitle: 'आधार में पिता का नाम अपडेट: दस्तावेज़ों की पूरी सूची और आवेदन प्रक्रिया',
     duration: '24:30',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -363,6 +365,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
   {
     id: 'video_1793570249064',
     title: 'Aadhaar C/O Father Name Update – Complete Document List With Live Proof (Step-by-Step Guide) | Level 3 Part 2',
+    hindiTitle: 'आधार C/O में पिता का नाम अपडेट: दस्तावेज़ और लाइव उदाहरण (लेवल 3, भाग 2)',
     duration: '16:02',
     category: 'Government Services',
     instructor: 'Tanshu Online',
@@ -401,6 +404,7 @@ export const LATEST_VIDEOS: VideoGuide[] = [
   {
     id: 'video_1793569224346',
     title: 'Aadhaar C/O, S/O & D/O Update – Complete Application Process & Step-by-Step Guide | Level 3 Part 1',
+    hindiTitle: 'आधार C/O, S/O और D/O अपडेट: पूरी आवेदन प्रक्रिया (लेवल 3, भाग 1)',
     duration: '12:57',
     category: 'Government Services',
     instructor: 'Tanshu Online',
