@@ -8,9 +8,10 @@ interface Props {
   onNavigate: (sectionId: string) => void;
   activeSection: string;
   onOpenCustomerAuth?: () => void;
+  isHomePage?: boolean;
 }
 
-export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCustomerAuth }) => {
+export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCustomerAuth, isHomePage = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
@@ -110,18 +111,14 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Prominent Language Switcher showing both "हिंदी | English" */}
             <div
-              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
+              className={isHomePage ? "inline-flex items-center gap-1 rounded-lg border border-white/15 bg-[#07152f] p-0.5 shadow-md shadow-slate-900/15 select-none" : "inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"}
               title="भाषा बदलें / Switch Language"
               aria-label="Language selection"
             >
               <button
                 type="button"
                 onClick={() => setLanguage('hi')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
-                  language === 'hi'
-                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
+                className={isHomePage ? `rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${language === 'hi' ? 'bg-white text-slate-900 shadow-md' : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'}` : `px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${language === 'hi' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
               >
                 हिंदी
               </button>
@@ -129,11 +126,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
-                  language === 'en'
-                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
+                className={isHomePage ? `rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${language === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'}` : `px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${language === 'en' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
               >
                 English
               </button>
