@@ -378,7 +378,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Bihar Services ({biharServices.length})
+                  {isHindi ? `बिहार सेवाएँ (${biharServices.length})` : `Bihar Services (${biharServices.length})`}
                 </button>
                 <button
                   onClick={() => handleSelectCategory('central-services')}
@@ -388,7 +388,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Central Services ({centralServices.length})
+                  {isHindi ? `केंद्रीय सेवाएँ (${centralServices.length})` : `Central Services (${centralServices.length})`}
                 </button>
                 <button
                   onClick={() => handleSelectCategory('bihar-schemes')}
@@ -398,7 +398,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Bihar Schemes ({biharSchemes.length})
+                  {isHindi ? `बिहार योजनाएँ (${biharSchemes.length})` : `Bihar Schemes (${biharSchemes.length})`}
                 </button>
                 <button
                   onClick={() => handleSelectCategory('central-schemes')}
@@ -408,13 +408,13 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Central Schemes ({centralSchemes.length})
+                  {isHindi ? `केंद्रीय योजनाएँ (${centralSchemes.length})` : `Central Schemes (${centralSchemes.length})`}
                 </button>
                 <button
                   onClick={onOpenAllTools}
                   className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 rounded-lg hover:bg-white/60 transition-colors cursor-pointer"
                 >
-                  Tools ({allToolsCount})
+                  {isHindi ? `टूल्स (${allToolsCount})` : `Tools (${allToolsCount})`}
                 </button>
               </div>
 
@@ -691,7 +691,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
 
                           <div className="p-2.5 bg-emerald-50/70 border border-emerald-100 rounded-lg text-xs text-emerald-950 mb-3 space-y-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
-                              {isHindi ? 'सीधा वित्तीय लाभ (Benefit)' : 'Financial Benefit'}
+                              {isHindi ? 'सीधा वित्तीय लाभ' : 'Financial Benefit'}
                             </span>
                             <BilingualText
                               en={scheme.financialBenefit}
@@ -892,7 +892,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                 onClick={() => setSelectedSchemeModal(null)}
                 className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
               >
-                {isHindi ? 'बंद करें (Close)' : 'Close'}
+                {isHindi ? 'बंद करें' : 'Close'}
               </button>
               <a
                 href={selectedSchemeModal.officialPortal}
