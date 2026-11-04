@@ -1,12 +1,14 @@
 import React from 'react';
 import { ExternalLink, Mail, Heart, ShieldCheck } from 'lucide-react';
 import { TANSHU_PROFILE_PHOTO } from './Header';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   onNavigate: (sectionId: string) => void;
 }
 
 export const Footer: React.FC<Props> = ({ onNavigate }) => {
+  const { isHindi, t } = useLanguage();
   return (
     <footer className="bg-slate-950 text-slate-400 text-xs border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
@@ -35,34 +37,32 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                  Digital Public Services & Training
+                  {isHindi ? 'डिजिटल सार्वजनिक सेवाएँ और प्रशिक्षण' : 'Digital Public Services & Training'}
                 </p>
               </div>
             </div>
 
             <p className="text-slate-400 text-xs leading-relaxed">
-              India's premier digital public utilities portal and cyber cafe toolkit. High-precision photo cropping, CR80 ID printing, and authentic public information.
+              {isHindi ? 'डिजिटल सार्वजनिक सेवाओं और साइबर कैफ़े के लिए उपयोगी टूल्स। फोटो क्रॉपिंग, ID कार्ड प्रिंटिंग और विश्वसनीय सार्वजनिक जानकारी।' : 'India’s digital public utilities portal and cyber cafe toolkit for photo cropping, ID printing, and public information.'}
             </p>
 
             <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
               <Mail className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span>Contact: tanshuonline@gmail.com</span>
+              <span>{t('footer.contact', 'Contact')}: tanshuonline@gmail.com</span>
             </div>
           </div>
 
           {/* Col 2: Navigation Links */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-              Portal Directory
-            </h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">{t('footer.quickLinks', 'Portal Directory')}</h4>
             <ul className="space-y-2">
               {[
-                { id: 'home', label: 'Home' },
-                { id: 'all-tools', label: 'All 89 Tools' },
-                { id: 'services', label: 'Government Services' },
-                { id: 'schemes', label: 'Government Schemes' },
-                { id: 'videos', label: 'Latest Videos' },
-                { id: 'about', label: 'About Us' },
+                { id: 'home', label: t('footer.nav.home', 'Home') },
+                { id: 'all-tools', label: t('footer.nav.tools', 'All 89 Tools') },
+                { id: 'services', label: t('footer.nav.services', 'Government Services') },
+                { id: 'schemes', label: t('footer.nav.schemes', 'Government Schemes') },
+                { id: 'videos', label: t('footer.nav.videos', 'Latest Videos') },
+                { id: 'about', label: t('footer.nav.about', 'About Us') },
               ].map((item) => (
                 <li key={item.id}>
                   <button
@@ -78,25 +78,15 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
 
           {/* Col 3: Key Tools */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-              Featured Utilities
-            </h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">{t('footer.popularTools', 'Featured Utilities')}</h4>
             <ul className="space-y-2 text-slate-400">
-              <li>Passport Size Photo Maker (3.5×4.5 cm)</li>
-              <li>Auto Document Cropper & Deskew</li>
-              <li>PDF to PVC Card CR80 Cropper</li>
-              <li>ID Card Front-Back Print Layout</li>
-              <li>GST / Non-GST Invoice Maker</li>
-              <li>New Ration Card Portal Directory</li>
-              <li>Indian Postal PIN Code Finder</li>
+              {(isHindi ? ['पासपोर्ट साइज फोटो मेकर (3.5×4.5 सेमी)', 'ऑटो डॉक्यूमेंट क्रॉपर और सीधा करें', 'PDF से PVC कार्ड क्रॉपर', 'ID कार्ड आगे-पीछे प्रिंट लेआउट', 'GST / बिना GST इनवॉइस मेकर', 'नया राशन कार्ड पोर्टल निर्देशिका', 'भारतीय डाक PIN कोड खोजें'] : ['Passport Size Photo Maker (3.5×4.5 cm)', 'Auto Document Cropper & Deskew', 'PDF to PVC Card CR80 Cropper', 'ID Card Front-Back Print Layout', 'GST / Non-GST Invoice Maker', 'New Ration Card Portal Directory', 'Indian Postal PIN Code Finder']).map((item) => <li key={item}>{item}</li>)}
             </ul>
           </div>
 
           {/* Col 4: Important Official Portals */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-              Official Govt Portals
-            </h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">{isHindi ? 'आधिकारिक सरकारी पोर्टल' : 'Official Govt Portals'}</h4>
             <ul className="space-y-2">
               {[
                 { name: 'UIDAI myAadhaar', url: 'https://myaadhaar.uidai.gov.in' },
@@ -126,15 +116,15 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
         {/* Disclaimer & Copyright */}
         <div className="pt-8 border-t border-slate-800 text-[11px] text-slate-400 space-y-3">
           <p className="leading-relaxed">
-            <strong className="text-slate-200">Legal Disclaimer:</strong> TANSHU ONLINE is an independent digital tool and public service reference platform. TANSHU ONLINE does not represent, partner with, or act as an official agency of the Government of India or any state administration. All official logos, government department trademarks, and portal names belong to their respective statutory authorities.
+            <strong className="text-slate-200">{t('footer.legal', 'Legal Disclaimer')}:</strong> {isHindi ? 'TANSHU ONLINE एक स्वतंत्र डिजिटल टूल और सार्वजनिक सेवा जानकारी प्लेटफ़ॉर्म है। यह भारत सरकार या किसी राज्य प्रशासन की आधिकारिक एजेंसी नहीं है। सभी सरकारी लोगो, विभागीय ट्रेडमार्क और पोर्टल नाम संबंधित प्राधिकरणों के हैं।' : 'TANSHU ONLINE is an independent digital tool and public service reference platform. It is not an official agency of the Government of India or any state administration. Official logos, trademarks, and portal names belong to their respective authorities.'}
           </p>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
             <div>
-              © {new Date().getFullYear()} TANSHU ONLINE. All rights reserved. 100% Client-Side Privacy Guaranteed.
+              © {new Date().getFullYear()} TANSHU ONLINE. {isHindi ? 'सर्वाधिकार सुरक्षित। 100% क्लाइंट-साइड गोपनीयता।' : 'All rights reserved. 100% Client-Side Privacy Guaranteed.'}
             </div>
             <div className="flex items-center gap-1 text-slate-400">
-              <span>Empowering Digital India with</span>
+              <span>{t('footer.empowering', 'Empowering Digital India with')}</span>
               <Heart className="w-3.5 h-3.5 text-rose-500 fill-current" />
             </div>
           </div>
