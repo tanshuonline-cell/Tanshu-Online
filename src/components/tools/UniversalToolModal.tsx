@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, ShieldCheck, Info } from 'lucide-react';
+import { X, ShieldCheck, Info, ArrowLeft } from 'lucide-react';
 import { ToolItem } from '../../types';
 import { PassportPhotoTool } from './PassportPhotoTool';
 import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
@@ -128,6 +128,17 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         </div>
 
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          {isAdvancedStudio && showAdvancedStudio && (
+            <button
+              type="button"
+              onClick={() => window.setTimeout(() => setShowAdvancedStudio(false), 600)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              title="Return to Live Demo"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Demo
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">TANSHU ONLINE</span><span>·</span>
             <span>Photos are processed in your browser in this studio.</span>
