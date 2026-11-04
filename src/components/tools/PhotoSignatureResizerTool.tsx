@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload, Download, Printer, RefreshCw, ImagePlus, FileImage, ShieldCheck,
   Sparkles, Languages, CheckCircle2, Zap, SlidersHorizontal, FileDown
@@ -94,6 +94,8 @@ async function renderImage(asset: Asset, settings: Settings) {
 export const PhotoSignatureResizerTool: React.FC = () => {
   const [language, setLanguage] = useState<'hi' | 'en'>('hi');
   const [assets, setAssets] = useState<Record<Slot, Asset | null>>({ photo: null, signature: null });
+  const assetsRef = useRef(assets);
+  assetsRef.current = assets;
   const [settings, setSettings] = useState<Record<Slot, Settings>>({ photo: DEFAULT_PHOTO, signature: DEFAULT_SIGNATURE });
   const [activePreset, setActivePreset] = useState('custom');
   const [processing, setProcessing] = useState(false);
@@ -174,16 +176,16 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   useEffect(() => () => {
     (['photo', 'signature'] as Slot[]).forEach((slot) => {
-      const asset = assets[slot];
+      const asset = assetsRef.current[slot];
       if (asset?.sourceUrl) URL.revokeObjectURL(asset.sourceUrl);
       if (asset?.outputUrl) URL.revokeObjectURL(asset.outputUrl);
     });
-  }, [assets]);
+  }, []);
 
   const updateSetting = (slot: Slot, key: keyof Settings, value: string | number) => {
     setSettings((current) => ({
       ...current,
-      [slot]: { ...current[slot], [key]: value }
+      [slot]: { ...current[slot], [key]: value } as Settings
     }));
   };
 
