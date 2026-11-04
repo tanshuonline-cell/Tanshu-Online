@@ -112,7 +112,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             <div
               className="inline-flex h-8 w-[142px] flex-none items-center justify-center gap-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
               title="भाषा बदलें / Switch Language"
-              aria-label="Language selection"
+              aria-label={language === "hi" ? "भाषा चुनें" : "Language selection"}
             >
               <button
                 type="button"
@@ -167,7 +167,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-slate-700 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
-              aria-label="Toggle Navigation"
+              aria-label={language === "hi" ? "मेन्यू खोलें" : "Toggle Navigation"}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
