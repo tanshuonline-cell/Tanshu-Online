@@ -362,8 +362,8 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">
                     {activeCategory.includes('services') 
-                      ? `Showing ${displayedServices.length} of ${activeCategory === 'bihar-services' ? biharServices.length : centralServices.length} official services with full application guides`
-                      : `Showing ${displayedSchemes.length} of ${activeCategory === 'bihar-schemes' ? biharSchemes.length : centralSchemes.length} national & state welfare schemes`}
+                      ? (isHindi ? `${displayedServices.length} में से ${activeCategory === 'bihar-services' ? biharServices.length : centralServices.length} सरकारी सेवाएँ उपलब्ध हैं` : `Showing ${displayedServices.length} of ${activeCategory === 'bihar-services' ? biharServices.length : centralServices.length} official services with full application guides`)
+                      : (isHindi ? `${displayedSchemes.length} में से ${activeCategory === 'bihar-schemes' ? biharSchemes.length : centralSchemes.length} सरकारी योजनाएँ उपलब्ध हैं` : `Showing ${displayedSchemes.length} of ${activeCategory === 'bihar-schemes' ? biharSchemes.length : centralSchemes.length} national & state welfare schemes`)}
                   </p>
                 </div>
               </div>
@@ -523,7 +523,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                               onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors border border-blue-200/60"
                             >
-                              <span>{isHindi ? 'पोर्टल (Portal)' : 'Official Portal'}</span>
+                              <span>{isHindi ? 'आधिकारिक पोर्टल' : 'Official Portal'}</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
                             <button
@@ -640,9 +640,9 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
               <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {displayedSchemes.length === 0 ? (
                   <div className="col-span-full py-12 text-center text-slate-500 text-xs">
-                    No schemes matched "{filterQuery}". Try a different keyword or{' '}
+                    {isHindi ? `"${filterQuery}" से मेल खाती कोई योजना नहीं मिली। दूसरा शब्द खोजें या ` : `No schemes matched "${filterQuery}". Try a different keyword or `}{' '}
                     <button onClick={() => setFilterQuery('')} className="text-blue-600 underline font-semibold">
-                      clear filter
+                      {isHindi ? 'फ़िल्टर साफ़ करें' : 'clear filter'}
                     </button>.
                   </div>
                 ) : (
@@ -772,7 +772,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     onClick={onScrollToTop}
                     className="text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
-                    Top of Page ↑
+                    {isHindi ? 'पेज के शीर्ष पर जाएँ ↑' : 'Top of Page ↑'}
                   </button>
                 )}
               </div>
