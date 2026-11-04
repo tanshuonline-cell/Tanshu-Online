@@ -3,7 +3,6 @@ import { ArrowUpRight } from 'lucide-react';
 import { ToolItem } from '../types';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { useLanguage } from '../context/LanguageContext';
-import { getToolPreviewImage } from '../data/toolPreviewImages';
 
 // Realistic preview images for the six featured tools
 import passportImg from '../assets/images/tool_passport_photos_1793211936275.jpg';
@@ -22,7 +21,6 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
     'advanced-passport-photo-studio',
-    'photo-signature-resizer',
     'auto-document-cropper',
     'document-scanner-image-rectifier',
     'pdf-to-pvc-card-auto-cropper',
@@ -38,8 +36,6 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
     switch (id) {
       case 'advanced-passport-photo-studio':
         return passportImg;
-      case 'photo-signature-resizer':
-        return getToolPreviewImage(id, 'Photo & Signature Resizer', 'Photo & Signature');
       case 'auto-document-cropper':
         return autoCropperImg;
       case 'document-scanner-image-rectifier':
