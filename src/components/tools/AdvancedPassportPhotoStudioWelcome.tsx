@@ -152,16 +152,16 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-700 to-slate-900">
-                  <div className="aspect-[4/5]">
-                    <img src="/images/beauty-mode/beauty_mode_before_full.jpg" alt="Original unretouched fictional portrait demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
-                    <div className="flex h-full min-h-40 items-center justify-center p-4 text-center text-xs text-slate-400">Original portrait image will appear here</div>
+                  <div className="relative aspect-[4/5]">
+                    <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-slate-400">Original portrait image will appear here</div>
+                    <img src="/images/beauty-mode/beauty_mode_before_full.jpg" alt="Original unretouched fictional portrait demo" className="absolute inset-0 z-10 h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                   </div>
                   <span className="absolute left-2 top-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] font-extrabold tracking-wider">BEFORE</span>
                 </div>
                 <div className="relative overflow-hidden rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-900/60 to-blue-950">
-                  <div className="aspect-[4/5]">
-                    <img src="/images/beauty-mode/beauty_mode_after_full.jpg" alt="Subtly retouched fictional portrait demo" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
-                    <div className="flex h-full min-h-40 items-center justify-center p-4 text-center text-xs text-violet-200/70">Retouched portrait image will appear here</div>
+                  <div className="relative aspect-[4/5]">
+                    <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-violet-200/70">Retouched portrait image will appear here</div>
+                    <img src="/images/beauty-mode/beauty_mode_after_full.jpg" alt="Subtly retouched fictional portrait demo" className="absolute inset-0 z-10 h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                   </div>
                   <span className="absolute left-2 top-2 rounded-md bg-violet-600 px-2 py-1 text-[10px] font-extrabold tracking-wider">AFTER</span>
                 </div>
