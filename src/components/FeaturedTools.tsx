@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { ToolItem } from '../types';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
+import { TOOL_HINDI_TRANSLATIONS } from '../data/toolTranslations';
 import { useLanguage } from '../context/LanguageContext';
 import { getToolPreviewImage } from '../data/toolPreviewImages';
 
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
-  const { t } = useLanguage();
+  const { t, isHindi } = useLanguage();
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
     'photo-signature-resizer',
@@ -80,6 +81,9 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 sm:gap-4">
           {featuredTools.map((tool) => {
             const previewImg = getToolImage(tool.id);
+            const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
+            const displayName = hindiCopy?.name || tool.name;
+            const displayDescription = hindiCopy?.description || tool.description;
             return (
               <div
                 key={tool.id}
@@ -90,7 +94,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
                   <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 border border-slate-200/80 shadow-2xs">
                     <img
                       src={previewImg}
-                      alt={tool.name}
+                      alt={displayName}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                     />
@@ -98,12 +102,12 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
 
                   {/* Tool Title */}
                   <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight mb-1 line-clamp-2 leading-snug group-hover:text-blue-700 transition-colors">
-                    {tool.name}
+                    {displayName}
                   </h3>
 
                   {/* Tool Description */}
                   <p className="text-[11px] sm:text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                    {tool.description}
+                    {displayDescription}
                   </p>
                 </div>
 
