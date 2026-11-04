@@ -145,9 +145,9 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
               <p className="mt-3 text-xs text-slate-500">Illustrative sample — वास्तविक परिणाम आपकी फोटो और editor की processing पर निर्भर करेगा।</p>
             </div>
             <div className="order-1 grid grid-cols-3 gap-2 lg:order-2">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg"><img src={BEAUTY_DEMO_PHOTO} alt="Original portrait sample" className="h-full w-full object-cover" /></div><p className="mt-2 text-center text-[10px] font-bold text-slate-600 sm:text-xs">Original</p></div>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg bg-white"><img src={BEAUTY_DEMO_PHOTO} alt="Portrait on white background sample" className="h-full w-full object-cover" style={{ filter: 'brightness(1.08) saturate(.92)' }} /></div><p className="mt-2 text-center text-[10px] font-bold text-slate-600 sm:text-xs">White BG</p></div>
-              <div className="overflow-hidden rounded-xl border border-blue-200 bg-blue-600 p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg bg-blue-600"><img src={BEAUTY_DEMO_PHOTO} alt="Portrait on blue background sample" className="h-full w-full object-cover" /></div><p className="mt-2 text-center text-[10px] font-bold text-white sm:text-xs">Blue BG</p></div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg"><PortraitArtwork background="#cbd5e1" /></div><p className="mt-2 text-center text-[10px] font-bold text-slate-600 sm:text-xs">Original</p></div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg bg-white"><PortraitArtwork background="#ffffff" /></div><p className="mt-2 text-center text-[10px] font-bold text-slate-600 sm:text-xs">White BG</p></div>
+              <div className="overflow-hidden rounded-xl border border-blue-200 bg-blue-600 p-1.5"><div className="aspect-[3/4] overflow-hidden rounded-lg bg-blue-600"><PortraitArtwork background="#2563eb" /></div><p className="mt-2 text-center text-[10px] font-bold text-white sm:text-xs">Blue BG</p></div>
             </div>
           </article>
 
