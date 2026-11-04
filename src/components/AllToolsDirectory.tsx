@@ -86,9 +86,9 @@ export const AllToolsDirectory: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen]);
 
-  // Category counts and definitions across all 89 tools
+  // Category counts and definitions across all 90 tools
   const categories: { id: ToolCategory; label: string; hindiLabel: string; count: number }[] = [
-    { id: 'all', label: 'All Tools', hindiLabel: 'सभी टूल्स', count: 89 },
+    { id: 'all', label: 'All Tools', hindiLabel: 'सभी टूल्स', count: 90 },
     { id: 'business', label: 'CSC & Business', hindiLabel: 'CSC और व्यापार', count: 11 },
     { id: 'pvc-id', label: 'ID Card & Print', hindiLabel: 'पहचान पत्र व प्रिंटिंग', count: 7 },
     { id: 'photo', label: 'Photo & Signature', hindiLabel: 'फोटो और हस्ताक्षर', count: 18 },
@@ -143,7 +143,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
     return CONFIRMED_TOOLS.filter((t) => !featuredToolIds.has(t.id)).slice(0, 6);
   }, [featuredToolIds]);
 
-  // Filtered tools across all 89 tools (active inside the modal)
+  // Filtered tools across all 90 tools (active inside the modal)
   const filteredTools = useMemo(() => {
     return CONFIRMED_TOOLS.filter((tool) => {
       const effectiveCategory =
@@ -255,7 +255,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               {isHindi
-                ? 'साइबर कैफ़े, CSC केंद्र और नागरिक सेवाओं के लिए 7 श्रेणियों में 89 प्रमाणित ऑनलाइन उपयोगिताएँ।'
+                ? 'साइबर कैफ़े, CSC केंद्र और नागरिक सेवाओं के लिए 7 श्रेणियों में 90 प्रमाणित ऑनलाइन उपयोगिताएँ।'
                 : 'Complete professional toolkit for Cyber Cafes, CSC Centers, and Citizen Digital Services across 7 specialized categories.'}
             </p>
           </div>
@@ -267,7 +267,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
               className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50/80 border border-blue-200 px-3.5 py-2 rounded-xl shadow-2xs hover:shadow-xs transition-all cursor-pointer"
             >
               <Grid className="w-3.5 h-3.5" />
-              <span>{isHindi ? 'डायरेक्टरी खोलें (89 टूल्स)' : 'Browse All 89 Tools'}</span>
+              <span>{isHindi ? 'डायरेक्टरी खोलें (90 टूल्स)' : 'Browse All 90 Tools'}</span>
             </button>
           </div>
         </div>
@@ -277,7 +277,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
           {initialSixTools.map((tool) => renderToolCard(tool))}
         </div>
 
-        {/* 2. CENTERED BUTTON: "View All 89 Tools" / "सभी 89 टूल देखें" */}
+        {/* 2. CENTERED BUTTON: "View All 90 Tools" / "सभी 90 टूल देखें" */}
         <div className="mt-10 flex flex-col items-center justify-center gap-2">
           <button
             type="button"
@@ -285,16 +285,16 @@ export const AllToolsDirectory: React.FC<Props> = ({
             className="group inline-flex items-center gap-2 px-8 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs sm:text-sm font-bold tracking-wide shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer"
           >
             <Grid className="w-4 h-4 text-blue-200 group-hover:scale-110 transition-transform" />
-            <span>{isHindi ? 'सभी 89 टूल देखें' : 'View All 89 Tools'}</span>
+            <span>{isHindi ? 'सभी 90 टूल देखें' : 'View All 90 Tools'}</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
           <span className="text-[11px] text-slate-500 font-medium">
-            {isHindi ? '7 श्रेणियों में 89 ऑनलाइन उपयोगिताएँ' : 'Browse full directory with search & category filters'}
+            {isHindi ? '7 श्रेणियों में 90 ऑनलाइन उपयोगिताएँ' : 'Browse full directory with search & category filters'}
           </span>
         </div>
       </div>
 
-      {/* 3. ALL TOOLS MODAL: COMPLETE 89-TOOL DIRECTORY WITH SEARCH & CATEGORY FILTERS */}
+      {/* 3. ALL TOOLS MODAL: COMPLETE 90-TOOL DIRECTORY WITH SEARCH & CATEGORY FILTERS */}
       {isModalOpen && (
         <div
           ref={backdropRef}
@@ -315,7 +315,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
                 </div>
                 <div>
                   <h3 id="all-tools-modal-title" className="text-base sm:text-lg font-black tracking-tight text-white">
-                    {isHindi ? 'सभी 89 टूल्स डायरेक्टरी' : 'All 89 Tools Directory'}
+                    {isHindi ? 'सभी 90 टूल्स डायरेक्टरी' : 'All 90 Tools Directory'}
                   </h3>
                   <p className="text-[11px] text-slate-400">
                     {isHindi
@@ -340,7 +340,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
             {/* Modal Sticky Controls: Search Bar & Category Filter Bar */}
             <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 shrink-0 space-y-3.5">
               <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-                {/* Search Input across all 89 tools */}
+                {/* Search Input across all 90 tools */}
                 <div className="relative w-full sm:max-w-md">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -371,11 +371,11 @@ export const AllToolsDirectory: React.FC<Props> = ({
                 <div className="text-xs text-slate-600 font-medium whitespace-nowrap self-end sm:self-center">
                   {isHindi ? 'प्रदर्शित: ' : 'Showing '}{' '}
                   <span className="font-bold text-slate-900">{filteredTools.length}</span>{' '}
-                  {isHindi ? 'कुल 89 टूल्स में से' : `of ${CONFIRMED_TOOLS.length} tools`}
+                  {isHindi ? 'कुल 90 टूल्स में से' : `of ${CONFIRMED_TOOLS.length} tools`}
                 </div>
               </div>
 
-              {/* Category Filter Tabs across all 89 tools */}
+              {/* Category Filter Tabs across all 90 tools */}
               <div
                 role="tablist"
                 aria-label="Tool Categories"
@@ -450,7 +450,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
               <span>
                 {isHindi
                   ? 'सभी टूल्स 100% निशुल्क और क्लाइंट-साइड प्राइवेट हैं।'
-                  : 'All 89 tools run 100% client-side with complete user privacy.'}
+                  : 'All 90 tools run 100% client-side with complete user privacy.'}
               </span>
               <button
                 type="button"
