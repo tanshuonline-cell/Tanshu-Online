@@ -3,8 +3,9 @@ import { ArrowUpRight } from 'lucide-react';
 import { ToolItem } from '../types';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { useLanguage } from '../context/LanguageContext';
+import { getToolPreviewImage } from '../data/toolPreviewImages';
 
-// Realistic preview images for the six featured tools
+// Realistic preview images for the featured tools
 import passportImg from '../assets/images/tool_passport_photos_1793211936275.jpg';
 import autoCropperImg from '../assets/images/tool_auto_cropper_1793211936700.jpg';
 import scannerImg from '../assets/images/tool_doc_scanner_rectifier_1793211938346.jpg';
@@ -20,6 +21,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const { t } = useLanguage();
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
+    'photo-signature-resizer',
     'advanced-passport-photo-studio',
     'auto-document-cropper',
     'document-scanner-image-rectifier',
@@ -30,10 +32,12 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const featuredTools = CONFIRMED_TOOLS
     .filter((tool) => tool.isFeatured)
     .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
-    .slice(0, 6);
+    .slice(0, 7);
 
   const getToolImage = (id: string) => {
     switch (id) {
+      case 'photo-signature-resizer':
+        return getToolPreviewImage('photo-signature-resizer', 'Photo & Signature Resizer', 'Photo & Signature');
       case 'advanced-passport-photo-studio':
         return passportImg;
       case 'auto-document-cropper':
@@ -67,13 +71,13 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
           <p className="text-xs text-slate-500 max-w-md">
             {t(
               'featured.desc',
-              'The six most frequently used tools for photo printing, smart card preparation, document scanning, and retail billing.'
+              'Popular tools for photo resizing, photo printing, smart card preparation, document scanning, and retail billing.'
             )}
           </p>
         </div>
 
-        {/* Exactly six featured tool cards in one row on desktop when screen permits (xl:grid-cols-6) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-4">
+        {/* Featured tools; the new Photo & Signature Resizer appears first. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 sm:gap-4">
           {featuredTools.map((tool) => {
             const previewImg = getToolImage(tool.id);
             return (
