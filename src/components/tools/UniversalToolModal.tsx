@@ -4,6 +4,7 @@ import { ToolItem } from '../../types';
 import { PassportPhotoTool } from './PassportPhotoTool';
 import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
 import { AdvancedPassportPhotoStudioWelcome } from './AdvancedPassportPhotoStudioWelcome';
+import { PhotoSignatureResizerTool } from './PhotoSignatureResizerTool';
 import { AutoDocumentCropperTool } from './AutoDocumentCropperTool';
 import { DocumentScannerTool } from './DocumentScannerTool';
 import { PdfToPvcTool } from './PdfToPvcTool';
@@ -42,6 +43,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   if (!tool) return null;
 
   const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
+  const isPhotoSignatureResizer = tool.id === 'photo-signature-resizer';
+  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer;
   const showWelcome = isAdvancedStudio && !showAdvancedStudio;
 
   const renderToolComponent = () => {
@@ -50,6 +53,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         return showAdvancedStudio
           ? <AdvancedPassportPhotoStudio />
           : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />;
+      case 'photo-signature-resizer':
+        return <PhotoSignatureResizerTool />;
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
       case 'auto-document-cropper':
@@ -89,8 +94,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isAdvancedStudio ? 'p-0' : 'p-3 sm:p-6'}`}>
-      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isAdvancedStudio ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
+    <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isImmersiveTool ? 'p-0' : 'p-3 sm:p-6'}`}>
+      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isImmersiveTool ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
         <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isAdvancedStudio ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
           <div className="flex items-center gap-3">
             <div>
@@ -98,10 +103,10 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                 <span>{tool.categoryLabel}</span>
                 <span className="text-slate-300">·</span>
                 <span className="text-emerald-700 font-medium flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> {isAdvancedStudio ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
+                  <ShieldCheck className="w-3.5 h-3.5" /> {isImmersiveTool ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
                 </span>
               </div>
-              {!isAdvancedStudio && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
+              {!isImmersiveTool && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
@@ -109,8 +114,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </button>
         </div>
 
-        <div className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : 'p-6 bg-white'}`}>
-          {isAdvancedStudio ? (
+        <div className={`${isImmersiveTool ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-y-auto') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isImmersiveTool ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
+          {isImmersiveTool ? (
             renderToolComponent()
           ) : (
             <>
