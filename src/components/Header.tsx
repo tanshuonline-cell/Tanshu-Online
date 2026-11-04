@@ -122,13 +122,13 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               >
                 हिंदी
               </button>
-              <span className="text-slate-300 px-0.5">|</span>
+              <span className={isHomePage ? "hidden" : "text-slate-300 px-0.5"}>|</span>
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
                 className={isHomePage ? `rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${language === 'en' ? 'bg-white text-slate-900 shadow-md' : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'}` : `px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${language === 'en' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
               >
-                English
+                {isHomePage ? 'EN' : 'English'}
               </button>
             </div>
 
