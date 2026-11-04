@@ -132,7 +132,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
             <button
               type="button"
               onClick={() => window.setTimeout(() => setShowAdvancedStudio(false), 600)}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-950 bg-slate-950 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all duration-200 ease-out hover:-translate-y-1 hover:border-slate-800 hover:bg-slate-800 hover:text-white hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
               title="Return to Live Demo"
             >
               <ArrowLeft className="h-4 w-4" />
