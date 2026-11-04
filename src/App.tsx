@@ -339,6 +339,7 @@ export default function App() {
         onNavigate={scrollToSection}
         activeSection={activeSection}
         onOpenCustomerAuth={() => setCustomerAuthOpen(true)}
+        isHomePage={true}
       />
 
       <main className="flex-1">
