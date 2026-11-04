@@ -1,7 +1,7 @@
 import { removeBackground } from '@bg0/browser';
 
 /**
- * Runs BiRefNet locally in the visitor's browser through BG0.
+ * Runs background removal locally in the visitor's browser through BG0.
  * The selected photo is never uploaded to our server or a paid inference API.
  */
 export async function removeBackgroundAI(
