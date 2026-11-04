@@ -65,7 +65,7 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart, o
     <main className="w-full bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07152f]/95 px-4 py-2.5 text-white shadow-lg backdrop-blur-md sm:px-8">
         <div className="mx-auto flex max-w-6xl items-center gap-2.5">
-          <button type="button" onClick={onBack} className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 text-[10px] font-extrabold text-blue-50 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/15"><ArrowLeft className="h-3.5 w-3.5" />{tx('होम', 'BACK')}</button>
+          <button type="button" onClick={onBack} className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 text-[10px] font-extrabold text-blue-50 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/15"><ArrowLeft className="h-3.5 w-3.5" />{language === 'hi' ? 'होम' : 'BACK'}</button>
           <img
             src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg"
             alt="Tanshu Online"
