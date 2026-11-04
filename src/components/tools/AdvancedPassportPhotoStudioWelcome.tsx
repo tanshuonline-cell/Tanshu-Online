@@ -54,6 +54,20 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
 
   return (
     <main className="w-full bg-slate-50 text-slate-900">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07152f]/95 px-4 py-2.5 text-white shadow-lg backdrop-blur-md sm:px-8">
+        <div className="mx-auto flex max-w-6xl items-center gap-2.5">
+          <img
+            src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg"
+            alt="Tanshu Online"
+            className="h-9 w-9 rounded-full border-2 border-blue-400 object-cover shadow-md sm:h-10 sm:w-10"
+          />
+          <div className="flex items-center gap-1 font-sans tracking-tight">
+            <span className="text-base font-black tracking-wide text-white sm:text-lg">TANSHU</span>
+            <span className="text-base font-black tracking-wide text-blue-300 sm:text-lg">ONLINE</span>
+          </div>
+          <span className="ml-auto hidden text-xs font-medium text-blue-100/80 sm:block">Photo &amp; Signature Studio</span>
+        </div>
+      </header>
       <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#07152f] via-[#102d58] to-[#155e91] px-4 py-9 text-white sm:px-8 sm:py-12 lg:px-12">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-300/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-36 left-1/4 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl" />
@@ -62,17 +76,6 @@ export const AdvancedPassportPhotoStudioWelcome: React.FC<Props> = ({ onStart })
             <h1 className="whitespace-nowrap text-[clamp(0.68rem,3.2vw,2rem)] font-black leading-tight tracking-[.035em] text-white">
               PROFESSIONAL PHOTO &amp; SIGNATURE STUDIO
             </h1>
-            <div className="flex items-center justify-center gap-2.5">
-              <img
-                src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg"
-                alt="Tanshu Online"
-                className="h-9 w-9 rounded-full border-2 border-blue-400 object-cover shadow-md sm:h-11 sm:w-11"
-              />
-              <div className="flex items-center gap-1 font-sans tracking-tight">
-                <span className="text-base font-black tracking-wide text-white sm:text-lg">TANSHU</span>
-                <span className="text-base font-black tracking-wide text-blue-300 sm:text-lg">ONLINE</span>
-              </div>
-            </div>
             <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-bold tracking-wide text-emerald-100">MOBILE & DESKTOP READY</span>
           </div>
           <div className="grid items-center gap-8 lg:grid-cols-[1.04fr_.96fr]">
