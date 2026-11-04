@@ -90,27 +90,29 @@ async function renderImage(asset: Asset, settings: Settings) {
   let actualQuality = settings.format === 'image/jpeg' ? maxQuality : 1;
   let blob = await canvasBlob(canvas, settings.format, settings.format === 'image/jpeg' ? maxQuality : 0.92);
   if (settings.format === 'image/jpeg') {
-    let low = 0.3;
-    let high = maxQuality;
-    let best: Blob | null = blob.size <= targetBytes ? blob : null;
-    let bestQuality = best ? maxQuality : 0.3;
-    for (let i = 0; i < 8; i++) {
-      const quality = (low + high) / 2;
-      const candidate = await canvasBlob(canvas, 'image/jpeg', quality);
-      if (candidate.size <= targetBytes) {
-        best = candidate;
-        bestQuality = quality;
-        low = quality;
-      } else {
-        high = quality;
+    if (blob.size > targetBytes) {
+      let low = 0.3;
+      let high = maxQuality;
+      let best: Blob | null = null;
+      let bestQuality = 0.3;
+      for (let i = 0; i < 8; i++) {
+        const quality = (low + high) / 2;
+        const candidate = await canvasBlob(canvas, 'image/jpeg', quality);
+        if (candidate.size <= targetBytes) {
+          best = candidate;
+          bestQuality = quality;
+          low = quality;
+        } else {
+          high = quality;
+        }
       }
-    }
-    if (best) {
-      blob = best;
-      actualQuality = bestQuality;
-    } else {
-      blob = await canvasBlob(canvas, 'image/jpeg', 0.3);
-      actualQuality = 0.3;
+      if (best) {
+        blob = best;
+        actualQuality = bestQuality;
+      } else {
+        blob = await canvasBlob(canvas, 'image/jpeg', 0.3);
+        actualQuality = 0.3;
+      }
     }
   }
   const warning = settings.format === 'image/png' && blob.size > targetBytes
@@ -222,7 +224,6 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     setAssets((current) => {
       const asset = current[slot];
       if (!asset) return current;
-      if (asset.outputUrl) URL.revokeObjectURL(asset.outputUrl);
       const { outputUrl, outputBlob, outputBytes, warning, outputWidth, outputHeight, outputQuality, ...source } = asset;
       return { ...current, [slot]: source };
     });
@@ -261,6 +262,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
 
   const processSlot = async (slot: Slot, revision: number, asset: Asset | null, slotSettings: Settings) => {
     if (!asset) return true;
+    if (revisionsRef.current[slot] !== revision || assetsRef.current[slot]?.sourceUrl !== asset.sourceUrl) return false;
     const result = await renderImage(asset, slotSettings);
     if (revisionsRef.current[slot] !== revision || assetsRef.current[slot]?.sourceUrl !== asset.sourceUrl) return false;
     const outputUrl = URL.createObjectURL(result.blob);
@@ -268,10 +270,7 @@ export const PhotoSignatureResizerTool: React.FC = () => {
     if (latest?.outputUrl) URL.revokeObjectURL(latest.outputUrl);
     setAssets((current) => {
       const currentAsset = current[slot];
-      if (!currentAsset || currentAsset.sourceUrl !== asset.sourceUrl || revisionsRef.current[slot] !== revision) {
-        URL.revokeObjectURL(outputUrl);
-        return current;
-      }
+      if (!currentAsset || currentAsset.sourceUrl !== asset.sourceUrl || revisionsRef.current[slot] !== revision) return current;
       return {
         ...current,
         [slot]: {
