@@ -93,7 +93,7 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
       ? 'Basic में ₹49 वाला मौजूदा वीडियो, निजी Admin Chat और घोषित Basic tools शामिल होंगे। बाकी योजनाएँ Coming Soon हैं।'
       : 'Basic will include the existing ₹49 video, private Admin Chat and the Basic tools listed before checkout. Other plans are Coming Soon.',
     month: isHindi ? '/ महीना' : '/ month',
-    basicAction: isHindi ? 'Membership सुविधाएँ देखें' : 'View Membership Benefits',
+    basicAction: isHindi ? 'Aadhaar Guide देखें' : 'View Aadhaar Guide',
     comingSoon: isHindi ? 'Coming Soon' : 'Coming Soon',
     billingTitle: isHindi ? 'लॉन्च और भुगतान की स्थिति:' : 'Launch and payment status:',
     billing: isHindi
@@ -177,9 +177,9 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
               <div className="my-5 h-px bg-slate-200/80" />
               {plan.name === 'Basic' ? (
                 <ul className="flex-1 space-y-3 text-xs leading-5 text-slate-700">
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पहले से उपलब्ध ₹49 Aadhaar वीडियो का एक्सेस' : 'Clear information about father name / C/o and address updates'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat' : 'Required documents, process, eligibility and timeline'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Basic में शामिल चुनिंदा Tools और Aadhaar मार्गदर्शन' : 'Information only; no application is submitted on your behalf'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पहले से उपलब्ध ₹49 Aadhaar वीडियो का एक्सेस' : 'Access to the existing ₹49 Aadhaar video'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat' : 'Private Chat with Admin on the website'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Basic में शामिल चुनिंदा Tools और Aadhaar मार्गदर्शन' : 'Selected tools included in Basic and Aadhaar guidance'}</span></li>
                 </ul>
               ) : (
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
