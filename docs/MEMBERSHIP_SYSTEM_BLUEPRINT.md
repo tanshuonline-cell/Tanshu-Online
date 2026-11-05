@@ -204,3 +204,17 @@ The owner clarified that membership is primarily a paid information and guidance
 - Do not promise instant or 24×7 replies.
 - The exact tool allowlists for Basic, Standard, and Premium still need the owner's confirmation before server-side entitlement enforcement.
 - This clarification supersedes earlier draft copy that described unlimited private chat as included in every plan. Keep payment, account, and chat controls disabled until the secure backend and required Cloudflare bindings are confirmed.
+
+
+## 18. Cashfree dashboard plans created by owner (2026-11-05)
+
+The owner created these recurring plans in the Cashfree merchant dashboard. These are plan references only; no customer subscription or mandate has been created.
+
+| Internal plan code | Cashfree Plan ID | Display name | Fixed monthly amount |
+|---|---|---|---:|
+| basic | TANSUBASIC49 | Tanshu Basic Monthly | INR 49 |
+| standard | TANSUSTANDARD149 | Tanshu Standard Monthly | INR 149 |
+| premium | TANSHUPREMIUM249 | Tanshu Premium Monthly | INR 249 |
+| professional | TANSHUPROFESSIONAL499 | Tanshu Professional Monthly | INR 499 |
+
+All four are Periodic, INR, and charge once every 1 month. The owner set Maximum Amount equal to the fixed recurring amount for each plan and left Maximum Number of Debits optional/blank. Use these exact Cashfree Plan IDs in the later server-side subscription integration; do not create customer subscriptions or send mandate notifications as part of setup/testing.
