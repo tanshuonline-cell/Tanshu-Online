@@ -32,7 +32,10 @@ function fromB64url(input: string): string {
 async function sign(value: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value));
-  const bytes = new Uint8Array(sig);\n  let binary = '';\n  bytes.forEach((b) => (binary += String.fromCharCode(b)));\n  return btoa(binary).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');
+  const bytes = new Uint8Array(sig);
+  let binary = '';
+  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');
 }
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
