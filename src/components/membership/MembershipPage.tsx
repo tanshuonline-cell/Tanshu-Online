@@ -25,10 +25,10 @@ const plans = [
     priceTone: 'text-slate-900',
     iconTone: 'bg-slate-100 text-slate-700',
     buttonTone: 'bg-slate-800 hover:bg-slate-700',
-    noteHi: 'Aadhaar पिता का नाम / C/o और Address update की जानकारी',
-    noteEn: 'Aadhaar father name / C/o and address update information',
-    toolHi: 'दस्तावेज़, प्रक्रिया और पात्रता की जानकारी',
-    toolEn: 'Information about documents, process and eligibility',
+    noteHi: '₹49 वीडियो + निजी चैट + शामिल चुनिंदा टूल्स और Aadhaar मार्गदर्शन',
+    noteEn: '₹49 video + private chat + selected included tools and Aadhaar guidance',
+    toolHi: 'वीडियो एक्सेस, Admin से निजी चैट और Basic में शामिल टूल्स',
+    toolEn: 'Video access, private Admin chat and included Basic tools',
   },
   {
     name: 'Standard',
@@ -82,29 +82,29 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     secure: isHindi ? 'सुरक्षित सदस्यता पोर्टल' : 'SECURE MEMBERSHIP PORTAL',
     title: 'TANSHU ONLINE MEMBERSHIP',
     intro: isHindi
-      ? 'Basic ₹49 में Aadhaar पिता का नाम / C/o और Address update से जुड़ी जानकारी, दस्तावेज़ और आधिकारिक प्रक्रिया का मार्गदर्शन देखें।'
-      : 'Basic ₹49 provides information about Aadhaar father name / C/o and address updates, documents and official steps.',
+      ? 'Basic Membership ₹49/month में पहले से उपलब्ध ₹49 Aadhaar वीडियो, Admin से निजी चैट और Basic में शामिल चुनिंदा टूल्स व Aadhaar मार्गदर्शन मिलेगा।'
+      : 'Basic Membership ₹49/month includes the existing ₹49 Aadhaar video, private Admin chat, selected included tools and Aadhaar guidance.',
     guidance: isHindi ? 'Aadhaar की जानकारी' : 'AADHAAR INFORMATION',
     tools: isHindi ? 'केवल जानकारी' : 'INFORMATION ONLY',
     monthly: isHindi ? 'मासिक सदस्यता' : 'MONTHLY MEMBERSHIP',
     plansKicker: 'MEMBERSHIP PLANS',
     plansTitle: isHindi ? 'अपनी सदस्यता योजना चुनें' : 'Choose Your Membership Plan',
     plansDesc: isHindi
-      ? 'पहले चरण में Basic प्लान में Aadhaar पिता का नाम / C/o और Address update की जानकारी दी जा रही है। बाकी योजनाएँ Coming Soon हैं।'
-      : 'The first release focuses on Aadhaar father name / C/o and address update information in Basic. Other plans are Coming Soon.',
+      ? 'Basic में ₹49 वाला मौजूदा वीडियो, निजी Admin Chat और घोषित Basic tools शामिल होंगे। बाकी योजनाएँ Coming Soon हैं।'
+      : 'Basic will include the existing ₹49 video, private Admin Chat and the Basic tools listed before checkout. Other plans are Coming Soon.',
     month: isHindi ? '/ महीना' : '/ month',
-    basicAction: isHindi ? 'Basic की जानकारी देखें' : 'View Basic Information',
+    basicAction: isHindi ? 'Membership सुविधाएँ देखें' : 'View Membership Benefits',
     comingSoon: isHindi ? 'Coming Soon' : 'Coming Soon',
     billingTitle: isHindi ? 'लॉन्च और भुगतान की स्थिति:' : 'Launch and payment status:',
     billing: isHindi
-      ? 'इस Preview में Basic ₹49 प्लान की जानकारी तैयार की जा रही है। वास्तविक checkout, Google Login और recurring payment backend अभी सक्रिय नहीं हैं। इसलिए अभी कोई भुगतान या सदस्यता शुरू नहीं होगी। भुगतान शुरू होने से पहले पूरी कीमत, monthly renewal और cancel करने की शर्तें checkout पर साफ दिखाई जाएँगी और आपकी स्पष्ट सहमति ली जाएगी।'
-      : 'The Basic ₹49 plan information is being prepared in this Preview. Real checkout, Google Login and recurring payment backend are not active yet, so no payment or membership can start here. Before payments are enabled, the full price, monthly renewal and cancellation terms will be shown clearly at checkout and your explicit consent will be required.',
+      ? 'यह Preview है: Membership checkout, Google Login, private chat backend और recurring payment अभी सक्रिय नहीं हैं। अभी कोई भुगतान या सदस्यता शुरू नहीं होगी। सक्रिय होने पर ₹49/month की recurring billing, अगली renewal, cancellation और शामिल tools checkout से पहले साफ दिखेंगे और आपकी स्पष्ट सहमति ली जाएगी।'
+      : 'This is a Preview: Membership checkout, Google Login, private chat backend and recurring payments are not active. No payment or membership can start here. Before activation, ₹49/month recurring billing, renewal, cancellation and included tools will be clearly shown at checkout and require your explicit consent.',
     verification: isHindi
       ? 'किसी भी सदस्यता को तभी सक्रिय किया जाएगा जब सुरक्षित backend भुगतान की पुष्टि कर ले। अभी इस पेज से कोई पैसा नहीं कटेगा।'
       : 'A membership will be activated only after the secure backend verifies payment. This page cannot charge you at this stage.',
     chatNote: isHindi
-      ? 'Basic में इस चरण पर Aadhaar से जुड़ी सामान्य जानकारी और मार्गदर्शन दिखाया जा रहा है। यह Aadhaar आवेदन या update सेवा नहीं है।'
-      : 'At this stage, Basic presents general Aadhaar information and guidance. It is not an Aadhaar application or update service.',
+      ? 'Basic Membership में मौजूदा ₹49 वीडियो का सदस्यता-आधारित एक्सेस, निजी चैट और घोषित Basic tools शामिल होंगे। अलग Video Learning Center से ₹49 का One-Time Purchase केवल वीडियो देगा—Chat या Membership tools नहीं।'
+      : 'Basic Membership will include subscription access to the existing ₹49 video, private chat and listed Basic tools. The separate ₹49 One-Time Video Purchase gives video access only—not Chat or Membership tools.',
   };
 
   return (
@@ -177,9 +177,9 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
               <div className="my-5 h-px bg-slate-200/80" />
               {plan.name === 'Basic' ? (
                 <ul className="flex-1 space-y-3 text-xs leading-5 text-slate-700">
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पिता का नाम / C/o और Address update की सही जानकारी' : 'Clear information about father name / C/o and address updates'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'जरूरी दस्तावेज़, प्रक्रिया, पात्रता और समय' : 'Required documents, process, eligibility and timeline'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'केवल जानकारी; आपकी ओर से आवेदन जमा नहीं किया जाएगा' : 'Information only; no application is submitted on your behalf'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पहले से उपलब्ध ₹49 Aadhaar वीडियो का एक्सेस' : 'Clear information about father name / C/o and address updates'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat' : 'Required documents, process, eligibility and timeline'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Basic में शामिल चुनिंदा Tools और Aadhaar मार्गदर्शन' : 'Information only; no application is submitted on your behalf'}</span></li>
                 </ul>
               ) : (
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
