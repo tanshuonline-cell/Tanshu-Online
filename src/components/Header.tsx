@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, ArrowRight, User, ShieldCheck, Crown } from 'lucide-react';
+import { Menu, X, ArrowRight, User, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export const TANSHU_PROFILE_PHOTO = '/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg';
