@@ -19,12 +19,13 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
 import { MembershipPage } from './components/membership/MembershipPage';
+import { MembershipAccountPage } from './components/membership/MembershipAccountPage';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership' | 'account'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -65,6 +66,7 @@ export default function App() {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
     const isMembership = pathname === '/membership';
+    const isAccount = pathname === '/account';
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const video = isVideoDetail
@@ -72,14 +74,18 @@ export default function App() {
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isMembership
+    const title = isAccount
+      ? 'Customer Dashboard | TANSHU ONLINE'
+      : isMembership
       ? 'Membership Plans | TANSHU ONLINE'
       : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isMembership
+    const description = isAccount
+      ? 'TANSHU ONLINE Customer Dashboard: membership status, payments, renewal और private Admin chat.'
+      : isMembership
       ? 'TANSHU ONLINE की मासिक सदस्यता योजनाएँ देखें और Admin के साथ निजी चैट द्वारा जानकारी एवं सहायता प्राप्त करें।'
       : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
@@ -148,7 +154,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/membership' || hash === '#membership') {
+      if (pathname === '/account' || hash === '#account') {
+        setCurrentPage('account');
+      } else if (pathname === '/membership' || hash === '#membership') {
         setCurrentPage('membership');
       } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
@@ -193,7 +201,7 @@ export default function App() {
     }
   }, [currentPage, adminUser]);
 
-  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership', pushUrl?: string) => {
+  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership' | 'account', pushUrl?: string) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (pushUrl && window.location.pathname !== pushUrl) {
@@ -318,6 +326,20 @@ export default function App() {
         onLoginSuccess={(user) => setAdminUser(user)}
         onBackToSite={() => navigateTo('home', '/')}
       />
+    );
+  }
+
+  // CUSTOMER MEMBERSHIP DASHBOARD PREVIEW
+  if (currentPage === 'account') {
+    return (
+      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased">
+        <Header onNavigate={scrollToSection} activeSection="account" />
+        <MembershipAccountPage
+          onBackHome={() => navigateTo('home', '/')}
+          onViewPlans={() => navigateTo('membership', '/membership')}
+        />
+        <Footer onNavigate={scrollToSection} />
+      </div>
     );
   }
 
