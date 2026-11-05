@@ -176,3 +176,17 @@ Before creating live membership endpoints:
 5. Keep the approved photo/signature baseline and production deployment untouched.
 
 No Cloudflare account settings, bindings, secrets, database, storage, or deployments were changed by this audit.
+
+
+## 16. Preview-only D1 schema draft (2026-11-05)
+
+Added `migrations/0001_membership_core.sql` to the membership feature branch as a schema draft. It defines customer identity, the four confirmed plans, subscriptions and scheduled plan changes, payment/refund records, webhook idempotency, conversation generations, messages, attachment metadata, an R2 deletion queue, Admin audit records, and notification delivery records.
+
+Important safeguards:
+- This commit only adds the SQL file to GitHub. It does not execute the migration or modify either Cloudflare D1 database.
+- The migration is intended for the Preview D1 binding named `DB` only, after review and explicit approval.
+- Attachment deletion must enqueue R2 object keys before deleting message/attachment rows, so object cleanup can be retried without losing the storage key.
+- Backend code must enforce that a customer's sender ID matches the customer owning the conversation; database foreign keys alone do not establish that relationship.
+- The partial unique index prevents multiple pending/effective membership records for one customer. Expiry processing must move an ended subscription to `expired` before a new subscription can be created.
+- This schema does not yet implement OAuth, Cashfree recurring billing, webhook signature verification, chat APIs, upload/download authorization, R2 operations, or admin UI.
+- Do not apply this migration to Production.
