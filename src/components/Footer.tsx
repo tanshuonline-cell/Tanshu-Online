@@ -62,11 +62,12 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
                 { id: 'services', label: t('footer.nav.services', 'Government Services') },
                 { id: 'schemes', label: t('footer.nav.schemes', 'Government Schemes') },
                 { id: 'videos', label: t('footer.nav.videos', 'Latest Videos') },
+                { id: 'membership', label: isHindi ? 'सदस्यता' : 'Membership' },
                 { id: 'about', label: t('footer.nav.about', 'About Us') },
               ].map((item) => (
                 <li key={item.id}>
                   <button
-                    onClick={() => onNavigate(item.id)}
+                    onClick={() => item.id === 'membership' ? (window.location.href = '/membership') : onNavigate(item.id)}
                     className="hover:text-white transition-colors cursor-pointer text-left"
                   >
                     {item.label}
