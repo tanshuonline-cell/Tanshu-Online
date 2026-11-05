@@ -35,7 +35,12 @@ VALUES
   ('plan_basic', 'basic', 'Basic', 4900, 'INR', 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('plan_standard', 'standard', 'Standard', 14900, 'INR', 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('plan_premium', 'premium', 'Premium', 24900, 'INR', 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('plan_professional', 'professional', 'Professional', 49900, 'INR', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+  ('plan_professional', 'professional', 'Professional', 49900, 'INR', 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- Only Basic is enabled in the first release. Other recurring plans remain Coming Soon.
+UPDATE membership_plans
+SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+WHERE plan_code IN ('standard', 'premium', 'professional');
 
 CREATE TABLE IF NOT EXISTS membership_subscriptions (
   id TEXT PRIMARY KEY,
