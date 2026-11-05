@@ -190,3 +190,17 @@ Important safeguards:
 - The partial unique index prevents multiple pending/effective membership records for one customer. Expiry processing must move an ended subscription to `expired` before a new subscription can be created.
 - This schema does not yet implement OAuth, Cashfree recurring billing, webhook signature verification, chat APIs, upload/download authorization, R2 operations, or admin UI.
 - Do not apply this migration to Production.
+
+
+## 17. Owner clarification — plan positioning (2026-11-05)
+
+The owner clarified that membership is primarily a paid information and guidance service, not a chat-only product.
+
+- Basic (₹49/month): government-service, document, banking-correction, and online-application guidance; access to only 1–2 selected tools.
+- Standard (₹149/month): the same guidance purpose with more selected tools than Basic.
+- Premium (₹249/month): the same guidance purpose with more selected tools than Standard.
+- Professional (₹499/month): access to all available website tools.
+- Do not promise that private chat will always be available. If the private chat channel is available, it may be offered as an additional contact method; membership value must remain clearly described as guidance and plan-based tool access, not payment solely for chat.
+- Do not promise instant or 24×7 replies.
+- The exact tool allowlists for Basic, Standard, and Premium still need the owner's confirmation before server-side entitlement enforcement.
+- This clarification supersedes earlier draft copy that described unlimited private chat as included in every plan. Keep payment, account, and chat controls disabled until the secure backend and required Cloudflare bindings are confirmed.
