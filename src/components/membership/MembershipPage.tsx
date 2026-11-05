@@ -6,7 +6,6 @@ import {
   LockKeyhole,
   CalendarClock,
   ArrowRight,
-  Globe2,
   Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -75,7 +74,7 @@ const plans = [
 ];
 
 export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
-  const { isHindi, setLanguage } = useLanguage();
+  const { isHindi } = useLanguage();
 
   const copy = {
     back: isHindi ? '← TANSHU ONLINE पर वापस जाएँ' : '← Back to TANSHU ONLINE',
@@ -112,7 +111,6 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     chatNote: isHindi
       ? 'Private Chat उपलब्ध होने पर यह अतिरिक्त संपर्क माध्यम रहेगा। यह सदस्यता केवल चैटिंग के लिए नहीं है और 24×7 तत्काल जवाब की गारंटी नहीं देती।'
       : 'Private Chat, when available, is an additional contact channel. This membership is not solely for chatting and does not guarantee 24/7 or instant replies.',
-    languageLabel: isHindi ? 'भाषा चुनें' : 'Choose language',
   };
 
   return (
@@ -137,32 +135,13 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
             >
               {copy.back}
             </button>
-            <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 p-1 shadow-lg backdrop-blur-md" aria-label={copy.languageLabel}>
-              <Globe2 className="ml-2 h-4 w-4 text-blue-200" />
-              <button
-                type="button"
-                onClick={() => setLanguage('hi')}
-                aria-pressed={isHindi}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${isHindi ? 'bg-white text-slate-950 shadow' : 'text-slate-200 hover:bg-white/10'}`}
-              >
-                हिंदी
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage('en')}
-                aria-pressed={!isHindi}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${!isHindi ? 'bg-white text-slate-950 shadow' : 'text-slate-200 hover:bg-white/10'}`}
-              >
-                English
-              </button>
-            </div>
           </div>
 
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-300/30 bg-blue-400/10 px-3 py-1.5 text-[10px] font-bold tracking-[0.16em] text-blue-100 shadow-lg shadow-blue-950/20">
               <ShieldCheck className="h-4 w-4" /> {copy.secure}
             </span>
-            <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-5xl lg:text-6xl">{copy.title}</h1>
+            <h1 className="mt-5 w-max max-w-none whitespace-nowrap text-[clamp(1rem,4.2vw,3.75rem)] font-black tracking-tight">{copy.title}</h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">{copy.intro}</p>
             <div className="mt-7 flex flex-wrap gap-3 text-[10px] font-bold tracking-wide text-slate-100 sm:text-xs">
               <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.08] px-3 py-2.5 shadow-lg backdrop-blur"><MessageCircle className="h-4 w-4 text-blue-200" /> {copy.guidance}</span>
