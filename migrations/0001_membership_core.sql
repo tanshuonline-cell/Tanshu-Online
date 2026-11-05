@@ -2,7 +2,6 @@
 -- Preview-only migration. This file is NOT applied to any D1 database by this commit.
 -- Apply only after reviewing the SQL and explicitly selecting the Preview D1 database.
 
-PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS membership_customers (
   id TEXT PRIMARY KEY,
