@@ -44,6 +44,14 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       sessionToken?: string;
     };
 
+    // Paid playback must fail closed unless both the D1 entitlement store and a private signing key exist.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ authorized: false, error: 'Secure video access is temporarily unavailable. Please contact support.' }), { status: 503, headers: corsHeaders });
+    }
+    if (!env.ADMIN_SECRET_TOKEN || env.ADMIN_SECRET_TOKEN.includes('YOUR_')) {
+      return new Response(JSON.stringify({ authorized: false, error: 'Secure video access is not configured on the server.' }), { status: 503, headers: corsHeaders });
+    }
+
     if (!videoId) {
       return new Response(
         JSON.stringify({
@@ -142,7 +150,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     let isSessionValid = false;
     try {
       const [b64Payload, sig] = tokenToValidate.split('.');
-      const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
+      const signingKey = env.ADMIN_SECRET_TOKEN;
       const isValidSig = await verifySignature(b64Payload, sig, signingKey);
 
       if (!isValidSig) {
@@ -208,28 +216,27 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Step 2b: If D1 Database is available, verify unrevoked database entitlement
-    if (env.DB) {
-      try {
-        const accessRecord = await env.DB.prepare(
-          `SELECT id, is_revoked FROM customer_video_access
-           WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
-        )
-          .bind(sanitizedPhone, videoId)
-          .first();
+    // Step 2b: D1 entitlement is mandatory. Database errors must never fall through to playback.
+    try {
+      const accessRecord = await env.DB.prepare(
+        `SELECT id, is_revoked FROM customer_video_access
+         WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0`
+      )
+        .bind(sanitizedPhone, videoId)
+        .first();
 
-        if (!accessRecord) {
-          return new Response(
-            JSON.stringify({
-              authorized: false,
-              error: 'Access denied. You have not purchased this premium video, or your access was revoked.',
-            }),
-            { status: 403, headers: corsHeaders }
-          );
-        }
-      } catch (dbErr) {
-        console.warn('D1 access check warning:', dbErr);
+      if (!accessRecord) {
+        return new Response(
+          JSON.stringify({
+            authorized: false,
+            error: 'Access denied. You have not purchased this premium video, or your access was revoked.',
+          }),
+          { status: 403, headers: corsHeaders }
+        );
       }
+    } catch (dbErr) {
+      console.error('D1 entitlement check failed closed:', dbErr);
+      return new Response(JSON.stringify({ authorized: false, error: 'Could not verify video entitlement. Please try again later.' }), { status: 503, headers: corsHeaders });
     }
 
     // Step 3: Video is verified! Determine playback source (Cloudflare Stream or Authorized YouTube)
