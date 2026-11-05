@@ -53,9 +53,18 @@ function cookie(request: Request, name: string): string | null {
 function clearCookie(name: string): string {
   return name + '=; ' + COOKIE_BASE + '; Max-Age=0';
 }
+function missingConfiguration(env: Env): string[] {
+  const missing: string[] = [];
+  if (!env.DB) missing.push('D1 binding DB');
+  if (!env.GOOGLE_CLIENT_ID) missing.push('GOOGLE_CLIENT_ID');
+  if (!env.GOOGLE_CLIENT_SECRET) missing.push('GOOGLE_CLIENT_SECRET');
+  if (!env.MEMBERSHIP_SESSION_SECRET) missing.push('MEMBERSHIP_SESSION_SECRET');
+  else if (env.MEMBERSHIP_SESSION_SECRET.length < 32) missing.push('MEMBERSHIP_SESSION_SECRET (must be at least 32 characters)');
+  if (!env.APP_BASE_URL) missing.push('APP_BASE_URL');
+  return missing;
+}
 function configured(env: Env): boolean {
-  return Boolean(env.DB && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET &&
-    env.MEMBERSHIP_SESSION_SECRET && env.MEMBERSHIP_SESSION_SECRET.length >= 32 && env.APP_BASE_URL);
+  return missingConfiguration(env).length === 0;
 }
 function baseUrl(env: Env): string {
   const url = new URL(env.APP_BASE_URL!);
@@ -88,7 +97,12 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   const url = new URL(request.url);
   const action = url.searchParams.get('action') || 'me';
 
-  if (!configured(env)) return json({ success: false, error: 'Membership Google Login is not configured on this Preview deployment. Set the required Cloudflare Preview secrets and D1 binding first.' }, 503);
+  const missing = missingConfiguration(env);
+  if (missing.length) return json({
+    success: false,
+    error: 'Membership Google Login is not configured on this Preview deployment.',
+    missing_configuration: missing,
+  }, 503);
 
   let origin: string;
   try { origin = baseUrl(env); } catch { return json({ success: false, error: 'Membership APP_BASE_URL configuration is invalid.' }, 503); }
