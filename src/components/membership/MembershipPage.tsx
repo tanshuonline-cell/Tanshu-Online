@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { AadhaarBasicGuidance } from './AadhaarBasicGuidance';
 
 interface Props {
   onBackHome: () => void;
@@ -24,10 +25,10 @@ const plans = [
     priceTone: 'text-slate-900',
     iconTone: 'bg-slate-100 text-slate-700',
     buttonTone: 'bg-slate-800 hover:bg-slate-700',
-    noteHi: 'जानकारी व मार्गदर्शन + 1–2 चुनिंदा टूल्स',
-    noteEn: 'Guidance + 1–2 selected tools',
-    toolHi: '1–2 चुनिंदा ऑनलाइन टूल्स',
-    toolEn: '1–2 selected online tools',
+    noteHi: 'Aadhaar पिता का नाम / C/o और Address update की जानकारी',
+    noteEn: 'Aadhaar father name / C/o and address update information',
+    toolHi: 'दस्तावेज़, प्रक्रिया और पात्रता की जानकारी',
+    toolEn: 'Information about documents, process and eligibility',
   },
   {
     name: 'Standard',
@@ -98,19 +99,18 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     chatBenefit: isHindi
       ? 'Private Chat उपलब्ध होने पर अतिरिक्त माध्यम; तुरंत जवाब की गारंटी नहीं'
       : 'Private Chat is an additional channel when available; instant replies are not guaranteed',
-    unavailable: isHindi ? 'सदस्यता जल्द शुरू होगी' : 'Membership Coming Soon',
-    billingTitle: isHindi
-      ? 'मासिक ऑटो-रिन्यूअल और भुगतान की जरूरी जानकारी:'
-      : 'Monthly Auto-Renewal & Important Payment Information:',
+    basicAction: isHindi ? 'Basic की जानकारी देखें' : 'View Basic Information',
+    comingSoon: isHindi ? 'Coming Soon' : 'Coming Soon',
+    billingTitle: isHindi ? 'लॉन्च और भुगतान की स्थिति:' : 'Launch and payment status:',
     billing: isHindi
-      ? 'सदस्यता हर महीने अपने आप रिन्यू होगी। चेकआउट के समय recurring payment की सहमति ली जाएगी। आप अगली बिलिंग रोकने के लिए auto-renewal कभी भी cancel कर सकते हैं; पहले से भुगतान की गई अवधि समाप्त होने तक चालू रहेगी। सफल भुगतान के बाद सामान्यतः refund उपलब्ध नहीं होगा; duplicate payment या असफल भुगतान में राशि कटने पर gateway verification के अनुसार समाधान होगा।'
-      : 'Membership renews automatically every month. Your consent for recurring payments will be requested at checkout. You can cancel auto-renewal at any time to stop the next billing; your access will continue until the already-paid period ends. Refunds are generally not available after a successful payment. Duplicate charges or deductions after a failed payment will be resolved according to gateway verification.',
+      ? 'इस Preview में Basic ₹49 प्लान की जानकारी तैयार की जा रही है। वास्तविक checkout, Google Login और recurring payment backend अभी सक्रिय नहीं हैं। इसलिए अभी कोई भुगतान या सदस्यता शुरू नहीं होगी। भुगतान शुरू होने से पहले पूरी कीमत, monthly renewal और cancel करने की शर्तें checkout पर साफ दिखाई जाएँगी और आपकी स्पष्ट सहमति ली जाएगी।'
+      : 'The Basic ₹49 plan information is being prepared in this Preview. Real checkout, Google Login and recurring payment backend are not active yet, so no payment or membership can start here. Before payments are enabled, the full price, monthly renewal and cancellation terms will be shown clearly at checkout and your explicit consent will be required.',
     verification: isHindi
-      ? 'भुगतान की पुष्टि सर्वर द्वारा सत्यापित होने के बाद ही सदस्यता की सुविधाएँ सक्रिय होंगी। भुगतान/रिन्यूअल विफल होने पर सदस्यता-आधारित सुविधाओं का access रोक दिया जाएगा।'
-      : 'Membership benefits will activate only after the server verifies the payment. Access to membership-based benefits may be paused if a payment or renewal fails.',
+      ? 'किसी भी सदस्यता को तभी सक्रिय किया जाएगा जब सुरक्षित backend भुगतान की पुष्टि कर ले। अभी इस पेज से कोई पैसा नहीं कटेगा।'
+      : 'A membership will be activated only after the secure backend verifies payment. This page cannot charge you at this stage.',
     chatNote: isHindi
-      ? 'Private Chat उपलब्ध होने पर यह अतिरिक्त संपर्क माध्यम रहेगा। यह सदस्यता केवल चैटिंग के लिए नहीं है और 24×7 तत्काल जवाब की गारंटी नहीं देती।'
-      : 'Private Chat, when available, is an additional contact channel. This membership is not solely for chatting and does not guarantee 24/7 or instant replies.',
+      ? 'Basic में इस चरण पर Aadhaar से जुड़ी सामान्य जानकारी और मार्गदर्शन दिखाया जा रहा है। यह Aadhaar आवेदन या update सेवा नहीं है।'
+      : 'At this stage, Basic presents general Aadhaar information and guidance. It is not an Aadhaar application or update service.',
   };
 
   return (
@@ -183,30 +183,27 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
                 <span className="pb-1 text-xs text-slate-500">{copy.month}</span>
               </div>
               <div className="my-5 h-px bg-slate-200/80" />
-              <ul className="flex-1 space-y-3 text-xs leading-5 text-slate-700">
-                <li className="flex gap-2">
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} />
-                  <span>{copy.guidanceBenefit}</span>
-                </li>
-                <li className="flex gap-2">
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} />
-                  <span>{isHindi ? plan.toolHi : plan.toolEn}</span>
-                </li>
-                <li className="flex gap-2">
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} />
-                  <span>{copy.chatBenefit}</span>
-                </li>
-              </ul>
-              <button
-                type="button"
-                disabled
-                className={`mt-7 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white opacity-75 shadow-md transition ${plan.buttonTone}`}
-              >
-                {copy.unavailable} <ArrowRight className="h-4 w-4" />
-              </button>
+              {plan.name === 'Basic' ? (
+                <ul className="flex-1 space-y-3 text-xs leading-5 text-slate-700">
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पिता का नाम / C/o और Address update की सही जानकारी' : 'Clear information about father name / C/o and address updates'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'जरूरी दस्तावेज़, प्रक्रिया, पात्रता और समय' : 'Required documents, process, eligibility and timeline'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'केवल जानकारी; आपकी ओर से आवेदन जमा नहीं किया जाएगा' : 'Information only; no application is submitted on your behalf'}</span></li>
+                </ul>
+              ) : (
+                <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
+              )}
+              {plan.name === 'Basic' ? (
+                <button type="button" onClick={() => document.getElementById('basic-guidance')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition ${plan.buttonTone}`}>
+                  {copy.basicAction} <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button type="button" disabled className="mt-7 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-300 px-4 py-3 text-xs font-extrabold text-slate-600 opacity-80">{copy.comingSoon}</button>
+              )}
             </article>
           ))}
         </div>
+
+        <AadhaarBasicGuidance />
 
         <div className="mt-10 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 text-xs leading-6 text-amber-950 shadow-sm sm:p-6">
           <strong>{copy.billingTitle}</strong> {copy.billing}
