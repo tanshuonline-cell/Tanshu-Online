@@ -73,10 +73,10 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     secure: isHindi ? 'सुरक्षित सदस्यता पोर्टल' : 'SECURE MEMBERSHIP PORTAL',
     title: 'TANSHU ONLINE MEMBERSHIP',
     intro: isHindi
-      ? 'Basic Membership ₹49/महीना में पहले से उपलब्ध Aadhaar वीडियो, Admin के साथ निजी वेबसाइट Chat और चुनिंदा Basic Tools मिलेंगे। आधार में पिता/पति के नाम से जुड़ी परेशानी, नाम में अंतर, माता-पिता के दस्तावेज उपलब्ध न होने या केवल एड्रेस बदलने जैसी स्थिति में अपनी परिस्थिति के अनुसार मार्गदर्शन पूछें।'
-      : 'Basic Membership at ₹49/month includes the existing Aadhaar video, private website Chat with Admin and selected Basic Tools. Ask for guidance based on your situation, including concerns about a father’s or husband’s name, name mismatches, unavailable parent documents or an address-only change.',
+      ? 'Basic Membership ₹49/महीना में Aadhaar और सरकारी सेवाओं से जुड़ी जानकारी व मार्गदर्शन तथा Basic Tools का इस्तेमाल कर सकते हैं। Aadhaar और सरकारी सेवाओं से जुड़ी जानकारी व मार्गदर्शन की सुविधा शुरू होने पर मिल सकती है। आधार में पिता/पति के नाम से जुड़ी परेशानी, नाम में अंतर, माता-पिता के दस्तावेज उपलब्ध न होने या केवल एड्रेस बदलने जैसी स्थिति में अपनी परिस्थिति के अनुसार मार्गदर्शन पूछें.'
+      : 'Basic Membership at ₹49/month provides Aadhaar and government-service information and guidance, along with access to Basic Tools. Aadhaar and government-service information and guidance may be available once the feature is launched. Ask for guidance based on your situation, including concerns about a father’s or husband’s name, name mismatches, unavailable parent documents or an address-only change.',
     guidance: isHindi ? 'निजी मार्गदर्शन' : 'PRIVATE GUIDANCE',
-    tools: isHindi ? 'चुनिंदा Basic Tools' : 'SELECTED BASIC TOOLS',
+    tools: isHindi ? 'Basic Tools का इस्तेमाल' : 'USE BASIC TOOLS',
     monthly: isHindi ? 'मासिक सदस्यता' : 'MONTHLY MEMBERSHIP',
     plansKicker: 'MEMBERSHIP PLANS',
     plansTitle: isHindi ? 'अपनी सदस्यता योजना चुनें' : 'Choose Your Membership Plan',
@@ -157,9 +157,9 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
               <div className="my-5 h-px bg-slate-200/80" />
               {plan.name === 'Basic' ? (
                 <ul className="flex-1 space-y-3 text-xs leading-5 text-slate-700">
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पहले से उपलब्ध ₹49 Aadhaar वीडियो का एक्सेस' : 'Access to the existing ₹49 Aadhaar video'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat की सुविधा शुरू होने पर मिल सकती है।' : 'Private website Chat with Admin may be available once the feature is launched.'}</span></li>
                   <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat' : 'Private website Chat with Admin'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'चुनिंदा Basic Tools और सरकारी सेवाओं की जानकारी' : 'Selected Basic Tools and government-service information'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Basic Tools का इस्तेमाल कर सकते हैं।' : 'You can use Basic Tools.'}</span></li>
                 </ul>
               ) : (
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
