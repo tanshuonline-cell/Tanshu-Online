@@ -118,7 +118,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 type="button"
                 onClick={() => setLanguage('hi')}
                 aria-pressed={language === 'hi'}
-                className={`rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${
+                className={`inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${
                   language === 'hi'
                     ? 'bg-white text-slate-900 shadow-md'
                     : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'
@@ -130,7 +130,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 type="button"
                 onClick={() => setLanguage('en')}
                 aria-pressed={language === 'en'}
-                className={`rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${
+                className={`inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${
                   language === 'en'
                     ? 'bg-white text-slate-900 shadow-md'
                     : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'
@@ -145,7 +145,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               <button
                 type="button"
                 onClick={onOpenCustomerAuth}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                className="inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:border-slate-300 hover:bg-slate-50 cursor-pointer sm:w-[132px] sm:px-3"
                 title={language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Access'}
               >
                 <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -158,7 +158,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             {/* Explore Tools Action */}
             <button
               onClick={() => handleLinkClick('all-tools')}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-xs whitespace-nowrap"
+              className="hidden h-8 w-[132px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3.5 py-1.5 text-xs font-bold tracking-wide text-white shadow-xs transition-colors hover:bg-blue-800 cursor-pointer whitespace-nowrap sm:flex"
             >
               <span>{t('btn.exploreTools', 'Explore Tools')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
