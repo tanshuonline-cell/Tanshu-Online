@@ -86,6 +86,9 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
       : 'Ask about your situation through private Chat in Basic Membership. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government and other public services. Helpful short videos on relevant topics may also be available.',
     month: isHindi ? '/ महीना' : '/ month',
     basicAction: isHindi ? '₹49 Membership Checkout पर जाएँ' : 'Continue to ₹49 Membership Checkout',
+    payNow: isHindi ? 'अभी भुगतान करें' : 'Pay Now',
+    detailsGuide: isHindi ? 'जानकारी / गाइड' : 'Details / Guide',
+    backToBasic: isHindi ? '← Basic Membership पर वापस जाएँ' : '← Back to Basic Membership',
     comingSoon: isHindi ? 'जल्द उपलब्ध होगा' : 'Coming Soon',
     billingTitle: isHindi ? 'भुगतान और सदस्यता:' : 'Payment and membership:',
     billing: isHindi
@@ -143,7 +146,7 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
 
         <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => (
-            <article key={plan.name} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-md transition-all duration-300 ease-out hover:z-10 hover:-translate-y-2 hover:scale-[1.015] hover:shadow-2xl focus-within:z-10 ${plan.tone}`}>
+            <article id={plan.name === 'Basic' ? 'basic-membership-plan' : undefined} key={plan.name} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-md transition-all duration-300 ease-out hover:z-10 hover:-translate-y-2 hover:scale-[1.015] hover:shadow-2xl focus-within:z-10 ${plan.tone}`}>
               <div className={`absolute inset-x-0 top-0 h-1.5 ${plan.accent}`} />
               {plan.name !== 'Basic' && <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-slate-600">COMING SOON</span>}
               <div className="flex items-center gap-3 pr-16">
@@ -166,9 +169,14 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
               )}
               {plan.name === 'Basic' ? (
-                <button type="button" onClick={() => document.getElementById('basic-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition ${plan.buttonTone}`}>
-                  {copy.basicAction} <ArrowRight className="h-4 w-4" />
-                </button>
+                <div className="mt-7 grid grid-cols-1 gap-2">
+                  <button type="button" onClick={() => document.getElementById('basic-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition ${plan.buttonTone}`}>
+                    {copy.payNow} <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => document.getElementById('basic-guidance')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-extrabold text-slate-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-800">
+                    {copy.detailsGuide}
+                  </button>
+                </div>
               ) : (
                 <button type="button" disabled className="mt-7 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-300 px-4 py-3 text-xs font-extrabold text-slate-600 opacity-80">{copy.comingSoon}</button>
               )}
@@ -178,6 +186,11 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
 
         <MembershipCheckout />
         <AadhaarBasicGuidance />
+        <div className="mx-auto mt-4 max-w-3xl text-center">
+          <button type="button" onClick={() => document.getElementById('basic-membership-plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-xs font-bold text-blue-800 shadow-sm transition hover:bg-blue-50">
+            {copy.backToBasic}
+          </button>
+        </div>
 
         <div className="mt-10 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 text-xs leading-6 text-amber-950 shadow-sm sm:p-6">
           <strong>{copy.billingTitle}</strong> {copy.billing}
