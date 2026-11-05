@@ -11,6 +11,6 @@ export async function onRequestPost({request}:{request:Request}) {
 export async function onRequestGet({request}:{request:Request}) {
   const url=new URL(request.url);const sid=url.searchParams.get('subscription_id')||'';
   if(!sid)return new Response('Missing subscription reference.',{status:400});
-  const target=new URL('/',url.origin);target.searchParams.set('membership_subscription_id',sid);
+  const target=new URL('/membership',url.origin);target.searchParams.set('membership_subscription_id',sid);
   return Response.redirect(target.toString(),302);
 }
