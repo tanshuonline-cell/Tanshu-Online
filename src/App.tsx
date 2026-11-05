@@ -323,7 +323,6 @@ export default function App() {
         <Header
           onNavigate={scrollToSection}
           activeSection="membership"
-          onOpenCustomerAuth={() => setCustomerAuthOpen(true)}
         />
         <MembershipPage
           onBackHome={() => navigateTo('home', '/')}
