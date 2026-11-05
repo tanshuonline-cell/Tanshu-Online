@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS membership_subscriptions (
 -- A customer cannot hold two simultaneously effective/pending membership records.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_membership_one_nonexpired_subscription
   ON membership_subscriptions(customer_id)
-  WHERE status IN ('pending', 'active', 'payment_failed', 'cancelled', 'suspended');
+  WHERE status IN ('pending', 'active', 'payment_failed', 'suspended');
 
 CREATE INDEX IF NOT EXISTS idx_membership_subscriptions_status_period
   ON membership_subscriptions(status, current_period_end);
