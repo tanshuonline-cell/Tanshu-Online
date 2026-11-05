@@ -17,6 +17,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
   const navLinks = [
     { id: 'home', label: t('nav.home', 'Home') },
     { id: 'all-tools', label: t('nav.allTools', 'All Tools') },
+    { id: 'membership', label: 'Membership' },
     { id: 'services', label: t('nav.services', 'Government Services') },
     { id: 'schemes', label: t('nav.schemes', 'Government Schemes') },
     { id: 'videos', label: t('nav.videos', 'Latest Videos') },
