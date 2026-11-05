@@ -108,34 +108,35 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
 
           {/* Right: Language Switcher ("हिंदी | English") + Customer Access + Explore Tools Action */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Prominent Language Switcher showing both "हिंदी | English" */}
+            {/* Homepage language switcher styled to match Advanced Passport Photo Studio */}
             <div
-              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs select-none"
+              className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-[#07152f] p-0.5 shadow-md shadow-slate-900/15 select-none"
               title="भाषा बदलें / Switch Language"
               aria-label="Language selection"
             >
               <button
                 type="button"
                 onClick={() => setLanguage('hi')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
+                aria-pressed={language === 'hi'}
+                className={`rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${
                   language === 'hi'
-                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    ? 'bg-white text-slate-900 shadow-md'
+                    : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'
                 }`}
               >
                 हिंदी
               </button>
-              <span className="text-slate-300 px-0.5">|</span>
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer text-[11px] sm:text-xs ${
+                aria-pressed={language === 'en'}
+                className={`rounded-md px-2 py-1.5 text-[10px] font-extrabold transition duration-300 hover:-translate-y-0.5 sm:text-xs ${
                   language === 'en'
-                    ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    ? 'bg-white text-slate-900 shadow-md'
+                    : 'text-blue-100 hover:bg-white/10 hover:shadow-sm'
                 }`}
               >
-                English
+                EN
               </button>
             </div>
 
