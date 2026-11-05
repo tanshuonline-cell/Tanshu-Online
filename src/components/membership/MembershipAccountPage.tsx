@@ -4,9 +4,10 @@ import { ArrowLeft, MessageCircle, CreditCard, ShieldCheck, UserRound, LockKeyho
 interface Props {
   onBackHome: () => void;
   onViewPlans: () => void;
+  onOpenChat: () => void;
 }
 
-export const MembershipAccountPage: React.FC<Props> = ({ onBackHome, onViewPlans }) => (
+export const MembershipAccountPage: React.FC<Props> = ({ onBackHome, onViewPlans, onOpenChat }) => (
   <main className="min-h-screen flex-1 bg-slate-50 px-4 py-10 sm:px-6">
     <div className="mx-auto max-w-5xl">
       <button onClick={onBackHome} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-700">
@@ -48,7 +49,7 @@ export const MembershipAccountPage: React.FC<Props> = ({ onBackHome, onViewPlans
             <div><h2 className="font-bold text-slate-900">Private Admin Chat</h2><p className="text-xs text-slate-500">Text, Photo, PDF और Admin videos</p></div>
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-600">सक्रिय और सत्यापित सदस्यता पर ही निजी चैट खुलेगी। Expired, payment-failed या suspended account से चैट और attachments का access बंद रहेगा।</p>
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-slate-100 p-3 text-xs font-semibold text-slate-600"><LockKeyhole className="h-4 w-4" /> Chat access अभी backend setup तक locked है।</div>
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-slate-100 p-3 text-xs font-semibold text-slate-600"><LockKeyhole className="h-4 w-4" /> Chat access अभी backend setup तक locked है।</div>\n          <button onClick={onOpenChat} className="mt-3 rounded-xl border border-blue-200 px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Chat Preview देखें</button>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
