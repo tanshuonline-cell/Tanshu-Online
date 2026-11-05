@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {LockKeyhole,ShieldCheck,ArrowRight,Loader2} from 'lucide-react';
+import {ShieldCheck,ArrowRight,Loader2} from 'lucide-react';
 declare global { interface Window { Cashfree?: (options:{mode:'sandbox'|'production'})=>{subscriptionsCheckout:(options:{subsSessionId:string,redirectTarget?:string})=>Promise<any>}; } }
 type Customer={id:string,email:string,display_name:string};
 export const MembershipCheckout:React.FC=()=>{const [customer,setCustomer]=useState<Customer|null>(null);const [phone,setPhone]=useState('');const [loading,setLoading]=useState(false);const [message,setMessage]=useState('');const [status,setStatus]=useState('');const [sdkReady,setSdkReady]=useState(false);
