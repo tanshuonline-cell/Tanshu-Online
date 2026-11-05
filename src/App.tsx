@@ -18,12 +18,13 @@ import { VideoDetailPage } from './components/video/VideoDetailPage';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
+import { MembershipPage } from './components/membership/MembershipPage';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -142,7 +143,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/admin' || hash === '#admin') {
+      if (pathname === '/membership' || hash === '#membership') {
+        setCurrentPage('membership');
+      } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
         setCurrentPage('videos');
@@ -185,7 +188,7 @@ export default function App() {
     }
   }, [currentPage, adminUser]);
 
-  const navigateTo = (page: 'home' | 'videos' | 'admin', pushUrl?: string) => {
+  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership', pushUrl?: string) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (pushUrl && window.location.pathname !== pushUrl) {
@@ -310,6 +313,29 @@ export default function App() {
         onLoginSuccess={(user) => setAdminUser(user)}
         onBackToSite={() => navigateTo('home', '/')}
       />
+    );
+  }
+
+  // MEMBERSHIP PLANS PREVIEW
+  if (currentPage === 'membership') {
+    return (
+      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased">
+        <Header
+          onNavigate={scrollToSection}
+          activeSection="membership"
+          onOpenCustomerAuth={() => setCustomerAuthOpen(true)}
+        />
+        <MembershipPage
+          onBackHome={() => navigateTo('home', '/')}
+          onSignIn={() => setCustomerAuthOpen(true)}
+        />
+        <Footer onNavigate={scrollToSection} />
+        <CustomerAuthModal
+          isOpen={customerAuthOpen}
+          onClose={() => setCustomerAuthOpen(false)}
+          onAdminNavigate={() => navigateTo('admin', '/admin')}
+        />
+      </div>
     );
   }
 
