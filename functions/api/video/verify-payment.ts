@@ -133,8 +133,14 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
     const verifiedAmount = Number(cfData.order_amount);
     const recordedAmount = Number(orderRecord.order_amount);
-    if (!Number.isFinite(verifiedAmount) || !Number.isFinite(recordedAmount) || Math.abs(verifiedAmount - recordedAmount) > 0.01 || String(cfData.order_currency || 'INR').toUpperCase() !== 'INR') {
-      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment amount or currency does not match the recorded order.' }), { status: 400, headers: corsHeaders });
+    if (
+      String(cfData.order_id || '') !== orderId ||
+      !Number.isFinite(verifiedAmount) ||
+      !Number.isFinite(recordedAmount) ||
+      Math.abs(verifiedAmount - recordedAmount) > 0.01 ||
+      String(cfData.order_currency || '').toUpperCase() !== 'INR'
+    ) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Cashfree order ID, amount or currency does not match the recorded order.' }), { status: 400, headers: corsHeaders });
     }
 
     if (cfData.order_status === 'PAID') {
