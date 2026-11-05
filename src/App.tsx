@@ -331,7 +331,6 @@ export default function App() {
         />
         <MembershipPage
           onBackHome={() => navigateTo('home', '/')}
-          onSignIn={() => setCustomerAuthOpen(true)}
         />
         <Footer onNavigate={scrollToSection} />
         <CustomerAuthModal
