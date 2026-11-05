@@ -20,12 +20,13 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
 import { MembershipPage } from './components/membership/MembershipPage';
 import { MembershipAccountPage } from './components/membership/MembershipAccountPage';
+import { MembershipChatPage } from './components/membership/MembershipChatPage';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership' | 'account'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership' | 'account' | 'membership-chat'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -67,6 +68,7 @@ export default function App() {
     const pathname = window.location.pathname;
     const isMembership = pathname === '/membership';
     const isAccount = pathname === '/account';
+    const isMembershipChat = pathname === '/account/chat';
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const video = isVideoDetail
@@ -74,7 +76,9 @@ export default function App() {
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isAccount
+    const title = isMembershipChat
+      ? 'Private Admin Chat | TANSHU ONLINE'
+      : isAccount
       ? 'Customer Dashboard | TANSHU ONLINE'
       : isMembership
       ? 'Membership Plans | TANSHU ONLINE'
@@ -83,7 +87,9 @@ export default function App() {
       : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isAccount
+    const description = isMembershipChat
+      ? 'TANSHU ONLINE सदस्यता का निजी Admin Chat.'
+      : isAccount
       ? 'TANSHU ONLINE Customer Dashboard: membership status, payments, renewal और private Admin chat.'
       : isMembership
       ? 'TANSHU ONLINE की मासिक सदस्यता योजनाएँ देखें और Admin के साथ निजी चैट द्वारा जानकारी एवं सहायता प्राप्त करें।'
@@ -154,7 +160,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/account' || hash === '#account') {
+      if (pathname === '/account/chat' || hash === '#account/chat') {
+        setCurrentPage('membership-chat');
+      } else if (pathname === '/account' || hash === '#account') {
         setCurrentPage('account');
       } else if (pathname === '/membership' || hash === '#membership') {
         setCurrentPage('membership');
@@ -201,7 +209,7 @@ export default function App() {
     }
   }, [currentPage, adminUser]);
 
-  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership' | 'account', pushUrl?: string) => {
+  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership' | 'account' | 'membership-chat', pushUrl?: string) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (pushUrl && window.location.pathname !== pushUrl) {
@@ -337,6 +345,21 @@ export default function App() {
         <MembershipAccountPage
           onBackHome={() => navigateTo('home', '/')}
           onViewPlans={() => navigateTo('membership', '/membership')}
+          onOpenChat={() => navigateTo('membership-chat', '/account/chat')}
+        />
+        <Footer onNavigate={scrollToSection} />
+      </div>
+    );
+  }
+
+  // PRIVATE MEMBERSHIP CHAT PREVIEW
+  if (currentPage === 'membership-chat') {
+    return (
+      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased">
+        <Header onNavigate={scrollToSection} activeSection="account" />
+        <MembershipChatPage
+          onBack={() => navigateTo('account', '/account')}
+          onDashboard={() => navigateTo('account', '/account')}
         />
         <Footer onNavigate={scrollToSection} />
       </div>
