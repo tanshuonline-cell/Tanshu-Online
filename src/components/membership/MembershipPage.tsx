@@ -3,7 +3,6 @@ import { Check, ShieldCheck, MessageCircle, LockKeyhole, CalendarClock, ArrowRig
 
 interface Props {
   onBackHome: () => void;
-  onSignIn: () => void;
 }
 
 const plans = [
@@ -13,7 +12,7 @@ const plans = [
   { name: 'Professional', price: 499, tone: 'border-amber-300', note: 'सभी उपलब्ध वेबसाइट टूल्स और सुविधाओं सहित' },
 ];
 
-export const MembershipPage: React.FC<Props> = ({ onBackHome, onSignIn }) => {
+export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
   return (
     <main className="flex-1 bg-slate-50">
       <section className="relative overflow-hidden bg-[#0A1324] text-white">
