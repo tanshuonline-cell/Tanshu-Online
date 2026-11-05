@@ -59,6 +59,7 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
               {[
                 { id: 'home', label: 'Home' },
                 { id: 'all-tools', label: 'All 89 Tools' },
+                { id: 'membership', label: 'Membership' },
                 { id: 'services', label: 'Government Services' },
                 { id: 'schemes', label: 'Government Schemes' },
                 { id: 'videos', label: 'Latest Videos' },
