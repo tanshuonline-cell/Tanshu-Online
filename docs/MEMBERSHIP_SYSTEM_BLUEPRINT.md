@@ -153,3 +153,26 @@ The current repository implementation was inspected before adding live membershi
 - The existing Admin authentication code in the Express server is a development implementation; production membership administration must use the verified deployed Admin session mechanism and must never weaken or replace existing Admin authentication.
 
 This audit is a release safety checkpoint: keep all customer account, chat, checkout, and admin membership actions visibly non-functional until the persistent backend, Google OAuth, recurring billing, webhook verification, and access-control tests are complete.
+
+
+## 15. Cloudflare Pages configuration audit (2026-11-05)
+
+On the membership preview branch, the following expected configuration paths were checked and were not present:
+- `wrangler.toml`
+- `wrangler.jsonc`
+- `wrangler.json`
+- `_routes.json`
+- `functions/_middleware.ts`
+- `functions/api/health.ts`
+- `functions/api/[[path]].ts`
+
+The repository has a Vite `build` script and a root `vite.config.ts`. This repository inspection alone cannot reveal Cloudflare dashboard-only bindings or prove that D1, R2, or KV resources exist in the Cloudflare account. It also does not prove that the Express `server.ts` is deployed on Cloudflare Pages; Pages static deployments normally serve the Vite build unless Pages Functions or a separately deployed Worker/API are configured.
+
+Before creating live membership endpoints:
+1. Inspect Cloudflare Pages project settings for the actual production and Preview deployment build configuration and runtime.
+2. Check Functions/Workers routing and the deployed bindings list without exposing secret values.
+3. Confirm whether D1 and R2 resources exist and whether Preview and Production bindings are separated.
+4. Choose and document the actual API runtime (Pages Functions or a separately deployed Worker/API) before writing migrations or OAuth/payment routes.
+5. Keep the approved photo/signature baseline and production deployment untouched.
+
+No Cloudflare account settings, bindings, secrets, database, storage, or deployments were changed by this audit.
