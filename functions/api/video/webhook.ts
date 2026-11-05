@@ -150,7 +150,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       return new Response(JSON.stringify({ error: 'Unknown order. No access was granted.' }), { status: 404, headers: jsonHeaders });
     }
 
-    const sanitizedPhone = String(customerPhone || '').replace(/\\D/g, '').slice(-10);
+    const sanitizedPhone = String(customerPhone || '').replace(/\D/g, '').slice(-10);
     if (!sanitizedPhone || sanitizedPhone.length !== 10 || sanitizedPhone !== String(existingOrder.customer_phone)) {
       return new Response(JSON.stringify({ error: 'Customer details do not match the saved order.' }), { status: 400, headers: jsonHeaders });
     }
