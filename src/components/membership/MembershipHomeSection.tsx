@@ -5,7 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 interface Props { onViewPlans: () => void; mode: 'banner' | 'plans'; }
 
 const plans = [
-  { name: 'Basic', price: 49, hi: '₹49 वीडियो + निजी Chat + Basic tools', en: '₹49 video + private Chat + Basic tools' },
+  { name: 'Basic', price: 49, hi: 'निजी Chat + सरकारी सेवाओं की जानकारी और मार्गदर्शन', en: 'Private Chat + information and guidance on government services' },
   { name: 'Standard', price: 149, hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
   { name: 'Premium', price: 249, hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
   { name: 'Professional', price: 499, hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
@@ -22,7 +22,7 @@ export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) =>
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-blue-200">TANSHU ONLINE MEMBERSHIP</p>
             <h2 className="mt-0.5 text-sm font-extrabold sm:text-base">{isHindi ? 'Basic Membership — ₹49/महीना' : 'Basic Membership — ₹49/month'}</h2>
-            <p className="mt-1 text-[11px] text-blue-100/75">{isHindi ? 'मौजूदा ₹49 वीडियो, निजी Admin Chat और शामिल Basic tools।' : 'Existing ₹49 video, private Admin Chat and included Basic tools.'}</p>
+            <p className="mt-1 text-[11px] text-blue-100/75">{isHindi ? 'निजी Chat, सरकारी सेवाओं की जानकारी और उपयोगी मार्गदर्शन।' : 'Private Chat, government-service information and useful guidance.'}</p>
           </div>
         </div>
         <button onClick={onViewPlans} className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-blue-950 hover:bg-blue-50 sm:w-auto">{isHindi ? 'Basic प्लान देखें' : 'View Basic Plan'} <ArrowRight className="h-4 w-4" /></button>
@@ -35,8 +35,8 @@ export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) =>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-9 max-w-2xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-blue-800"><ShieldCheck className="h-3.5 w-3.5" />MEMBERSHIP PLANS</span>
-          <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{isHindi ? 'Basic Membership: वीडियो + Chat + Tools' : 'Basic Membership: Video + Chat + Tools'}</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">{isHindi ? 'Basic में ₹49 वाला मौजूदा वीडियो, निजी Admin Chat और घोषित Basic tools शामिल होंगे। बाकी योजनाएँ Coming Soon रहेंगी।' : 'Basic includes the existing ₹49 video, private Admin Chat and the Basic tools listed before checkout. Other plans remain Coming Soon.'}</p>
+          <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{isHindi ? 'Basic Membership: निजी Chat + सरकारी सेवाओं का मार्गदर्शन' : 'Basic Membership: Private Chat + Government Service Guidance'}</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{isHindi ? 'अपनी समस्या और परिस्थिति बताकर निजी Chat में सवाल पूछें। आधार में पिता/पति के नाम या एड्रेस से जुड़ी उलझन हो, अपने दस्तावेजों के आधार पर प्रक्रिया समझनी हो या किसी अन्य सरकारी सेवा की जानकारी चाहिए—आपको उपलब्ध आधिकारिक नियमों के अनुसार स्टेप-बाय-स्टेप मार्गदर्शन मिलेगा। संबंधित विषयों पर उपयोगी वीडियो भी उपलब्ध हो सकते हैं।' : 'Ask questions in private Chat and explain your situation. Whether you have a concern about a father’s/husband’s name or address in Aadhaar, need to understand a process using your own documents, or want information about another government service, get step-by-step guidance based on available official rules. Helpful videos on relevant topics may also be available.'}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -50,7 +50,7 @@ export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) =>
               <div className="mt-4 flex items-end gap-1"><span className="text-3xl font-black text-slate-950">₹{plan.price}</span><span className="pb-1 text-[11px] text-slate-500">{isHindi ? '/ महीना' : '/ month'}</span></div>
               <div className="my-4 h-px bg-slate-100" />
               {index === 0 ? (
-                <div className="flex-1 text-[11px] leading-5 text-slate-600">{isHindi ? 'मौजूदा ₹49 वीडियो, सक्रिय सदस्यता के दौरान निजी Chat और Basic में शामिल चुनिंदा Tools।' : 'Existing ₹49 video, private Chat while membership is active and selected included Basic tools.'}</div>
+                <div className="flex-1 text-[11px] leading-5 text-slate-600">{isHindi ? 'आधार में पिता/पति के नाम से जुड़ी समस्या, नाम में मिसमैच, पिता के दस्तावेज उपलब्ध न होना या केवल एड्रेस बदलने की जरूरत—इन परिस्थितियों में संभावित विकल्प, जरूरी दस्तावेज और सही आधिकारिक प्रक्रिया समझें। PAN Card, Voter ID, Birth Certificate, Ration Card तथा बिहार सरकार और अन्य सरकारी सेवाओं की जानकारी भी पूछें। संबंधित विषयों के छोटे वीडियो उपलब्ध हो सकते हैं।' : 'Understand possible options, required documents and official procedures for concerns about a father’s/husband’s name in Aadhaar, name mismatches, unavailable parent documents or an address-only update. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government services and other public services. Short videos on relevant topics may be available.'}</div>
               ) : (
                 <div className="flex-1 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-xs font-semibold text-slate-500">{isHindi ? 'इस योजना का विवरण बाद में आएगा।' : 'Plan details will be added later.'}</div>
               )}
