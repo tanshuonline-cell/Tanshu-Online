@@ -85,7 +85,6 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
       ? 'Basic Membership में निजी Chat के जरिए अपनी समस्या पूछें। Aadhaar के अलावा PAN Card, Voter ID, Birth Certificate, Ration Card, बिहार सरकार और अन्य सार्वजनिक सेवाओं की जानकारी भी पूछ सकते हैं। संबंधित विषयों पर उपयोगी छोटे वीडियो उपलब्ध हो सकते हैं।'
       : 'Ask about your situation through private Chat in Basic Membership. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government and other public services. Helpful short videos on relevant topics may also be available.',
     month: isHindi ? '/ महीना' : '/ month',
-    basicAction: isHindi ? '₹49 Membership Checkout पर जाएँ' : 'Continue to ₹49 Membership Checkout',
     payNow: isHindi ? 'अभी भुगतान करें' : 'Pay Now',
     detailsGuide: isHindi ? 'जानकारी / गाइड' : 'Details / Guide',
     backToBasic: isHindi ? '← Basic Membership पर वापस जाएँ' : '← Back to Basic Membership',
