@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { AadhaarBasicGuidance } from './AadhaarBasicGuidance';
+import { MembershipCheckout } from './MembershipCheckout';
 
 interface Props {
   onBackHome: () => void;
@@ -84,15 +85,15 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
       ? 'Basic Membership में निजी Chat के जरिए अपनी समस्या पूछें। Aadhaar के अलावा PAN Card, Voter ID, Birth Certificate, Ration Card, बिहार सरकार और अन्य सार्वजनिक सेवाओं की जानकारी भी पूछ सकते हैं। संबंधित विषयों पर उपयोगी छोटे वीडियो उपलब्ध हो सकते हैं।'
       : 'Ask about your situation through private Chat in Basic Membership. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government and other public services. Helpful short videos on relevant topics may also be available.',
     month: isHindi ? '/ महीना' : '/ month',
-    basicAction: isHindi ? 'Basic Membership की जानकारी' : 'Basic Membership Details',
+    basicAction: isHindi ? '₹49 Membership Checkout पर जाएँ' : 'Continue to ₹49 Membership Checkout',
     comingSoon: isHindi ? 'जल्द उपलब्ध होगा' : 'Coming Soon',
-    billingTitle: isHindi ? 'लॉन्च और भुगतान की स्थिति:' : 'Launch and payment status:',
+    billingTitle: isHindi ? 'भुगतान और सदस्यता:' : 'Payment and membership:',
     billing: isHindi
-      ? 'यह Preview है: Membership checkout, Google Login, private chat backend और recurring payment अभी सक्रिय नहीं हैं। अभी कोई भुगतान या सदस्यता शुरू नहीं होगी। सक्रिय होने पर ₹49/month की recurring billing, अगली renewal, cancellation और शामिल सुविधाएँ checkout से पहले साफ दिखाई जाएँगी और आपकी स्पष्ट सहमति ली जाएगी।'
-      : 'This is a Preview: Membership checkout, Google Login, private chat backend and recurring payments are not active. No payment or membership can start here. Before activation, ₹49/month recurring billing, renewal, cancellation and included benefits will be clearly shown at checkout and require your explicit consent.',
+      ? 'यह Sandbox Preview है। Basic ₹49/month recurring subscription का परीक्षण Cashfree Sandbox में होगा; वास्तविक भुगतान नहीं लिया जाएगा। Standard, Premium और Professional अभी बंद हैं।'
+      : 'This is a Sandbox Preview. Basic ₹49/month recurring subscription is tested through Cashfree Sandbox; no live payment is collected. Standard, Premium and Professional remain disabled.',
     verification: isHindi
-      ? 'सदस्यता केवल सुरक्षित backend द्वारा भुगतान की पुष्टि के बाद सक्रिय होगी। अभी इस पेज से कोई पैसा नहीं कटेगा।'
-      : 'Membership will activate only after payment is verified by the secure backend. This page cannot charge you at this stage.',
+      ? 'Google Login और 10 अंकों का मोबाइल नंबर आवश्यक है। Membership केवल Cashfree से ACTIVE स्थिति की पुष्टि के बाद सक्रिय होगी।'
+      : 'Google Login and a 10-digit mobile number are required. Membership activates only after the backend confirms ACTIVE status with Cashfree.',
     chatNote: isHindi
       ? 'Basic Membership और ₹49 One-Time Video Purchase अलग हैं। One-Time Purchase में सिर्फ वीडियो मिलेगा—निजी Chat या Basic Tools नहीं।'
       : 'Basic Membership and the ₹49 One-Time Video Purchase are separate. One-Time Purchase provides video access only—not private Chat or Basic Tools.',
@@ -165,7 +166,7 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
               )}
               {plan.name === 'Basic' ? (
-                <button type="button" onClick={() => document.getElementById('basic-guidance')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition ${plan.buttonTone}`}>
+                <button type="button" onClick={() => document.getElementById('basic-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition ${plan.buttonTone}`}>
                   {copy.basicAction} <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
@@ -175,6 +176,7 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
           ))}
         </div>
 
+        <MembershipCheckout />
         <AadhaarBasicGuidance />
 
         <div className="mt-10 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 text-xs leading-6 text-amber-950 shadow-sm sm:p-6">
