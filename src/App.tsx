@@ -64,6 +64,7 @@ export default function App() {
   useEffect(() => {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
+    const isMembership = pathname === '/membership';
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const video = isVideoDetail
@@ -71,12 +72,16 @@ export default function App() {
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isVideoCatalog
+    const title = isMembership
+      ? 'Membership Plans | TANSHU ONLINE'
+      : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isVideoCatalog
+    const description = isMembership
+      ? 'TANSHU ONLINE की मासिक सदस्यता योजनाएँ देखें और Admin के साथ निजी चैट द्वारा जानकारी एवं सहायता प्राप्त करें।'
+      : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
         ? (video.description || video.title).slice(0, 300)
