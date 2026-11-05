@@ -21,6 +21,7 @@ import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
 import { MembershipPage } from './components/membership/MembershipPage';
 import { MembershipAccountPage } from './components/membership/MembershipAccountPage';
 import { MembershipChatPage } from './components/membership/MembershipChatPage';
+import { MembershipHomeSection } from './components/membership/MembershipHomeSection';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
@@ -462,6 +463,7 @@ export default function App() {
         />
 
         {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
+        <MembershipHomeSection mode="banner" onViewPlans={() => navigateTo('membership', '/membership')} />
         <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
 
         {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
@@ -486,6 +488,8 @@ export default function App() {
 
         {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
         <FeaturedTools onOpenTool={handleOpenTool} />
+
+        <MembershipHomeSection mode="plans" onViewPlans={() => navigateTo('membership', '/membership')} />
 
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
         <AllToolsDirectory
