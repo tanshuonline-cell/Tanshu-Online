@@ -164,14 +164,13 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     if (!customer || customer.account_status !== 'active') return new Response('This Membership account is unavailable.', { status: 403, headers: { 'Content-Type': 'text/plain', 'Set-Cookie': clearCookie(STATE_COOKIE) } });
 
     const session = await issueSession(customer, env.MEMBERSHIP_SESSION_SECRET!);
-    return new Response(null, { status: 302, headers: {
+    const response = new Response(null, { status: 302, headers: {
       Location: origin + '/?membership_login=success',
       'Cache-Control': 'no-store',
-      'Set-Cookie': [
-        COOKIE + '=' + session + '; ' + COOKIE_BASE + '; Max-Age=604800',
-        clearCookie(STATE_COOKIE),
-      ].join(', '),
     }});
+    response.headers.append('Set-Cookie', COOKIE + '=' + session + '; ' + COOKIE_BASE + '; Max-Age=604800');
+    response.headers.append('Set-Cookie', clearCookie(STATE_COOKIE));
+    return response;
   }
 
   if (action === 'me') {
@@ -190,8 +189,8 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 export async function onRequestPost(context: { request: Request; env: Env }): Promise<Response> {
   const { env } = context;
   if (new URL(context.request.url).searchParams.get('action') !== 'logout') return json({ success: false, error: 'Unsupported action.' }, 404);
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: { ...JSON_HEADERS, 'Set-Cookie': clearCookie(COOKIE) + ', ' + clearCookie(STATE_COOKIE) },
-  });
+  const response = new Response(JSON.stringify({ success: true }), { status: 200, headers: JSON_HEADERS });
+  response.headers.append('Set-Cookie', clearCookie(COOKIE));
+  response.headers.append('Set-Cookie', clearCookie(STATE_COOKIE));
+  return response;
 }
