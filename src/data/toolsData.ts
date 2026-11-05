@@ -502,21 +502,6 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     ]
   },
   {
-    id: 'signature-resizer-compressor',
-    name: 'Signature Resize & Compressor (10KB–20KB)',
-    category: 'photo',
-    categoryLabel: 'Photo & Signature',
-    iconName: 'Crop',
-    description: 'Strictly compress signature image files between 10 KB and 20 KB with pixel dimensions 140×60 px required by SSC and IBPS.',
-    detailedInstructions: 'Eliminates repetitive upload rejections on government exam servers by locking target file weight between 10KB and 20KB.',
-    keyFeatures: [
-      'Strict 10 KB - 20 KB boundary clamping',
-      'Exact 140 × 60 px and 200 × 100 px presets',
-      'Retains bold ink legibility without blur',
-      'Guaranteed acceptance on SSC & UPSC gates'
-    ]
-  },
-  {
     id: 'face-centering-ratio-checker',
     name: 'Face Centering & Head Size Ratio Checker',
     category: 'photo',
@@ -1355,6 +1340,23 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Decodes NSDL / UTIITSL PAN card verification QR codes',
       'Decodes e-Invoice B2B and UPI transaction QR codes',
       '100% private in-browser decoding with zero data upload'
+    ]
+  },
+  {
+    id: 'photo-signature-resizer',
+    name: 'Photo & Signature Resizer',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    isFeatured: true,
+    iconName: 'Camera',
+    description: 'Resize and compress application photos and signatures with separate dimensions, KB targets, form starter presets, preview, and print-ready downloads.',
+    detailedInstructions: 'Upload a photo and/or signature, choose a starter preset or enter exact requirements, then process each file separately in your browser.',
+    keyFeatures: [
+      'Separate photo and signature dimensions and KB targets',
+      'Editable exam-form starter presets with official-specification reminder',
+      'JPG and PNG output with aspect-fit or fill-and-crop modes',
+      'Original vs final preview, individual downloads, combined downloads, and print preview',
+      'Local browser processing without sending citizen images to the app server'
     ]
   },
   {

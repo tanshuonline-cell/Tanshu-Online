@@ -124,7 +124,7 @@ export const GovernmentSchemes: React.FC<Props> = ({ selectedSchemeModal, onClos
                   {/* Financial Benefit Callout */}
                   <div className="p-2.5 bg-emerald-50/80 border border-emerald-100 rounded-xl text-xs text-emerald-950 mb-3 space-y-1">
                     <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-800 block">
-                      {isHindi ? 'सीधा वित्तीय लाभ (Financial Benefit)' : 'Direct Financial Benefit'}
+                      {isHindi ? 'सीधा वित्तीय लाभ' : 'Direct Financial Benefit'}
                     </span>
                     <BilingualText
                       en={scheme.financialBenefit}
@@ -173,7 +173,7 @@ export const GovernmentSchemes: React.FC<Props> = ({ selectedSchemeModal, onClos
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 text-slate-600 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded-xl transition-colors"
-                    title="Official Portal"
+                    title={isHindi ? 'आधिकारिक पोर्टल' : 'Official Portal'}
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -309,7 +309,7 @@ export const GovernmentSchemes: React.FC<Props> = ({ selectedSchemeModal, onClos
                   onClick={handleClose}
                   className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
                 >
-                  {isHindi ? 'बंद करें (Close)' : 'Close'}
+                  {isHindi ? 'बंद करें' : 'Close'}
                 </button>
                 <a
                   href={selectedScheme.officialPortal}

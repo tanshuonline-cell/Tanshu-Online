@@ -84,6 +84,7 @@ export interface VideoGuide {
   instructor: string;
   description: string;
   topics: string[];
+  hindiTopics?: string[];
   videoId: string; // for embedding (YouTube ID for free videos or local guide reference)
   // Premium Video System extensions (backward-compatible)
   accessType?: VideoAccessType;

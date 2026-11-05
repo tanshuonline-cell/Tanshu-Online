@@ -2,9 +2,9 @@ name: Build and Type Check
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feature/advanced-passport-photo-studio]
   push:
-    branches: [feature/advanced-passport-photo-studio]
+    branches: [feature/advanced-passport-photo-studio, feature/photo-signature-resizer]
 
 permissions:
   contents: read
