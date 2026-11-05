@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, ArrowRight, User, ShieldCheck } from 'lucide-react';
+import { Menu, X, ArrowRight, User, ShieldCheck, Crown } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export const TANSHU_PROFILE_PHOTO = '/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg';
@@ -20,6 +20,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
     { id: 'services', label: t('nav.services', 'Government Services') },
     { id: 'schemes', label: t('nav.schemes', 'Government Schemes') },
     { id: 'videos', label: t('nav.videos', 'Latest Videos') },
+    { id: 'membership', label: language === 'hi' ? 'सदस्यता' : 'Membership' },
     { id: 'about', label: t('nav.about', 'About') },
   ];
 
@@ -89,7 +90,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               return (
                 <button
                   key={link.id}
-                  onClick={() => handleLinkClick(link.id)}
+                  onClick={() => link.id === 'membership' ? (window.location.href = '/membership') : handleLinkClick(link.id)}
                   className={`transition-colors whitespace-nowrap shrink-0 hover:text-blue-700 cursor-pointer ${
                     isActive ? 'text-blue-700 font-bold border-b-2 border-blue-600 py-1' : ''
                   }`}
@@ -181,7 +182,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             {navLinks.map((link) => (
               <button
                 key={link.id}
-                onClick={() => handleLinkClick(link.id)}
+                onClick={() => link.id === 'membership' ? (window.location.href = '/membership') : handleLinkClick(link.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer block ${
                   activeSection === link.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
                 }`}
