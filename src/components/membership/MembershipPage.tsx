@@ -6,7 +6,6 @@ import {
   LockKeyhole,
   CalendarClock,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { AadhaarBasicGuidance } from './AadhaarBasicGuidance';
@@ -25,10 +24,8 @@ const plans = [
     priceTone: 'text-slate-900',
     iconTone: 'bg-slate-100 text-slate-700',
     buttonTone: 'bg-slate-800 hover:bg-slate-700',
-    noteHi: '₹49 वीडियो + निजी चैट + शामिल चुनिंदा टूल्स और Aadhaar मार्गदर्शन',
-    noteEn: '₹49 video + private chat + selected included tools and Aadhaar guidance',
-    toolHi: 'वीडियो एक्सेस, Admin से निजी चैट और Basic में शामिल टूल्स',
-    toolEn: 'Video access, private Admin chat and included Basic tools',
+    noteHi: 'निजी Chat, Aadhaar मार्गदर्शन और सरकारी सेवाओं की जानकारी',
+    noteEn: 'Private Chat, Aadhaar guidance and government-service information',
   },
   {
     name: 'Standard',
@@ -39,10 +36,8 @@ const plans = [
     priceTone: 'text-blue-950',
     iconTone: 'bg-blue-100 text-blue-700',
     buttonTone: 'bg-blue-700 hover:bg-blue-600',
-    noteHi: 'मार्गदर्शन + Basic से अधिक चुनिंदा टूल्स',
-    noteEn: 'Guidance + more selected tools than Basic',
-    toolHi: 'Basic से अधिक चुनिंदा टूल्स',
-    toolEn: 'More selected tools than Basic',
+    noteHi: 'जल्द उपलब्ध होगा',
+    noteEn: 'Coming soon',
   },
   {
     name: 'Premium',
@@ -53,10 +48,8 @@ const plans = [
     priceTone: 'text-violet-950',
     iconTone: 'bg-violet-100 text-violet-700',
     buttonTone: 'bg-gradient-to-r from-violet-700 to-fuchsia-700 hover:from-violet-600 hover:to-fuchsia-600',
-    noteHi: 'मार्गदर्शन + Standard से अधिक चुनिंदा टूल्स',
-    noteEn: 'Guidance + more selected tools than Standard',
-    toolHi: 'Standard से अधिक चुनिंदा टूल्स',
-    toolEn: 'More selected tools than Standard',
+    noteHi: 'जल्द उपलब्ध होगा',
+    noteEn: 'Coming soon',
   },
   {
     name: 'Professional',
@@ -67,10 +60,8 @@ const plans = [
     priceTone: 'text-amber-950',
     iconTone: 'bg-amber-100 text-amber-800',
     buttonTone: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500',
-    noteHi: 'सभी उपलब्ध वेबसाइट टूल्स और सुविधाएँ',
-    noteEn: 'All available website tools and features',
-    toolHi: 'सभी उपलब्ध वेबसाइट टूल्स',
-    toolEn: 'All available website tools',
+    noteHi: 'जल्द उपलब्ध होगा',
+    noteEn: 'Coming soon',
   },
 ];
 
@@ -82,29 +73,29 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     secure: isHindi ? 'सुरक्षित सदस्यता पोर्टल' : 'SECURE MEMBERSHIP PORTAL',
     title: 'TANSHU ONLINE MEMBERSHIP',
     intro: isHindi
-      ? 'Basic Membership ₹49/month में पहले से उपलब्ध ₹49 Aadhaar वीडियो, Admin से निजी चैट और Basic में शामिल चुनिंदा टूल्स व Aadhaar मार्गदर्शन मिलेगा।'
-      : 'Basic Membership ₹49/month includes the existing ₹49 Aadhaar video, private Admin chat, selected included tools and Aadhaar guidance.',
-    guidance: isHindi ? 'Aadhaar की जानकारी' : 'AADHAAR INFORMATION',
-    tools: isHindi ? 'केवल जानकारी' : 'INFORMATION ONLY',
+      ? 'Basic Membership ₹49/महीना में पहले से उपलब्ध Aadhaar वीडियो, Admin के साथ निजी वेबसाइट Chat और चुनिंदा Basic Tools मिलेंगे। आधार में पिता/पति के नाम से जुड़ी परेशानी, नाम में अंतर, माता-पिता के दस्तावेज उपलब्ध न होने या केवल एड्रेस बदलने जैसी स्थिति में अपनी परिस्थिति के अनुसार मार्गदर्शन पूछें।'
+      : 'Basic Membership at ₹49/month includes the existing Aadhaar video, private website Chat with Admin and selected Basic Tools. Ask for guidance based on your situation, including concerns about a father’s or husband’s name, name mismatches, unavailable parent documents or an address-only change.',
+    guidance: isHindi ? 'निजी मार्गदर्शन' : 'PRIVATE GUIDANCE',
+    tools: isHindi ? 'चुनिंदा Basic Tools' : 'SELECTED BASIC TOOLS',
     monthly: isHindi ? 'मासिक सदस्यता' : 'MONTHLY MEMBERSHIP',
     plansKicker: 'MEMBERSHIP PLANS',
     plansTitle: isHindi ? 'अपनी सदस्यता योजना चुनें' : 'Choose Your Membership Plan',
     plansDesc: isHindi
-      ? 'Basic में ₹49 वाला मौजूदा वीडियो, निजी Admin Chat और घोषित Basic tools शामिल होंगे। बाकी योजनाएँ Coming Soon हैं।'
-      : 'Basic will include the existing ₹49 video, private Admin Chat and the Basic tools listed before checkout. Other plans are Coming Soon.',
+      ? 'Basic Membership में निजी Chat के जरिए अपनी समस्या पूछें। Aadhaar के अलावा PAN Card, Voter ID, Birth Certificate, Ration Card, बिहार सरकार और अन्य सार्वजनिक सेवाओं की जानकारी भी पूछ सकते हैं। संबंधित विषयों पर उपयोगी छोटे वीडियो उपलब्ध हो सकते हैं।'
+      : 'Ask about your situation through private Chat in Basic Membership. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government and other public services. Helpful short videos on relevant topics may also be available.',
     month: isHindi ? '/ महीना' : '/ month',
-    basicAction: isHindi ? 'Aadhaar Guide देखें' : 'View Aadhaar Guide',
-    comingSoon: isHindi ? 'Coming Soon' : 'Coming Soon',
+    basicAction: isHindi ? 'Basic Membership की जानकारी' : 'Basic Membership Details',
+    comingSoon: isHindi ? 'जल्द उपलब्ध होगा' : 'Coming Soon',
     billingTitle: isHindi ? 'लॉन्च और भुगतान की स्थिति:' : 'Launch and payment status:',
     billing: isHindi
-      ? 'यह Preview है: Membership checkout, Google Login, private chat backend और recurring payment अभी सक्रिय नहीं हैं। अभी कोई भुगतान या सदस्यता शुरू नहीं होगी। सक्रिय होने पर ₹49/month की recurring billing, अगली renewal, cancellation और शामिल tools checkout से पहले साफ दिखेंगे और आपकी स्पष्ट सहमति ली जाएगी।'
-      : 'This is a Preview: Membership checkout, Google Login, private chat backend and recurring payments are not active. No payment or membership can start here. Before activation, ₹49/month recurring billing, renewal, cancellation and included tools will be clearly shown at checkout and require your explicit consent.',
+      ? 'यह Preview है: Membership checkout, Google Login, private chat backend और recurring payment अभी सक्रिय नहीं हैं। अभी कोई भुगतान या सदस्यता शुरू नहीं होगी। सक्रिय होने पर ₹49/month की recurring billing, अगली renewal, cancellation और शामिल सुविधाएँ checkout से पहले साफ दिखाई जाएँगी और आपकी स्पष्ट सहमति ली जाएगी।'
+      : 'This is a Preview: Membership checkout, Google Login, private chat backend and recurring payments are not active. No payment or membership can start here. Before activation, ₹49/month recurring billing, renewal, cancellation and included benefits will be clearly shown at checkout and require your explicit consent.',
     verification: isHindi
-      ? 'किसी भी सदस्यता को तभी सक्रिय किया जाएगा जब सुरक्षित backend भुगतान की पुष्टि कर ले। अभी इस पेज से कोई पैसा नहीं कटेगा।'
-      : 'A membership will be activated only after the secure backend verifies payment. This page cannot charge you at this stage.',
+      ? 'सदस्यता केवल सुरक्षित backend द्वारा भुगतान की पुष्टि के बाद सक्रिय होगी। अभी इस पेज से कोई पैसा नहीं कटेगा।'
+      : 'Membership will activate only after payment is verified by the secure backend. This page cannot charge you at this stage.',
     chatNote: isHindi
-      ? 'Basic Membership में मौजूदा ₹49 वीडियो का सदस्यता-आधारित एक्सेस, निजी चैट और घोषित Basic tools शामिल होंगे। अलग Video Learning Center से ₹49 का One-Time Purchase केवल वीडियो देगा—Chat या Membership tools नहीं।'
-      : 'Basic Membership will include subscription access to the existing ₹49 video, private chat and listed Basic tools. The separate ₹49 One-Time Video Purchase gives video access only—not Chat or Membership tools.',
+      ? 'Basic Membership और ₹49 One-Time Video Purchase अलग हैं। One-Time Purchase में सिर्फ वीडियो मिलेगा—निजी Chat या Basic Tools नहीं।'
+      : 'Basic Membership and the ₹49 One-Time Video Purchase are separate. One-Time Purchase provides video access only—not private Chat or Basic Tools.',
   };
 
   return (
@@ -123,14 +114,10 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
         </div>
         <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-            <button
-              onClick={onBackHome}
-              className="text-sm font-semibold text-blue-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            >
+            <button onClick={onBackHome} className="text-sm font-semibold text-blue-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300">
               {copy.back}
             </button>
           </div>
-
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-300/30 bg-blue-400/10 px-3 py-1.5 text-[10px] font-bold tracking-[0.16em] text-blue-100 shadow-lg shadow-blue-950/20">
               <ShieldCheck className="h-4 w-4" /> {copy.secure}
@@ -155,18 +142,11 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
 
         <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => (
-            <article
-              key={plan.name}
-              className={`group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-md transition-all duration-300 ease-out hover:z-10 hover:-translate-y-2 hover:scale-[1.015] hover:shadow-2xl focus-within:z-10 ${plan.tone}`}
-            >
+            <article key={plan.name} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-md transition-all duration-300 ease-out hover:z-10 hover:-translate-y-2 hover:scale-[1.015] hover:shadow-2xl focus-within:z-10 ${plan.tone}`}>
               <div className={`absolute inset-x-0 top-0 h-1.5 ${plan.accent}`} />
-              {plan.name !== 'Basic' && (
-                <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-slate-600">COMING SOON</span>
-              )}
+              {plan.name !== 'Basic' && <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-slate-600">COMING SOON</span>}
               <div className="flex items-center gap-3 pr-16">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${plan.iconTone}`}>
-                  <ShieldCheck className="h-5 w-5" />
-                </span>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${plan.iconTone}`}><ShieldCheck className="h-5 w-5" /></span>
                 <div className={`text-sm font-black tracking-wide ${plan.label}`}>{plan.name}</div>
               </div>
               <p className="mt-3 min-h-10 text-xs leading-5 text-slate-600">{isHindi ? plan.noteHi : plan.noteEn}</p>
@@ -178,8 +158,8 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
               {plan.name === 'Basic' ? (
                 <ul className="flex-1 space-y-3 text-xs leading-5 text-slate-700">
                   <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'पहले से उपलब्ध ₹49 Aadhaar वीडियो का एक्सेस' : 'Access to the existing ₹49 Aadhaar video'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat' : 'Private Chat with Admin on the website'}</span></li>
-                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Basic में शामिल चुनिंदा Tools और Aadhaar मार्गदर्शन' : 'Selected tools included in Basic and Aadhaar guidance'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'Admin के साथ वेबसाइट पर निजी Chat' : 'Private website Chat with Admin'}</span></li>
+                  <li className="flex gap-2"><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.label}`} /><span>{isHindi ? 'चुनिंदा Basic Tools और सरकारी सेवाओं की जानकारी' : 'Selected Basic Tools and government-service information'}</span></li>
                 </ul>
               ) : (
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
