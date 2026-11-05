@@ -21,6 +21,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
     { id: 'schemes', label: t('nav.schemes', 'Government Schemes') },
     { id: 'videos', label: t('nav.videos', 'Latest Videos') },
     { id: 'membership', label: language === 'hi' ? 'सदस्यता' : 'Membership' },
+    { id: 'account', label: language === 'hi' ? 'मेरा अकाउंट' : 'My Account' },
     { id: 'about', label: t('nav.about', 'About') },
   ];
 
@@ -90,7 +91,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               return (
                 <button
                   key={link.id}
-                  onClick={() => link.id === 'membership' ? (window.location.href = '/membership') : handleLinkClick(link.id)}
+                  onClick={() => link.id === 'membership' || link.id === 'account' ? (window.location.href = link.id === 'membership' ? '/membership' : '/account') : handleLinkClick(link.id)}
                   className={`transition-colors whitespace-nowrap shrink-0 hover:text-blue-700 cursor-pointer ${
                     isActive ? 'text-blue-700 font-bold border-b-2 border-blue-600 py-1' : ''
                   }`}
