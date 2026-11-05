@@ -71,7 +71,7 @@ export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) =>
         </div>
 
         <div className="mt-7 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-[11px] leading-5 text-slate-600 sm:grid-cols-2">
-          <p className="flex gap-2"><LockKeyhole className="h-4 w-4 shrink-0 text-blue-700" />{isHindi ? 'Membership Login, Chat और recurring Payment अभी Preview में बंद हैं; अभी कोई भुगतान नहीं लिया जाएगा।' : 'Membership Login, Chat and recurring payments are disabled in this Preview; no payment will be collected here.'}</p>
+          <p className="flex gap-2"><LockKeyhole className="h-4 w-4 shrink-0 text-blue-700" />{isHindi ? 'Basic ₹49 Membership का Sandbox checkout परीक्षणाधीन है; कोई Live भुगतान नहीं होगा।' : 'Basic ₹49 Membership Sandbox checkout is being tested; no live payment will be collected.'}</p>
           <p className="flex gap-2"><ShieldCheck className="h-4 w-4 shrink-0 text-blue-700" />{isHindi ? 'आधार नंबर, OTP या दस्तावेज़ यहाँ साझा न करें। आवेदन UIDAI के official portal/app/centre से करें।' : 'Do not share Aadhaar numbers, OTPs or documents here. Apply through UIDAI official channels.'}</p>
         </div>
       </div>
