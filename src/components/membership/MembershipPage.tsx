@@ -63,8 +63,8 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome, onSignIn }) => {
                 <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> Admin से निजी वीडियो प्राप्त कर सकते हैं</li>
                 {plan.name === 'Professional' && <li className="flex gap-2 font-semibold text-blue-700"><Check className="mt-0.5 h-4 w-4 shrink-0" /> वेबसाइट के सभी उपलब्ध टूल्स और सुविधाएँ</li>}
               </ul>
-              <button onClick={onSignIn} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-blue-800">
-                सदस्यता के लिए आगे बढ़ें <ArrowRight className="h-4 w-4" />
+              <button disabled className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-300 px-4 py-3 text-xs font-bold text-slate-600 cursor-not-allowed">
+                सदस्यता जल्द शुरू होगी <ArrowRight className="h-4 w-4" />
               </button>
             </article>
           ))}
