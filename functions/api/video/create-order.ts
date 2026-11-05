@@ -50,29 +50,34 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Check if customer already has unrevoked access in D1
-    if (env.DB) {
-      try {
-        const existingAccess = await env.DB.prepare(
-          'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
-        )
-          .bind(sanitizedPhone, videoId)
-          .first();
+    // Do not create a payable order unless D1 can persist it and Cashfree credentials exist.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, error: 'Secure checkout is temporarily unavailable. Please try again later.' }), { status: 503, headers: corsHeaders });
+    }
+    if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || env.CASHFREE_APP_ID.includes('YOUR_')) {
+      return new Response(JSON.stringify({ success: false, error: 'Cashfree checkout is not configured on the server.' }), { status: 503, headers: corsHeaders });
+    }
 
-        if (existingAccess) {
-          return new Response(
-            JSON.stringify({
-              success: true,
-              alreadyPurchased: true,
-              message: 'You already have active access to this premium video.',
-              videoId,
-            }),
-            { status: 200, headers: corsHeaders }
-          );
-        }
-      } catch (dbErr) {
-        console.warn('D1 lookup warning:', dbErr);
+    // Check if customer already has unrevoked access in D1
+    try {
+      const existingAccess = await env.DB.prepare(
+        'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
+      ).bind(sanitizedPhone, videoId).first();
+
+      if (existingAccess) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            alreadyPurchased: true,
+            message: 'You already have active access to this premium video.',
+            videoId,
+          }),
+          { status: 200, headers: corsHeaders }
+        );
       }
+    } catch (dbErr) {
+      console.error('D1 entitlement lookup failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, error: 'Could not verify existing video access. Please try again later.' }), { status: 503, headers: corsHeaders });
     }
 
     // Trusted Premium Catalog fallback
@@ -187,25 +192,22 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     }
 
     // Persist pending order in D1 if available
-    if (env.DB) {
-      try {
-        await env.DB.prepare(
-          `INSERT INTO payment_orders (order_id, cf_order_id, video_id, order_amount, order_currency, customer_phone, customer_email, payment_session_id, order_status)
-           VALUES (?, ?, ?, ?, 'INR', ?, ?, ?, 'PENDING')`
-        )
-          .bind(
-            orderId,
-            cfOrderId,
-            videoId,
-            videoPrice,
-            sanitizedPhone,
-            customerEmail || null,
-            paymentSessionId
-          )
-          .run();
-      } catch (dbErr) {
-        console.warn('D1 insert order warning:', dbErr);
-      }
+    try {
+      await env.DB.prepare(
+        `INSERT INTO payment_orders (order_id, cf_order_id, video_id, order_amount, order_currency, customer_phone, customer_email, payment_session_id, order_status)
+         VALUES (?, ?, ?, ?, 'INR', ?, ?, ?, 'PENDING')`
+      ).bind(
+        orderId,
+        cfOrderId,
+        videoId,
+        videoPrice,
+        sanitizedPhone,
+        customerEmail || null,
+        paymentSessionId
+      ).run();
+    } catch (dbErr) {
+      console.error('D1 order persistence failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, error: 'Could not save your checkout securely. No payment should be completed; please try again later.' }), { status: 503, headers: corsHeaders });
     }
 
     return new Response(
