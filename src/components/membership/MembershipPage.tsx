@@ -82,23 +82,17 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     secure: isHindi ? 'सुरक्षित सदस्यता पोर्टल' : 'SECURE MEMBERSHIP PORTAL',
     title: 'TANSHU ONLINE MEMBERSHIP',
     intro: isHindi
-      ? 'सदस्य बनें और सरकारी सेवाओं, दस्तावेज़ों, बैंकिंग सुधारों तथा ऑनलाइन आवेदनों से जुड़ी जानकारी और मार्गदर्शन प्राप्त करें। चुने गए प्लान के अनुसार वेबसाइट टूल्स भी उपलब्ध होंगे।'
-      : 'Become a member to get information and guidance for government services, documents, banking corrections and online applications. Website tools are included according to your selected plan.',
-    guidance: isHindi ? 'दस्तावेज़ मार्गदर्शन' : 'DOCUMENT GUIDANCE',
-    tools: isHindi ? 'प्लान के अनुसार टूल्स' : 'TOOLS BY PLAN',
+      ? 'Basic ₹49 में Aadhaar पिता का नाम / C/o और Address update से जुड़ी जानकारी, दस्तावेज़ और आधिकारिक प्रक्रिया का मार्गदर्शन देखें।'
+      : 'Basic ₹49 provides information about Aadhaar father name / C/o and address updates, documents and official steps.',
+    guidance: isHindi ? 'Aadhaar की जानकारी' : 'AADHAAR INFORMATION',
+    tools: isHindi ? 'केवल जानकारी' : 'INFORMATION ONLY',
     monthly: isHindi ? 'मासिक सदस्यता' : 'MONTHLY MEMBERSHIP',
     plansKicker: 'MEMBERSHIP PLANS',
     plansTitle: isHindi ? 'अपनी सदस्यता योजना चुनें' : 'Choose Your Membership Plan',
     plansDesc: isHindi
-      ? 'सभी योजनाओं में सरकारी सेवाओं, दस्तावेज़ों और ऑनलाइन आवेदनों से जुड़ा मार्गदर्शन शामिल है। टूल्स की पहुँच प्लान के अनुसार अलग-अलग होगी।'
-      : 'Every plan includes guidance for government services, documents and online applications. Tool access varies by membership plan.',
+      ? 'पहले चरण में Basic प्लान में Aadhaar पिता का नाम / C/o और Address update की जानकारी दी जा रही है। बाकी योजनाएँ Coming Soon हैं।'
+      : 'The first release focuses on Aadhaar father name / C/o and address update information in Basic. Other plans are Coming Soon.',
     month: isHindi ? '/ महीना' : '/ month',
-    guidanceBenefit: isHindi
-      ? 'सरकारी सेवाओं, दस्तावेज़ों, बैंकिंग सुधारों और आवेदन की जानकारी व मार्गदर्शन'
-      : 'Guidance for government services, documents, banking corrections and applications',
-    chatBenefit: isHindi
-      ? 'Private Chat उपलब्ध होने पर अतिरिक्त माध्यम; तुरंत जवाब की गारंटी नहीं'
-      : 'Private Chat is an additional channel when available; instant replies are not guaranteed',
     basicAction: isHindi ? 'Basic की जानकारी देखें' : 'View Basic Information',
     comingSoon: isHindi ? 'Coming Soon' : 'Coming Soon',
     billingTitle: isHindi ? 'लॉन्च और भुगतान की स्थिति:' : 'Launch and payment status:',
@@ -166,10 +160,8 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
               className={`group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-md transition-all duration-300 ease-out hover:z-10 hover:-translate-y-2 hover:scale-[1.015] hover:shadow-2xl focus-within:z-10 ${plan.tone}`}
             >
               <div className={`absolute inset-x-0 top-0 h-1.5 ${plan.accent}`} />
-              {plan.name === 'Premium' && (
-                <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-violet-700 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-white shadow-md">
-                  <Sparkles className="h-3 w-3" /> {isHindi ? 'लोकप्रिय प्लान' : 'POPULAR PLAN'}
-                </span>
+              {plan.name !== 'Basic' && (
+                <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-slate-600">COMING SOON</span>
               )}
               <div className="flex items-center gap-3 pr-16">
                 <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${plan.iconTone}`}>
