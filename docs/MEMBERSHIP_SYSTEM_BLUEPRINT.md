@@ -137,3 +137,19 @@ Before presenting the preview:
 - Test duplicate payment/refund states and upgrade/downgrade next-cycle behavior.
 - Run the project build and relevant automated checks; report any checks that cannot be performed because credentials or live gateway bindings are unavailable.
 - Keep the branch/PR as a preview only. No merge or production deployment without explicit owner approval.
+
+
+## 14. Repository implementation audit (2026-11-05)
+
+The current repository implementation was inspected before adding live membership APIs.
+
+- The current customer-facing membership plan page is a front-end preview. Its checkout controls remain disabled.
+- The new `/account` and `/account/chat` routes are preview shells only. They do not authenticate a customer, retrieve real membership/payment data, or send/store messages.
+- The inspected `server.ts` is an Express development/server mirror. Its existing video orders, access records, videos, and login-attempt counters use in-memory JavaScript `Map` objects. These are not durable membership storage and must not be reused for production subscriptions, chat, or audit records.
+- The existing Cashfree implementation in `server.ts` creates and verifies one-time video purchase orders. This inspection does not establish recurring subscription support. Membership billing must use a separately verified recurring-capable gateway flow.
+- The inspected `package.json` has Vite build and TypeScript lint scripts, but no membership-specific test script.
+- Do not add customer login or chat based on browser state/localStorage, and do not treat a successful client redirect as payment confirmation.
+- Before implementing live membership endpoints, inspect the deployed Cloudflare Pages Functions structure and confirm the actual D1/R2/KV bindings and secrets. Build persistent D1 schema/migrations and server-side entitlement checks there (or in the confirmed production API runtime), not in the Express in-memory maps.
+- The existing Admin authentication code in the Express server is a development implementation; production membership administration must use the verified deployed Admin session mechanism and must never weaken or replace existing Admin authentication.
+
+This audit is a release safety checkpoint: keep all customer account, chat, checkout, and admin membership actions visibly non-functional until the persistent backend, Google OAuth, recurring billing, webhook verification, and access-control tests are complete.
