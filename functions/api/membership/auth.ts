@@ -27,7 +27,9 @@ function b64url(input: string): string {
 }
 function fromB64url(input: string): string {
   const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
-  return atob(normalized + '='.repeat((4 - (normalized.length % 4)) % 4));
+  const binary = atob(normalized + '='.repeat((4 - (normalized.length % 4)) % 4));
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 async function sign(value: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -35,7 +37,7 @@ async function sign(value: string, secret: string): Promise<string> {
   const bytes = new Uint8Array(sig);
   let binary = '';
   bytes.forEach((b) => (binary += String.fromCharCode(b)));
-  return btoa(binary).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');
+  return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
