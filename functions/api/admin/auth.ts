@@ -10,10 +10,8 @@ interface Env {
 }
 
 const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Content-Type': 'application/json',
+  'Cache-Control': 'no-store',
 };
 
 // Rate limiter tracking (per worker isolate instance)
@@ -36,7 +34,10 @@ async function createHmacSignature(payload: string, secret: string): Promise<str
 
 async function verifyHmacSignature(payload: string, signature: string, secret: string): Promise<boolean> {
   const expected = await createHmacSignature(payload, secret);
-  return expected === signature;
+  if (expected.length !== signature.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  return diff === 0;
 }
 
 export async function onRequestPost(context: { request: Request; env: Env }): Promise<Response> {
@@ -185,11 +186,11 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     );
   }
 
-  const authHeader = request.headers.get('Authorization') || '';
-  const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+  // Admin sessions are accepted only from the same-origin HttpOnly cookie.
+  // Do not accept bearer tokens from browser storage or caller-controlled headers.
   const cookieHeader = request.headers.get('Cookie') || '';
-  const cookieMatch = cookieHeader.match(/tanshu_admin_session=([^;]+)/);
-  const token = bearerToken || (cookieMatch ? cookieMatch[1] : undefined);
+  const cookieMatch = cookieHeader.match(/(?:^|;\s*)tanshu_admin_session=([^;]+)/);
+  const token = cookieMatch ? cookieMatch[1] : undefined;
 
   if (!token || !token.includes('.')) {
     return new Response(JSON.stringify({ authenticated: false, error: 'No active admin session.' }), {
