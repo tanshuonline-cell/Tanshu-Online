@@ -35,7 +35,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       "SELECT s.id,s.gateway_subscription_id,s.status,s.current_period_start,s.current_period_end,s.cancel_at_period_end,s.cancelled_at,p.display_name AS plan_name,p.monthly_amount_paise FROM membership_subscriptions s JOIN membership_plans p ON p.id=s.plan_id WHERE s.customer_id=? ORDER BY s.created_at DESC LIMIT 1"
     ).bind(customer.id).first();
     const latestPayment = subscription ? await env.DB.prepare(
-      "SELECT status,amount_paise,currency,paid_at,created_at FROM membership_payments WHERE subscription_id=? ORDER BY created_at DESC LIMIT 1"
+      "SELECT status,amount_paise,currency,gateway_payment_id,paid_at,created_at FROM membership_payments WHERE subscription_id=? ORDER BY created_at DESC LIMIT 1"
     ).bind(subscription.id).first() : null;
     return json({ success: true, authenticated: true, customer, subscription: subscription || null, latestPayment: latestPayment || null });
   } catch (error) {
