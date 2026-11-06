@@ -61,10 +61,10 @@ export const GovernmentSchemes: React.FC<Props> = ({ selectedSchemeModal, onClos
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-1">
               {t('schemes.kicker', 'National Welfare Initiatives')}
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-emerald-800 tracking-tight">
               {t('schemes.title', 'Government Schemes')}
             </h2>
           </div>
@@ -95,7 +95,7 @@ export const GovernmentSchemes: React.FC<Props> = ({ selectedSchemeModal, onClos
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
                       {/* Ministry Header */}
-                      <div className="text-[10px] sm:text-[11px] font-bold text-blue-700 mb-0.5 line-clamp-1 uppercase tracking-wider">
+                      <div className="text-[10px] sm:text-[11px] font-bold text-emerald-700 mb-0.5 line-clamp-1 uppercase tracking-wider">
                         {primaryMinistry}
                       </div>
 
