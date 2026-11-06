@@ -10,9 +10,12 @@ declare global {
 }
 
 type Customer = { id: string; email: string; display_name: string };
+type Subscription = { id: string; status: string; current_period_end: string | null; cancel_at_period_end: number | boolean; plan_name: string; monthly_amount_paise: number };
 
 export const MembershipCheckout: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [phone, setPhone] = useState('');
   const [consent, setConsent] = useState(false);
@@ -23,10 +26,15 @@ export const MembershipCheckout: React.FC = () => {
 
   useEffect(() => {
     let alive = true;
-    fetch('/api/membership/auth?action=me', { credentials: 'include', cache: 'no-store' })
+    fetch('/api/membership/account', { credentials: 'include', cache: 'no-store' })
       .then(async response => response.ok ? response.json() : null)
-      .then(data => { if (alive) setCustomer(data?.authenticated ? data.customer : null); })
-      .catch(() => { if (alive) setCustomer(null); })
+      .then(data => {
+        if (alive) {
+          setCustomer(data?.authenticated && data?.success ? data.customer : null);
+          setSubscription(data?.subscription || null);
+        }
+      })
+      .catch(() => { if (alive) { setCustomer(null); setSubscription(null); } })
       .finally(() => { if (alive) setAuthChecked(true); });
 
     const scriptUrl = 'https://sdk.cashfree.com/js/v3/cashfree.js';
@@ -68,6 +76,10 @@ export const MembershipCheckout: React.FC = () => {
         .catch(error => { if (alive) { setNotice(error.message || 'स्थिति जाँचने में समस्या हुई।'); setNoticeType('error'); } })
         .finally(() => {
           if (alive) {
+            fetch('/api/membership/account', { credentials: 'include', cache: 'no-store' })
+              .then(async response => response.ok ? response.json() : null)
+              .then(data => { if (alive && data?.success) { setCustomer(data.customer); setSubscription(data.subscription || null); } })
+              .catch(() => {});
             params.delete('membership_subscription_id');
             const next = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
             window.history.replaceState({}, '', next);
@@ -133,6 +145,31 @@ export const MembershipCheckout: React.FC = () => {
     }
   };
 
+  const cancelAutoRenewal = async () => {
+    if (cancelBusy) return;
+    setCancelBusy(true);
+    setNotice('');
+    try {
+      const response = await fetch('/api/membership/cancel-subscription', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'Cancellation could not be confirmed.');
+      setNotice(data.message || 'Auto-renewal cancellation confirmed.');
+      setNoticeType('success');
+      const accountResponse = await fetch('/api/membership/account', { credentials: 'include', cache: 'no-store' });
+      const account = await accountResponse.json().catch(() => ({}));
+      if (accountResponse.ok && account.success) setSubscription(account.subscription || null);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Cancellation could not be confirmed.');
+      setNoticeType('error');
+    } finally {
+      setCancelBusy(false);
+    }
+  };
+
   const noticeClass = noticeType === 'success'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
     : noticeType === 'error'
@@ -164,6 +201,21 @@ export const MembershipCheckout: React.FC = () => {
           <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
             <span className="font-bold">{customer.display_name}</span> · {customer.email}
           </div>
+          {subscription && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-800">{subscription.plan_name || 'Basic Membership'} · ₹49/month</span>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${subscription.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{subscription.status === 'active' ? 'Active' : subscription.status}</span>
+              </div>
+              {subscription.cancel_at_period_end ? (
+                <p className="mt-2 text-xs leading-5 text-amber-800">Auto-renewal cancelled. Access remains until {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-IN') : 'the paid period ends'}.</p>
+              ) : subscription.status === 'active' ? (
+                <button type="button" onClick={cancelAutoRenewal} disabled={cancelBusy} className="mt-3 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-60">
+                  {cancelBusy ? 'Cancelling…' : 'Cancel auto-renewal'}
+                </button>
+              ) : null}
+            </div>
+          )}
           <div>
             <label htmlFor="membership-phone" className="mb-1.5 block text-xs font-bold text-slate-700">मोबाइल नंबर (Cashfree mandate के लिए)</label>
             <div className="flex overflow-hidden rounded-xl border border-slate-300 focus-within:border-blue-600">
