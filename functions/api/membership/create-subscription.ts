@@ -66,6 +66,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       'x-api-version': '2025-01-01',
       'x-client-id': env.CASHFREE_APP_ID,
       'x-client-secret': env.CASHFREE_SECRET_KEY,
+      'x-idempotency-key': crypto.randomUUID(),
     };
     const planResponse = await fetch('https://sandbox.cashfree.com/pg/plans/TANSUBASIC49', { headers });
     const plan: any = await planResponse.json().catch(() => ({}));
