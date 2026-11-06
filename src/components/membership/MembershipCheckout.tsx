@@ -11,10 +11,12 @@ declare global {
 
 type Customer = { id: string; email: string; display_name: string };
 type Subscription = { id: string; gateway_subscription_id: string; status: string; current_period_end: string | null; cancel_at_period_end: number | boolean; plan_name: string; monthly_amount_paise: number };
+type LatestPayment = { status: string; amount_paise: number; currency: string; paid_at: string | null; created_at: string };
 
 export const MembershipCheckout: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [latestPayment, setLatestPayment] = useState<LatestPayment | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [phone, setPhone] = useState('');
@@ -32,9 +34,10 @@ export const MembershipCheckout: React.FC = () => {
         if (alive) {
           setCustomer(data?.authenticated && data?.success ? data.customer : null);
           setSubscription(data?.subscription || null);
+          setLatestPayment(data?.latestPayment || null);
         }
       })
-      .catch(() => { if (alive) { setCustomer(null); setSubscription(null); } })
+      .catch(() => { if (alive) { setCustomer(null); setSubscription(null); setLatestPayment(null); } })
       .finally(() => { if (alive) setAuthChecked(true); });
 
     const scriptUrl = 'https://sdk.cashfree.com/js/v3/cashfree.js';
@@ -78,7 +81,7 @@ export const MembershipCheckout: React.FC = () => {
           if (alive) {
             fetch('/api/membership/account', { credentials: 'include', cache: 'no-store' })
               .then(async response => response.ok ? response.json() : null)
-              .then(data => { if (alive && data?.success) { setCustomer(data.customer); setSubscription(data.subscription || null); } })
+              .then(data => { if (alive && data?.success) { setCustomer(data.customer); setSubscription(data.subscription || null); setLatestPayment(data.latestPayment || null); } })
               .catch(() => {});
             params.delete('membership_subscription_id');
             const next = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
@@ -160,7 +163,7 @@ export const MembershipCheckout: React.FC = () => {
       setNoticeType(data.active ? 'success' : 'info');
       const accountResponse = await fetch('/api/membership/account', { credentials: 'include', cache: 'no-store' });
       const account = await accountResponse.json().catch(() => ({}));
-      if (accountResponse.ok && account.success) setSubscription(account.subscription || null);
+      if (accountResponse.ok && account.success) { setSubscription(account.subscription || null); setLatestPayment(account.latestPayment || null); }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Status check failed.');
       setNoticeType('error');
@@ -236,9 +239,23 @@ export const MembershipCheckout: React.FC = () => {
                   {cancelBusy ? 'Cancelling…' : 'Cancel auto-renewal'}
                 </button>
               ) : (
-                <button type="button" onClick={refreshMembershipStatus} className="mt-3 rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">
-                  Refresh payment status
-                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={refreshMembershipStatus} className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">
+                    Refresh payment status
+                  </button>
+                  {['pending', 'payment_failed', 'suspended'].includes(subscription.status) && (
+                    <button type="button" onClick={cancelAutoRenewal} disabled={cancelBusy} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-60">
+                      {cancelBusy ? 'Cancelling…' : 'Cancel subscription'}
+                    </button>
+                  )}
+                </div>
+              )}
+              {latestPayment && (
+                <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                  Latest payment: <strong className={latestPayment.status === 'success' ? 'text-emerald-700' : 'text-rose-700'}>{latestPayment.status}</strong>
+                  {' · '}₹{(latestPayment.amount_paise / 100).toFixed(2)}
+                  {latestPayment.paid_at ? ' · ' + new Date(latestPayment.paid_at).toLocaleString('en-IN') : ''}
+                </p>
               )}
             </div>
           )}
