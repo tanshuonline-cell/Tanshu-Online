@@ -256,7 +256,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
 
                     <h3
                       onClick={() => handleVideoClick(video)}
-                      className="text-sm sm:text-base font-extrabold tracking-tight mb-2 transition-colors cursor-pointer line-clamp-2 leading-snug ${isHindi ? 'text-slate-900 hover:text-[#C62828]' : 'text-[#C62828] hover:text-[#A61F2A]'}"
+                      className={`text-sm sm:text-base font-extrabold tracking-tight mb-2 transition-colors cursor-pointer line-clamp-2 leading-snug ${isHindi ? 'text-slate-900 hover:text-[#C62828]' : 'text-[#C62828] hover:text-[#A61F2A]'}`}
                     >
                       {displayTitle}
                     </h3>
