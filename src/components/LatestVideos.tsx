@@ -107,9 +107,10 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
     if (onCloseModal) onCloseModal();
   };
 
-  // Public Latest Videos section displays only active paid masterclasses; free guides remain stored but hidden.
+  // Public Latest Videos section currently features only the approved ₹49 Aadhaar Father Name Update video.
+  // Other video records remain stored and are not deleted.
   const displayedVideos = LATEST_VIDEOS.filter(
-    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+    (video) => video.id === 'video_1793562264012' && video.price === 49 && video.isActive !== false
   );
 
   return (
