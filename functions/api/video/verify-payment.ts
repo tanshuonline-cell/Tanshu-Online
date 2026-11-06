@@ -145,6 +145,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           success: true,
           isPaid: false,
           orderStatus: cfData.order_status,
+          videoId,
           message: `Order status is currently ${cfData.order_status}. Video remains locked until payment is confirmed.`,
         }),
         { status: 200, headers: corsHeaders }
