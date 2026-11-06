@@ -190,7 +190,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
     const session = await issueSession(customer, env.MEMBERSHIP_SESSION_SECRET!);
     const response = new Response(null, { status: 302, headers: {
-      Location: origin + '/?membership_login=success',
+      Location: origin + '/membership?membership_login=success',
       'Cache-Control': 'no-store',
     }});
     response.headers.append('Set-Cookie', COOKIE + '=' + session + '; ' + COOKIE_BASE + '; Max-Age=604800');
