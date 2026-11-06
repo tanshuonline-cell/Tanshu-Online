@@ -15,13 +15,13 @@ async function owner(r:Request,e:Env){
 export async function onRequestPost({request,env}:{request:Request;env:Env}){
  let local='';
  try{
-  if(!env.DB||!env.CASHFREE_APP_ID||!env.CASHFREE_SECRET_KEY||!env.MEMBERSHIP_SESSION_SECRET||env.CASHFREE_ENVIRONMENT==='PRODUCTION')return out({success:false,error:'Preview checkout is unavailable.'},503);
+  if(!env.DB||!env.CASHFREE_APP_ID||!env.CASHFREE_SECRET_KEY||!env.MEMBERSHIP_SESSION_SECRET||String(env.CASHFREE_ENVIRONMENT).toUpperCase()==='PRODUCTION')return out({success:false,error:'Preview checkout is unavailable.'},503);
   const c=await owner(request,env);if(!c)return out({success:false,error:'Please sign in with Google first.'},401);
   const b:any=await request.json().catch(()=>({})),phone=String(b.phone||'').replace(/[^0-9]/g,'');
   if(!/^[0-9]{10}$/.test(phone))return out({success:false,error:'Enter a valid 10-digit mobile number.'},400);
   const headers={'Content-Type':'application/json','x-api-version':'2026-01-01','x-client-id':env.CASHFREE_APP_ID,'x-client-secret':env.CASHFREE_SECRET_KEY};
   const p=await fetch('https://sandbox.cashfree.com/pg/plans/TANSUBASIC49',{headers}),plan:any=await p.json().catch(()=>({}));
-  if(!p.ok||Number(plan.plan_recurring_amount)!==49||plan.plan_currency!=='INR'||Number(plan.plan_intervals)!==1||String(plan.plan_interval_type).toUpperCase()!=='MONTH'||String(plan.plan_status).toUpperCase()!=='ACTIVE')
+  if(!p.ok||Number(plan.plan_recurring_amount)!==49||plan.plan_currency!=='INR'||String(plan.plan_type).toUpperCase()!=='PERIODIC'||Number(plan.plan_intervals)!==1||String(plan.plan_interval_type).toUpperCase()!=='MONTH'||String(plan.plan_status).toUpperCase()!=='ACTIVE')
    return out({success:false,error:'Cashfree plan is not verified as active Basic ₹49/month.'},409);
   const prior=await env.DB.prepare("SELECT id FROM membership_subscriptions WHERE customer_id=? AND status IN ('pending','active','payment_failed','suspended')").bind(c.id).first();
   if(prior)return out({success:false,error:'An existing membership subscription needs a status check before starting another.'},409);
