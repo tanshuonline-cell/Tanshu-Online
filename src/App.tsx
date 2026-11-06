@@ -19,6 +19,7 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
 import { MembershipPage } from './components/membership/MembershipPage';
+import { MembershipCheckoutPage } from './components/membership/MembershipCheckoutPage';
 import { MembershipAccountPage } from './components/membership/MembershipAccountPage';
 import { MembershipChatPage } from './components/membership/MembershipChatPage';
 import { MembershipHomeSection } from './components/membership/MembershipHomeSection';
@@ -27,7 +28,7 @@ import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership' | 'account' | 'membership-chat'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'membership' | 'membership-checkout' | 'account' | 'membership-chat'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -68,6 +69,7 @@ export default function App() {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
     const isMembership = pathname === '/membership';
+    const isMembershipCheckout = pathname === '/membership/checkout';
     const isAccount = pathname === '/account';
     const isMembershipChat = pathname === '/account/chat';
     const isVideoCatalog = pathname === '/videos';
@@ -81,6 +83,8 @@ export default function App() {
       ? 'Private Admin Chat | TANSHU ONLINE'
       : isAccount
       ? 'Customer Dashboard | TANSHU ONLINE'
+      : isMembershipCheckout
+      ? 'Basic Membership Checkout | TANSHU ONLINE'
       : isMembership
       ? 'Membership Plans | TANSHU ONLINE'
       : isVideoCatalog
@@ -92,6 +96,8 @@ export default function App() {
       ? 'TANSHU ONLINE सदस्यता का निजी Admin Chat.'
       : isAccount
       ? 'TANSHU ONLINE Customer Dashboard: membership status, payments, renewal और private Admin chat.'
+      : isMembershipCheckout
+      ? 'TANSHU ONLINE Basic Membership ₹49/month secure checkout preview.'
       : isMembership
       ? 'TANSHU ONLINE की मासिक सदस्यता योजनाएँ देखें और Admin के साथ निजी चैट द्वारा जानकारी एवं सहायता प्राप्त करें।'
       : isVideoCatalog
@@ -161,7 +167,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/account/chat' || hash === '#account/chat') {
+      if (pathname === '/membership/checkout' || hash === '#membership/checkout') {
+        setCurrentPage('membership-checkout');
+      } else if (pathname === '/account/chat' || hash === '#account/chat') {
         setCurrentPage('membership-chat');
       } else if (pathname === '/account' || hash === '#account') {
         setCurrentPage('account');
@@ -210,7 +218,7 @@ export default function App() {
     }
   }, [currentPage, adminUser]);
 
-  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership' | 'account' | 'membership-chat', pushUrl?: string) => {
+  const navigateTo = (page: 'home' | 'videos' | 'admin' | 'membership' | 'membership-checkout' | 'account' | 'membership-chat', pushUrl?: string) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (pushUrl && window.location.pathname !== pushUrl) {
@@ -335,6 +343,20 @@ export default function App() {
         onLoginSuccess={(user) => setAdminUser(user)}
         onBackToSite={() => navigateTo('home', '/')}
       />
+    );
+  }
+
+  // DEDICATED BASIC MEMBERSHIP CHECKOUT PAGE
+  if (currentPage === 'membership-checkout') {
+    return (
+      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased">
+        <Header onNavigate={scrollToSection} activeSection="membership" />
+        <MembershipCheckoutPage
+          onBackToPlans={() => navigateTo('membership', '/membership')}
+          onBackHome={() => navigateTo('home', '/')}
+        />
+        <Footer onNavigate={scrollToSection} />
+      </div>
     );
   }
 
