@@ -53,7 +53,7 @@ export const SocialStrip: React.FC = () => {
             </span>
           </div>
 
-          {socialLinks.map((item) => (
+          {socialLinks.filter((item) => !item.isWhatsApp).map((item) => (
             <a
               key={item.name}
               href={item.url}
