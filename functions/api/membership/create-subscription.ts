@@ -4,7 +4,6 @@ interface Env {
   CASHFREE_SECRET_KEY: string;
   CASHFREE_ENVIRONMENT: string;
   MEMBERSHIP_SESSION_SECRET: string;
-  APP_BASE_URL: string;
 }
 
 const HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -42,7 +41,7 @@ async function getCustomer(request: Request, env: Env) {
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   let localId = '';
   try {
-    if (!env.DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || !env.MEMBERSHIP_SESSION_SECRET || !env.APP_BASE_URL ||
+    if (!env.DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || !env.MEMBERSHIP_SESSION_SECRET ||
         String(env.CASHFREE_ENVIRONMENT).toUpperCase() !== 'SANDBOX') {
       return json({ success: false, error: 'Preview checkout is not configured.' }, 503);
     }
@@ -55,9 +54,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!/^[6-9]\d{9}$/.test(phone)) return json({ success: false, error: 'Enter a valid 10-digit Indian mobile number.' }, 400);
     if (!consent) return json({ success: false, error: 'Please confirm the monthly recurring payment consent.' }, 400);
 
-    const base = new URL(env.APP_BASE_URL);
-    if (base.protocol !== 'https:' || !base.hostname.endsWith('.tanshu-online.pages.dev') || base.hostname === 'tanshu-online.pages.dev' || base.pathname !== '/' || base.search || base.hash || base.origin !== env.APP_BASE_URL.replace(/\/$/, '')) {
-      return json({ success: false, error: 'Preview APP_BASE_URL must be an HTTPS origin.' }, 503);
+    // Keep the Cashfree return URL on the same Preview host that initiated checkout.
+    // This avoids stale deployment URLs and preserves the customer's session origin.
+    const base = new URL(request.url);
+    if (base.protocol !== 'https:' || !base.hostname.endsWith('.tanshu-online.pages.dev') || base.hostname === 'tanshu-online.pages.dev' || base.username || base.password || base.port) {
+      return json({ success: false, error: 'Preview request origin must be an HTTPS TANSHU ONLINE Pages deployment.' }, 503);
     }
 
     const headers = {
