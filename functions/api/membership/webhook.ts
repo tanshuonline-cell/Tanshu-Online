@@ -2,7 +2,6 @@ interface Env {
   DB: any;
   CASHFREE_APP_ID: string;
   CASHFREE_SECRET_KEY: string;
-  CASHFREE_WEBHOOK_SECRET: string;
   CASHFREE_ENVIRONMENT: string;
 }
 
@@ -60,21 +59,20 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (
     !env.DB ||
     !env.CASHFREE_APP_ID ||
-    !env.CASHFREE_SECRET_KEY ||
-    !env.CASHFREE_WEBHOOK_SECRET
+    !env.CASHFREE_SECRET_KEY
   ) {
     console.error('Cashfree membership webhook is missing required Preview configuration.');
     return reply(503);
   }
 
-  // Cashfree signs the exact raw body with the dedicated webhook secret.
+  // Cashfree signs the exact raw body with the Cashfree Client Secret Key.
   const rawBody = await request.text();
   const signature = request.headers.get('x-webhook-signature') || '';
   const timestamp = request.headers.get('x-webhook-timestamp') || '';
 
   if (!signature || !timestamp) return reply(401);
 
-  const expectedSignature = await hmac(env.CASHFREE_WEBHOOK_SECRET, timestamp + rawBody);
+  const expectedSignature = await hmac(env.CASHFREE_SECRET_KEY, timestamp + rawBody);
   if (!equal(expectedSignature, signature)) return reply(401);
 
   let event: any;
