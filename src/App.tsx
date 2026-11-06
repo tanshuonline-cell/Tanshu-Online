@@ -75,12 +75,12 @@ export default function App() {
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
         ? `${video.title} | TANSHU ONLINE`
-        : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
+        : 'TANSHU ONLINE | Digital Public Tools & Services Portal';
     const description = isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
         ? (video.description || video.title).slice(0, 300)
-        : 'TANSHU ONLINE पर उपयोगी ऑनलाइन टूल्स, सरकारी सेवाओं और योजनाओं की जानकारी, दस्तावेज़ संबंधी सुविधाएँ और वीडियो गाइड एक ही जगह पाएँ।';
+        : 'TANSHU ONLINE एक Digital Public Tools & Services Portal है जहाँ photo, PDF, document tools, सरकारी सेवाओं की जानकारी और video guides मिलते हैं।';
     const canonicalUrl = `${siteUrl}${pathname === '/' ? '/' : pathname}`;
 
     document.title = title;
@@ -95,6 +95,7 @@ export default function App() {
     };
     setMeta('meta[name="description"]', 'name', 'description', description);
     setMeta('meta[property="og:title"]', 'property', 'og:title', title);
+    setMeta('meta[property="og:site_name"]', 'property', 'og:site_name', 'TANSHU ONLINE');
     setMeta('meta[property="og:description"]', 'property', 'og:description', description);
     setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
