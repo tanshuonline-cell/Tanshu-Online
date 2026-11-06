@@ -421,6 +421,8 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   </div>
                 )
               )}
+            </div>
+          </div>
 
           {/* Right Column: Pricing & Purchase Card */}
           <div className="space-y-6">
