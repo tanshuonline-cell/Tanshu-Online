@@ -35,7 +35,7 @@ export default function App() {
   // Confirm the HttpOnly admin session with the server before allowing copy access.
   useEffect(() => {
     let active = true;
-    fetch('/api/admin/auth/check', { credentials: 'include' })
+    fetch('/api/admin/auth', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (active) setAdminCopyAllowed(Boolean(data?.authenticated && data?.user?.role));
@@ -199,7 +199,7 @@ export default function App() {
   // Check existing admin session cookie on mount
   useEffect(() => {
     if (currentPage === 'admin' && !adminUser) {
-      fetch('/api/admin/auth/check', { credentials: 'include' })
+      fetch('/api/admin/auth', { credentials: 'include' })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data && data.authenticated && data.user) {
@@ -227,7 +227,7 @@ export default function App() {
 
   const handleAdminLogout = async () => {
     try {
-      await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' });
+      await fetch('/api/admin/auth?action=logout', { method: 'POST', credentials: 'include' });
     } catch {}
     setAdminUser(null);
     navigateTo('home', '/');
