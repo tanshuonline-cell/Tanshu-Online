@@ -184,90 +184,23 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
     }
   };
 
-  // 3. Secure Two-Factor OTP Restore Access Handlers
-  const [restoreOtpSent, setRestoreOtpSent] = useState<boolean>(false);
-  const [otpCode, setOtpCode] = useState<string>('');
-
-  const handleRequestRestoreOtp = async (e: React.FormEvent) => {
+  // Restore only after matching the Cashfree order and registered phone.
+  const [restoreOrderId, setRestoreOrderId] = useState<string>('');
+  const handleRestoreAccess = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPhoneValid) {
-      setErrorMessage('Please enter your 10-digit registered mobile number.');
-      return;
-    }
-
-    setStep('verifying');
-    setStatusMessage('Checking 2-Factor SMS OTP verification service...');
-    setErrorMessage(null);
-
+    if (!isPhoneValid || !restoreOrderId.trim()) { setErrorMessage('Enter the registered mobile number and Cashfree order reference.'); return; }
+    setStep('verifying'); setStatusMessage('Re-checking your paid order securely with Cashfree...'); setErrorMessage(null);
     try {
       const response = await fetch('/api/video/restore-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'request_otp',
-          videoId: video.id,
-          customerPhone: sanitizedPhone,
-        }),
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore_by_order', orderId: restoreOrderId.trim(), videoId: video.id, customerPhone: sanitizedPhone }),
       });
-
       const data = await response.json();
-
-      if (response.ok && data.success && data.otpConfigured) {
-        setStep('form');
-        setRestoreOtpSent(true);
-        setStatusMessage(data.message || 'OTP sent successfully.');
-      } else {
-        setStep('form');
-        setErrorMessage(
-          data.error ||
-          'Two-Factor SMS OTP verification service is not configured on this server. To protect customer purchases from unauthorized access, restoring access by mobile number alone is strictly disabled. Please contact support at tanshuonline@gmail.com with your Cashfree payment receipt or order ID to restore your access.'
-        );
-      }
-    } catch (err: any) {
-      setStep('form');
-      setErrorMessage(err.message || 'Network error checking access restoration service.');
-    }
-  };
-
-  const handleVerifyRestoreOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.trim().length < 4) {
-      setErrorMessage('Please enter the 4 to 6 digit OTP sent to your phone.');
-      return;
-    }
-
-    setStep('verifying');
-    setStatusMessage('Verifying OTP code...');
-    setErrorMessage(null);
-
-    try {
-      const response = await fetch('/api/video/restore-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify_otp',
-          videoId: video.id,
-          customerPhone: sanitizedPhone,
-          otpCode: otpCode.trim(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success && data.authorized) {
-        setStep('success');
-        setStatusMessage('Two-Factor identity confirmed! Loading player...');
-        setTimeout(() => {
-          onPaymentSuccess(video.id, sanitizedPhone, data.sessionToken);
-        }, 1200);
-      } else {
-        setStep('form');
-        setErrorMessage(data.error || 'Two-Factor verification failed. Access denied.');
-      }
-    } catch (err: any) {
-      setStep('form');
-      setErrorMessage(err.message || 'Verification service error.');
-    }
+      if (response.ok && data.success && data.authorized && data.sessionToken) {
+        setStep('success'); setStatusMessage('Payment re-verified. Your video access is restored.');
+        setTimeout(() => onPaymentSuccess(video.id, sanitizedPhone, data.sessionToken), 700);
+      } else { setStep('form'); setErrorMessage(data.error || 'We could not verify this paid order. Check the order reference and mobile number.'); }
+    } catch (err: any) { setStep('form'); setErrorMessage(err.message || 'Network error while restoring access.'); }
   };
 
   const videoPrice = video.price || 99;
@@ -451,73 +384,26 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
               ) : (
                 <div className="space-y-4">
                   <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
-                    <strong className="block font-bold text-blue-950 mb-0.5">Account Security Policy:</strong>
-                    To protect customer purchases from unauthorized viewing, access restoration requires Two-Factor SMS OTP verification to your registered mobile number.
+                    <strong className="block font-bold text-blue-950 mb-0.5">Secure purchase recovery:</strong>
+                    Enter the Cashfree order reference from your payment receipt and the same mobile number used at checkout. We verify the paid order directly with Cashfree before restoring access.
                   </div>
-
-                  {!restoreOtpSent ? (
-                    <form onSubmit={handleRequestRestoreOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Registered Mobile Number <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-500">
-                            +91
-                          </span>
-                          <input
-                            type="tel"
-                            maxLength={10}
-                            required
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            placeholder="98765 43210"
-                            className="w-full pl-12 pr-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 transition-all outline-hidden"
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          A 2-Factor verification code will be sent to this number to verify ownership.
-                        </p>
+                  <form onSubmit={handleRestoreAccess} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Registered Mobile Number <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-500">+91</span>
+                        <input type="tel" maxLength={10} required value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="98765 43210" className="w-full pl-12 pr-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 transition-all outline-hidden" />
                       </div>
-
-                      <button
-                        type="submit"
-                        disabled={!isPhoneValid}
-                        className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                      >
-                        <span>Send Verification OTP (2FA)</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyRestoreOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Enter Verification OTP <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          required
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="Enter 6-digit OTP"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-bold tracking-widest text-slate-900 placeholder:text-slate-400 transition-all outline-hidden text-center"
-                        />
-                        <p className="text-[10px] text-slate-500 mt-1">
-                          Sent to +91 {sanitizedPhone}
-                        </p>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span>Verify OTP & Unlock Access</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Cashfree Order Reference <span className="text-red-500">*</span></label>
+                      <input type="text" required maxLength={64} value={restoreOrderId} onChange={(e) => setRestoreOrderId(e.target.value)} placeholder="TANSHU_..." className="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400 outline-hidden" />
+                      <p className="text-[10px] text-slate-500 mt-1">Find this reference in your Cashfree payment confirmation or receipt.</p>
+                    </div>
+                    <button type="submit" disabled={!isPhoneValid || !restoreOrderId.trim()} className="w-full py-3 px-4 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
+                      <span>Verify Paid Order & Restore Access</span><ArrowRight className="w-4 h-4" />
+                    </button>
+                  </form>
                 </div>
               )}
             </>
