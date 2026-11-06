@@ -67,12 +67,11 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       if (existingAccess) {
         return new Response(
           JSON.stringify({
-            success: true,
+            success: false,
             alreadyPurchased: true,
-            message: 'You already have active access to this premium video.',
-            videoId,
+            error: 'This mobile number already has an active purchase for this video. No new payment was created. Please contact support to restore access on this device.',
           }),
-          { status: 200, headers: corsHeaders }
+          { status: 409, headers: corsHeaders }
         );
       }
     } catch (dbErr) {
