@@ -329,6 +329,80 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   </div>
                 </div>
               )}
+
+              {/* Targeted One-Time Purchase information footer: only the ₹49 Aadhaar video */}
+              {video.id === 'video_1793562264012' && (
+                <section className="mt-5 rounded-xl border border-red-200 bg-red-50/70 p-4 sm:p-5 space-y-4" aria-labelledby="aadhaar-info-footer-title">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <h2 id="aadhaar-info-footer-title" className="text-sm sm:text-base font-extrabold text-red-800">
+                        {aboutLang === 'hi' ? 'इस वीडियो में आपको क्या-क्या जानकारी मिलेगी?' : 'What Information Will You Get in This Video?'}
+                      </h2>
+                      <p className="mt-1 text-[11px] text-red-700">
+                        {aboutLang === 'hi' ? 'महत्वपूर्ण जानकारी • आधिकारिक UIDAI स्रोत • आवेदन से पहले सावधानियाँ' : 'Important guidance • Official UIDAI sources • Precautions before applying'}
+                      </p>
+                    </div>
+                    <div className="inline-flex self-start sm:self-auto rounded-lg border border-red-200 bg-white p-0.5 shrink-0" aria-label="Choose information language">
+                      <button type="button" onClick={() => setAboutLang('hi')} aria-pressed={aboutLang === 'hi'} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${aboutLang === 'hi' ? 'bg-red-700 text-white' : 'text-red-800 hover:bg-red-50'}`}>हिंदी</button>
+                      <button type="button" onClick={() => setAboutLang('en')} aria-pressed={aboutLang === 'en'} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${aboutLang === 'en' ? 'bg-red-700 text-white' : 'text-red-800 hover:bg-red-50'}`}>English</button>
+                    </div>
+                  </div>
+
+                  {aboutLang === 'hi' ? (
+                    <div className="space-y-3 text-xs sm:text-sm leading-relaxed text-slate-700">
+                      <ol className="list-decimal pl-5 space-y-2 marker:font-bold marker:text-red-700">
+                        <li><strong className="text-slate-900">पिता के नाम से जुड़ी जानकारी गलत है:</strong> Aadhaar में पिता का नाम किस जगह (जैसे C/O या अन्य संबंधित विवरण) दिखाई दे रहा है, उसे समझना और उपलब्ध सुधार विकल्पों की जानकारी।</li>
+                        <li><strong className="text-slate-900">पिता का नाम सही है, लेकिन पता गलत है:</strong> पता अपडेट करने के संभावित तरीके और स्वीकार्य सहायक दस्तावेजों की जानकारी।</li>
+                        <li><strong className="text-slate-900">Head of Family (HOF) के बिना आवेदन:</strong> अपने दस्तावेजों के आधार पर उपलब्ध विकल्प, उनकी शर्तें और सीमाएँ।</li>
+                        <li><strong className="text-slate-900">पति के निधन के बाद महिलाओं के मामले:</strong> पति के नाम और वर्तमान पते से जुड़े विवरणों के लिए उपलब्ध प्रक्रिया और दस्तावेजों को समझना।</li>
+                        <li><strong className="text-slate-900">पिता के निधन के बाद:</strong> पिता से संबंधित विवरण या पते के मामलों में उपलब्ध विकल्प और जरूरी दस्तावेजों की जानकारी।</li>
+                        <li><strong className="text-slate-900">Step-by-Step मार्गदर्शन:</strong> आवेदन से पहले तैयारी, जानकारी जाँचना, दस्तावेज चुनना और आधिकारिक प्रक्रिया को समझना।</li>
+                      </ol>
+                      <div className="rounded-lg border border-red-200 bg-white p-3 space-y-2">
+                        <h3 className="font-extrabold text-red-800">महत्वपूर्ण सूचना</h3>
+                        <p>यह वीडियो केवल शैक्षणिक और जानकारी देने के उद्देश्य से है। Aadhaar में पिता का नाम अलग स्वतंत्र फ़ील्ड के रूप में उपलब्ध हो, यह जरूरी नहीं; कई मामलों में संबंधित जानकारी पते के C/O जैसे विवरण में हो सकती है। कौन-सा अपडेट संभव है, यह UIDAI के वर्तमान नियमों, पहचान/पते के स्वीकार्य दस्तावेजों और सत्यापन पर निर्भर करता है। किसी आवेदन की स्वीकृति या सफल अपडेट की गारंटी नहीं है।</p>
+                        <p><strong>गोपनीयता:</strong> हम आपसे Aadhaar OTP, पासवर्ड या बायोमेट्रिक जानकारी नहीं माँगते। यदि UIDAI की आधिकारिक वेबसाइट पर OTP की आवश्यकता हो, तो उसे केवल उसी आधिकारिक UIDAI पोर्टल पर स्वयं दर्ज करें।</p>
+                        <p><strong>खरीद:</strong> यह One-Time Purchase वीडियो है। भुगतान सफल और सत्यापित होने पर वीडियो का एक्सेस अनलॉक होता है। खरीदने से पहले वीडियो का विवरण ध्यान से पढ़ें।</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="font-bold text-red-800">आधिकारिक UIDAI लिंक</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://myaadhaar.uidai.gov.in/" target="_blank" rel="noopener noreferrer">myAadhaar आधिकारिक पोर्टल</a></li>
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/enrolment-and-updates" target="_blank" rel="noopener noreferrer">Enrolment &amp; Updates / नामांकन और अपडेट</a></li>
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/updating-data-on-aadhaar" target="_blank" rel="noopener noreferrer">Updating Data on Aadhaar / Aadhaar डेटा अपडेट</a></li>
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/regulations" target="_blank" rel="noopener noreferrer">UIDAI Regulations / नियम और विनियम</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 text-xs sm:text-sm leading-relaxed text-slate-700">
+                      <ol className="list-decimal pl-5 space-y-2 marker:font-bold marker:text-red-700">
+                        <li><strong className="text-slate-900">Incorrect father-related details:</strong> Understand where the father's name appears in Aadhaar (such as C/O or another related detail) and learn about the available correction options.</li>
+                        <li><strong className="text-slate-900">Correct father's name, incorrect address:</strong> Learn about possible address-update routes and acceptable supporting documents.</li>
+                        <li><strong className="text-slate-900">Applying without a Head of Family (HOF):</strong> Understand options based on your own documents, along with their conditions and limitations.</li>
+                        <li><strong className="text-slate-900">For women whose husband has passed away:</strong> Understand the available process and documents for details related to the husband's name and the current address.</li>
+                        <li><strong className="text-slate-900">When the father has passed away:</strong> Learn about possible options and supporting documents for father-related details or address matters.</li>
+                        <li><strong className="text-slate-900">Step-by-step guidance:</strong> Preparation before applying, checking details, choosing documents, and understanding the official process.</li>
+                      </ol>
+                      <div className="rounded-lg border border-red-200 bg-white p-3 space-y-2">
+                        <h3 className="font-extrabold text-red-800">Important Notice</h3>
+                        <p>This video is for educational and informational purposes only. Aadhaar does not necessarily provide a separate independent “father's name” field; in many cases, related information may appear in address details such as C/O. Whether an update is possible depends on current UIDAI rules, accepted identity/address documents, and verification. Approval or successful updating is not guaranteed.</p>
+                        <p><strong>Privacy:</strong> We do not ask for your Aadhaar OTP, password, or biometric information. If an OTP is required on UIDAI's official website, enter it yourself only on the official UIDAI portal.</p>
+                        <p><strong>Purchase:</strong> This is a One-Time Purchase video. Access is unlocked after successful payment verification. Please read the video details carefully before purchasing.</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="font-bold text-red-800">Official UIDAI Links</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://myaadhaar.uidai.gov.in/" target="_blank" rel="noopener noreferrer">myAadhaar Official Portal</a></li>
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/enrolment-and-updates" target="_blank" rel="noopener noreferrer">Enrolment &amp; Updates</a></li>
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/updating-data-on-aadhaar" target="_blank" rel="noopener noreferrer">Updating Data on Aadhaar</a></li>
+                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/regulations" target="_blank" rel="noopener noreferrer">UIDAI Regulations</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
             </div>
           </div>
 
