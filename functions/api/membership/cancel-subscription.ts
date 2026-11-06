@@ -19,7 +19,7 @@ async function getCustomer(request: Request, env: Env) {
   const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(parts[0])));
   let binary = '';
   bytes.forEach(b => binary += String.fromCharCode(b));
-  const expected = btoa(binary).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');
+  const expected = btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   if (expected.length !== parts[1].length) return null;
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ parts[1].charCodeAt(i);
