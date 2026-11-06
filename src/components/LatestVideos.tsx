@@ -118,12 +118,12 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1 flex items-center gap-1.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#C62828] mb-1 flex items-center gap-1.5">
               <span>{t('videos.kicker', 'Practical Video Tutorials & Masterclasses')}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" />
               <span className="text-amber-600 font-bold">{isHindi ? 'Cloudflare Stream सुरक्षित वीडियो प्लेबैक • डायनामिक वॉटरमार्क' : 'Cloudflare Stream Token-Signed Playback & Dynamic Watermarking'}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#C62828] tracking-tight">
               {t('videos.title', 'Latest Videos & Masterclasses')}
             </h2>
           </div>
@@ -256,7 +256,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
 
                     <h3
                       onClick={() => handleVideoClick(video)}
-                      className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight mb-2 hover:text-blue-700 transition-colors cursor-pointer line-clamp-2 leading-snug"
+                      className="text-sm sm:text-base font-extrabold tracking-tight mb-2 transition-colors cursor-pointer line-clamp-2 leading-snug ${isHindi ? 'text-slate-900 hover:text-[#C62828]' : 'text-[#C62828] hover:text-[#A61F2A]'}"
                     >
                       {displayTitle}
                     </h3>
