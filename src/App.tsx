@@ -532,6 +532,7 @@ export default function App() {
 
         {/* Latest Videos & Tutorials Hub */}
         <LatestVideos
+          videos={catalogVideos}
           selectedVideoModal={selectedVideo}
           onCloseModal={() => setSelectedVideo(null)}
         />
