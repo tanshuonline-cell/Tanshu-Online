@@ -399,6 +399,7 @@ export default function App() {
         />
         <MembershipPage
           onBackHome={() => navigateTo('home', '/')}
+          onPayNow={() => navigateTo('membership-checkout', '/membership/checkout')}
         />
         <Footer onNavigate={scrollToSection} />
         <CustomerAuthModal
