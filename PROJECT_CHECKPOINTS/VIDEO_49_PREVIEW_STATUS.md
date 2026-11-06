@@ -11,27 +11,36 @@ Last updated: 2026-11-06
 
 ## Current preview
 - Branch: `fix/video49-clean-from-223-preview`
-- Last known code commit before this checkpoint document: `78ba1a44ecef622e4669145f76b8a2fc62e509ac`
+- Code and copy-accuracy fixes are committed after the initial `78ba1a4` checkpoint; use the current branch head as the latest source of truth.
 - Preview URL: https://67bd5244.tanshu-online.pages.dev
 - Video page: https://67bd5244.tanshu-online.pages.dev/video/video_1793562264012
 - Video: Aadhaar Card Father Name Update - Complete Step-by-Step Guide
 - Price: INR 49, one-time
 - Preview Cashfree environment was confirmed as SANDBOX by the user. Never ask for or store secret values.
 
-## Verified in the latest preview session (2026-11-06)
-- Video page rendered and showed the checkout form.
-- User entered a new mobile number and clicked the payment button.
-- Cashfree checkout opened successfully.
-- Checkout displayed amount ₹49.
-- Checkout displayed payment methods: UPI QR, card, wallets, net banking, and Pay Later.
-- The entered mobile number appeared at the top of checkout.
-- Business name area displayed only a single letter "B" / the generic Business Name label, not the full brand name TANSHU ONLINE.
-- User was instructed not to complete this checkout payment. No payment was made in this latest test.
+## Verified in the latest Preview session (2026-11-06)
+- Cashfree Checkout opened in SANDBOX and displayed INR 49.
+- Cashfree Simulator accepted test OTP `111000` with Simulation Status `SUCCESS`.
+- User saw “Payment verified successfully. Your video is unlocked.”
+- User confirmed the video playback worked.
+- User refreshed the page and confirmed access remained unlocked.
+- In Incognito, the page found the previous purchase; the user supplied the same mobile number and Cashfree order reference and confirmed Restore opened the video.
+- Restore did not create a new payment.
+- These are user-observed end-to-end Sandbox results for the current Preview session, including server verification, entitlement, playback, and restore.
+- Cashfree hosted checkout still displayed generic “B / Business Name”; the brand display request was awaiting approval.
 
-## Earlier test history (do not confuse with latest commit)
-- On an earlier Preview build, the user reported a successful Sandbox payment and video playback.
-- The user also reported that repeat access and "Already Purchased? Restore" worked for the same phone.
-- That earlier result does not by itself prove the current `78ba1a4` build, D1 setup, webhook, or Production setup is correct.
+## Code review and accuracy correction (2026-11-06)
+- Compared this isolated branch with safe baseline `223f000fc53b9a9b03edc52c39af6e35982ab8a4`: only the video/payment routes, video UI/player, and a payment-return effect in `src/App.tsx` are changed. No homepage component files or unrelated tools are in the comparison.
+- The video uses the user's chosen YouTube Unlisted source; no Cloudflare Stream purchase or migration is intended.
+- Corrected visible playback claims that incorrectly said Cloudflare Stream token-signed playback and dynamic watermarking. The player now describes verified purchase access and the licensed mobile number overlay accurately.
+- YouTube Unlisted links can still be opened outside the site if shared; this is the user's knowingly accepted hosting tradeoff.
+
+## Production release blockers — do not deploy yet
+- Production D1 binding named exactly `DB` and the required tables/video row have not been independently verified. Preview D1 was verified.
+- Production Cashfree credentials must be confirmed as the real Production App ID/Secret, with `CASHFREE_ENVIRONMENT=PRODUCTION`; secret values must never be pasted into chat.
+- Confirm the Production video row is active/premium at INR 49 and has the correct YouTube URL.
+- Confirm a successful build/deployment of the current branch and re-check the corrected visible labels on Preview.
+- Do not merge to `main`, change Production settings, or accept real customer payments until the user explicitly approves the release and the Production checks above are complete.
 
 ## Latest investigation — Cashfree brand name (2026-11-06)
 - Audited the Preview `create-order.ts` payload. It sends order/customer details and order note, but no merchant checkout brand-name field; Cashfree's hosted checkout header brand is configured in the Cashfree Merchant Dashboard, not by adding a guessed field to this order payload.
@@ -56,5 +65,6 @@ Last updated: 2026-11-06
 - `src/App.tsx`
 - `src/components/video/CashfreeCheckoutModal.tsx`
 - `src/components/video/VideoDetailPage.tsx`
+- `src/components/video/PremiumVideoPlayer.tsx`
 
 This file is a progress log, not proof that all payment, database, playback, or Production checks have passed. Update it after every verified milestone and preserve previous completed checkpoints in Git history.
