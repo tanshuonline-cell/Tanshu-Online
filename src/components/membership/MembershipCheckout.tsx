@@ -11,7 +11,7 @@ declare global {
 
 type Customer = { id: string; email: string; display_name: string };
 type Subscription = { id: string; gateway_subscription_id: string; status: string; current_period_end: string | null; cancel_at_period_end: number | boolean; plan_name: string; monthly_amount_paise: number };
-type LatestPayment = { status: string; amount_paise: number; currency: string; paid_at: string | null; created_at: string };
+type LatestPayment = { status: string; amount_paise: number; currency: string; gateway_payment_id: string | null; paid_at: string | null; created_at: string };
 
 export const MembershipCheckout: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -233,7 +233,11 @@ export const MembershipCheckout: React.FC = () => {
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${subscription.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{subscription.status === 'active' ? 'Active' : subscription.status}</span>
               </div>
               {subscription.cancel_at_period_end ? (
-                <p className="mt-2 text-xs leading-5 text-amber-800">Auto-renewal cancelled. Access remains until {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-IN') : 'the paid period ends'}.</p>
+                <p className="mt-2 text-xs leading-5 text-amber-800">
+                  {subscription.status === 'active' && subscription.current_period_end
+                    ? `Auto-renewal cancelled. Access remains until ${new Date(subscription.current_period_end).toLocaleDateString('en-IN')}.`
+                    : 'Subscription cancelled. No future recurring renewals are scheduled.'}
+                </p>
               ) : subscription.status === 'active' ? (
                 <button type="button" onClick={cancelAutoRenewal} disabled={cancelBusy} className="mt-3 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-60">
                   {cancelBusy ? 'Cancelling…' : 'Cancel auto-renewal'}
@@ -254,7 +258,7 @@ export const MembershipCheckout: React.FC = () => {
                 <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
                   Latest payment: <strong className={latestPayment.status === 'success' ? 'text-emerald-700' : 'text-rose-700'}>{latestPayment.status}</strong>
                   {' · '}₹{(latestPayment.amount_paise / 100).toFixed(2)}
-                  {latestPayment.paid_at ? ' · ' + new Date(latestPayment.paid_at).toLocaleString('en-IN') : ''}
+                  {latestPayment.paid_at ? ' · ' + new Date(latestPayment.paid_at).toLocaleString('en-IN') : ''}{latestPayment.gateway_payment_id ? ' · Ref: ' + latestPayment.gateway_payment_id : ''}
                 </p>
               )}
             </div>
