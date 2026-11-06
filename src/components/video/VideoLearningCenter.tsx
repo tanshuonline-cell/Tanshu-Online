@@ -16,11 +16,11 @@ export const VideoLearningCenter: React.FC<Props> = ({
   videos = LATEST_VIDEOS,
 }) => {
   const { t, isHindi } = useLanguage();
-  // Public learning center intentionally displays paid videos only. Free guides remain stored for admin/future use.
-  // Public learning center currently features only the ₹49 Aadhaar Father Name Update video.
-  // Other video records remain stored and are not deleted.
+  // Show all active premium masterclasses from the live catalog.
+  // The approved ₹49 Aadhaar video and the three existing paid thumbnail cards remain intact.
+  // Free guides remain stored but are not shown in this premium section.
   const displayedVideos = videos.filter(
-    (video) => video.id === 'video_1793562264012' && video.price === 49 && video.isActive !== false
+    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
   );
 
   return (
