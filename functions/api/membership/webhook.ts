@@ -149,12 +149,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     );
     const localStatus = mapSubscriptionStatus(subscriptionStatus, authorizationStatus);
 
-    if (localStatus !== 'pending') {
+    if (localStatus === 'cancelled') {
+      const existingSubscription = await env.DB.prepare(
+        "SELECT id,status,current_period_end FROM membership_subscriptions WHERE gateway='cashfree' AND gateway_subscription_id=? LIMIT 1",
+      ).bind(subscriptionId).first();
+      const paidThrough = existingSubscription?.current_period_end ? new Date(existingSubscription.current_period_end) : null;
+      if (existingSubscription?.status === 'active' && paidThrough && !Number.isNaN(paidThrough.getTime()) && paidThrough.getTime() > Date.now()) {
+        await env.DB.prepare(
+          "UPDATE membership_subscriptions SET cancel_at_period_end=1,cancelled_at=COALESCE(cancelled_at,CURRENT_TIMESTAMP),updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        ).bind(existingSubscription.id).run();
+      } else {
+        await env.DB.prepare(
+          "UPDATE membership_subscriptions SET status='cancelled',cancel_at_period_end=1,cancelled_at=COALESCE(cancelled_at,CURRENT_TIMESTAMP),updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
+        ).bind(subscriptionId).run();
+      }
+    } else if (localStatus !== 'pending') {
       await env.DB.prepare(
         "UPDATE membership_subscriptions SET status=?,updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
-      )
-        .bind(localStatus, subscriptionId)
-        .run();
+      ).bind(localStatus, subscriptionId).run();
     }
 
     // AUTH is only mandate authorisation (often a small refundable verification amount).
