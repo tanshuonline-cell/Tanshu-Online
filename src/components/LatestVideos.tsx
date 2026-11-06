@@ -19,7 +19,6 @@ interface PurchasedRecord {
 
 export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal }) => {
   const { t, isHindi } = useLanguage();
-  const [filterType, setFilterType] = useState<'all' | 'free' | 'premium'>('all');
 
   // Video playback & modal states
   const [activeFreeVideo, setActiveFreeVideo] = useState<VideoGuide | null>(null);
@@ -108,12 +107,10 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
     if (onCloseModal) onCloseModal();
   };
 
-  // Filter video list based on active tab
-  const displayedVideos = LATEST_VIDEOS.filter((video) => {
-    if (filterType === 'free') return !video.isPremium && video.accessType !== 'premium';
-    if (filterType === 'premium') return video.isPremium || video.accessType === 'premium';
-    return true;
-  });
+  // Public Latest Videos section displays only active paid masterclasses; free guides remain stored but hidden.
+  const displayedVideos = LATEST_VIDEOS.filter(
+    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+  );
 
   return (
     <section id="videos" className="py-16 bg-slate-50 border-b border-slate-200">
@@ -138,42 +135,12 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
           </p>
         </div>
 
-        {/* Filter Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-2 border-b border-slate-200">
-          <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setFilterType('all')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                filterType === 'all'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {isHindi ? `सभी वीडियो (${LATEST_VIDEOS.length})` : `All Videos (${LATEST_VIDEOS.length})`}
-            </button>
-            <button
-              onClick={() => setFilterType('free')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                filterType === 'free'
-                  ? 'bg-white text-emerald-800 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {isHindi ? `मुफ़्त ट्यूटोरियल (${LATEST_VIDEOS.filter((v) => !v.isPremium).length})` : `Free Tutorials (${LATEST_VIDEOS.filter((v) => !v.isPremium).length})`}
-            </button>
-            <button
-              onClick={() => setFilterType('premium')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                filterType === 'premium'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-2xs font-black'
-                  : 'text-amber-800 hover:text-amber-950'
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>{t('video.premium', 'Premium Masterclasses')} ({LATEST_VIDEOS.filter((v) => v.isPremium).length})</span>
-            </button>
+        {/* Premium-only catalog summary; free guides are hidden from the public section. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-3 border-b border-slate-200">
+          <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isHindi ? `प्रीमियम मास्टरक्लास (${displayedVideos.length})` : `Premium Masterclasses (${displayedVideos.length})`}</span>
           </div>
-
           <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
             <Shield className="w-3.5 h-3.5 text-emerald-600" />
             <span>{t('video.paymentSecurity', 'Secure UPI & card payments • Protected video access')}</span>
