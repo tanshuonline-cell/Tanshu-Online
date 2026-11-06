@@ -257,34 +257,110 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                     <ol className="space-y-3">
                       {(aboutLang === 'hi'
                         ? [
-                            'आधार कार्ड में पिता के नाम से जुड़ी जानकारी गलत होने पर सुधार के उपलब्ध विकल्प।',
-                            'पिता से जुड़ी जानकारी सही होने पर भी पता गलत हो, तो पता अपडेट करने के संभावित तरीके और जरूरी दस्तावेज़।',
-                            'Head of Family (HOF) के बिना आवेदन कैसे किया जा सकता है, इसकी जानकारी और वीडियो में बताए गए वैकल्पिक तरीके।',
-                            'पति के निधन के बाद महिलाओं के लिए उपलब्ध विकल्प और जरूरी प्रक्रिया।',
-                            'पिता के निधन के बाद पिता से संबंधित जानकारी या पते के मामलों में उपलब्ध विकल्प।',
-                            'आवेदन से पहले तैयारी से लेकर प्रक्रिया समझने तक पूरा Step-by-Step मार्गदर्शन।'
+                            {
+                              heading: 'पिता के आधार कार्ड में नाम गलत है?',
+                              detail: 'ऐसी स्थिति में पिता का सही नाम अपडेट करवाने के संभावित विकल्प समझेंगे।'
+                            },
+                            {
+                              heading: 'पिता का नाम सही है, लेकिन उनका पता अलग है?',
+                              detail: 'ऐसी स्थिति में अपने पते के अनुसार आधार अपडेट करवाने के संभावित विकल्प जानेंगे।'
+                            },
+                            {
+                              heading: 'आपके पास अपना एड्रेस प्रूफ नहीं है?',
+                              detail: 'बिना HOF के बताए गए वैकल्पिक तरीके और उसकी सीमाओं के बारे में समझेंगे।'
+                            },
+                            {
+                              heading: 'पति का निधन हो चुका है?',
+                              detail: 'ऐसी स्थिति में पिता के नाम और आधार अपडेट से जुड़ी उपलब्ध संभावनाओं को समझेंगे।'
+                            },
+                            {
+                              heading: 'पिता का निधन हो चुका है?',
+                              detail: 'ऐसी स्थिति में पिता के नाम से जुड़े अपडेट के संभावित विकल्पों की जानकारी मिलेगी।'
+                            },
+                            {
+                              heading: 'पिता के नाम की स्पेलिंग या लिखावट में गलती है?',
+                              detail: 'ऐसी गलती को ठीक करवाने से पहले किन जरूरी बातों को समझना चाहिए, इसकी जानकारी मिलेगी।'
+                            },
+                            {
+                              heading: 'पिता के आधार और आपके आधार में जानकारी अलग है?',
+                              detail: 'ऐसी स्थिति में आवेदन से पहले उपलब्ध विकल्पों और जरूरी बातों को समझेंगे।'
+                            },
+                            {
+                              heading: 'पिता के नाम से जुड़ी कोई दूसरी समस्या है?',
+                              detail: 'वीडियो में ऐसी अन्य सामान्य समस्याओं और उनके संभावित समाधानों पर भी जानकारी मिलेगी।'
+                            },
+                            {
+                              heading: 'पिता के आधार कार्ड में नाम और पता अलग हैं, और आपके दस्तावेज़ में भी जानकारी अलग है?',
+                              detail: 'ऐसी स्थिति में अपने आधार में पिता का सही नाम और अपना पता अपडेट करवाने के संभावित विकल्प समझेंगे।'
+                            },
+                            {
+                              heading: 'आपके पास पिता का कोई भी दस्तावेज़ उपलब्ध नहीं है?',
+                              detail: 'क्या अपने दस्तावेज़ के आधार पर अपने आधार कार्ड में पिता का नाम दर्ज करवाना संभव है? वीडियो में इससे जुड़े संभावित विकल्प समझेंगे।'
+                            }
                           ]
                         : [
-                            'Available correction options when the information related to the father’s name in Aadhaar is incorrect.',
-                            'Possible ways to update the address and the required documents when the father-related information is correct but the address is incorrect.',
-                            'Information on applying without a Head of Family (HOF), including the alternative method explained in the video.',
-                            'Available options and the relevant process for women after the death of their husband.',
-                            'Available options in cases involving the father’s details or address after the father’s death.',
-                            'Complete step-by-step guidance, from preparation before applying to understanding the process.'
+                            {
+                              heading: 'Is Your Father’s Name Incorrect in His Aadhaar?',
+                              detail: 'Understand the possible options for correcting your father’s name.'
+                            },
+                            {
+                              heading: 'Is Your Father’s Name Correct, But His Address Is Different?',
+                              detail: 'Learn about possible options for updating your Aadhaar with your own address.'
+                            },
+                            {
+                              heading: 'Do You Have No Address Proof of Your Own?',
+                              detail: 'Understand the alternative method explained without HOF and its limitations.'
+                            },
+                            {
+                              heading: 'Has Your Husband Passed Away?',
+                              detail: 'Understand the available possibilities related to your father’s name and Aadhaar update in this situation.'
+                            },
+                            {
+                              heading: 'Has Your Father Passed Away?',
+                              detail: 'Learn about possible options related to updating your father’s name in this situation.'
+                            },
+                            {
+                              heading: 'Is There A Spelling Or Writing Error In Your Father’s Name?',
+                              detail: 'Understand the important points to consider before seeking a correction.'
+                            },
+                            {
+                              heading: 'Are The Details In Your Father’s Aadhaar Different From Your Aadhaar?',
+                              detail: 'Understand the available options and important points before applying.'
+                            },
+                            {
+                              heading: 'Do You Have Another Issue Related To Your Father’s Name?',
+                              detail: 'The video also covers other common issues and their possible solutions.'
+                            },
+                            {
+                              heading: 'Are The Name And Address In Your Father’s Aadhaar Different From The Details In Your Documents?',
+                              detail: 'Understand possible options for updating your father’s correct name and your own address in your Aadhaar.'
+                            },
+                            {
+                              heading: 'Do You Have No Document Belonging To Your Father?',
+                              detail: 'Is It Possible To Add Your Father’s Name To Your Aadhaar Using Your Own Documents? Understand the possible options discussed in the video.'
+                            }
                           ]
                       ).map((item, index) => (
-                        <li key={index} className="flex items-start gap-3 text-xs sm:text-sm leading-relaxed text-slate-700">
-                          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-white text-[11px] font-extrabold text-rose-700 shadow-2xs">
-                            {index + 1}
-                          </span>
-                          <span>{item}</span>
+                        <li key={index} className="rounded-lg border border-slate-100 bg-white/80 p-3 transition-colors hover:border-rose-200 hover:bg-rose-50/50">
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-white text-[11px] font-extrabold text-rose-700 shadow-2xs">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <h5 className="text-xs sm:text-sm font-extrabold leading-snug text-slate-900">
+                                {item.heading}
+                              </h5>
+                              <p className="mt-1 text-[11px] sm:text-xs font-normal leading-relaxed text-slate-600">
+                                {item.detail}
+                              </p>
+                            </div>
+                          </div>
                         </li>
                       ))}
-                    </ol>
                   </section>
 
-                  <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
-                    <h4 className="flex items-center gap-2 text-sm font-extrabold text-amber-900">
+                  <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3 transition-colors hover:border-red-300 hover:bg-amber-100/80">
+                    <h4 className="flex items-center gap-2 text-sm font-extrabold text-amber-900 transition-colors hover:text-red-700">
                       <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
                       {aboutLang === 'hi' ? 'महत्वपूर्ण सूचना' : 'Important Notice'}
                     </h4>
@@ -301,31 +377,31 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   </section>
 
                   <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3">
-                      <h4 className="text-xs font-extrabold text-blue-900">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3 transition-all hover:border-red-300 hover:bg-red-50/70">
+                      <h4 className="text-xs font-extrabold text-blue-900 transition-colors hover:text-red-700">
                         {aboutLang === 'hi' ? 'गोपनीयता' : 'Privacy'}
                       </h4>
                       <p className="mt-1.5 text-[11px] sm:text-xs leading-relaxed text-slate-700">
                         {aboutLang === 'hi'
                           ? 'किसी से Aadhaar OTP, पासवर्ड या बायोमेट्रिक जानकारी साझा न करें। OTP की जरूरत होने पर उसे केवल आधिकारिक UIDAI पोर्टल पर स्वयं दर्ज करें।'
-                          : 'Never share your Aadhaar OTP, password, or biometric information with anyone. If an OTP is required, enter it yourself only on the official UIDAI portal.'}
+                          : 'Never Share Your Aadhaar OTP, Password, Or Biometric Information With Anyone. If An OTP Is Required, Enter It Yourself Only On The Official UIDAI Portal.'}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
-                      <h4 className="text-xs font-extrabold text-emerald-900">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 transition-all hover:border-red-300 hover:bg-red-50/70">
+                      <h4 className="text-xs font-extrabold text-emerald-900 transition-colors hover:text-red-700">
                         {aboutLang === 'hi' ? 'खरीद' : 'Purchase'}
                       </h4>
                       <p className="mt-1.5 text-[11px] sm:text-xs leading-relaxed text-slate-700">
                         {aboutLang === 'hi'
                           ? 'यह एक One-Time Purchase वीडियो है। सफल भुगतान सत्यापित होने के बाद ही एक्सेस मिलेगा।'
-                          : 'This is a one-time purchase video. Access will be provided only after successful payment verification.'}
+                          : 'This Is A One-Time Purchase Video. Access Will Be Provided Only After Successful Payment Verification.'}
                       </p>
                     </div>
                   </section>
 
                   {video.topics && video.topics.length > 0 && (
                     <section className="border-t border-slate-100 pt-4">
-                      <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mb-3">
+                      <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mb-3 transition-colors hover:text-red-600">
                         What You Will Learn in This Masterclass
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -340,10 +416,10 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   )}
 
                   <section className="border-t border-slate-100 pt-4">
-                    <h3 className="text-sm font-extrabold text-slate-900 mb-3">
+                    <h3 className="text-sm font-extrabold text-slate-900 mb-3 transition-colors hover:text-red-600">
                       {aboutLang === 'hi' ? 'आधिकारिक UIDAI लिंक' : 'Official UIDAI Links'}
                     </h3>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { label: 'myAadhaar Portal', href: 'https://myaadhaar.uidai.gov.in/' },
                         { label: 'List of Acceptable Documents', href: 'https://uidai.gov.in/en/enrolment-and-updates' },
@@ -355,7 +431,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                           href={link.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] sm:text-[11px] font-bold text-blue-800 transition-colors hover:border-blue-400 hover:bg-blue-100 hover:text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                          className="flex min-h-10 items-center justify-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-2 text-center text-[9px] sm:text-[10px] font-bold leading-tight text-blue-800 transition-colors hover:border-red-400 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
                         >
                           {link.label}
                           <span aria-hidden="true" className="text-[10px]">↗</span>
@@ -404,21 +480,23 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
             {/* Video Overview */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                    {video.category}
-                  </span>
-                  {video.level && (
-                    <span className="text-xs font-semibold text-slate-500">
-                      Level: <strong className="text-slate-800">{video.level}</strong>
+                {!isAadhaarFatherName49 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                      {video.category}
                     </span>
-                  )}
-                  {video.isSample && (
-                    <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold font-mono">
-                      SAMPLE ENTRY
-                    </span>
-                  )}
-                </div>
+                    {video.level && (
+                      <span className="text-xs font-semibold text-slate-500">
+                        Level: <strong className="text-slate-800">{video.level}</strong>
+                      </span>
+                    )}
+                    {video.isSample && (
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold font-mono">
+                        SAMPLE ENTRY
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-4 text-xs text-slate-500">
                   <div className="flex items-center gap-1 font-mono">
@@ -436,9 +514,11 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 <h1 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                   {video.title}
                 </h1>
-                <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                  {video.description}
-                </p>
+                {!isAadhaarFatherName49 && (
+                  <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                    {video.description}
+                  </p>
+                )}
               </div>
 
               {/* Topics / Curriculum Checklist */}
