@@ -8,7 +8,6 @@ interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   MEMBERSHIP_SESSION_SECRET?: string;
-  APP_BASE_URL?: string;
 }
 
 const COOKIE = 'tanshu_membership_session';
@@ -61,16 +60,18 @@ function missingConfiguration(env: Env): string[] {
   if (!env.GOOGLE_CLIENT_SECRET) missing.push('GOOGLE_CLIENT_SECRET');
   if (!env.MEMBERSHIP_SESSION_SECRET) missing.push('MEMBERSHIP_SESSION_SECRET');
   else if (env.MEMBERSHIP_SESSION_SECRET.length < 32) missing.push('MEMBERSHIP_SESSION_SECRET (must be at least 32 characters)');
-  if (!env.APP_BASE_URL) missing.push('APP_BASE_URL');
   return missing;
 }
 function configured(env: Env): boolean {
   return missingConfiguration(env).length === 0;
 }
-function baseUrl(env: Env): string {
-  const url = new URL(env.APP_BASE_URL!);
-  if (url.protocol !== 'https:' || !url.hostname.endsWith('.tanshu-online.pages.dev') || url.hostname === 'tanshu-online.pages.dev' || url.pathname !== '/' || url.search || url.hash) {
-    throw new Error('APP_BASE_URL must be an isolated TANSHU ONLINE Cloudflare Pages Preview origin.');
+function baseUrl(request: Request): string {
+  // Use the exact Preview host that received the login request. This prevents
+  // stale deployment-specific configuration from sending Google to an old host
+  // and keeps the OAuth state cookie on the same host.
+  const url = new URL(request.url);
+  if (url.protocol !== 'https:' || !url.hostname.endsWith('.tanshu-online.pages.dev') || url.hostname === 'tanshu-online.pages.dev' || url.username || url.password || url.port) {
+    throw new Error('Membership Google Login is available only on a TANSHU ONLINE Cloudflare Pages Preview origin.');
   }
   return url.origin;
 }
@@ -108,7 +109,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   }, 503);
 
   let origin: string;
-  try { origin = baseUrl(env); } catch { return json({ success: false, error: 'Membership APP_BASE_URL configuration is invalid.' }, 503); }
+  try { origin = baseUrl(request); } catch { return json({ success: false, error: 'Membership Preview origin is invalid.' }, 503); }
 
   if (action === 'start') {
     const state = b64url(crypto.randomUUID() + ':' + crypto.randomUUID());
