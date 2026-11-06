@@ -303,6 +303,7 @@ export default function App() {
   };
 
   const navigateToVideoDetail = (video: VideoGuide) => {
+    setPaymentReturnNotice(null);
     setSelectedDetailVideo(video);
     setCurrentPage('video-detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
