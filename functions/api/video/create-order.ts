@@ -69,7 +69,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           JSON.stringify({
             success: false,
             alreadyPurchased: true,
-            error: 'This mobile number already has an active purchase for this video. No new payment was created. Please contact support to restore access on this device.',
+            error: 'This mobile number already has an active purchase for this video. No new payment was created. Use Already Purchased? Restore with your Cashfree order reference and registered mobile number.',
           }),
           { status: 409, headers: corsHeaders }
         );
