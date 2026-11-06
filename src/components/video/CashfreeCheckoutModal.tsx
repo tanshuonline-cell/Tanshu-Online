@@ -59,8 +59,9 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
       // Route the customer to the Cashfree order-reference recovery flow instead.
       if (data.alreadyPurchased) {
         setActiveTab('restore');
+        if (data.orderId) setRestoreOrderId(String(data.orderId));
         setStep('form');
-        setErrorMessage('This mobile number already has an active purchase. Use the Restore tab with your original Cashfree order reference and registered mobile number.');
+        setErrorMessage('A previous purchase was found. Verify the saved Cashfree order to restore access. No new payment was created.');
         return;
       }
 
