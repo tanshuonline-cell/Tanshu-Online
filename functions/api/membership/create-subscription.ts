@@ -82,9 +82,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
 
     const localPlan = await env.DB.prepare(
-      "SELECT id,monthly_amount_paise,status FROM membership_plans WHERE id='plan_basic' LIMIT 1"
+      "SELECT id,monthly_amount_paise,is_active FROM membership_plans WHERE id='plan_basic' LIMIT 1"
     ).first();
-    if (!localPlan || localPlan.status !== 'active' || Number(localPlan.monthly_amount_paise) !== 4900) {
+    if (!localPlan || Number(localPlan.is_active) !== 1 || Number(localPlan.monthly_amount_paise) !== 4900) {
       return json({ success: false, error: 'Basic ₹49 Membership plan is not active in the Preview database.' }, 409);
     }
 
