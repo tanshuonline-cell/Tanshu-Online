@@ -357,6 +357,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                           </div>
                         </li>
                       ))}
+                    </ol>
                   </section>
 
                   <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3 transition-colors hover:border-red-300 hover:bg-amber-100/80">
