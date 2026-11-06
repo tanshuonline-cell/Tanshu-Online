@@ -41,13 +41,10 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     // Never display an old/incorrect local 'active' flag as paid membership.
     // A successful recurring charge for the exact plan amount is required.
     // This is a read-only presentation safeguard; it does not modify D1 records.
-    const hasVerifiedPlanPayment = Boolean(
-      latestPayment &&
-      latestPayment.status === 'success' &&
-      Number(latestPayment.amount_paise) === Number(subscription?.monthly_amount_paise) &&
-      String(latestPayment.currency || '').toUpperCase() === 'INR' &&
-      latestPayment.gateway_payment_id
-    );
+    const verifiedPlanPayment = subscription ? await env.DB.prepare(
+      "SELECT 1 AS verified FROM membership_payments WHERE subscription_id=? AND status='success' AND amount_paise=? AND currency='INR' AND gateway_payment_id IS NOT NULL LIMIT 1"
+    ).bind(subscription.id, subscription.monthly_amount_paise).first() : null;
+    const hasVerifiedPlanPayment = Boolean(verifiedPlanPayment);
     const accountSubscription = subscription?.status === 'active' && !hasVerifiedPlanPayment
       ? { ...subscription, status: 'pending' }
       : subscription;
