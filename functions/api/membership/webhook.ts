@@ -2,6 +2,7 @@ interface Env {
   DB: any;
   CASHFREE_APP_ID: string;
   CASHFREE_SECRET_KEY: string;
+  CASHFREE_WEBHOOK_SECRET?: string;
   CASHFREE_ENVIRONMENT: string;
 }
 
@@ -73,7 +74,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   if (!signature || !timestamp) return reply(401);
 
-  const expectedSignature = await hmac(env.CASHFREE_SECRET_KEY, timestamp + rawBody);
+  // Prefer a dedicated endpoint webhook secret when configured; fall back to
+  // the Cashfree API Secret Key for dashboards that use the standard signing key.
+  const webhookSecret = env.CASHFREE_WEBHOOK_SECRET || env.CASHFREE_SECRET_KEY;
+  const expectedSignature = await hmac(webhookSecret, timestamp + rawBody);
   if (!equal(expectedSignature, signature)) return reply(401);
 
   let event: any;
