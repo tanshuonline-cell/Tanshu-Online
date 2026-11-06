@@ -1,36 +1,185 @@
-import React from 'react';
-import { LockKeyhole, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, CreditCard, LoaderCircle, LockKeyhole, ShieldCheck, AlertCircle } from 'lucide-react';
 
-export const MembershipCheckout: React.FC = () => (
-  <section
-    id="basic-checkout"
-    className="mx-auto mt-10 max-w-3xl scroll-mt-24 rounded-3xl border border-amber-200 bg-white p-6 shadow-lg sm:p-8"
-  >
-    <div className="flex items-start gap-3">
-      <span className="rounded-xl bg-amber-100 p-3 text-amber-800">
-        <LockKeyhole className="h-5 w-5" />
-      </span>
-      <div>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-amber-800">
-          Membership checkout temporarily locked
-        </p>
-        <h3 className="mt-1 text-lg font-black text-slate-900">
-          ₹49 / month · Basic Membership
-        </h3>
+declare global {
+  interface Window {
+    Cashfree?: (options: { mode: 'sandbox' | 'production' }) => {
+      subscriptionsCheckout: (options: { subsSessionId: string; redirectTarget: string }) => Promise<any>;
+    };
+  }
+}
+
+type Customer = { id: string; email: string; display_name: string };
+
+export const MembershipCheckout: React.FC = () => {
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [noticeType, setNoticeType] = useState<'error' | 'success' | 'info'>('info');
+  const [sdkReady, setSdkReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/membership/auth?action=me', { credentials: 'include', cache: 'no-store' })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => { if (alive) setCustomer(data?.authenticated ? data.customer : null); })
+      .catch(() => { if (alive) setCustomer(null); })
+      .finally(() => { if (alive) setAuthChecked(true); });
+
+    const scriptUrl = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    const existing = document.querySelector<HTMLScriptElement>('script[src="' + scriptUrl + '"]');
+    if (window.Cashfree) setSdkReady(true);
+    else if (existing) {
+      existing.addEventListener('load', () => alive && setSdkReady(Boolean(window.Cashfree)), { once: true });
+      existing.addEventListener('error', () => alive && setNotice('Cashfree checkout SDK लोड नहीं हो पाया। कृपया पेज refresh करें।'), { once: true });
+    } else {
+      const script = document.createElement('script');
+      script.src = scriptUrl;
+      script.async = true;
+      script.onload = () => alive && setSdkReady(Boolean(window.Cashfree));
+      script.onerror = () => alive && setNotice('Cashfree checkout SDK लोड नहीं हो पाया। कृपया पेज refresh करें।');
+      document.head.appendChild(script);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const returnedSubscriptionId = params.get('membership_subscription_id');
+    if (returnedSubscriptionId) {
+      setNotice('भुगतान/मैंडेट की स्थिति Cashfree से सत्यापित की जा रही है।');
+      setNoticeType('info');
+      fetch('/api/membership/subscription-status?subscription_id=' + encodeURIComponent(returnedSubscriptionId), {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+        .then(async response => {
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.success) throw new Error(data.error || 'स्थिति सत्यापित नहीं हो सकी।');
+          if (alive) {
+            setNotice(data.active
+              ? 'आपकी ₹49 Basic Membership सफलतापूर्वक सक्रिय हो गई है।'
+              : data.membershipStatus === 'pending'
+                ? 'मैंडेट की पुष्टि हो गई है। पहली सफल recurring payment की पुष्टि होने के बाद Membership सक्रिय होगी।'
+                : 'Cashfree से अभी Membership सक्रिय होने की पुष्टि नहीं मिली। कृपया कुछ देर बाद फिर स्थिति जाँचें।');
+            setNoticeType(data.active ? 'success' : 'info');
+          }
+        })
+        .catch(error => { if (alive) { setNotice(error.message || 'स्थिति जाँचने में समस्या हुई।'); setNoticeType('error'); } })
+        .finally(() => {
+          if (alive) {
+            params.delete('membership_subscription_id');
+            const next = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+            window.history.replaceState({}, '', next);
+          }
+        });
+    }
+    return () => { alive = false; };
+  }, []);
+
+  const startCheckout = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setNotice('');
+    if (!customer) {
+      setNotice('पहले Google से सुरक्षित Login करें।');
+      setNoticeType('error');
+      return;
+    }
+    if (!/^[6-9]\\d{9}$/.test(phone)) {
+      setNotice('कृपया 10 अंकों का सही भारतीय मोबाइल नंबर दर्ज करें।');
+      setNoticeType('error');
+      return;
+    }
+    if (!consent) {
+      setNotice('₹49 की मासिक recurring payment की सहमति आवश्यक है।');
+      setNoticeType('error');
+      return;
+    }
+    if (!sdkReady || !window.Cashfree) {
+      setNotice('Cashfree Checkout अभी लोड हो रहा है। कृपया एक बार फिर कोशिश करें।');
+      setNoticeType('error');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const response = await fetch('/api/membership/create-subscription', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, recurringConsent: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.subscriptionSessionId) {
+        throw new Error(data.error || 'Cashfree Checkout session नहीं बन पाया।');
+      }
+      const cashfree = window.Cashfree({ mode: 'sandbox' });
+      await cashfree.subscriptionsCheckout({
+        subsSessionId: data.subscriptionSessionId,
+        redirectTarget: '_self',
+      });
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Checkout शुरू नहीं हो पाया।');
+      setNoticeType('error');
+      setBusy(false);
+    }
+  };
+
+  const noticeClass = noticeType === 'success'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+    : noticeType === 'error'
+      ? 'border-rose-200 bg-rose-50 text-rose-900'
+      : 'border-blue-200 bg-blue-50 text-blue-900';
+
+  return (
+    <section id="basic-checkout" className="mx-auto mt-10 max-w-3xl scroll-mt-24 rounded-3xl border border-blue-200 bg-white p-6 shadow-lg sm:p-8">
+      <div className="flex items-start gap-3">
+        <span className="rounded-xl bg-blue-100 p-3 text-blue-800"><CreditCard className="h-5 w-5" /></span>
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wider text-blue-800">Secure Cashfree Subscription Checkout</p>
+          <h3 className="mt-1 text-lg font-black text-slate-900">₹49 / month · Basic Membership</h3>
+          <p className="mt-1 text-xs text-slate-500">Cashfree Sandbox Preview · UPI AutoPay / supported mandate methods</p>
+        </div>
       </div>
-    </div>
-    <p className="mt-4 text-sm leading-6 text-slate-700">
-      Cashfree Sandbox checkout अभी सुरक्षा और recurring-consent जाँच पूरी होने तक बंद है।
-      इस Preview से अभी कोई नया subscription, UPI AutoPay mandate, payment या Email/SMS
-      notification शुरू नहीं किया जा सकता।
-    </p>
-    <p className="mt-3 text-xs leading-5 text-slate-500">
-      Checkout तभी खोला जाएगा जब recurring billing की स्पष्ट सहमति, account security,
-      payment verification और membership access के सभी परीक्षण पूरे हो जाएँगे।
-    </p>
-    <div className="mt-5 flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-      अभी कोई भुगतान या mandate बनाने की आवश्यकता नहीं है।
-    </div>
-  </section>
-);
+
+      {!authChecked ? (
+        <div className="mt-5 flex items-center gap-2 text-sm text-slate-600"><LoaderCircle className="h-4 w-4 animate-spin" /> Google Login स्थिति जाँची जा रही है…</div>
+      ) : !customer ? (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-950">Checkout से पहले Google Login आवश्यक है।</p>
+          <a href="/api/membership/auth?action=start" className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-xs font-extrabold text-white hover:bg-blue-800">
+            <ShieldCheck className="h-4 w-4" /> Google से सुरक्षित Login करें
+          </a>
+        </div>
+      ) : (
+        <form onSubmit={startCheckout} className="mt-5 space-y-4">
+          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+            <span className="font-bold">{customer.display_name}</span> · {customer.email}
+          </div>
+          <div>
+            <label htmlFor="membership-phone" className="mb-1.5 block text-xs font-bold text-slate-700">मोबाइल नंबर (Cashfree mandate के लिए)</label>
+            <div className="flex overflow-hidden rounded-xl border border-slate-300 focus-within:border-blue-600">
+              <span className="bg-slate-100 px-3 py-3 text-sm font-semibold text-slate-600">+91</span>
+              <input id="membership-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} required value={phone} onChange={e => setPhone(e.target.value.replace(/\\D/g, '').slice(0, 10))} placeholder="10 अंकों का मोबाइल नंबर" className="min-w-0 flex-1 px-3 py-3 text-sm text-slate-900 outline-none" />
+            </div>
+          </div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-xs leading-5 text-slate-700">
+            <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-blue-700" />
+            <span>मैं ₹49 प्रति माह की Membership और Cashfree के माध्यम से recurring payment / AutoPay mandate सेटअप करने की स्पष्ट अनुमति देता/देती हूँ। मैं Cashfree Checkout में mandate की शर्तें देखकर पुष्टि करूँगा/करूँगी। Cancellation के लिए Membership पेज से अनुरोध उपलब्ध कराया जाएगा।</span>
+          </label>
+          <button type="submit" disabled={busy || !sdkReady} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">
+            {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+            {busy ? 'Cashfree Checkout खोला जा रहा है…' : '₹49 / month — Cashfree से आगे बढ़ें'}
+          </button>
+          <p className="flex items-start gap-2 text-[11px] leading-5 text-slate-500"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Payment details Cashfree के सुरक्षित Checkout में दर्ज होंगे। Membership केवल server-verified successful recurring charge के बाद सक्रिय होगी।</p>
+        </form>
+      )}
+
+      {notice && <div role="status" className={`mt-4 flex items-start gap-2 rounded-xl border p-3 text-xs leading-5 ${noticeClass}`}><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{notice}</span></div>}
+      <div className="mt-5 flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+        अभी केवल Basic ₹49 Sandbox flow तैयार किया जा रहा है। Production भुगतान तब तक बंद रहेगा जब तक Live credentials, domain whitelist और release checks की अलग पुष्टि न हो।
+      </div>
+    </section>
+  );
+};
