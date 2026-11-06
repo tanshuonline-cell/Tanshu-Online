@@ -34,6 +34,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
 
   const isPremium = video.isPremium || video.accessType === 'premium';
   const price = video.price || 99;
+  const isAadhaarFatherName49 = video.id === 'video_1793562264012' && price === 49;
 
   // Check if customer already has a stored verified session for this specific video in localStorage
   useEffect(() => {
@@ -203,7 +204,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   </div>
                   <div>
                     <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
-                      {aboutLang === 'hi' ? 'इस वीडियो के बारे में' : 'About this Video'}
+                      {aboutLang === 'hi' ? 'इस वीडियो के बारे में' : 'About This Video'}
                     </h2>
                     <p className="text-[11px] text-slate-500">
                       {aboutLang === 'hi' ? 'विषय, उपयोगी मार्गदर्शन और मुख्य बिंदु' : 'Guidance, topics covered & learning outcomes'}
@@ -238,39 +239,166 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 </div>
               </div>
 
-              {/* Clear, Professional Description (Matches video topic without revealing full tutorial) */}
-              <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-100 text-slate-700 text-xs sm:text-sm leading-relaxed">
-                {aboutLang === 'hi'
-                  ? (video.aboutHi || video.hindiDescription || video.description)
-                  : (video.aboutEn || video.description)}
-              </div>
+              {isAadhaarFatherName49 ? (
+                <div className="space-y-5">
+                  <section className="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50/80 via-white to-orange-50/60 p-4 sm:p-5">
+                    <h3 className="text-sm sm:text-base font-extrabold tracking-tight text-rose-700">
+                      {aboutLang === 'hi' ? 'इस वीडियो में आपको क्या-क्या जानकारी मिलेगी?' : 'What Information Will You Get in This Video?'}
+                    </h3>
+                    <p className="mt-2 text-xs sm:text-sm font-semibold leading-relaxed text-slate-600">
+                      {aboutLang === 'hi'
+                        ? <>आवेदन के वैकल्पिक तरीके <span className="px-1 text-rose-500">•</span> जरूरी जानकारी <span className="px-1 text-rose-500">•</span> स्टेप-बाय-स्टेप मार्गदर्शन</>
+                        : <>Alternative application methods <span className="px-1 text-rose-500">•</span> Essential information <span className="px-1 text-rose-500">•</span> Step-by-step guidance</>}
+                    </p>
 
-              {/* Key Takeaways */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs space-y-1">
-                  <div className="font-bold text-blue-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{aboutLang === 'hi' ? 'इस वीडियो से क्या सीखेंगे?' : 'What You Will Learn'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 leading-normal">
-                    {aboutLang === 'hi'
-                      ? 'प्रक्रिया के मुख्य नियम, तकनीकी सेटिंग्स और पोर्टल पर सामान्य गलतियों से बचने की सही जानकारी।'
-                      : 'Essential rules, configuration parameters, and proven methods to avoid common errors.'}
-                  </p>
-                </div>
+                    <h4 className="mt-5 mb-3 text-sm font-extrabold text-slate-950">
+                      {aboutLang === 'hi' ? 'इस वीडियो में आप समझेंगे:' : 'In This Video, You Will Understand:'}
+                    </h4>
+                    <ol className="space-y-3">
+                      {(aboutLang === 'hi'
+                        ? [
+                            'आधार कार्ड में पिता के नाम से जुड़ी जानकारी गलत होने पर सुधार के उपलब्ध विकल्प।',
+                            'पिता से जुड़ी जानकारी सही होने पर भी पता गलत हो, तो पता अपडेट करने के संभावित तरीके और जरूरी दस्तावेज़।',
+                            'Head of Family (HOF) के बिना आवेदन कैसे किया जा सकता है, इसकी जानकारी और वीडियो में बताए गए वैकल्पिक तरीके।',
+                            'पति के निधन के बाद महिलाओं के लिए उपलब्ध विकल्प और जरूरी प्रक्रिया।',
+                            'पिता के निधन के बाद पिता से संबंधित जानकारी या पते के मामलों में उपलब्ध विकल्प।',
+                            'आवेदन से पहले तैयारी से लेकर प्रक्रिया समझने तक पूरा Step-by-Step मार्गदर्शन।'
+                          ]
+                        : [
+                            'Available correction options when the information related to the father’s name in Aadhaar is incorrect.',
+                            'Possible ways to update the address and the required documents when the father-related information is correct but the address is incorrect.',
+                            'Information on applying without a Head of Family (HOF), including the alternative method explained in the video.',
+                            'Available options and the relevant process for women after the death of their husband.',
+                            'Available options in cases involving the father’s details or address after the father’s death.',
+                            'Complete step-by-step guidance, from preparation before applying to understanding the process.'
+                          ]
+                      ).map((item, index) => (
+                        <li key={index} className="flex items-start gap-3 text-xs sm:text-sm leading-relaxed text-slate-700">
+                          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-white text-[11px] font-extrabold text-rose-700 shadow-2xs">
+                            {index + 1}
+                          </span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
 
-                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs space-y-1">
-                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{aboutLang === 'hi' ? 'यह किसके लिए उपयोगी है?' : 'Who This Is Useful For'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 leading-normal">
-                    {aboutLang === 'hi'
-                      ? (video.hindiTargetAudience || 'साइबर कैफ़े संचालक, CSC VLEs और सही प्रक्रिया समझने वाले सभी नागरिक।')
-                      : (video.targetAudience || 'Cyber cafe operators, CSC VLEs, and applicants wanting reliable guidance.')}
-                  </p>
+                  <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
+                    <h4 className="flex items-center gap-2 text-sm font-extrabold text-amber-900">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
+                      {aboutLang === 'hi' ? 'महत्वपूर्ण सूचना' : 'Important Notice'}
+                    </h4>
+                    <p className="text-xs sm:text-sm leading-relaxed text-amber-950">
+                      {aboutLang === 'hi'
+                        ? 'HOF के बिना आवेदन के लिए वीडियो में एक वैकल्पिक तरीका/प्रोसेस समझाया गया है। यह UIDAI का कोई आधिकारिक अपडेट, घोषित सुविधा या आधिकारिक तरीका नहीं है। इसे एक वैकल्पिक मेथड के रूप में समझें। इसकी उपलब्धता और काम करना UIDAI के मौजूदा सिस्टम, नियमों और सत्यापन पर निर्भर कर सकता है। इसे किसी आधिकारिक बग या स्थायी सुविधा की गारंटी न समझें।'
+                        : 'The video explains an alternative method/process for applying without HOF. This is not an official UIDAI update, announced facility, or official method. Treat it only as an alternative method. Its availability and functioning may depend on UIDAI’s current system, rules, and verification. Do not consider it a confirmed official bug or a permanent facility.'}
+                    </p>
+                    <p className="text-xs sm:text-sm leading-relaxed text-amber-950">
+                      {aboutLang === 'hi'
+                        ? 'यह वीडियो केवल शैक्षणिक और जानकारी देने के उद्देश्य से है। आवेदन स्वीकार होने या अपडेट पूरा होने की गारंटी नहीं है।'
+                        : 'This video is for educational and informational purposes only. There is no guarantee that an application will be accepted or that an update will be completed.'}
+                    </p>
+                  </section>
+
+                  <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+                      <h4 className="text-xs font-extrabold text-blue-900">
+                        {aboutLang === 'hi' ? 'गोपनीयता' : 'Privacy'}
+                      </h4>
+                      <p className="mt-1.5 text-[11px] sm:text-xs leading-relaxed text-slate-700">
+                        {aboutLang === 'hi'
+                          ? 'किसी से Aadhaar OTP, पासवर्ड या बायोमेट्रिक जानकारी साझा न करें। OTP की जरूरत होने पर उसे केवल आधिकारिक UIDAI पोर्टल पर स्वयं दर्ज करें।'
+                          : 'Never share your Aadhaar OTP, password, or biometric information with anyone. If an OTP is required, enter it yourself only on the official UIDAI portal.'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
+                      <h4 className="text-xs font-extrabold text-emerald-900">
+                        {aboutLang === 'hi' ? 'खरीद' : 'Purchase'}
+                      </h4>
+                      <p className="mt-1.5 text-[11px] sm:text-xs leading-relaxed text-slate-700">
+                        {aboutLang === 'hi'
+                          ? 'यह एक One-Time Purchase वीडियो है। सफल भुगतान सत्यापित होने के बाद ही एक्सेस मिलेगा।'
+                          : 'This is a one-time purchase video. Access will be provided only after successful payment verification.'}
+                      </p>
+                    </div>
+                  </section>
+
+                  {!isAadhaarFatherName49 && video.topics && video.topics.length > 0 && (
+                    <section className="border-t border-slate-100 pt-4">
+                      <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mb-3">
+                        What You Will Learn in This Masterclass
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {video.topics.map((topic, index) => (
+                          <div key={index} className="flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700 border border-slate-100">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                            <span>{topic}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="border-t border-slate-100 pt-4">
+                    <h3 className="text-sm font-extrabold text-slate-900 mb-3">
+                      {aboutLang === 'hi' ? 'आधिकारिक UIDAI लिंक' : 'Official UIDAI Links'}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[
+                        { label: 'myAadhaar Portal', href: 'https://myaadhaar.uidai.gov.in/' },
+                        { label: 'List of Acceptable Documents', href: 'https://uidai.gov.in/en/enrolment-and-updates' },
+                        { label: 'Updating Data on Aadhaar', href: 'https://uidai.gov.in/en/updating-data-on-aadhaar' },
+                        { label: 'UIDAI Regulations', href: 'https://uidai.gov.in/en/regulations' }
+                      ].map((link) => (
+                        <a
+                          key={link.label}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] sm:text-[11px] font-bold text-blue-800 transition-colors hover:border-blue-400 hover:bg-blue-100 hover:text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                        >
+                          {link.label}
+                          <span aria-hidden="true" className="text-[10px]">↗</span>
+                        </a>
+                      ))}
+                    </div>
+                  </section>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-100 text-slate-700 text-xs sm:text-sm leading-relaxed">
+                    {aboutLang === 'hi'
+                      ? (video.aboutHi || video.hindiDescription || video.description)
+                      : (video.aboutEn || video.description)}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs space-y-1">
+                      <div className="font-bold text-blue-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{aboutLang === 'hi' ? 'इस वीडियो से क्या सीखेंगे?' : 'What You Will Learn'}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-normal">
+                        {aboutLang === 'hi'
+                          ? 'प्रक्रिया के मुख्य नियम, तकनीकी सेटिंग्स और पोर्टल पर सामान्य गलतियों से बचने की सही जानकारी।'
+                          : 'Essential rules, configuration parameters, and proven methods to avoid common errors.'}
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs space-y-1">
+                      <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{aboutLang === 'hi' ? 'यह किसके लिए उपयोगी है?' : 'Who This Is Useful For'}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-normal">
+                        {aboutLang === 'hi'
+                          ? (video.hindiTargetAudience || 'साइबर कैफ़े संचालक, CSC VLEs और सही प्रक्रिया समझने वाले सभी नागरिक।')
+                          : (video.targetAudience || 'Cyber cafe operators, CSC VLEs, and applicants wanting reliable guidance.')}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Video Overview */}
@@ -417,45 +545,6 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 </div>
               </div>
 
-              {isPremium && price === 49 && (
-                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50/70 p-4 space-y-3 text-left">
-                  <div className="flex items-start justify-between gap-2 border-b border-rose-100 pb-2">
-                    <div>
-                      <p className="text-sm font-extrabold text-rose-900">प्रीमियम WhatsApp परामर्श</p>
-                      <p className="text-[11px] font-semibold text-rose-700">केवल ₹49 • एक विषय • एक बार भुगतान</p>
-                    </div>
-                    <span className="shrink-0 rounded-lg bg-rose-600 px-2 py-1 text-xs font-black text-white">₹49</span>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
-                    <p className="font-bold text-slate-900">इसमें आपको क्या मिलेगा?</p>
-                    <p>एक भुगतान पर आप WhatsApp चैट के माध्यम से केवल एक ही विषय पर पूरी बातचीत कर सकते हैं। आपकी समस्या और उससे जुड़ी जानकारी समझकर उपलब्ध नियमों के अनुसार सही प्रक्रिया, जरूरी जानकारी और अगले कदम बताए जाएँगे। हमारा उद्देश्य आपकी समस्या को ठीक से समझकर आपको स्पष्ट मार्गदर्शन देना है।</p>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
-                    <p className="font-bold text-slate-900">समय और वैधता</p>
-                    <p>भुगतान सफलतापूर्वक सत्यापित होने के बाद इस परामर्श की वैधता 24 घंटे रहेगी। सहायता केवल निर्धारित कार्य समय में दी जाएगी। 24 घंटे पूरे होने पर परामर्श का एक्सेस समाप्त हो जाएगा।</p>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
-                    <p className="font-bold text-slate-900">WhatsApp पर संपर्क कैसे मिलेगा?</p>
-                    <p>Cashfree भुगतान की पुष्टि होने के बाद आपको सुरक्षित WhatsApp चैट लिंक दिया जाएगा। आपका निजी मोबाइल नंबर वेबसाइट पर सार्वजनिक रूप से नहीं दिखाया जाएगा। यह सुविधा केवल WhatsApp चैट के लिए है। अनावश्यक कॉल या बार-बार संदेश भेजना स्वीकार नहीं होगा।</p>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
-                    <p className="font-bold text-slate-900">महत्वपूर्ण नियम एवं शर्तें</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li>₹49 का भुगतान केवल एक विषय के परामर्श के लिए है।</li>
-                      <li>नई या अलग समस्या, नया विषय अथवा अतिरिक्त परामर्श के लिए अलग भुगतान करना होगा।</li>
-                      <li>सरकारी फीस, आवेदन शुल्क, पोर्टल शुल्क और किसी अन्य सेवा का शुल्क ₹49 में शामिल नहीं है।</li>
-                      <li>यह मार्गदर्शन सेवा है। किसी सरकारी आवेदन की स्वीकृति, परिणाम या निश्चित समय-सीमा की गारंटी नहीं दी जाती। अंतिम निर्णय संबंधित विभाग या पोर्टल के नियमों पर निर्भर करेगा।</li>
-                      <li>भुगतान सत्यापित होने के बाद ही Consultation लिंक सक्रिय होगा। असफल या अपुष्ट भुगतान पर एक्सेस नहीं मिलेगा।</li>
-                      <li>24 घंटे की वैधता समाप्त होने पर पुराने परामर्श लिंक से सहायता उपलब्ध नहीं रहेगी।</li>
-                    </ul>
-                  </div>
-                  <p className="border-t border-rose-100 pt-2 text-[10px] leading-relaxed text-slate-500">कृपया भुगतान करने से पहले ऊपर दी गई जानकारी और सभी शर्तें ध्यान से पढ़ लें।</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
