@@ -224,31 +224,11 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             0% { background-position: 0% 50%; }
             100% { background-position: 200% 50%; }
           }
-          @keyframes tanshu-tricolor-orbit {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
           .tanshu-tricolor-wrap {
             isolation: isolate;
             position: relative;
             z-index: 0;
             cursor: default;
-          }
-          .tanshu-tricolor-wrap::before {
-            content: "";
-            position: absolute;
-            inset: -7px 0;
-            z-index: -1;
-            border-radius: 999px;
-            padding: 7px;
-            background: conic-gradient(from 0deg, #ff9933, #fff4df, #138808, #70d8ff, #ff9933);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            filter: blur(5px);
-            opacity: .72;
-            animation: tanshu-tricolor-orbit 7s linear infinite;
-            pointer-events: none;
           }
           .tanshu-tricolor-base {
             background: linear-gradient(90deg, #ff9933 0%, #ffb35e 18%, #fff 38%, #fff 58%, #138808 78%, #21a51b 100%);
@@ -261,7 +241,6 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             opacity: .9;
           }
           @media (prefers-reduced-motion: reduce) {
-            .tanshu-tricolor-wrap::before,
             .tanshu-tricolor-base { animation: none; }
           }
         `}</style>
