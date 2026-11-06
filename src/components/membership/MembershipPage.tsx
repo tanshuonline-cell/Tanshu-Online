@@ -92,10 +92,10 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
     billingTitle: isHindi ? 'भुगतान और सदस्यता:' : 'Payment and membership:',
     billing: isHindi
       ? 'यह Preview है। Basic ₹49/month checkout सुरक्षा और recurring billing की जाँच पूरी होने तक अस्थायी रूप से बंद है। अभी कोई subscription, mandate, भुगतान या notification शुरू नहीं होगा। Standard, Premium और Professional भी बंद हैं।'
-      : 'This is a Preview. Basic ₹49/month checkout is temporarily locked until recurring-billing safety checks are complete. No subscription, mandate, payment or notification will be initiated. Standard, Premium and Professional also remain disabled.',
+      : 'Basic ₹49/month Cashfree Sandbox Checkout is available for controlled testing only. This is not live billing; real customer payments and Production billing remain disabled. Standard, Premium and Professional remain unavailable.',
     verification: isHindi
       ? 'Google Login और 10 अंकों का मोबाइल नंबर checkout खुलने पर आवश्यक होंगे। Membership केवल सत्यापित recurring payment के बाद सक्रिय होगी।'
-      : 'Google Login and a 10-digit mobile number will be required when checkout reopens. Membership activates only after a verified recurring payment.',
+      : 'Google Login, a verified mobile number and explicit recurring-payment consent are required. Membership activates only after Cashfree confirms a successful recurring payment.',
     chatNote: isHindi
       ? 'Basic Membership और ₹49 One-Time Video Purchase अलग हैं। One-Time Purchase में सिर्फ वीडियो मिलेगा—निजी Chat या Basic Tools नहीं।'
       : 'Basic Membership and the ₹49 One-Time Video Purchase are separate. One-Time Purchase provides video access only—not private Chat or Basic Tools.',
