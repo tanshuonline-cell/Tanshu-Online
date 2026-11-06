@@ -55,18 +55,17 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to create payment order.');
+      // A duplicate purchase must never create another charge or unlock by phone alone.
+      // Route the customer to the Cashfree order-reference recovery flow instead.
+      if (data.alreadyPurchased) {
+        setActiveTab('restore');
+        setStep('form');
+        setErrorMessage('This mobile number already has an active purchase. Use the Restore tab with your original Cashfree order reference and registered mobile number.');
+        return;
       }
 
-      // Check if user already owned this video
-      if (data.alreadyPurchased) {
-        setStep('success');
-        setStatusMessage('Active access found! Unlocking your masterclass now...');
-        setTimeout(() => {
-          onPaymentSuccess(video.id, sanitizedPhone);
-        }, 1200);
-        return;
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create payment order.');
       }
 
       setActiveOrderId(data.orderId);
