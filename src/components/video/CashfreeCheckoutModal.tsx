@@ -97,7 +97,6 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
       if (cashfreeInstance) {
         cashfreeInstance.checkout({
           paymentSessionId: sessionId,
-          redirectTarget: '_self',
         }).then((result: any) => {
           if (result.error) {
             console.warn('Cashfree popup error or closed:', result.error);
