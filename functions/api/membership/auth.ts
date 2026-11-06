@@ -69,7 +69,9 @@ function configured(env: Env): boolean {
 }
 function baseUrl(env: Env): string {
   const url = new URL(env.APP_BASE_URL!);
-  if (url.protocol !== 'https:' && url.hostname !== 'localhost') throw new Error('APP_BASE_URL must use HTTPS.');
+  if (url.protocol !== 'https:' || !url.hostname.endsWith('.tanshu-online.pages.dev') || url.hostname === 'tanshu-online.pages.dev' || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error('APP_BASE_URL must be an isolated TANSHU ONLINE Cloudflare Pages Preview origin.');
+  }
   return url.origin;
 }
 async function issueSession(customer: any, secret: string): Promise<string> {
