@@ -2,7 +2,6 @@ interface Env {
   DB: any;
   CASHFREE_APP_ID: string;
   CASHFREE_SECRET_KEY: string;
-  CASHFREE_ENVIRONMENT: string;
 }
 
 const reply = (status = 200) =>
@@ -120,10 +119,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return reply(200);
     }
 
-    const baseUrl =
-      String(env.CASHFREE_ENVIRONMENT).toUpperCase() === 'PRODUCTION'
-        ? 'https://api.cashfree.com/pg'
-        : 'https://sandbox.cashfree.com/pg';
+    // This handler is deployed from the isolated Preview branch only.
+    // Never allow a Preview secret/configuration value to redirect requests
+    // to Cashfree Production. Production billing must use a separately reviewed
+    // production-only implementation and credentials.
+    const baseUrl = 'https://sandbox.cashfree.com/pg';
 
     // Always obtain subscription state from Cashfree; never trust webhook/redirect status alone.
     const statusResponse = await fetch(
