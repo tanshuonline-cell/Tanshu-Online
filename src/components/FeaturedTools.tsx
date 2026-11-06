@@ -22,8 +22,8 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const { t, isHindi } = useLanguage();
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
-    'photo-signature-resizer',
     'advanced-passport-photo-studio',
+    'photo-signature-resizer',
     'auto-document-cropper',
     'document-scanner-image-rectifier',
     'pdf-to-pvc-card-auto-cropper',
@@ -58,6 +58,13 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
 
   return (
     <section className="py-12 bg-slate-50 border-b border-slate-200">
+      <style>{`
+        @keyframes future-tool-orbit { to { transform: rotate(360deg); } }
+        .future-tool-glow { position: relative; isolation: isolate; border-color: rgba(56,189,248,.72) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.16), 0 0 18px rgba(56,189,248,.16); }
+        .future-tool-glow::before { content: ""; position: absolute; inset: -2px; z-index: 1; border-radius: inherit; padding: 2px; background: conic-gradient(from 0deg, transparent 0 24%, rgba(56,189,248,.16) 30%, rgba(56,189,248,.98) 42%, rgba(14,165,233,.12) 55%, transparent 68% 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: future-tool-orbit 6s linear infinite; pointer-events: none; }
+        .future-tool-glow:hover { border-color: rgba(14,165,233,.98) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.28), 0 0 28px rgba(56,189,248,.32); }
+        @media (prefers-reduced-motion: reduce) { .future-tool-glow::before { animation: none; } }
+      `}</style>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
@@ -84,10 +91,11 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
             const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
             const displayName = hindiCopy?.name || tool.name;
             const displayDescription = hindiCopy?.description || tool.description;
+            const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer';
             return (
               <div
                 key={tool.id}
-                className="bg-gradient-to-b from-slate-50/70 via-white to-slate-50/40 border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-xl hover:border-blue-400 hover:-translate-y-1.5 active:scale-[0.99] transition-all duration-300 ease-out flex flex-col justify-between group select-none"
+                className={`bg-gradient-to-b from-slate-50/70 via-white to-slate-50/40 border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-xl hover:border-blue-400 hover:-translate-y-1.5 active:scale-[0.99] transition-all duration-300 ease-out flex flex-col justify-between group select-none ${isActiveFutureTool ? "future-tool-glow" : ""}`}
               >
                 <div>
                   {/* Image-based preview in the upper section */}
