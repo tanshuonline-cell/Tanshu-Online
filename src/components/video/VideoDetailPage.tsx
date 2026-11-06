@@ -323,7 +323,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                     </div>
                   </section>
 
-                  {!isAadhaarFatherName49 && video.topics && video.topics.length > 0 && (
+                  {video.topics && video.topics.length > 0 && (
                     <section className="border-t border-slate-100 pt-4">
                       <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mb-3">
                         What You Will Learn in This Masterclass
@@ -442,7 +442,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
               </div>
 
               {/* Topics / Curriculum Checklist */}
-              {video.topics && video.topics.length > 0 && (
+              {!isAadhaarFatherName49 && video.topics && video.topics.length > 0 && (
                 <div className="pt-4 border-t border-slate-100">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5">
                     What You Will Learn in This Masterclass:
