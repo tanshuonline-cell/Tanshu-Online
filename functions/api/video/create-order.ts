@@ -61,7 +61,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     // Check if customer already has unrevoked access in D1
     try {
       const existingAccess = await env.DB.prepare(
-        'SELECT id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
+        'SELECT id, order_id FROM customer_video_access WHERE customer_phone = ? AND video_id = ? AND is_revoked = 0'
       ).bind(sanitizedPhone, videoId).first();
 
       if (existingAccess) {
@@ -69,7 +69,26 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           JSON.stringify({
             success: false,
             alreadyPurchased: true,
+            orderId: existingAccess.order_id || null,
             error: 'This mobile number already has an active purchase for this video. No new payment was created. Use Already Purchased? Restore with your Cashfree order reference and registered mobile number.',
+          }),
+          { status: 409, headers: corsHeaders }
+        );
+      }
+
+      // Also block a second charge if Cashfree marked an earlier order PAID
+      // but the entitlement write was interrupted. The order reference can restore it.
+      const paidOrder = await env.DB.prepare(
+        "SELECT order_id FROM payment_orders WHERE customer_phone = ? AND video_id = ? AND order_status = 'PAID' ORDER BY updated_at DESC LIMIT 1"
+      ).bind(sanitizedPhone, videoId).first();
+
+      if (paidOrder?.order_id) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            alreadyPurchased: true,
+            orderId: paidOrder.order_id,
+            error: 'A paid order already exists for this mobile number and video. No new payment was created. Restore access using the saved Cashfree order reference.',
           }),
           { status: 409, headers: corsHeaders }
         );
