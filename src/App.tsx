@@ -63,6 +63,7 @@ export default function App() {
   }, [adminCopyAllowed]);
   const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [customerAuthOpen, setCustomerAuthOpen] = useState(false);
+  const [paymentReturnNotice, setPaymentReturnNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
   
   // Keep browser metadata aligned with the actual public route.
   useEffect(() => {
@@ -203,6 +204,81 @@ export default function App() {
     window.addEventListener('popstate', handleUrlRouting);
     return () => window.removeEventListener('popstate', handleUrlRouting);
   }, [catalogVideos]);
+
+  // Verify Cashfree's return URL from the server-created order record.
+  // Never trust query-string payment status, customer phone, or video ID as proof of payment.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('order_id');
+    if (!orderId) return;
+
+    let active = true;
+    const videoIdFromUrl = params.get('video_id') || '';
+
+    fetch('/api/video/verify-payment', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success || !data.isPaid) {
+          throw Object.assign(new Error(data.message || data.error || 'Payment is not confirmed yet.'), { paymentData: data });
+        }
+        return data;
+      })
+      .then((data) => {
+        if (!active) return;
+        const resolvedVideoId = String(data.videoId || videoIdFromUrl);
+        const video = LATEST_VIDEOS.find((item) => item.id === resolvedVideoId);
+        if (!video || !data.customerPhone || !data.sessionToken) {
+          throw new Error('Payment was confirmed, but this video session could not be opened. Please contact support with your order reference.');
+        }
+
+        try {
+          const existing = JSON.parse(localStorage.getItem('tanshu_purchased_videos_v1') || '{}');
+          existing[video.id] = {
+            phone: data.customerPhone,
+            sessionToken: data.sessionToken,
+            unlockedAt: new Date().toISOString(),
+          };
+          localStorage.setItem('tanshu_purchased_videos_v1', JSON.stringify(existing));
+        } catch {
+          // The secure HttpOnly cookie remains available if local storage is disabled.
+        }
+
+        setPaymentReturnNotice({
+          type: 'success',
+          message: 'Payment verified successfully. Your video is unlocked. Select “Watch Masterclass” to start.',
+        });
+        setSelectedDetailVideo(video);
+        setCurrentPage('video-detail');
+        window.history.replaceState({}, '', `/video/${video.id}`);
+      })
+      .catch((error: any) => {
+        if (!active) return;
+        const data = error?.paymentData || {};
+        const resolvedVideoId = String(data.videoId || videoIdFromUrl);
+        const video = LATEST_VIDEOS.find((item) => item.id === resolvedVideoId);
+        setPaymentReturnNotice({
+          type: 'warning',
+          message: data.orderStatus
+            ? `Payment status: ${data.orderStatus}. Your video will remain locked until Cashfree confirms payment. If money was deducted, please do not pay again; contact support with your order reference.`
+            : (error?.message || 'We could not confirm this payment yet. If money was deducted, please do not pay again; contact support with your order reference.'),
+        });
+        if (video) {
+          setSelectedDetailVideo(video);
+          setCurrentPage('video-detail');
+          window.history.replaceState({}, '', `/video/${video.id}`);
+        } else {
+          setCurrentPage('videos');
+          window.history.replaceState({}, '', '/videos');
+        }
+      });
+
+    return () => { active = false; };
+  }, []);
 
   // Check existing admin session cookie on mount
   useEffect(() => {
@@ -449,6 +525,7 @@ export default function App() {
         <main className="flex-1">
           <VideoDetailPage
             video={selectedDetailVideo}
+            paymentReturnNotice={paymentReturnNotice}
             onBack={() => navigateTo('videos', '/videos')}
             onNavigateHome={() => navigateTo('home', '/')}
           />
