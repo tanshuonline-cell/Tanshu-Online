@@ -13,6 +13,7 @@ interface Env {
 
 const COOKIE = 'tanshu_membership_session';
 const STATE_COOKIE = 'tanshu_membership_oauth_state';
+const NONCE_COOKIE = 'tanshu_membership_oauth_nonce';
 const COOKIE_BASE = 'Path=/; HttpOnly; Secure; SameSite=Lax';
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
@@ -109,6 +110,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
   if (action === 'start') {
     const state = b64url(crypto.randomUUID() + ':' + crypto.randomUUID());
+    const nonce = b64url(crypto.randomUUID() + ':' + crypto.randomUUID());
     const stateSignature = await sign(state, env.MEMBERSHIP_SESSION_SECRET!);
     const signedState = state + '.' + stateSignature;
     const redirectUri = origin + '/api/membership/auth?action=callback';
@@ -118,11 +120,12 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     googleUrl.searchParams.set('response_type', 'code');
     googleUrl.searchParams.set('scope', 'openid email profile');
     googleUrl.searchParams.set('state', state);
+    googleUrl.searchParams.set('nonce', nonce);
     googleUrl.searchParams.set('prompt', 'select_account');
     return new Response(null, { status: 302, headers: {
       Location: googleUrl.toString(),
       'Cache-Control': 'no-store',
-      'Set-Cookie': STATE_COOKIE + '=' + signedState + '; ' + COOKIE_BASE + '; Max-Age=600',
+      'Set-Cookie': STATE_COOKIE + '=' + signedState + '; ' + COOKIE_BASE + '; Max-Age=600, ' + NONCE_COOKIE + '=' + nonce + '; ' + COOKIE_BASE + '; Max-Age=600',
     }});
   }
 
@@ -130,10 +133,11 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state') || '';
     const stateCookie = cookie(request, STATE_COOKIE) || '';
+    const expectedNonce = cookie(request, NONCE_COOKIE) || '';
     const [savedState, savedSignature, extra] = stateCookie.split('.');
-    if (!code || !state || extra || !savedState || state !== savedState ||
+    if (!code || !state || !expectedNonce || extra || !savedState || state !== savedState ||
         !safeEqual(savedSignature || '', await sign(savedState, env.MEMBERSHIP_SESSION_SECRET!))) {
-      return new Response('Google sign-in could not be verified. Please try again.', { status: 400, headers: { 'Content-Type': 'text/plain', 'Set-Cookie': clearCookie(STATE_COOKIE) } });
+      return new Response('Google sign-in could not be verified. Please try again.', { status: 400, headers: { 'Content-Type': 'text/plain', 'Set-Cookie': clearCookie(STATE_COOKIE) + ', ' + clearCookie(NONCE_COOKIE) } });
     }
 
     const redirectUri = origin + '/api/membership/auth?action=callback';
@@ -153,7 +157,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     if (!verifyResponse.ok) return new Response('Google identity verification failed.', { status: 401, headers: { 'Content-Type': 'text/plain', 'Set-Cookie': clearCookie(STATE_COOKIE) } });
     const identity: any = await verifyResponse.json();
     const now = Math.floor(Date.now() / 1000);
-    if (identity.aud !== env.GOOGLE_CLIENT_ID || !['accounts.google.com', 'https://accounts.google.com'].includes(identity.iss) ||
+    if (identity.nonce !== expectedNonce || identity.aud !== env.GOOGLE_CLIENT_ID || !['accounts.google.com', 'https://accounts.google.com'].includes(identity.iss) ||
         Number(identity.exp) <= now || identity.email_verified !== 'true' || !identity.sub || !identity.email) {
       return new Response('Google account is not eligible for Membership sign-in.', { status: 403, headers: { 'Content-Type': 'text/plain', 'Set-Cookie': clearCookie(STATE_COOKIE) } });
     }
@@ -186,6 +190,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     }});
     response.headers.append('Set-Cookie', COOKIE + '=' + session + '; ' + COOKIE_BASE + '; Max-Age=604800');
     response.headers.append('Set-Cookie', clearCookie(STATE_COOKIE));
+    response.headers.append('Set-Cookie', clearCookie(NONCE_COOKIE));
     return response;
   }
 
