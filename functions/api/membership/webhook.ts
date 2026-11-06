@@ -2,6 +2,7 @@ interface Env {
   DB: any;
   CASHFREE_APP_ID: string;
   CASHFREE_SECRET_KEY: string;
+  CASHFREE_ENVIRONMENT: string;
 }
 
 const reply = (status = 200) =>
@@ -58,7 +59,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (
     !env.DB ||
     !env.CASHFREE_APP_ID ||
-    !env.CASHFREE_SECRET_KEY
+    !env.CASHFREE_SECRET_KEY ||
+    String(env.CASHFREE_ENVIRONMENT).toUpperCase() !== 'SANDBOX'
   ) {
     console.error('Cashfree membership webhook is missing required Preview configuration.');
     return reply(503);
