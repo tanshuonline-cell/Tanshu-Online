@@ -85,9 +85,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const eventType = String(event.type || event.event_type || 'UNKNOWN').toUpperCase();
   const data = event.data || {};
+  const paymentDetails = data.payment_details || data.payment || data;
   const subscriptionId = String(
     data.subscription_details?.subscription_id ||
     data.subscription_id ||
+    paymentDetails.subscription_id ||
     event.subscription_id ||
     '',
   );
@@ -171,7 +173,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     // AUTH is only mandate authorisation (often a small refundable verification amount).
     // Record only real recurring CHARGE events in the membership payment ledger.
-    const paymentType = String(data.payment_type || '').toUpperCase();
+    const paymentType = String(paymentDetails.payment_type || data.payment_type || '').toUpperCase();
     const isPaymentEvent = [
       'SUBSCRIPTION_PAYMENT_SUCCESS',
       'SUBSCRIPTION_PAYMENT_FAILED',
@@ -181,19 +183,21 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (isPaymentEvent && paymentType === 'CHARGE') {
       const paymentStatus =
         eventType === 'SUBSCRIPTION_PAYMENT_SUCCESS' &&
-        String(data.payment_status || '').toUpperCase() === 'SUCCESS'
+        String(paymentDetails.payment_status || data.payment_status || '').toUpperCase() === 'SUCCESS'
           ? 'success'
           : 'failed';
 
       const gatewayPaymentId = String(
+        paymentDetails.cf_payment_id ||
+        paymentDetails.payment_gateway_details?.gateway_payment_id ||
+        paymentDetails.payment_id ||
         data.cf_payment_id ||
-        data.payment_gateway_details?.gateway_payment_id ||
         data.payment_id ||
         '',
       );
-      const amount = Number(data.payment_amount);
+      const amount = Number(paymentDetails.payment_amount ?? data.payment_amount);
       const amountPaise = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
-      const currency = String(data.payment_currency || 'INR').toUpperCase();
+      const currency = String(paymentDetails.payment_currency || data.payment_currency || 'INR').toUpperCase();
 
       const localSubscription = await env.DB.prepare(
         'SELECT s.id AS subscription_id,s.customer_id,s.plan_id,s.current_period_end,p.monthly_amount_paise FROM membership_subscriptions s JOIN membership_plans p ON p.id=s.plan_id WHERE s.gateway=? AND s.gateway_subscription_id=? LIMIT 1',
@@ -214,7 +218,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const gatewayOrderId = String(data.cf_order_id || '').trim() || null;
       const paidAt =
         paymentStatus === 'success'
-          ? String(event.event_time || data.payment_initiated_date || new Date().toISOString())
+          ? String(event.event_time || paymentDetails.payment_initiated_date || data.payment_initiated_date || new Date().toISOString())
           : null;
 
       await env.DB.prepare(
