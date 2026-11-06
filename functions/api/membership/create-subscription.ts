@@ -80,6 +80,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({ success: false, error: 'Cashfree Basic ₹49 monthly plan could not be verified as active.' }, 409);
     }
 
+    const localPlan = await env.DB.prepare(
+      "SELECT id,monthly_amount_paise,status FROM membership_plans WHERE id='plan_basic' LIMIT 1"
+    ).first();
+    if (!localPlan || localPlan.status !== 'active' || Number(localPlan.monthly_amount_paise) !== 4900) {
+      return json({ success: false, error: 'Basic ₹49 Membership plan is not active in the Preview database.' }, 409);
+    }
+
     const existing = await env.DB.prepare(
       "SELECT id,status FROM membership_subscriptions WHERE customer_id=? AND status IN ('pending','active','payment_failed','suspended') LIMIT 1"
     ).bind(customer.id).first();
