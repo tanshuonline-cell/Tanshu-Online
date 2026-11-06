@@ -114,10 +114,18 @@ export const MembershipCheckout: React.FC = () => {
         throw new Error(data.error || 'Cashfree Checkout session नहीं बन पाया।');
       }
       const cashfree = window.Cashfree({ mode: 'sandbox' });
-      await cashfree.subscriptionsCheckout({
+      const checkoutResult = await cashfree.subscriptionsCheckout({
         subsSessionId: data.subscriptionSessionId,
         redirectTarget: '_self',
       });
+      if (checkoutResult?.error) {
+        throw new Error(checkoutResult.error.message || 'Cashfree Checkout शुरू नहीं हो पाया।');
+      }
+      if (!checkoutResult?.redirect && !checkoutResult?.paymentDetails) {
+        setBusy(false);
+        setNotice('Checkout बंद हो गया। कोई सफल भुगतान मानकर Membership सक्रिय नहीं की गई है।');
+        setNoticeType('info');
+      }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Checkout शुरू नहीं हो पाया।');
       setNoticeType('error');
