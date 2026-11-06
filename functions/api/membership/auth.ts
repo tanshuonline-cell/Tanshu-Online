@@ -122,11 +122,13 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     googleUrl.searchParams.set('state', state);
     googleUrl.searchParams.set('nonce', nonce);
     googleUrl.searchParams.set('prompt', 'select_account');
-    return new Response(null, { status: 302, headers: {
+    const startHeaders = new Headers({
       Location: googleUrl.toString(),
       'Cache-Control': 'no-store',
-      'Set-Cookie': STATE_COOKIE + '=' + signedState + '; ' + COOKIE_BASE + '; Max-Age=600, ' + NONCE_COOKIE + '=' + nonce + '; ' + COOKIE_BASE + '; Max-Age=600',
-    }});
+    });
+    startHeaders.append('Set-Cookie', STATE_COOKIE + '=' + signedState + '; ' + COOKIE_BASE + '; Max-Age=600');
+    startHeaders.append('Set-Cookie', NONCE_COOKIE + '=' + nonce + '; ' + COOKIE_BASE + '; Max-Age=600');
+    return new Response(null, { status: 302, headers: startHeaders });
   }
 
   if (action === 'callback') {
@@ -137,7 +139,10 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     const [savedState, savedSignature, extra] = stateCookie.split('.');
     if (!code || !state || !expectedNonce || extra || !savedState || state !== savedState ||
         !safeEqual(savedSignature || '', await sign(savedState, env.MEMBERSHIP_SESSION_SECRET!))) {
-      return new Response('Google sign-in could not be verified. Please try again.', { status: 400, headers: { 'Content-Type': 'text/plain', 'Set-Cookie': clearCookie(STATE_COOKIE) + ', ' + clearCookie(NONCE_COOKIE) } });
+      const errorHeaders = new Headers({ 'Content-Type': 'text/plain' });
+      errorHeaders.append('Set-Cookie', clearCookie(STATE_COOKIE));
+      errorHeaders.append('Set-Cookie', clearCookie(NONCE_COOKIE));
+      return new Response('Google sign-in could not be verified. Please try again.', { status: 400, headers: errorHeaders });
     }
 
     const redirectUri = origin + '/api/membership/auth?action=callback';
