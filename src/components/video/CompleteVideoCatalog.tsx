@@ -18,8 +18,10 @@ export const CompleteVideoCatalog: React.FC<Props> = ({
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Public catalog intentionally displays paid videos only; free records remain stored for admin/future use.
+  // Public catalog currently lists only the approved ₹49 Aadhaar Father Name Update video.
+  // Other video records remain stored and are not deleted.
   const activeVideos = videos.filter(
-    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+    (video) => video.id === 'video_1793562264012' && video.price === 49 && video.isActive !== false
   );
 
   const filteredVideos = activeVideos.filter((video) => {
