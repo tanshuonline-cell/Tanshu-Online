@@ -421,7 +421,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50/70 p-4 space-y-3 text-left">
                   <div className="flex items-start justify-between gap-2 border-b border-rose-100 pb-2">
                     <div>
-                      <p className="text-sm font-extrabold text-rose-900">Premium WhatsApp Consultation</p>
+                      <p className="text-sm font-extrabold text-rose-900">प्रीमियम WhatsApp परामर्श</p>
                       <p className="text-[11px] font-semibold text-rose-700">केवल ₹49 • एक विषय • एक बार भुगतान</p>
                     </div>
                     <span className="shrink-0 rounded-lg bg-rose-600 px-2 py-1 text-xs font-black text-white">₹49</span>
@@ -429,28 +429,28 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
 
                   <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
                     <p className="font-bold text-slate-900">इसमें आपको क्या मिलेगा?</p>
-                    <p>एक भुगतान पर आप WhatsApp चैट के माध्यम से एक ही विषय पर पूरी बातचीत कर सकते हैं। आपकी समस्या और उससे जुड़ी जानकारी समझकर उपलब्ध नियमों के अनुसार सही प्रक्रिया, जरूरी जानकारी और अगले कदम समझाए जाएँगे। बातचीत का उद्देश्य आपकी समस्या को ठीक से समझना और आपको स्पष्ट मार्गदर्शन देना है।</p>
+                    <p>एक भुगतान पर आप WhatsApp चैट के माध्यम से केवल एक ही विषय पर पूरी बातचीत कर सकते हैं। आपकी समस्या और उससे जुड़ी जानकारी समझकर उपलब्ध नियमों के अनुसार सही प्रक्रिया, जरूरी जानकारी और अगले कदम बताए जाएँगे। हमारा उद्देश्य आपकी समस्या को ठीक से समझकर आपको स्पष्ट मार्गदर्शन देना है।</p>
                   </div>
 
                   <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
                     <p className="font-bold text-slate-900">समय और वैधता</p>
-                    <p>भुगतान सफलतापूर्वक सत्यापित होने के बाद Consultation की वैधता 24 घंटे रहेगी। सहायता निर्धारित Working Hours में दी जाएगी। 24 घंटे पूरे होने पर इस Consultation का एक्सेस समाप्त हो जाएगा।</p>
+                    <p>भुगतान सफलतापूर्वक सत्यापित होने के बाद इस परामर्श की वैधता 24 घंटे रहेगी। सहायता केवल निर्धारित कार्य समय में दी जाएगी। 24 घंटे पूरे होने पर परामर्श का एक्सेस समाप्त हो जाएगा।</p>
                   </div>
 
                   <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
                     <p className="font-bold text-slate-900">WhatsApp पर संपर्क कैसे मिलेगा?</p>
-                    <p>Cashfree भुगतान की पुष्टि होने के बाद आपको सुरक्षित WhatsApp Consultation लिंक दिया जाएगा। आपका निजी मोबाइल नंबर वेबसाइट पर सार्वजनिक रूप से नहीं दिखाया जाएगा। यह सुविधा WhatsApp चैट के लिए है; अनावश्यक कॉल या बार-बार संदेश भेजना स्वीकार नहीं होगा।</p>
+                    <p>Cashfree भुगतान की पुष्टि होने के बाद आपको सुरक्षित WhatsApp चैट लिंक दिया जाएगा। आपका निजी मोबाइल नंबर वेबसाइट पर सार्वजनिक रूप से नहीं दिखाया जाएगा। यह सुविधा केवल WhatsApp चैट के लिए है। अनावश्यक कॉल या बार-बार संदेश भेजना स्वीकार नहीं होगा।</p>
                   </div>
 
                   <div className="space-y-1.5 text-xs leading-relaxed text-slate-700">
-                    <p className="font-bold text-slate-900">महत्वपूर्ण Terms &amp; Conditions</p>
+                    <p className="font-bold text-slate-900">महत्वपूर्ण नियम एवं शर्तें</p>
                     <ul className="list-disc pl-4 space-y-1">
-                      <li>₹49 का भुगतान केवल एक विषय की Consultation के लिए है।</li>
-                      <li>नई या अलग समस्या, नया विषय अथवा अतिरिक्त Consultation के लिए अलग भुगतान करना होगा।</li>
+                      <li>₹49 का भुगतान केवल एक विषय के परामर्श के लिए है।</li>
+                      <li>नई या अलग समस्या, नया विषय अथवा अतिरिक्त परामर्श के लिए अलग भुगतान करना होगा।</li>
                       <li>सरकारी फीस, आवेदन शुल्क, पोर्टल शुल्क और किसी अन्य सेवा का शुल्क ₹49 में शामिल नहीं है।</li>
-                      <li>यह मार्गदर्शन सेवा है; किसी सरकारी आवेदन की स्वीकृति, परिणाम या निश्चित समय-सीमा की गारंटी नहीं दी जाती। अंतिम निर्णय संबंधित विभाग/पोर्टल के नियमों पर निर्भर करेगा।</li>
+                      <li>यह मार्गदर्शन सेवा है। किसी सरकारी आवेदन की स्वीकृति, परिणाम या निश्चित समय-सीमा की गारंटी नहीं दी जाती। अंतिम निर्णय संबंधित विभाग या पोर्टल के नियमों पर निर्भर करेगा।</li>
                       <li>भुगतान सत्यापित होने के बाद ही Consultation लिंक सक्रिय होगा। असफल या अपुष्ट भुगतान पर एक्सेस नहीं मिलेगा।</li>
-                      <li>24 घंटे की वैधता समाप्त होने पर पुराने Consultation लिंक से सहायता उपलब्ध नहीं रहेगी।</li>
+                      <li>24 घंटे की वैधता समाप्त होने पर पुराने परामर्श लिंक से सहायता उपलब्ध नहीं रहेगी।</li>
                     </ul>
                   </div>
                   <p className="border-t border-rose-100 pt-2 text-[10px] leading-relaxed text-slate-500">कृपया भुगतान करने से पहले ऊपर दी गई जानकारी और सभी शर्तें ध्यान से पढ़ लें।</p>
