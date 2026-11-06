@@ -194,84 +194,86 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
               )}
             </div>
 
-            {/* About This Video / इस वीडियो के बारे में */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4" />
+            {/* Keep the original About panel for all other videos; the ₹49 Aadhaar page uses the replacement information layout below. */}
+            {video.id !== 'video_1793562264012' && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+                        {aboutLang === 'hi' ? 'इस वीडियो के बारे में' : 'About this Video'}
+                      </h2>
+                      <p className="text-[11px] text-slate-500">
+                        {aboutLang === 'hi' ? 'विषय, उपयोगी मार्गदर्शन और मुख्य बिंदु' : 'Guidance, topics covered & learning outcomes'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
-                      {aboutLang === 'hi' ? 'इस वीडियो के बारे में' : 'About this Video'}
-                    </h2>
-                    <p className="text-[11px] text-slate-500">
-                      {aboutLang === 'hi' ? 'विषय, उपयोगी मार्गदर्शन और मुख्य बिंदु' : 'Guidance, topics covered & learning outcomes'}
+  
+                  {/* Bilingual Language Switcher */}
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setAboutLang('hi')}
+                      className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                        aboutLang === 'hi'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      हिंदी
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAboutLang('en')}
+                      className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                        aboutLang === 'en'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      English
+                    </button>
+                  </div>
+                </div>
+  
+                {/* Clear, Professional Description (Matches video topic without revealing full tutorial) */}
+                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-100 text-slate-700 text-xs sm:text-sm leading-relaxed">
+                  {aboutLang === 'hi'
+                    ? (video.aboutHi || video.hindiDescription || video.description)
+                    : (video.aboutEn || video.description)}
+                </div>
+  
+                {/* Key Takeaways */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs space-y-1">
+                    <div className="font-bold text-blue-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{aboutLang === 'hi' ? 'इस वीडियो से क्या सीखेंगे?' : 'What You Will Learn'}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-normal">
+                      {aboutLang === 'hi'
+                        ? 'प्रक्रिया के मुख्य नियम, तकनीकी सेटिंग्स और पोर्टल पर सामान्य गलतियों से बचने की सही जानकारी।'
+                        : 'Essential rules, configuration parameters, and proven methods to avoid common errors.'}
+                    </p>
+                  </div>
+  
+                  <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs space-y-1">
+                    <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{aboutLang === 'hi' ? 'यह किसके लिए उपयोगी है?' : 'Who This Is Useful For'}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-normal">
+                      {aboutLang === 'hi'
+                        ? (video.hindiTargetAudience || 'साइबर कैफ़े संचालक, CSC VLEs और सही प्रक्रिया समझने वाले सभी नागरिक।')
+                        : (video.targetAudience || 'Cyber cafe operators, CSC VLEs, and applicants wanting reliable guidance.')}
                     </p>
                   </div>
                 </div>
-
-                {/* Bilingual Language Switcher */}
-                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setAboutLang('hi')}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                      aboutLang === 'hi'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    हिंदी
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAboutLang('en')}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                      aboutLang === 'en'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    English
-                  </button>
-                </div>
               </div>
-
-              {/* Clear, Professional Description (Matches video topic without revealing full tutorial) */}
-              <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-100 text-slate-700 text-xs sm:text-sm leading-relaxed">
-                {aboutLang === 'hi'
-                  ? (video.aboutHi || video.hindiDescription || video.description)
-                  : (video.aboutEn || video.description)}
-              </div>
-
-              {/* Key Takeaways */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs space-y-1">
-                  <div className="font-bold text-blue-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{aboutLang === 'hi' ? 'इस वीडियो से क्या सीखेंगे?' : 'What You Will Learn'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 leading-normal">
-                    {aboutLang === 'hi'
-                      ? 'प्रक्रिया के मुख्य नियम, तकनीकी सेटिंग्स और पोर्टल पर सामान्य गलतियों से बचने की सही जानकारी।'
-                      : 'Essential rules, configuration parameters, and proven methods to avoid common errors.'}
-                  </p>
-                </div>
-
-                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs space-y-1">
-                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{aboutLang === 'hi' ? 'यह किसके लिए उपयोगी है?' : 'Who This Is Useful For'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 leading-normal">
-                    {aboutLang === 'hi'
-                      ? (video.hindiTargetAudience || 'साइबर कैफ़े संचालक, CSC VLEs और सही प्रक्रिया समझने वाले सभी नागरिक।')
-                      : (video.targetAudience || 'Cyber cafe operators, CSC VLEs, and applicants wanting reliable guidance.')}
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Video Overview */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
@@ -308,38 +310,23 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 <h1 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                   {video.title}
                 </h1>
-                <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                  {video.description}
-                </p>
+                {video.id !== 'video_1793562264012' && (
+                  <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                    {video.description}
+                  </p>
+                )}
               </div>
 
-              {/* Topics / Curriculum Checklist */}
-              {video.topics && video.topics.length > 0 && (
-                <div className="pt-4 border-t border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5">
-                    What You Will Learn in This Masterclass:
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {video.topics.map((topic, i) => (
-                      <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{topic}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Targeted One-Time Purchase information footer: only the ₹49 Aadhaar video */}
-              {video.id === 'video_1793562264012' && (
-                <section className="mt-5 rounded-xl border border-red-200 bg-red-50/70 p-4 sm:p-5 space-y-4" aria-labelledby="aadhaar-info-footer-title">
+              {/* Targeted bilingual information layout: only the ₹49 Aadhaar video */}
+              {video.id === 'video_1793562264012' ? (
+                <section className="mt-5 rounded-xl border border-red-200 bg-red-50/70 p-4 sm:p-5 space-y-4" aria-labelledby="aadhaar-info-title">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                      <h2 id="aadhaar-info-footer-title" className="text-sm sm:text-base font-extrabold text-red-800">
+                      <h2 id="aadhaar-info-title" className="text-sm sm:text-base font-extrabold text-red-800">
                         {aboutLang === 'hi' ? 'इस वीडियो में आपको क्या-क्या जानकारी मिलेगी?' : 'What Information Will You Get in This Video?'}
                       </h2>
                       <p className="mt-1 text-[11px] text-red-700">
-                        {aboutLang === 'hi' ? 'महत्वपूर्ण जानकारी • आधिकारिक UIDAI स्रोत • आवेदन से पहले सावधानियाँ' : 'Important guidance • Official UIDAI sources • Precautions before applying'}
+                        {aboutLang === 'hi' ? 'महत्वपूर्ण जानकारी • वैकल्पिक प्रक्रिया • आवेदन से पहले जरूरी सावधानियाँ' : 'Important guidance • Alternative process • Essential precautions before applying'}
                       </p>
                     </div>
                     <div className="inline-flex self-start sm:self-auto rounded-lg border border-red-200 bg-white p-0.5 shrink-0" aria-label="Choose information language">
@@ -351,60 +338,89 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   {aboutLang === 'hi' ? (
                     <div className="space-y-3 text-xs sm:text-sm leading-relaxed text-slate-700">
                       <ol className="list-decimal pl-5 space-y-2 marker:font-bold marker:text-red-700">
-                        <li><strong className="text-slate-900">पिता के नाम से जुड़ी जानकारी गलत है:</strong> Aadhaar में पिता का नाम किस जगह (जैसे C/O या अन्य संबंधित विवरण) दिखाई दे रहा है, उसे समझना और उपलब्ध सुधार विकल्पों की जानकारी।</li>
-                        <li><strong className="text-slate-900">पिता का नाम सही है, लेकिन पता गलत है:</strong> पता अपडेट करने के संभावित तरीके और स्वीकार्य सहायक दस्तावेजों की जानकारी।</li>
-                        <li><strong className="text-slate-900">Head of Family (HOF) के बिना आवेदन:</strong> अपने दस्तावेजों के आधार पर उपलब्ध विकल्प, उनकी शर्तें और सीमाएँ।</li>
-                        <li><strong className="text-slate-900">पति के निधन के बाद महिलाओं के मामले:</strong> पति के नाम और वर्तमान पते से जुड़े विवरणों के लिए उपलब्ध प्रक्रिया और दस्तावेजों को समझना।</li>
-                        <li><strong className="text-slate-900">पिता के निधन के बाद:</strong> पिता से संबंधित विवरण या पते के मामलों में उपलब्ध विकल्प और जरूरी दस्तावेजों की जानकारी।</li>
-                        <li><strong className="text-slate-900">Step-by-Step मार्गदर्शन:</strong> आवेदन से पहले तैयारी, जानकारी जाँचना, दस्तावेज चुनना और आधिकारिक प्रक्रिया को समझना।</li>
+                        <li><strong className="text-slate-900">पिता के नाम से जुड़ी जानकारी गलत है:</strong> आधार में संबंधित जानकारी को सही कराने के उपलब्ध विकल्पों और जरूरी बातों को समझें।</li>
+                        <li><strong className="text-slate-900">पिता से जुड़ी जानकारी सही है, लेकिन पता गलत है:</strong> पता अपडेट करने के संभावित तरीके और स्वीकार्य सहायक दस्तावेजों की जानकारी।</li>
+                        <li><strong className="text-slate-900">Head of Family (HOF) के बिना आवेदन:</strong> वीडियो में बताए गए वैकल्पिक तरीके/प्रोसेस, अपनी ओर से उपलब्ध दस्तावेजों और लागू शर्तों के आधार पर समझें।</li>
+                        <li><strong className="text-slate-900">पति के निधन के बाद महिलाओं के मामले:</strong> पति से संबंधित जानकारी और वर्तमान पते के लिए उपलब्ध विकल्पों तथा दस्तावेजों की जानकारी।</li>
+                        <li><strong className="text-slate-900">पिता के निधन के बाद:</strong> पिता से संबंधित जानकारी या पते के मामलों में उपलब्ध विकल्प और जरूरी दस्तावेज।</li>
+                        <li><strong className="text-slate-900">Step-by-Step मार्गदर्शन:</strong> आवेदन से पहले तैयारी, जानकारी जाँचना, दस्तावेज चुनना और प्रक्रिया को समझना।</li>
                       </ol>
                       <div className="rounded-lg border border-red-200 bg-white p-3 space-y-2">
                         <h3 className="font-extrabold text-red-800">महत्वपूर्ण सूचना</h3>
-                        <p>यह वीडियो केवल शैक्षणिक और जानकारी देने के उद्देश्य से है। Aadhaar में पिता का नाम अलग स्वतंत्र फ़ील्ड के रूप में उपलब्ध हो, यह जरूरी नहीं; कई मामलों में संबंधित जानकारी पते के C/O जैसे विवरण में हो सकती है। कौन-सा अपडेट संभव है, यह UIDAI के वर्तमान नियमों, पहचान/पते के स्वीकार्य दस्तावेजों और सत्यापन पर निर्भर करता है। किसी आवेदन की स्वीकृति या सफल अपडेट की गारंटी नहीं है।</p>
-                        <p><strong>गोपनीयता:</strong> हम आपसे Aadhaar OTP, पासवर्ड या बायोमेट्रिक जानकारी नहीं माँगते। यदि UIDAI की आधिकारिक वेबसाइट पर OTP की आवश्यकता हो, तो उसे केवल उसी आधिकारिक UIDAI पोर्टल पर स्वयं दर्ज करें।</p>
-                        <p><strong>खरीद:</strong> यह One-Time Purchase वीडियो है। भुगतान सफल और सत्यापित होने पर वीडियो का एक्सेस अनलॉक होता है। खरीदने से पहले वीडियो का विवरण ध्यान से पढ़ें।</p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <h3 className="font-bold text-red-800">आधिकारिक UIDAI लिंक</h3>
-                        <ul className="list-disc pl-5 space-y-1">
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://myaadhaar.uidai.gov.in/" target="_blank" rel="noopener noreferrer">myAadhaar आधिकारिक पोर्टल</a></li>
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/enrolment-and-updates" target="_blank" rel="noopener noreferrer">Enrolment &amp; Updates / नामांकन और अपडेट</a></li>
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/updating-data-on-aadhaar" target="_blank" rel="noopener noreferrer">Updating Data on Aadhaar / Aadhaar डेटा अपडेट</a></li>
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/regulations" target="_blank" rel="noopener noreferrer">UIDAI Regulations / नियम और विनियम</a></li>
-                        </ul>
+                        <p>HOF के बिना आवेदन के लिए वीडियो में बताया गया तरीका एक वैकल्पिक method/process के रूप में समझाया गया है। यह UIDAI का कोई आधिकारिक अपडेट, घोषित सुविधा या आधिकारिक तरीका नहीं है। यह किसी आधिकारिक बग या स्थायी सुविधा का दावा भी नहीं है। इसकी उपलब्धता और स्वीकार्यता UIDAI के मौजूदा नियमों, पोर्टल की प्रक्रिया, मान्य दस्तावेजों और सत्यापन पर निर्भर करेगी। आवेदन स्वीकार होने या अपडेट पूरा होने की गारंटी नहीं है।</p>
+                        <p>यह वीडियो केवल शैक्षणिक और जानकारी देने के उद्देश्य से है। आधार में पिता का नाम अलग स्वतंत्र फ़ील्ड के रूप में उपलब्ध हो, यह जरूरी नहीं; संबंधित जानकारी किस रूप में दर्ज है, यह रिकॉर्ड और लागू प्रक्रिया के अनुसार अलग हो सकती है।</p>
+                        <p><strong>गोपनीयता:</strong> हम आपसे Aadhaar OTP, पासवर्ड या बायोमेट्रिक जानकारी नहीं माँगते। OTP की आवश्यकता होने पर उसे केवल आधिकारिक UIDAI पोर्टल पर स्वयं दर्ज करें।</p>
+                        <p><strong>खरीद:</strong> यह One-Time Purchase वीडियो है। भुगतान सफल और सत्यापित होने पर वीडियो का एक्सेस अनलॉक होता है। खरीदने से पहले विवरण ध्यान से पढ़ें।</p>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-3 text-xs sm:text-sm leading-relaxed text-slate-700">
                       <ol className="list-decimal pl-5 space-y-2 marker:font-bold marker:text-red-700">
-                        <li><strong className="text-slate-900">Incorrect father-related details:</strong> Understand where the father's name appears in Aadhaar (such as C/O or another related detail) and learn about the available correction options.</li>
-                        <li><strong className="text-slate-900">Correct father's name, incorrect address:</strong> Learn about possible address-update routes and acceptable supporting documents.</li>
-                        <li><strong className="text-slate-900">Applying without a Head of Family (HOF):</strong> Understand options based on your own documents, along with their conditions and limitations.</li>
-                        <li><strong className="text-slate-900">For women whose husband has passed away:</strong> Understand the available process and documents for details related to the husband's name and the current address.</li>
-                        <li><strong className="text-slate-900">When the father has passed away:</strong> Learn about possible options and supporting documents for father-related details or address matters.</li>
-                        <li><strong className="text-slate-900">Step-by-step guidance:</strong> Preparation before applying, checking details, choosing documents, and understanding the official process.</li>
+                        <li><strong className="text-slate-900">Incorrect father-related details:</strong> Understand the available options and important points for correcting the related information in Aadhaar.</li>
+                        <li><strong className="text-slate-900">Father-related details are correct, but the address is wrong:</strong> Learn about possible address-update routes and acceptable supporting documents.</li>
+                        <li><strong className="text-slate-900">Applying without a Head of Family (HOF):</strong> Understand the alternative method/process explained in the video, based on your available documents and applicable conditions.</li>
+                        <li><strong className="text-slate-900">For women whose husband has passed away:</strong> Learn about available options and documents for spouse-related information and the current address.</li>
+                        <li><strong className="text-slate-900">When the father has passed away:</strong> Understand possible options and supporting documents for father-related information or address matters.</li>
+                        <li><strong className="text-slate-900">Step-by-step guidance:</strong> Preparation before applying, checking details, choosing documents, and understanding the process.</li>
                       </ol>
                       <div className="rounded-lg border border-red-200 bg-white p-3 space-y-2">
                         <h3 className="font-extrabold text-red-800">Important Notice</h3>
-                        <p>This video is for educational and informational purposes only. Aadhaar does not necessarily provide a separate independent “father's name” field; in many cases, related information may appear in address details such as C/O. Whether an update is possible depends on current UIDAI rules, accepted identity/address documents, and verification. Approval or successful updating is not guaranteed.</p>
-                        <p><strong>Privacy:</strong> We do not ask for your Aadhaar OTP, password, or biometric information. If an OTP is required on UIDAI's official website, enter it yourself only on the official UIDAI portal.</p>
-                        <p><strong>Purchase:</strong> This is a One-Time Purchase video. Access is unlocked after successful payment verification. Please read the video details carefully before purchasing.</p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <h3 className="font-bold text-red-800">Official UIDAI Links</h3>
-                        <ul className="list-disc pl-5 space-y-1">
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://myaadhaar.uidai.gov.in/" target="_blank" rel="noopener noreferrer">myAadhaar Official Portal</a></li>
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/enrolment-and-updates" target="_blank" rel="noopener noreferrer">Enrolment &amp; Updates</a></li>
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/updating-data-on-aadhaar" target="_blank" rel="noopener noreferrer">Updating Data on Aadhaar</a></li>
-                          <li><a className="text-blue-700 underline underline-offset-2 break-all" href="https://uidai.gov.in/en/regulations" target="_blank" rel="noopener noreferrer">UIDAI Regulations</a></li>
-                        </ul>
+                        <p>The method/process for applying without HOF explained in this video is presented as an alternative approach. It is not an official UIDAI update, announced facility, or officially prescribed method. It is not a claim of an official bug or a permanent facility. Availability and acceptance depend on current UIDAI rules, portal procedures, valid documents, and verification. Application approval or successful updating is not guaranteed.</p>
+                        <p>This video is for educational and informational purposes only. Aadhaar may not provide a separate independent field for a father's name; how related information is recorded can depend on the record and applicable process.</p>
+                        <p><strong>Privacy:</strong> We do not ask for your Aadhaar OTP, password, or biometric information. If an OTP is required, enter it yourself only on the official UIDAI portal.</p>
+                        <p><strong>Purchase:</strong> This is a One-Time Purchase video. Access is unlocked after successful payment verification. Please read the details carefully before purchasing.</p>
                       </div>
                     </div>
                   )}
+
+                  {/* Masterclass topics follow the information section, as requested */}
+                  {video.topics && video.topics.length > 0 && (
+                    <div className="pt-4 border-t border-red-200">
+                      <h3 className="text-xs font-bold tracking-wide text-red-800 mb-2.5">
+                        What You Will Learn in This Masterclass
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {video.topics.map((topic, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{topic}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Four official links stay in one row on desktop and wrap on narrow mobile screens */}
+                  <div className="pt-3 border-t border-red-200 space-y-2">
+                    <h3 className="text-xs font-bold text-red-800">
+                      {aboutLang === 'hi' ? 'आधिकारिक UIDAI लिंक' : 'Official UIDAI Links'}
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                      <a className="rounded-lg bg-white border border-red-100 px-2 py-2 text-[10px] sm:text-xs font-semibold text-blue-700 underline underline-offset-2 hover:bg-red-50" href="https://myaadhaar.uidai.gov.in/" target="_blank" rel="noopener noreferrer">myAadhaar</a>
+                      <a className="rounded-lg bg-white border border-red-100 px-2 py-2 text-[10px] sm:text-xs font-semibold text-blue-700 underline underline-offset-2 hover:bg-red-50" href="https://uidai.gov.in/en/enrolment-and-updates" target="_blank" rel="noopener noreferrer">Enrolment &amp; Updates</a>
+                      <a className="rounded-lg bg-white border border-red-100 px-2 py-2 text-[10px] sm:text-xs font-semibold text-blue-700 underline underline-offset-2 hover:bg-red-50" href="https://uidai.gov.in/en/updating-data-on-aadhaar" target="_blank" rel="noopener noreferrer">Updating Data</a>
+                      <a className="rounded-lg bg-white border border-red-100 px-2 py-2 text-[10px] sm:text-xs font-semibold text-blue-700 underline underline-offset-2 hover:bg-red-50" href="https://uidai.gov.in/en/regulations" target="_blank" rel="noopener noreferrer">UIDAI Regulations</a>
+                    </div>
+                  </div>
                 </section>
+              ) : (
+                /* Existing masterclass topics remain unchanged for all other videos */
+                video.topics && video.topics.length > 0 && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5">
+                      What You Will Learn in This Masterclass:
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {video.topics.map((topic, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>{topic}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
               )}
-            </div>
-          </div>
 
           {/* Right Column: Pricing & Purchase Card */}
           <div className="space-y-6">
