@@ -46,7 +46,9 @@ function mapSubscriptionStatus(subscriptionStatus: string, authorizationStatus: 
   const status = subscriptionStatus.toUpperCase();
   const authorization = authorizationStatus.toUpperCase();
 
-  if (status === 'ACTIVE' && authorization === 'ACTIVE') return 'active';
+  // An active mandate is not proof that a recurring membership charge succeeded.
+  // Entitlement is granted only after a verified CHARGE webhook below.
+  if (status === 'ACTIVE' && authorization === 'ACTIVE') return 'pending';
   if (['EXPIRED', 'COMPLETED', 'LINK_EXPIRED'].includes(status)) return 'expired';
   if (['CUSTOMER_CANCELLED', 'CANCELLED'].includes(status)) return 'cancelled';
   if (['ON_HOLD', 'PAUSED', 'CUSTOMER_PAUSED'].includes(status)) return 'suspended';
@@ -147,11 +149,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     );
     const localStatus = mapSubscriptionStatus(subscriptionStatus, authorizationStatus);
 
-    await env.DB.prepare(
-      "UPDATE membership_subscriptions SET status=?,updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
-    )
-      .bind(localStatus, subscriptionId)
-      .run();
+    if (localStatus !== 'pending') {
+      await env.DB.prepare(
+        "UPDATE membership_subscriptions SET status=?,updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
+      )
+        .bind(localStatus, subscriptionId)
+        .run();
+    }
 
     // AUTH is only mandate authorisation (often a small refundable verification amount).
     // Record only real recurring CHARGE events in the membership payment ledger.
@@ -216,6 +220,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           paymentStatus,
           paidAt,
         )
+        .run();
+
+      // Only a verified successful recurring charge grants membership access.
+      await env.DB.prepare(
+        "UPDATE membership_subscriptions SET status=?,updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
+      )
+        .bind(paymentStatus === 'success' ? 'active' : 'payment_failed', subscriptionId)
         .run();
     }
 
