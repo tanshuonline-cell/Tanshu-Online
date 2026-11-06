@@ -100,30 +100,32 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       },
     };
 
-    // Resolve video price (lookup in D1 or standard catalog fallback)
-    let videoPrice = 99; // Default fallback in INR
-    let videoTitle = 'Tanshu Online Premium Training Video';
-
-    if (TRUSTED_PREMIUM_CATALOG[videoId]) {
-      videoPrice = TRUSTED_PREMIUM_CATALOG[videoId].price;
-      videoTitle = TRUSTED_PREMIUM_CATALOG[videoId].title;
+    // Only explicitly approved premium catalog entries can be purchased.
+    // Never accept an arbitrary video ID or a client-supplied amount.
+    const trustedVideo = TRUSTED_PREMIUM_CATALOG[videoId];
+    if (!trustedVideo) {
+      return new Response(JSON.stringify({ success: false, error: 'This video is not available for online purchase.' }), { status: 400, headers: corsHeaders });
     }
 
-    if (env.DB) {
-      try {
-        const videoRecord = await env.DB.prepare(
-          'SELECT title, price, is_premium FROM videos WHERE id = ? AND is_active = 1'
-        )
-          .bind(videoId)
-          .first();
+    let videoPrice = trustedVideo.price;
+    let videoTitle = trustedVideo.title;
 
-        if (videoRecord) {
-          videoPrice = Number(videoRecord.price) || videoPrice;
-          videoTitle = videoRecord.title || videoTitle;
-        }
-      } catch (dbErr) {
-        console.warn('D1 video lookup warning:', dbErr);
+    // D1 is the source of the active/premium entitlement record. The price remains
+    // server-controlled by the trusted catalog, not by request data or a DB override.
+    try {
+      const videoRecord = await env.DB.prepare(
+        'SELECT title, access_type, is_premium, is_active FROM videos WHERE id = ?'
+      ).bind(videoId).first();
+
+      const isPremiumRecord = videoRecord &&
+        (videoRecord.access_type === 'premium' || Number(videoRecord.is_premium) === 1);
+      if (!videoRecord || Number(videoRecord.is_active) !== 1 || !isPremiumRecord) {
+        return new Response(JSON.stringify({ success: false, error: 'This premium video is not active for purchase yet. Please contact support.' }), { status: 404, headers: corsHeaders });
       }
+      videoTitle = videoRecord.title || videoTitle;
+    } catch (dbErr) {
+      console.error('D1 video purchase validation failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, error: 'Could not validate this video for purchase. Please try again later.' }), { status: 503, headers: corsHeaders });
     }
 
     // Generate unique order ID
