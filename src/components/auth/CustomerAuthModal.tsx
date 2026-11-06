@@ -38,12 +38,8 @@ export const CustomerAuthModal: React.FC<Props> = ({ isOpen, onClose, onAdminNav
   };
 
   const handleGoogleClick = () => {
-    // Genuine environment check: No fake Google token generator
-    setGoogleNotice(
-      isHindi
-        ? 'सूचना: Google Sign-In OAuth क्लाइंट आईडी क्लाउडफ़्लेयर प्रोडक्शन सीक्रेट्स में सेटअप होने पर सक्रिय होगी। आप बिना किसी लॉगिन के सभी टूल्स व फ्री वीडियो का उपयोग कर सकते हैं।'
-        : 'Notice: Google Sign-In OAuth client credentials are not configured in this local environment. All public tools and free masterclasses are completely open and free without login.'
-    );
+    // Start the server-side Google OAuth flow; identity is verified by the backend.
+    window.location.assign('/api/membership/auth?action=start');
   };
 
   return (
