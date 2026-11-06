@@ -71,10 +71,10 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
         {/* Section Heading */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#C62828] mb-1">
               {t('featured.kicker', 'Popular Daily Utilities')}
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#C62828] tracking-tight">
               {t('featured.title', 'Featured Tools')}
             </h2>
           </div>
@@ -97,7 +97,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
             return (
               <div
                 key={tool.id}
-                className={`bg-gradient-to-b from-slate-50/70 via-white to-slate-50/40 border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-xl hover:border-blue-400 hover:-translate-y-1.5 active:scale-[0.99] transition-all duration-300 ease-out flex flex-col justify-between group select-none ${isActiveFutureTool ? "future-tool-glow" : ""}`}
+                className={`bg-gradient-to-b from-slate-50/70 via-white to-slate-50/40 border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-xl hover:border-red-300 hover:-translate-y-1.5 active:scale-[0.99] transition-all duration-300 ease-out flex flex-col justify-between group select-none ${isActiveFutureTool ? "future-tool-glow" : ""}`}
               >
                 <div>
                   {/* Image-based preview in the upper section */}
@@ -111,7 +111,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
                   </div>
 
                   {/* Tool Title */}
-                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight mb-1 line-clamp-2 leading-snug group-hover:text-blue-700 transition-colors">
+                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight mb-1 line-clamp-2 leading-snug group-hover:text-[#C62828] transition-colors">
                     {displayName}
                   </h3>
 
@@ -124,7 +124,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
                 {/* Open Tool Button — Strictly preserved text, black default, blue hover */}
                 <button
                   onClick={() => onOpenTool(tool)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-semibold tracking-wide transition-colors cursor-pointer mt-auto shadow-2xs"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-[#C62828] hover:bg-[#A61F2A] text-white rounded-xl text-xs font-semibold tracking-wide transition-colors cursor-pointer mt-auto shadow-2xs"
                 >
                   <span>{t('common.openTool', 'Open Tool')}</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
