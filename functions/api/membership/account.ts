@@ -37,7 +37,21 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     const latestPayment = subscription ? await env.DB.prepare(
       "SELECT status,amount_paise,currency,gateway_payment_id,paid_at,created_at FROM membership_payments WHERE subscription_id=? ORDER BY created_at DESC LIMIT 1"
     ).bind(subscription.id).first() : null;
-    return json({ success: true, authenticated: true, customer, subscription: subscription || null, latestPayment: latestPayment || null });
+
+    // Never display an old/incorrect local 'active' flag as paid membership.
+    // A successful recurring charge for the exact plan amount is required.
+    // This is a read-only presentation safeguard; it does not modify D1 records.
+    const hasVerifiedPlanPayment = Boolean(
+      latestPayment &&
+      latestPayment.status === 'success' &&
+      Number(latestPayment.amount_paise) === Number(subscription?.monthly_amount_paise) &&
+      String(latestPayment.currency || '').toUpperCase() === 'INR' &&
+      latestPayment.gateway_payment_id
+    );
+    const accountSubscription = subscription?.status === 'active' && !hasVerifiedPlanPayment
+      ? { ...subscription, status: 'pending' }
+      : subscription;
+    return json({ success: true, authenticated: true, customer, subscription: accountSubscription || null, latestPayment: latestPayment || null });
   } catch (error) {
     console.error('Membership account read failed:', error);
     return json({ success: false, error: 'Membership account could not be loaded.' }, 503);
