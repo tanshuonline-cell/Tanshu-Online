@@ -53,16 +53,24 @@ export const VideoLearningCenter: React.FC<Props> = ({
         </div>
 
         {/* Public catalog shows paid videos only. */}
+        {/* Visual-only ₹49 active card glow. Payment and playback components remain untouched. */}
+        <style>{`
+          @keyframes video49-glow-orbit { to { transform: rotate(360deg); } }
+          .video49-active-glow { position: relative; isolation: isolate; border-color: rgba(56,189,248,.78) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.16), 0 0 18px rgba(56,189,248,.18); }
+          .video49-active-glow::before { content: ""; position: absolute; inset: -2px; z-index: 2; border-radius: inherit; padding: 2px; background: conic-gradient(from 0deg, transparent 0 24%, rgba(56,189,248,.16) 30%, rgba(56,189,248,.98) 42%, rgba(14,165,233,.12) 55%, transparent 68% 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: video49-glow-orbit 6s linear infinite; pointer-events: none; }
+          @media (prefers-reduced-motion: reduce) { .video49-active-glow::before { animation: none; } }
+        `}</style>
         {/* Responsive Grid: 4 cards on desktop (lg:grid-cols-4), 3 on tablet (md:grid-cols-3), 2 on mobile (grid-cols-2) */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {displayedVideos.map((video) => {
             const price = video.price || 99;
             const displayTitle = isHindi && video.hindiTitle ? video.hindiTitle : video.title;
+            const isActive49Video = video.id === 'video_1793562264012' && price === 49;
 
             return (
               <div
                 key={video.id}
-                className="group bg-white rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
+                className={`group bg-white rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden ${isActive49Video ? "video49-active-glow" : ""}`}
               >
                 {/* Compact Thumbnail Container (No preview playback before payment) */}
                 <div
