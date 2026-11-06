@@ -16,7 +16,9 @@ export const VideoLearningCenter: React.FC<Props> = ({
   videos = LATEST_VIDEOS,
 }) => {
   const { t, isHindi } = useLanguage();
-  // Public learning center intentionally displays paid videos only. Free guides remain stored for admin/future use.
+  // Show all active premium masterclasses from the live catalog.
+  // The approved ₹49 Aadhaar video and the three existing paid thumbnail cards remain intact.
+  // Free guides remain stored but are not shown in this premium section.
   const displayedVideos = videos.filter(
     (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
   );
@@ -109,14 +111,16 @@ export const VideoLearningCenter: React.FC<Props> = ({
                 {/* Card Content & Details */}
                 <div className="p-3 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="text-[10px] font-semibold text-slate-500 mb-1 flex items-center justify-between">
-                      <span className="truncate">{video.instructor}</span>
-                      {video.isSample && (
-                        <span className="text-[8px] bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.2 rounded font-mono font-semibold">
-                          COMING SOON
-                        </span>
-                      )}
-                    </div>
+                    {!isActive49Video && (
+                      <div className="text-[10px] font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                        <span className="truncate">{video.instructor}</span>
+                        {video.isSample && (
+                          <span className="text-[8px] bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.2 rounded font-mono font-semibold">
+                            COMING SOON
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     <h3
                       onClick={() => onSelectVideo(video)}
@@ -132,7 +136,7 @@ export const VideoLearningCenter: React.FC<Props> = ({
                     <div className="w-full flex flex-col items-center gap-1.5">
                       <div className="flex items-center justify-between w-full text-xs px-0.5">
                         <span className="text-[11px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">₹{price} INR</span>
-                        <span className="text-[10px] font-semibold text-slate-500">{isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : (video.level || 'Intermediate')}</span>
+                        {!isActive49Video && <span className="text-[10px] font-semibold text-slate-500">{isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : (video.level || 'Intermediate')}</span>}
                       </div>
                       <button type="button" onClick={() => onSelectVideo(video)} className="w-full max-w-[170px] py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                         <Lock className="w-3 h-3 text-amber-300" />

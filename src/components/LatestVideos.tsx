@@ -107,9 +107,10 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
     if (onCloseModal) onCloseModal();
   };
 
-  // Public Latest Videos section displays only active paid masterclasses; free guides remain stored but hidden.
+  // Public Latest Videos section currently features only the approved ₹49 Aadhaar Father Name Update video.
+  // Other video records remain stored and are not deleted.
   const displayedVideos = LATEST_VIDEOS.filter(
-    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+    (video) => video.id === 'video_1793562264012' && video.price === 49 && video.isActive !== false
   );
 
   return (
@@ -118,12 +119,12 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1 flex items-center gap-1.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#C62828] mb-1 flex items-center gap-1.5">
               <span>{t('videos.kicker', 'Practical Video Tutorials & Masterclasses')}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" />
               <span className="text-amber-600 font-bold">{isHindi ? 'Cloudflare Stream सुरक्षित वीडियो प्लेबैक • डायनामिक वॉटरमार्क' : 'Cloudflare Stream Token-Signed Playback & Dynamic Watermarking'}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#C62828] tracking-tight">
               {t('videos.title', 'Latest Videos & Masterclasses')}
             </h2>
           </div>
@@ -238,32 +239,38 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                     </div>
 
                     {/* Category (Top Right) */}
-                    <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
-                      {displayCategory}
-                    </div>
+                    {video.id !== 'video_1793562264012' && (
+                      <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
+                        {displayCategory}
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Content Details */}
                   <div className="p-4 sm:p-5">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
-                      <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
-                      {video.level && (
-                        <span className="text-[10px] uppercase font-bold text-slate-400">
-                          {isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : video.level}
-                        </span>
-                      )}
-                    </div>
+                    {video.id !== 'video_1793562264012' && (
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                        <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
+                        {video.level && (
+                          <span className="text-[10px] uppercase font-bold text-slate-400">
+                            {isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : video.level}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     <h3
                       onClick={() => handleVideoClick(video)}
-                      className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight mb-2 hover:text-blue-700 transition-colors cursor-pointer line-clamp-2 leading-snug"
+                      className={`text-sm sm:text-base font-extrabold tracking-tight mb-2 transition-colors cursor-pointer line-clamp-2 leading-snug ${isHindi ? 'text-slate-900 hover:text-[#C62828]' : 'text-[#C62828] hover:text-[#A61F2A]'}`}
                     >
                       {displayTitle}
                     </h3>
 
-                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                      {displayDescription}
-                    </p>
+                    {video.id !== 'video_1793562264012' && (
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
+                        {displayDescription}
+                      </p>
+                    )}
 
                     {/* Key Chapters / Topics Covered */}
                     <div className="pt-2.5 border-t border-slate-100 mb-2">

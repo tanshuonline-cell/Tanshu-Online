@@ -34,6 +34,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
 
   const isPremium = video.isPremium || video.accessType === 'premium';
   const price = video.price || 99;
+  const isAadhaarFatherName49 = video.id === 'video_1793562264012' && price === 49;
 
   // Check if customer already has a stored verified session for this specific video in localStorage
   useEffect(() => {
@@ -203,7 +204,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   </div>
                   <div>
                     <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
-                      {aboutLang === 'hi' ? 'इस वीडियो के बारे में' : 'About this Video'}
+                      {aboutLang === 'hi' ? 'इस वीडियो के बारे में' : 'About This Video'}
                     </h2>
                     <p className="text-[11px] text-slate-500">
                       {aboutLang === 'hi' ? 'विषय, उपयोगी मार्गदर्शन और मुख्य बिंदु' : 'Guidance, topics covered & learning outcomes'}
@@ -238,59 +239,265 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 </div>
               </div>
 
-              {/* Clear, Professional Description (Matches video topic without revealing full tutorial) */}
-              <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-100 text-slate-700 text-xs sm:text-sm leading-relaxed">
-                {aboutLang === 'hi'
-                  ? (video.aboutHi || video.hindiDescription || video.description)
-                  : (video.aboutEn || video.description)}
-              </div>
+              {isAadhaarFatherName49 ? (
+                <div className="space-y-5">
+                  <section className="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50/80 via-white to-orange-50/60 p-4 sm:p-5">
+                    <h3 className="text-sm sm:text-base font-extrabold tracking-tight text-rose-700">
+                      {aboutLang === 'hi' ? 'इस वीडियो में आपको क्या-क्या जानकारी मिलेगी?' : 'What Information Will You Get in This Video?'}
+                    </h3>
+                    <p className="mt-2 text-xs sm:text-sm font-semibold leading-relaxed text-slate-600">
+                      {aboutLang === 'hi'
+                        ? <>आवेदन के वैकल्पिक तरीके <span className="px-1 text-rose-500">•</span> जरूरी जानकारी <span className="px-1 text-rose-500">•</span> स्टेप-बाय-स्टेप मार्गदर्शन</>
+                        : <>Alternative application methods <span className="px-1 text-rose-500">•</span> Essential information <span className="px-1 text-rose-500">•</span> Step-by-step guidance</>}
+                    </p>
 
-              {/* Key Takeaways */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs space-y-1">
-                  <div className="font-bold text-blue-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{aboutLang === 'hi' ? 'इस वीडियो से क्या सीखेंगे?' : 'What You Will Learn'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 leading-normal">
-                    {aboutLang === 'hi'
-                      ? 'प्रक्रिया के मुख्य नियम, तकनीकी सेटिंग्स और पोर्टल पर सामान्य गलतियों से बचने की सही जानकारी।'
-                      : 'Essential rules, configuration parameters, and proven methods to avoid common errors.'}
-                  </p>
-                </div>
+                    <h4 className="mt-5 mb-3 text-sm font-extrabold text-slate-950">
+                      {aboutLang === 'hi' ? 'इस वीडियो में आप समझेंगे:' : 'In This Video, You Will Understand:'}
+                    </h4>
+                    <ol className="space-y-3">
+                      {(aboutLang === 'hi'
+                        ? [
+                            {
+                              heading: 'पिता के आधार कार्ड में नाम गलत है?',
+                              detail: 'ऐसी स्थिति में पिता का सही नाम अपडेट करवाने के संभावित विकल्प समझेंगे।'
+                            },
+                            {
+                              heading: 'पिता का नाम सही है, लेकिन उनका पता अलग है?',
+                              detail: 'ऐसी स्थिति में अपने पते के अनुसार आधार अपडेट करवाने के संभावित विकल्प जानेंगे।'
+                            },
+                            {
+                              heading: 'आपके पास अपना एड्रेस प्रूफ नहीं है?',
+                              detail: 'बिना HOF के बताए गए वैकल्पिक तरीके और उसकी सीमाओं के बारे में समझेंगे।'
+                            },
+                            {
+                              heading: 'पति का निधन हो चुका है?',
+                              detail: 'ऐसी स्थिति में पिता के नाम और आधार अपडेट से जुड़ी उपलब्ध संभावनाओं को समझेंगे।'
+                            },
+                            {
+                              heading: 'पिता का निधन हो चुका है?',
+                              detail: 'ऐसी स्थिति में पिता के नाम से जुड़े अपडेट के संभावित विकल्पों की जानकारी मिलेगी।'
+                            },
+                            {
+                              heading: 'पिता के नाम की स्पेलिंग या लिखावट में गलती है?',
+                              detail: 'ऐसी गलती को ठीक करवाने से पहले किन जरूरी बातों को समझना चाहिए, इसकी जानकारी मिलेगी।'
+                            },
+                            {
+                              heading: 'पिता के आधार और आपके आधार में जानकारी अलग है?',
+                              detail: 'ऐसी स्थिति में आवेदन से पहले उपलब्ध विकल्पों और जरूरी बातों को समझेंगे।'
+                            },
+                            {
+                              heading: 'पिता के नाम से जुड़ी कोई दूसरी समस्या है?',
+                              detail: 'वीडियो में ऐसी अन्य सामान्य समस्याओं और उनके संभावित समाधानों पर भी जानकारी मिलेगी।'
+                            },
+                            {
+                              heading: 'पिता के आधार कार्ड में नाम और पता अलग हैं, और आपके दस्तावेज़ में भी जानकारी अलग है?',
+                              detail: 'ऐसी स्थिति में अपने आधार में पिता का सही नाम और अपना पता अपडेट करवाने के संभावित विकल्प समझेंगे।'
+                            },
+                            {
+                              heading: 'आपके पास पिता का कोई भी दस्तावेज़ उपलब्ध नहीं है?',
+                              detail: 'क्या अपने दस्तावेज़ के आधार पर अपने आधार कार्ड में पिता का नाम दर्ज करवाना संभव है? वीडियो में इससे जुड़े संभावित विकल्प समझेंगे।'
+                            }
+                          ]
+                        : [
+                            {
+                              heading: 'Is Your Father’s Name Incorrect in His Aadhaar?',
+                              detail: 'Understand the possible options for correcting your father’s name.'
+                            },
+                            {
+                              heading: 'Is Your Father’s Name Correct, But His Address Is Different?',
+                              detail: 'Learn about possible options for updating your Aadhaar with your own address.'
+                            },
+                            {
+                              heading: 'Do You Have No Address Proof of Your Own?',
+                              detail: 'Understand the alternative method explained without HOF and its limitations.'
+                            },
+                            {
+                              heading: 'Has Your Husband Passed Away?',
+                              detail: 'Understand the available possibilities related to your father’s name and Aadhaar update in this situation.'
+                            },
+                            {
+                              heading: 'Has Your Father Passed Away?',
+                              detail: 'Learn about possible options related to updating your father’s name in this situation.'
+                            },
+                            {
+                              heading: 'Is There A Spelling Or Writing Error In Your Father’s Name?',
+                              detail: 'Understand the important points to consider before seeking a correction.'
+                            },
+                            {
+                              heading: 'Are The Details In Your Father’s Aadhaar Different From Your Aadhaar?',
+                              detail: 'Understand the available options and important points before applying.'
+                            },
+                            {
+                              heading: 'Do You Have Another Issue Related To Your Father’s Name?',
+                              detail: 'The video also covers other common issues and their possible solutions.'
+                            },
+                            {
+                              heading: 'Are The Name And Address In Your Father’s Aadhaar Different From The Details In Your Documents?',
+                              detail: 'Understand possible options for updating your father’s correct name and your own address in your Aadhaar.'
+                            },
+                            {
+                              heading: 'Do You Have No Document Belonging To Your Father?',
+                              detail: 'Is It Possible To Add Your Father’s Name To Your Aadhaar Using Your Own Documents? Understand the possible options discussed in the video.'
+                            }
+                          ]
+                      ).map((item, index) => (
+                        <li key={index} className="rounded-lg border border-slate-100 bg-white/80 p-3 transition-colors hover:border-rose-200 hover:bg-rose-50/50">
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-white text-[11px] font-extrabold text-rose-700 shadow-2xs">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <h5 className="text-xs sm:text-sm font-extrabold leading-snug text-slate-900">
+                                {item.heading}
+                              </h5>
+                              <p className="mt-1 text-[11px] sm:text-xs font-normal leading-relaxed text-slate-600">
+                                {item.detail}
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
 
-                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs space-y-1">
-                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{aboutLang === 'hi' ? 'यह किसके लिए उपयोगी है?' : 'Who This Is Useful For'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 leading-normal">
-                    {aboutLang === 'hi'
-                      ? (video.hindiTargetAudience || 'साइबर कैफ़े संचालक, CSC VLEs और सही प्रक्रिया समझने वाले सभी नागरिक।')
-                      : (video.targetAudience || 'Cyber cafe operators, CSC VLEs, and applicants wanting reliable guidance.')}
-                  </p>
+                  <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3 transition-colors hover:border-red-300 hover:bg-amber-100/80">
+                    <h4 className="flex items-center gap-2 text-sm font-extrabold text-amber-900 transition-colors hover:text-red-700">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
+                      {aboutLang === 'hi' ? 'महत्वपूर्ण सूचना' : 'Important Notice'}
+                    </h4>
+                    <p className="text-xs sm:text-sm leading-relaxed text-amber-950">
+                      {aboutLang === 'hi'
+                        ? 'HOF के बिना आवेदन के लिए वीडियो में एक वैकल्पिक तरीका/प्रोसेस समझाया गया है। यह UIDAI का कोई आधिकारिक अपडेट, घोषित सुविधा या आधिकारिक तरीका नहीं है। इसे एक वैकल्पिक मेथड के रूप में समझें। इसकी उपलब्धता और काम करना UIDAI के मौजूदा सिस्टम, नियमों और सत्यापन पर निर्भर कर सकता है। इसे किसी आधिकारिक बग या स्थायी सुविधा की गारंटी न समझें।'
+                        : 'The video explains an alternative method/process for applying without HOF. This is not an official UIDAI update, announced facility, or official method. Treat it only as an alternative method. Its availability and functioning may depend on UIDAI’s current system, rules, and verification. Do not consider it a confirmed official bug or a permanent facility.'}
+                    </p>
+                    <p className="text-xs sm:text-sm leading-relaxed text-amber-950">
+                      {aboutLang === 'hi'
+                        ? 'यह वीडियो केवल शैक्षणिक और जानकारी देने के उद्देश्य से है। आवेदन स्वीकार होने या अपडेट पूरा होने की गारंटी नहीं है।'
+                        : 'This video is for educational and informational purposes only. There is no guarantee that an application will be accepted or that an update will be completed.'}
+                    </p>
+                  </section>
+
+                  <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3 transition-all hover:border-red-300 hover:bg-red-50/70">
+                      <h4 className="text-xs font-extrabold text-blue-900 transition-colors hover:text-red-700">
+                        {aboutLang === 'hi' ? 'गोपनीयता' : 'Privacy'}
+                      </h4>
+                      <p className="mt-1.5 text-[11px] sm:text-xs leading-relaxed text-slate-700">
+                        {aboutLang === 'hi'
+                          ? 'किसी से Aadhaar OTP, पासवर्ड या बायोमेट्रिक जानकारी साझा न करें। OTP की जरूरत होने पर उसे केवल आधिकारिक UIDAI पोर्टल पर स्वयं दर्ज करें।'
+                          : 'Never Share Your Aadhaar OTP, Password, Or Biometric Information With Anyone. If An OTP Is Required, Enter It Yourself Only On The Official UIDAI Portal.'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 transition-all hover:border-red-300 hover:bg-red-50/70">
+                      <h4 className="text-xs font-extrabold text-emerald-900 transition-colors hover:text-red-700">
+                        {aboutLang === 'hi' ? 'खरीद' : 'Purchase'}
+                      </h4>
+                      <p className="mt-1.5 text-[11px] sm:text-xs leading-relaxed text-slate-700">
+                        {aboutLang === 'hi'
+                          ? 'यह एक One-Time Purchase वीडियो है। सफल भुगतान सत्यापित होने के बाद ही एक्सेस मिलेगा।'
+                          : 'This Is A One-Time Purchase Video. Access Will Be Provided Only After Successful Payment Verification.'}
+                      </p>
+                    </div>
+                  </section>
+
+                  {video.topics && video.topics.length > 0 && (
+                    <section className="border-t border-slate-100 pt-4">
+                      <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mb-3 transition-colors hover:text-red-600">
+                        What You Will Learn in This Masterclass
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {video.topics.map((topic, index) => (
+                          <div key={index} className="flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700 border border-slate-100">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                            <span>{topic}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="border-t border-slate-100 pt-4">
+                    <h3 className="text-sm font-extrabold text-slate-900 mb-3 transition-colors hover:text-red-600">
+                      {aboutLang === 'hi' ? 'आधिकारिक UIDAI लिंक' : 'Official UIDAI Links'}
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { label: 'myAadhaar Portal', href: 'https://myaadhaar.uidai.gov.in/' },
+                        { label: 'List of Acceptable Documents', href: 'https://uidai.gov.in/en/enrolment-and-updates' },
+                        { label: 'Updating Data on Aadhaar', href: 'https://uidai.gov.in/en/updating-data-on-aadhaar' },
+                        { label: 'UIDAI Regulations', href: 'https://uidai.gov.in/en/regulations' }
+                      ].map((link) => (
+                        <a
+                          key={link.label}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex min-h-10 items-center justify-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-2 text-center text-[9px] sm:text-[10px] font-bold leading-tight text-blue-800 transition-colors hover:border-red-400 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                        >
+                          {link.label}
+                          <span aria-hidden="true" className="text-[10px]">↗</span>
+                        </a>
+                      ))}
+                    </div>
+                  </section>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-100 text-slate-700 text-xs sm:text-sm leading-relaxed">
+                    {aboutLang === 'hi'
+                      ? (video.aboutHi || video.hindiDescription || video.description)
+                      : (video.aboutEn || video.description)}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs space-y-1">
+                      <div className="font-bold text-blue-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{aboutLang === 'hi' ? 'इस वीडियो से क्या सीखेंगे?' : 'What You Will Learn'}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-normal">
+                        {aboutLang === 'hi'
+                          ? 'प्रक्रिया के मुख्य नियम, तकनीकी सेटिंग्स और पोर्टल पर सामान्य गलतियों से बचने की सही जानकारी।'
+                          : 'Essential rules, configuration parameters, and proven methods to avoid common errors.'}
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs space-y-1">
+                      <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{aboutLang === 'hi' ? 'यह किसके लिए उपयोगी है?' : 'Who This Is Useful For'}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-normal">
+                        {aboutLang === 'hi'
+                          ? (video.hindiTargetAudience || 'साइबर कैफ़े संचालक, CSC VLEs और सही प्रक्रिया समझने वाले सभी नागरिक।')
+                          : (video.targetAudience || 'Cyber cafe operators, CSC VLEs, and applicants wanting reliable guidance.')}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Video Overview */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                    {video.category}
-                  </span>
-                  {video.level && (
-                    <span className="text-xs font-semibold text-slate-500">
-                      Level: <strong className="text-slate-800">{video.level}</strong>
+                {!isAadhaarFatherName49 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                      {video.category}
                     </span>
-                  )}
-                  {video.isSample && (
-                    <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold font-mono">
-                      SAMPLE ENTRY
-                    </span>
-                  )}
-                </div>
+                    {video.level && (
+                      <span className="text-xs font-semibold text-slate-500">
+                        Level: <strong className="text-slate-800">{video.level}</strong>
+                      </span>
+                    )}
+                    {video.isSample && (
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold font-mono">
+                        SAMPLE ENTRY
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-4 text-xs text-slate-500">
                   <div className="flex items-center gap-1 font-mono">
@@ -308,13 +515,15 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                 <h1 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                   {video.title}
                 </h1>
-                <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                  {video.description}
-                </p>
+                {!isAadhaarFatherName49 && (
+                  <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                    {video.description}
+                  </p>
+                )}
               </div>
 
               {/* Topics / Curriculum Checklist */}
-              {video.topics && video.topics.length > 0 && (
+              {!isAadhaarFatherName49 && video.topics && video.topics.length > 0 && (
                 <div className="pt-4 border-t border-slate-100">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5">
                     What You Will Learn in This Masterclass:
@@ -416,6 +625,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   <span>Verified Cashfree 256-Bit SSL Checkout</span>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

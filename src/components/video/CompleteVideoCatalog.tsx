@@ -18,8 +18,10 @@ export const CompleteVideoCatalog: React.FC<Props> = ({
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Public catalog intentionally displays paid videos only; free records remain stored for admin/future use.
+  // Public catalog currently lists only the approved ₹49 Aadhaar Father Name Update video.
+  // Other video records remain stored and are not deleted.
   const activeVideos = videos.filter(
-    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+    (video) => video.id === 'video_1793562264012' && video.price === 49 && video.isActive !== false
   );
 
   const filteredVideos = activeVideos.filter((video) => {
@@ -136,16 +138,20 @@ export const CompleteVideoCatalog: React.FC<Props> = ({
                   {/* Body */}
                   <div className="p-3.5 flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 mb-1">
-                        <span className="truncate">{video.instructor}</span>
-                        <span className="text-slate-400 font-mono text-[9px]">{video.category}</span>
-                      </div>
+                      {video.id !== 'video_1793562264012' && (
+                        <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 mb-1">
+                          <span className="truncate">{video.instructor}</span>
+                          <span className="text-slate-400 font-mono text-[9px]">{video.category}</span>
+                        </div>
+                      )}
                       <h3 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug mb-2">
                         {video.title}
                       </h3>
-                      <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
-                        {video.description}
-                      </p>
+                      {video.id !== 'video_1793562264012' && (
+                        <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                          {video.description}
+                        </p>
+                      )}
                     </div>
 
                     <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between">

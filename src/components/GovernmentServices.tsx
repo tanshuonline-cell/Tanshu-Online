@@ -59,10 +59,10 @@ export const GovernmentServices: React.FC<Props> = ({ selectedServiceId }) => {
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#C62828] mb-1">
               {t('services.kicker', 'Public Service Information Directory')}
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#C62828] tracking-tight">
               {t('services.title', 'Government Services')}
             </h2>
           </div>
@@ -88,7 +88,7 @@ export const GovernmentServices: React.FC<Props> = ({ selectedServiceId }) => {
               <div
                 key={srv.id}
                 id={`service-${srv.id}`}
-                className="bg-gradient-to-b from-slate-50/60 via-white to-slate-50/30 border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs hover:border-blue-400 hover:shadow-lg transition-all duration-300"
+                className="bg-gradient-to-b from-slate-50/60 via-white to-slate-50/30 border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs hover:border-red-300 hover:shadow-lg transition-all duration-300"
               >
                 {/* Horizontal compact header row */}
                 <div
@@ -110,7 +110,7 @@ export const GovernmentServices: React.FC<Props> = ({ selectedServiceId }) => {
                     {/* Middle: Category, Processing time, fee, and service title */}
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-slate-500">
-                        <span className="text-blue-700 font-bold">{primaryCat}</span>
+                        <span className="text-[#C62828] font-bold">{primaryCat}</span>
                         <span aria-hidden="true" className="text-slate-300">·</span>
                         <span className="flex items-center gap-1 text-slate-600">
                           <Clock className="w-3 h-3 text-slate-400 shrink-0" /> {primaryTime}
@@ -121,7 +121,7 @@ export const GovernmentServices: React.FC<Props> = ({ selectedServiceId }) => {
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight line-clamp-1 sm:line-clamp-none group-hover:text-blue-700 transition-colors">
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight line-clamp-1 sm:line-clamp-none group-hover:text-[#C62828] transition-colors">
                           {primaryTitle}
                         </h3>
                         {secondaryTitle && secondaryTitle !== primaryTitle && (
