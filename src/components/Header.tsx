@@ -54,7 +54,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               <span className="text-sm sm:text-base font-black text-white tracking-wide">
                 TANSHU
               </span>
-              <span className="text-sm sm:text-base font-black text-[#F87171] tracking-wide">
+              <span className="text-sm sm:text-base font-black text-blue-400 tracking-wide">
                 ONLINE
               </span>
             </div>
