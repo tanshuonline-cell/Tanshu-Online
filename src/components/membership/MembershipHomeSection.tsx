@@ -5,10 +5,10 @@ import { useLanguage } from '../../context/LanguageContext';
 interface Props { onViewPlans: () => void; mode: 'banner' | 'plans'; }
 
 const plans = [
-  { name: 'Basic', price: 49, hi: 'निजी Chat + सरकारी सेवाओं की जानकारी और मार्गदर्शन', en: 'Private Chat + information and guidance on government services' },
-  { name: 'Standard', price: 149, hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
-  { name: 'Premium', price: 249, hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
-  { name: 'Professional', price: 499, hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
+  { name: 'Basic', price: 49, tone: 'border-slate-200 bg-gradient-to-b from-slate-50 to-white', accent: 'bg-slate-700', label: 'text-slate-700', priceTone: 'text-slate-900', iconTone: 'bg-slate-100 text-slate-700', buttonTone: 'bg-slate-800 hover:bg-slate-700', hi: 'निजी Chat + सरकारी सेवाओं की जानकारी और मार्गदर्शन', en: 'Private Chat + information and guidance on government services' },
+  { name: 'Standard', price: 149, tone: 'border-blue-200 bg-gradient-to-b from-blue-50/90 to-white', accent: 'bg-blue-600', label: 'text-blue-700', priceTone: 'text-blue-950', iconTone: 'bg-blue-100 text-blue-700', buttonTone: 'bg-blue-700 hover:bg-blue-600', hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
+  { name: 'Premium', price: 249, tone: 'border-violet-300 bg-gradient-to-b from-violet-100/90 via-white to-fuchsia-50/70 ring-1 ring-violet-200', accent: 'bg-gradient-to-r from-violet-600 to-fuchsia-600', label: 'text-violet-800', priceTone: 'text-violet-950', iconTone: 'bg-violet-100 text-violet-700', buttonTone: 'bg-gradient-to-r from-violet-700 to-fuchsia-700 hover:from-violet-600 hover:to-fuchsia-600', hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
+  { name: 'Professional', price: 499, tone: 'border-amber-300 bg-gradient-to-b from-amber-50 via-white to-orange-50/70', accent: 'bg-gradient-to-r from-amber-500 to-orange-500', label: 'text-amber-800', priceTone: 'text-amber-950', iconTone: 'bg-amber-100 text-amber-800', buttonTone: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500', hi: 'जल्द उपलब्ध होगा', en: 'Coming soon' },
 ];
 
 export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) => {
@@ -41,13 +41,17 @@ export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) =>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan, index) => (
-            <article key={plan.name} className={`flex min-h-[250px] flex-col rounded-2xl border bg-white p-5 shadow-sm ${index === 0 ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200 opacity-90'}`}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-extrabold text-slate-900">{plan.name}</div>
-                <span className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${index === 0 ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-500'}`}>{index === 0 ? (isHindi ? 'पहला प्लान' : 'FIRST PLAN') : 'COMING SOON'}</span>
+            <article key={plan.name} className={`group relative flex min-h-[250px] flex-col overflow-hidden rounded-2xl border p-5 shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-xl ${plan.tone}`}>
+              <div className={`absolute inset-x-0 top-0 h-1.5 ${plan.accent}`} />
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-2.5">
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${plan.iconTone}`}><ShieldCheck className="h-4 w-4" /></span>
+                  <div className={`text-sm font-extrabold ${plan.label}`}>{plan.name}</div>
+                </div>
+                <span className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${index === 0 ? 'bg-slate-100 text-slate-700' : 'bg-white/80 text-slate-500'}`}>{index === 0 ? (isHindi ? 'पहला प्लान' : 'FIRST PLAN') : 'COMING SOON'}</span>
               </div>
               <p className="mt-3 min-h-12 text-[11px] leading-5 text-slate-600">{isHindi ? plan.hi : plan.en}</p>
-              <div className="mt-4 flex items-end gap-1"><span className="text-3xl font-black text-slate-950">₹{plan.price}</span><span className="pb-1 text-[11px] text-slate-500">{isHindi ? '/ महीना' : '/ month'}</span></div>
+              <div className="mt-4 flex items-end gap-1"><span className={`text-3xl font-black ${plan.priceTone}`}>₹{plan.price}</span><span className="pb-1 text-[11px] text-slate-500">{isHindi ? '/ महीना' : '/ month'}</span></div>
               <div className="my-4 h-px bg-slate-100" />
               {index === 0 ? (
                 <div className="flex-1 text-[11px] leading-5 text-slate-600">{isHindi ? 'आधार में पिता/पति के नाम से जुड़ी समस्या, नाम में मिसमैच, पिता के दस्तावेज उपलब्ध न होना या केवल एड्रेस बदलने की जरूरत—इन परिस्थितियों में संभावित विकल्प, जरूरी दस्तावेज और सही आधिकारिक प्रक्रिया समझें। PAN Card, Voter ID, Birth Certificate, Ration Card तथा बिहार सरकार और अन्य सरकारी सेवाओं की जानकारी भी पूछें। संबंधित विषयों के छोटे वीडियो उपलब्ध हो सकते हैं।' : 'Understand possible options, required documents and official procedures for concerns about a father’s/husband’s name in Aadhaar, name mismatches, unavailable parent documents or an address-only update. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government services and other public services. Short videos on relevant topics may be available.'}</div>
@@ -55,7 +59,7 @@ export const MembershipHomeSection: React.FC<Props> = ({ onViewPlans, mode }) =>
                 <div className="flex-1 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-xs font-semibold text-slate-500">{isHindi ? 'इस योजना का विवरण बाद में आएगा।' : 'Plan details will be added later.'}</div>
               )}
               {index === 0 ? (
-                <button onClick={onViewPlans} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-blue-800">{isHindi ? 'Basic की जानकारी' : 'Basic Details'} <ArrowRight className="h-3.5 w-3.5" /></button>
+                <button onClick={onViewPlans} className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition ${plan.buttonTone}`}>{isHindi ? 'Basic की जानकारी' : 'Basic Details'} <ArrowRight className="h-3.5 w-3.5" /></button>
               ) : (
                 <button type="button" disabled className="mt-5 inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-xs font-extrabold text-slate-500">Coming Soon</button>
               )}
