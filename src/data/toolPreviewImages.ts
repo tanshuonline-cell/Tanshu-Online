@@ -27,6 +27,20 @@ function svgToDataUri(svgString: string): string {
 
 // Dedicated realistic visual mockups for tools
 const SVG_PREVIEWS: Record<string, string> = {
+  'photo-signature-resizer': svgToDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" width="240" height="140">
+      <rect width="240" height="140" fill="#eff6ff"/>
+      <rect x="18" y="12" width="204" height="116" rx="9" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+      <rect x="18" y="12" width="204" height="24" rx="8" fill="#123d78"/>
+      <text x="120" y="28" font-family="Arial" font-size="10" font-weight="bold" fill="#ffffff" text-anchor="middle">PHOTO &amp; SIGNATURE RESIZER</text>
+      <rect x="32" y="45" width="67" height="61" rx="5" fill="#dbeafe" stroke="#60a5fa"/>
+      <circle cx="65" cy="65" r="12" fill="#e8b995"/><path d="M46 101c2-17 9-23 19-23s17 6 19 23" fill="#2563eb"/>
+      <rect x="116" y="49" width="89" height="24" rx="4" fill="#f1f5f9"/>
+      <text x="160" y="64" font-family="Arial" font-size="8" fill="#334155" text-anchor="middle">200 × 230 px</text>
+      <path d="M121 91c10-17 13 8 23-2s12-15 20-4 14-3 29-12" fill="none" stroke="#1d4ed8" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="160" y="113" font-family="Arial" font-size="8" fill="#15803d" text-anchor="middle">TARGET 50 KB</text>
+    </svg>
+  `),
   // --- CSC & Business Tools ---
   'cash-payment-receipt-maker': svgToDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" width="240" height="140">
@@ -1193,7 +1207,7 @@ function generateFallbackSvg(toolName: string, categoryLabel: string): string {
 // Main image getter function
 export function getToolPreviewImage(toolId: string, toolName?: string, categoryLabel?: string): string {
   switch (toolId) {
-    case 'passport-size-photo-maker':
+    case 'advanced-passport-photo-studio':
       return passportImg;
     case 'auto-document-cropper':
       return autoCropperImg;

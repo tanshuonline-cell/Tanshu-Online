@@ -26,6 +26,37 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
+  const [paymentReturnNotice, setPaymentReturnNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
+
+  // Confirm the HttpOnly admin session with the server before allowing copy access.
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/auth/check', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active) setAdminCopyAllowed(Boolean(data?.authenticated && data?.user?.role));
+      })
+      .catch(() => {
+        if (active) setAdminCopyAllowed(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  // Deter ordinary copy attempts while preserving text selection and tool workspaces.
+  useEffect(() => {
+    const handleCopy = (event: ClipboardEvent) => {
+      if (adminCopyAllowed) return;
+      const selection = window.getSelection();
+      const anchorNode = selection?.anchorNode;
+      const element = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement;
+      if (element?.closest('input, textarea, select, [contenteditable="true"], [data-copy-allowed], pre, code')) return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"], [data-copy-allowed], pre, code')) return;
+      event.preventDefault();
+    };
+    document.addEventListener('copy', handleCopy);
+    return () => document.removeEventListener('copy', handleCopy);
+  }, [adminCopyAllowed]);
   const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [customerAuthOpen, setCustomerAuthOpen] = useState(false);
   
@@ -120,7 +151,11 @@ export default function App() {
         const id = pathname.startsWith('/video/')
           ? pathname.replace('/video/', '')
           : hash.replace('#video/', '');
-        const found = catalogVideos.find((v) => v.id === id) || LATEST_VIDEOS.find((v) => v.id === id);
+        // Public video detail routes are restricted to active paid masterclasses.
+        const isPaidActive = (video: VideoGuide) =>
+          video.isActive !== false && (video.isPremium || video.accessType === 'premium');
+        const found = catalogVideos.find((v) => v.id === id && isPaidActive(v)) ||
+          LATEST_VIDEOS.find((v) => v.id === id && isPaidActive(v));
         if (found) {
           setSelectedDetailVideo(found);
           setCurrentPage('video-detail');
@@ -136,6 +171,81 @@ export default function App() {
     window.addEventListener('popstate', handleUrlRouting);
     return () => window.removeEventListener('popstate', handleUrlRouting);
   }, [catalogVideos]);
+
+  // Verify Cashfree's return URL from the server-created order record.
+  // Never trust query-string payment status, customer phone, or video ID as proof of payment.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('order_id');
+    if (!orderId) return;
+
+    let active = true;
+    const videoIdFromUrl = params.get('video_id') || '';
+
+    fetch('/api/video/verify-payment', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success || !data.isPaid) {
+          throw Object.assign(new Error(data.message || data.error || 'Payment is not confirmed yet.'), { paymentData: data });
+        }
+        return data;
+      })
+      .then((data) => {
+        if (!active) return;
+        const resolvedVideoId = String(data.videoId || videoIdFromUrl);
+        const video = catalogVideos.find((item) => item.id === resolvedVideoId) || LATEST_VIDEOS.find((item) => item.id === resolvedVideoId);
+        if (!video || !data.customerPhone || !data.sessionToken) {
+          throw new Error('Payment was confirmed, but this video session could not be opened. Please contact support with your order reference.');
+        }
+
+        try {
+          const existing = JSON.parse(localStorage.getItem('tanshu_purchased_videos_v1') || '{}');
+          existing[video.id] = {
+            phone: data.customerPhone,
+            sessionToken: data.sessionToken,
+            unlockedAt: new Date().toISOString(),
+          };
+          localStorage.setItem('tanshu_purchased_videos_v1', JSON.stringify(existing));
+        } catch {
+          // The secure HttpOnly cookie remains available if local storage is disabled.
+        }
+
+        setPaymentReturnNotice({
+          type: 'success',
+          message: 'Payment verified successfully. Your video is unlocked. Select “Watch Masterclass” to start.',
+        });
+        setSelectedDetailVideo(video);
+        setCurrentPage('video-detail');
+        window.history.replaceState({}, '', `/video/${video.id}`);
+      })
+      .catch((error: any) => {
+        if (!active) return;
+        const data = error?.paymentData || {};
+        const resolvedVideoId = String(data.videoId || videoIdFromUrl);
+        const video = LATEST_VIDEOS.find((item) => item.id === resolvedVideoId);
+        setPaymentReturnNotice({
+          type: 'warning',
+          message: data.orderStatus
+            ? `Payment status: ${data.orderStatus}. Your video will remain locked until Cashfree confirms payment. If money was deducted, please do not pay again; contact support with your order reference.`
+            : (error?.message || 'We could not confirm this payment yet. If money was deducted, please do not pay again; contact support with your order reference.'),
+        });
+        if (video) {
+          setSelectedDetailVideo(video);
+          setCurrentPage('video-detail');
+          window.history.replaceState({}, '', `/video/${video.id}?order_id=${encodeURIComponent(orderId)}&video_id=${encodeURIComponent(video.id)}`);
+        } else {
+          setCurrentPage('videos');
+          window.history.replaceState({}, '', `/videos?order_id=${encodeURIComponent(orderId)}&video_id=${encodeURIComponent(resolvedVideoId)}`);
+        }
+      });
+
+    return () => { active = false; };
+  }, []);
 
   // Check existing admin session cookie on mount
   useEffect(() => {
@@ -319,6 +429,7 @@ export default function App() {
             video={selectedDetailVideo}
             onBack={() => navigateTo('videos', '/videos')}
             onNavigateHome={() => navigateTo('home', '/')}
+            paymentReturnNotice={paymentReturnNotice}
           />
         </main>
         <Footer onNavigate={scrollToSection} />

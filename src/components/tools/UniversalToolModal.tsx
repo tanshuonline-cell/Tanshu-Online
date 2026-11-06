@@ -1,7 +1,11 @@
-import React, { useEffect } from 'react';
-import { X, ShieldCheck, Info } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, ShieldCheck, Info, ArrowLeft } from 'lucide-react';
 import { ToolItem } from '../../types';
 import { PassportPhotoTool } from './PassportPhotoTool';
+import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
+import { AdvancedPassportPhotoStudioWelcome } from './AdvancedPassportPhotoStudioWelcome';
+import { PhotoSignatureResizerTool } from './PhotoSignatureResizerTool';
+import { PhotoSignatureResizerWelcome } from './PhotoSignatureResizerWelcome';
 import { AutoDocumentCropperTool } from './AutoDocumentCropperTool';
 import { DocumentScannerTool } from './DocumentScannerTool';
 import { PdfToPvcTool } from './PdfToPvcTool';
@@ -27,6 +31,9 @@ interface Props {
 }
 
 export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
+  const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
+  const [showPhotoSignatureStudio, setShowPhotoSignatureStudio] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -37,9 +44,21 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
 
   if (!tool) return null;
 
+  const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
+  const isPhotoSignatureResizer = tool.id === 'photo-signature-resizer';
+  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer;
+  const showWelcome = (isAdvancedStudio && !showAdvancedStudio) || (isPhotoSignatureResizer && !showPhotoSignatureStudio);
+
   const renderToolComponent = () => {
     switch (tool.id) {
-      case 'passport-size-photo-maker':
+      case 'advanced-passport-photo-studio':
+        return showAdvancedStudio
+          ? <AdvancedPassportPhotoStudio onBack={onClose} />
+          : <AdvancedPassportPhotoStudioWelcome onStart={() => setShowAdvancedStudio(true)} />;
+      case 'photo-signature-resizer':
+        return showPhotoSignatureStudio
+          ? <PhotoSignatureResizerTool onBack={onClose} />
+          : <PhotoSignatureResizerWelcome onStart={() => setShowPhotoSignatureStudio(true)} onBack={onClose} />;
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
       case 'auto-document-cropper':
@@ -79,60 +98,63 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6">
-      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
-        {/* Modal Top Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
+    <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isImmersiveTool ? 'p-0' : 'p-3 sm:p-6'}`}>
+      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isImmersiveTool ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
+        <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isImmersiveTool ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
           <div className="flex items-center gap-3">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
                 <span>{tool.categoryLabel}</span>
                 <span className="text-slate-300">·</span>
                 <span className="text-emerald-700 font-medium flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 100% Client-Side In-Browser Processing
+                  <ShieldCheck className="w-3.5 h-3.5" /> {isImmersiveTool ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>
+              {!isImmersiveTool && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
             </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-            title="Close Tool (Esc)"
-          >
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 bg-white space-y-6">
-          {/* Quick Tool Instructions / Description Banner */}
-          <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
-            <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">{tool.description}</p>
-              <p className="text-blue-800 text-[11px] mt-0.5">{tool.detailedInstructions}</p>
-            </div>
-          </div>
-
-          {/* Render Interactive Tool Engine */}
-          {renderToolComponent()}
+        <div data-copy-allowed="true" className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : isPhotoSignatureResizer ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
+          {isImmersiveTool ? (
+            renderToolComponent()
+          ) : (
+            <>
+              <div className="flex items-start gap-3 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-950">
+                <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">{tool.description}</p>
+                  <p className="text-blue-800 text-[11px] mt-0.5">{tool.detailedInstructions}</p>
+                </div>
+              </div>
+              {renderToolComponent()}
+            </>
+          )}
         </div>
 
-        {/* Modal Footer */}
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          {((isAdvancedStudio && showAdvancedStudio) || (isPhotoSignatureResizer && showPhotoSignatureStudio)) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isAdvancedStudio) window.setTimeout(() => setShowAdvancedStudio(false), 600);
+                if (isPhotoSignatureResizer) setShowPhotoSignatureStudio(false);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-950 bg-slate-950 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all duration-200 ease-out hover:-translate-y-1 hover:border-slate-800 hover:bg-slate-800 hover:text-white hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+              title="Return to Live Demo"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Demo
+            </button>
+          )}
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700">TANSHU ONLINE</span>
-            <span>·</span>
-            <span>Zero files or citizen documents are uploaded to cloud servers.</span>
+            <span className="font-semibold text-slate-700">TANSHU ONLINE</span><span>·</span>
+            <span>{isPhotoSignatureResizer ? 'Photo and signature files are processed locally in your browser.' : isAdvancedStudio ? 'Photos are processed in your browser in this studio.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
-          >
-            Close Workspace
-          </button>
+          <button onClick={onClose} className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Close Workspace</button>
         </div>
       </div>
     </div>

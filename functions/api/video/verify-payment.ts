@@ -38,61 +38,42 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { orderId, customerPhone, customerEmail, videoId } = body as {
-      orderId?: string;
-      customerPhone?: string;
-      customerEmail?: string;
-      videoId?: string;
-    };
+    const { orderId } = body as { orderId?: string };
 
-    if (!orderId || !customerPhone || !videoId) {
+    if (!orderId || typeof orderId !== 'string' || orderId.length > 64) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          isPaid: false,
-          error: 'Missing required parameters: orderId, customerPhone, and videoId are required.',
-        }),
+        JSON.stringify({ success: false, isPaid: false, error: 'A valid orderId is required.' }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
-
-    // Security check 1: Check if the order was originally registered for this specific video and phone
-    if (env.DB) {
-      try {
-        const orderRecord = await env.DB.prepare(
-          'SELECT video_id, customer_phone, order_status FROM payment_orders WHERE order_id = ?'
-        )
-          .bind(orderId)
-          .first();
-
-        if (orderRecord) {
-          if (orderRecord.video_id !== videoId) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: This payment was not initiated for this video.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-          if (orderRecord.customer_phone !== sanitizedPhone) {
-            return new Response(
-              JSON.stringify({
-                success: false,
-                isPaid: false,
-                error: 'Order validation error: Customer phone mismatch.',
-              }),
-              { status: 400, headers: corsHeaders }
-            );
-          }
-        }
-      } catch (dbErr) {
-        console.warn('D1 order pre-check warning:', dbErr);
-      }
+    // Never verify or grant access without a recorded order and a private server signing key.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Secure payment verification is temporarily unavailable.' }), { status: 503, headers: corsHeaders });
     }
+    const signingKey = env.ADMIN_SECRET_TOKEN;
+    if (!signingKey || signingKey.includes('YOUR_')) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Secure customer sessions are not configured on the server.' }), { status: 503, headers: corsHeaders });
+    }
+
+    let orderRecord: any;
+    try {
+      orderRecord = await env.DB.prepare(
+        'SELECT video_id, customer_phone, customer_email, order_amount, order_currency, order_status FROM payment_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+    } catch (dbErr) {
+      console.error('D1 order validation failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not verify the payment order.' }), { status: 503, headers: corsHeaders });
+    }
+    if (!orderRecord || !orderRecord.video_id || !orderRecord.customer_phone) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'The payment order was not found. Please contact support with your order reference.' }), { status: 404, headers: corsHeaders });
+    }
+
+    const sanitizedPhone = String(orderRecord.customer_phone).replace(/\D/g, '').slice(-10);
+    if (sanitizedPhone.length !== 10) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'The saved customer details for this order are invalid.' }), { status: 409, headers: corsHeaders });
+    }
+    const videoId = String(orderRecord.video_id);
 
     const appId = env.CASHFREE_APP_ID;
     const secretKey = env.CASHFREE_SECRET_KEY;
@@ -142,6 +123,19 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
+    const verifiedAmount = Number(cfData.order_amount);
+    const recordedAmount = Number(orderRecord.order_amount);
+    if (
+      String(cfData.order_id || '') !== orderId ||
+      !Number.isFinite(verifiedAmount) ||
+      !Number.isFinite(recordedAmount) ||
+      Math.abs(verifiedAmount - recordedAmount) > 0.01 ||
+      String(cfData.order_currency || '').toUpperCase() !== String(orderRecord.order_currency || 'INR').toUpperCase() ||
+      String(orderRecord.order_currency || 'INR').toUpperCase() !== 'INR'
+    ) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Cashfree order ID, amount or currency does not match the recorded order.' }), { status: 400, headers: corsHeaders });
+    }
+
     if (cfData.order_status === 'PAID') {
       isPaid = true;
       cfPaymentId = cfData.cf_payment_id ? String(cfData.cf_payment_id) : undefined;
@@ -151,6 +145,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           success: true,
           isPaid: false,
           orderStatus: cfData.order_status,
+          videoId,
           message: `Order status is currently ${cfData.order_status}. Video remains locked until payment is confirmed.`,
         }),
         { status: 200, headers: corsHeaders }
@@ -171,50 +166,37 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     // Persist and grant access in D1 database
     const accessId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    if (env.DB) {
-      try {
-        // Update payment order status to PAID
-        await env.DB.prepare(
-          `UPDATE payment_orders
-           SET order_status = 'PAID',
-               cf_payment_id = ?,
-               payment_method = ?,
-               raw_verification_json = ?,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE order_id = ?`
-        )
-          .bind(
-            cfPaymentId || null,
-            paymentMethod || 'UPI/Card/Netbanking',
-            JSON.stringify(rawVerification),
-            orderId
-          )
-          .run();
+    try {
+      // Persist verified payment and grant video access. Any D1 failure blocks session issuance.
+      await env.DB.prepare(
+        `UPDATE payment_orders
+         SET order_status = 'PAID',
+             cf_payment_id = ?,
+             payment_method = ?,
+             raw_verification_json = ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE order_id = ?`
+      ).bind(
+        cfPaymentId || null,
+        paymentMethod || 'Cashfree Checkout',
+        JSON.stringify(rawVerification),
+        orderId
+      ).run();
 
-        // Idempotent access grant: Insert or update
-        await env.DB.prepare(
-          `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
-           VALUES (?, ?, ?, ?, ?, 0)
-           ON CONFLICT(customer_phone, video_id) DO UPDATE SET
-             order_id = excluded.order_id,
-             is_revoked = 0,
-             updated_at = CURRENT_TIMESTAMP`
-        )
-          .bind(
-            accessId,
-            sanitizedPhone,
-            customerEmail || null,
-            videoId,
-            orderId
-          )
-          .run();
-      } catch (dbErr) {
-        console.warn('D1 verification update warning:', dbErr);
-      }
+      await env.DB.prepare(
+        `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
+         VALUES (?, ?, ?, ?, ?, 0)
+         ON CONFLICT(customer_phone, video_id) DO UPDATE SET
+           order_id = excluded.order_id,
+           is_revoked = 0,
+           updated_at = CURRENT_TIMESTAMP`
+       ).bind(accessId, sanitizedPhone, orderRecord.customer_email || null, videoId, orderId).run();
+    } catch (dbErr) {
+      console.error('D1 payment entitlement write failed:', dbErr);
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment was verified, but access could not be saved. Please contact support with your order ID.' }), { status: 503, headers: corsHeaders });
     }
 
     // Generate secure customer session token specifically for this (phone, videoId)
-    const signingKey = env.ADMIN_SECRET_TOKEN || 'tanshu_secure_session_secret_2025';
     const payloadStr = JSON.stringify({
       p: sanitizedPhone,
       v: videoId,
@@ -236,6 +218,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         orderId,
         videoId,
         customerPhone: sanitizedPhone,
+        customerEmail: orderRecord.customer_email || null,
         sessionToken,
         message: 'Payment verified and video unlocked successfully.',
       }),

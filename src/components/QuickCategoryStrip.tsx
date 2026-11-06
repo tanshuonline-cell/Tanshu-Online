@@ -1,10 +1,12 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   onSelectCategory: (categoryKey: string) => void;
 }
 
 export const QuickCategoryStrip: React.FC<Props> = ({ onSelectCategory }) => {
+  const { isHindi } = useLanguage();
   const categories = [
     {
       id: 'photo',
@@ -237,12 +239,11 @@ export const QuickCategoryStrip: React.FC<Props> = ({ onSelectCategory }) => {
 
               {/* English Category Name */}
               <span className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-1">
-                {cat.title}
+                {isHindi ? cat.hindi : cat.title}
               </span>
 
-              {/* Hindi Subtitle */}
               <span className="text-[10px] text-slate-500 font-medium mt-0.5 line-clamp-1">
-                {cat.hindi}
+                {isHindi ? 'देखें' : 'Browse'}
               </span>
             </button>
           ))}

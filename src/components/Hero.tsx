@@ -41,7 +41,7 @@ export const Hero: React.FC<Props> = ({
               TANSHU <span className="text-blue-600">ONLINE</span>
             </h1>
             <div className="text-xl sm:text-2xl font-bold text-amber-600 mt-0.5 tracking-wide font-sans">
-              तंशु ऑनलाइन
+              {t('hero.brandSubtitle', 'Digital Tools • Public Services • Citizen Guides')}
             </div>
           </div>
 
@@ -59,8 +59,8 @@ export const Hero: React.FC<Props> = ({
           {/* Main Hindi Heading: "आपकी हर Digital ज़रूरत, एक ही जगह" */}
           <div className="mt-2 mb-3">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug">
-              <span className="text-[#0A1938]">आपकी हर Digital ज़रूरत, </span>
-              <span className="text-[#138808]">एक ही जगह</span>
+              <span className="text-[#0A1938]">{t('hero.mainTitle', 'Digital Tools & Citizen Services, All in One Place')}</span>
+              {isHindi && <span className="text-[#138808]">{t('hero.mainTitleSuffix', 'अब एक ही जगह')}</span>}
             </h2>
 
             {/* Small Tricolor Underline Flourish */}

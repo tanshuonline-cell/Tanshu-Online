@@ -20,9 +20,10 @@ interface Props {
   video: VideoGuide;
   onBack: () => void;
   onNavigateHome?: () => void;
+  paymentReturnNotice?: { type: 'success' | 'warning'; message: string } | null;
 }
 
-export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome }) => {
+export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome, paymentReturnNotice }) => {
   const { language } = useLanguage();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState<boolean>(false);
@@ -77,6 +78,18 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 select-none">
       <div className="max-w-5xl mx-auto space-y-6">
+        {paymentReturnNotice && (
+          <div
+            role="status"
+            className={`rounded-xl border p-3 text-sm leading-relaxed ${
+              paymentReturnNotice.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                : 'border-amber-200 bg-amber-50 text-amber-950'
+            }`}
+          >
+            {paymentReturnNotice.message}
+          </div>
+        )}
         {/* Back and Breadcrumb Navigation (Sharing strictly removed for security) */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -123,7 +136,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   allowFullScreen
                 />
               ) : isUnlocked ? (
-                // Unlocked Premium Video: Play button launches verified Cloudflare Stream player
+                // Unlocked Premium Video: Play button launches the purchase-verified premium player
                 <div className="relative w-full h-full">
                   <img
                     src={
@@ -392,11 +405,11 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
               <div className="pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Cloudflare Stream Token-Signed Playback</span>
+                  <span>Verified purchase before video playback</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Dynamic Watermarking for Piracy Protection</span>
+                  <span>Licensed mobile number displayed during playback</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
@@ -417,7 +430,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
         />
       )}
 
-      {/* Cloudflare Stream Fullscreen Player */}
+      {/* Purchase-verified Premium Video Player */}
       {isPlayerOpen && (
         <PremiumVideoPlayer
           video={video}

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { Play, Lock, Clock, ArrowRight, Sparkles, GraduationCap, Info } from 'lucide-react';
+import React from 'react';
+import { Lock, Clock, ArrowRight, GraduationCap } from 'lucide-react';
 import { VideoGuide } from '../../types';
 import { LATEST_VIDEOS } from '../../data/videosData';
 import { useLanguage } from '../../context/LanguageContext';
-import { FreeGuideDetailsModal } from './FreeGuideDetailsModal';
 
 interface Props {
   onOpenCatalog: () => void;
@@ -17,20 +16,10 @@ export const VideoLearningCenter: React.FC<Props> = ({
   videos = LATEST_VIDEOS,
 }) => {
   const { t, isHindi } = useLanguage();
-  const [selectedFreeGuide, setSelectedFreeGuide] = useState<VideoGuide | null>(null);
-
-  const [filterTab, setFilterTab] = useState<'all' | 'free' | 'premium'>('all');
-
-  const activeVideos = videos.filter((v) => v.isActive !== false);
-  const freeVideos = activeVideos.filter((v) => !v.isPremium && v.accessType !== 'premium');
-  const premiumVideos = activeVideos.filter((v) => v.isPremium || v.accessType === 'premium');
-
-  const displayedVideos = activeVideos.filter((video) => {
-    const isPremium = video.isPremium || video.accessType === 'premium';
-    if (filterTab === 'free') return !isPremium;
-    if (filterTab === 'premium') return isPremium;
-    return true;
-  });
+  // Public learning center intentionally displays paid videos only. Free guides remain stored for admin/future use.
+  const displayedVideos = videos.filter(
+    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+  );
 
   return (
     <section id="video-learning-center" className="py-10 bg-slate-50 border-b border-slate-200">
@@ -63,66 +52,32 @@ export const VideoLearningCenter: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Category Filter Tabs */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setFilterTab('all')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              filterTab === 'all'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            {isHindi ? `सभी वीडियो (${activeVideos.length})` : `All Videos (${activeVideos.length})`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterTab('free')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterTab === 'free'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            <Play className="w-3 h-3 fill-current" />
-            <span>{isHindi ? `निशुल्क गाइड (${freeVideos.length})` : `Free Guides (${freeVideos.length})`}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterTab('premium')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterTab === 'premium'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            <Lock className="w-3 h-3" />
-            <span>{isHindi ? `प्रीमियम मास्टरक्लास (${premiumVideos.length})` : `Premium Masterclasses (${premiumVideos.length})`}</span>
-          </button>
-        </div>
-
+        {/* Public catalog shows paid videos only. */}
+        {/* Visual-only ₹49 active card glow. Payment and playback components remain untouched. */}
+        <style>{`
+@keyframes premium-border-flow { 0% { background-position: -110% 0, 110% 100%, 0 110%, 100% -110%; } 100% { background-position: 110% 0, -110% 100%, 0 -110%, 100% 110%; } }
+@keyframes premium-halo-pulse { from { opacity: .32; filter: blur(10px); } to { opacity: .68; filter: blur(16px); } }
+.future-tool-glow, .video49-active-glow { position: relative; isolation: isolate; border-color: rgba(103,232,249,.78) !important; box-shadow: 0 0 0 1px rgba(103,232,249,.16), 0 0 22px rgba(34,211,238,.18), 0 0 38px rgba(168,85,247,.12); }
+.future-tool-glow::before, .video49-active-glow::before { content: ""; position: absolute; inset: -5px; z-index: -1; border-radius: inherit; background: linear-gradient(115deg, rgba(34,211,238,.62), rgba(167,139,250,.52), rgba(244,114,182,.42), rgba(56,189,248,.58)); animation: premium-halo-pulse 3.6s ease-in-out infinite alternate; pointer-events: none; }
+.future-tool-glow::after, .video49-active-glow::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 2px; background-image: linear-gradient(90deg, transparent 0%, rgba(34,211,238,.98) 24%, rgba(167,139,250,.98) 62%, transparent 100%), linear-gradient(270deg, transparent 0%, rgba(244,114,182,.98) 28%, rgba(56,189,248,.98) 70%, transparent 100%), linear-gradient(180deg, transparent 0%, rgba(167,139,250,.98) 28%, rgba(34,211,238,.98) 70%, transparent 100%), linear-gradient(0deg, transparent 0%, rgba(103,232,249,.98) 28%, rgba(192,132,252,.98) 70%, transparent 100%); background-size: 220% 2px, 220% 2px, 2px 220%, 2px 220%; background-position: -110% 0, 110% 100%, 0 110%, 100% -110%; background-repeat: no-repeat; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: premium-border-flow 5.2s linear infinite; pointer-events: none; }
+.future-tool-glow:hover, .video49-active-glow:hover { box-shadow: 0 0 0 1px rgba(103,232,249,.28), 0 0 30px rgba(34,211,238,.28), 0 0 44px rgba(192,132,252,.18); }
+@media (prefers-reduced-motion: reduce) { .future-tool-glow::before, .video49-active-glow::before, .future-tool-glow::after, .video49-active-glow::after { animation: none; } }
+      `}</style>
         {/* Responsive Grid: 4 cards on desktop (lg:grid-cols-4), 3 on tablet (md:grid-cols-3), 2 on mobile (grid-cols-2) */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {displayedVideos.map((video) => {
-            const isPremium = video.isPremium || video.accessType === 'premium';
             const price = video.price || 99;
             const displayTitle = isHindi && video.hindiTitle ? video.hindiTitle : video.title;
+            const isActive49Video = video.id === 'video_1793562264012' && price === 49;
 
             return (
               <div
                 key={video.id}
-                className="group bg-white rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
+                className={`group bg-white rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden ${isActive49Video ? "video49-active-glow" : ""}`}
               >
                 {/* Compact Thumbnail Container (No preview playback before payment) */}
                 <div
-                  onClick={() => {
-                    if (isPremium) {
-                      onSelectVideo(video);
-                    } else {
-                      setSelectedFreeGuide(video);
-                    }
-                  }}
+                  onClick={() => onSelectVideo(video)}
                   className="relative aspect-video bg-slate-900 overflow-hidden cursor-pointer"
                 >
                   <img
@@ -142,19 +97,12 @@ export const VideoLearningCenter: React.FC<Props> = ({
                     <span>{video.duration}</span>
                   </div>
 
-                  {/* Free or Premium Badge (Top Left) */}
+                  {/* Premium Badge (Top Left) */}
                   <div className="absolute top-1.5 left-1.5 z-10">
-                    {isPremium ? (
-                      <div className="px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                        <Lock className="w-2.5 h-2.5" />
-                        <span>PREMIUM • ₹{price}</span>
-                      </div>
-                    ) : (
-                      <div className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[9px] font-bold uppercase tracking-wider shadow-2xs flex items-center gap-1">
-                        <Play className="w-2.5 h-2.5 fill-current" />
-                        <span>FREE</span>
-                      </div>
-                    )}
+                    <div className="px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>{isHindi ? 'प्रीमियम' : 'PREMIUM'} • ₹{price}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -171,13 +119,7 @@ export const VideoLearningCenter: React.FC<Props> = ({
                     </div>
 
                     <h3
-                      onClick={() => {
-                        if (isPremium) {
-                          onSelectVideo(video);
-                        } else {
-                          setSelectedFreeGuide(video);
-                        }
-                      }}
+                      onClick={() => onSelectVideo(video)}
                       className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug cursor-pointer"
                       title={displayTitle}
                     >
@@ -185,56 +127,18 @@ export const VideoLearningCenter: React.FC<Props> = ({
                     </h3>
                   </div>
 
-                  {/* Action Area with Centered Primary Action Button */}
+                  {/* Paid video action */}
                   <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-col items-center gap-1.5">
-                    {isPremium ? (
-                      <div className="w-full flex flex-col items-center gap-1.5">
-                        <div className="flex items-center justify-between w-full text-xs px-0.5">
-                          <span className="text-[11px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
-                            ₹{price} INR
-                          </span>
-                          <span className="text-[10px] font-semibold text-slate-500">
-                            {video.level || 'Intermediate'}
-                          </span>
-                        </div>
-
-                        {/* Centered primary button */}
-                        <button
-                          type="button"
-                          onClick={() => onSelectVideo(video)}
-                          className="w-full max-w-[170px] py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <Lock className="w-3 h-3 text-amber-300" />
-                          <span>{isHindi ? 'विवरण / खरीदें' : 'Buy Now / Details'}</span>
-                        </button>
+                    <div className="w-full flex flex-col items-center gap-1.5">
+                      <div className="flex items-center justify-between w-full text-xs px-0.5">
+                        <span className="text-[11px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">₹{price} INR</span>
+                        <span className="text-[10px] font-semibold text-slate-500">{isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : (video.level || 'Intermediate')}</span>
                       </div>
-                    ) : (
-                      <div className="w-full flex flex-col items-center gap-1.5">
-                        <div className="flex items-center justify-between w-full text-xs px-0.5">
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded">
-                            {isHindi ? 'निशुल्क' : 'Free Guide'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFreeGuide(video)}
-                            className="text-[10px] font-bold text-blue-700 hover:underline flex items-center gap-0.5 cursor-pointer"
-                          >
-                            <Info className="w-2.5 h-2.5" />
-                            <span>{isHindi ? 'विवरण' : 'Details'}</span>
-                          </button>
-                        </div>
-
-                        {/* Centered primary button */}
-                        <button
-                          type="button"
-                          onClick={() => onSelectVideo(video)}
-                          className="w-full max-w-[170px] py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <Play className="w-3 h-3 fill-current" />
-                          <span>{isHindi ? 'अभी देखें' : 'Watch Now'}</span>
-                        </button>
-                      </div>
-                    )}
+                      <button type="button" onClick={() => onSelectVideo(video)} className="w-full max-w-[170px] py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                        <Lock className="w-3 h-3 text-amber-300" />
+                        <span>{isHindi ? 'विवरण / खरीदें' : 'Buy Now / Details'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -254,17 +158,6 @@ export const VideoLearningCenter: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Free Guide Bilingual Information Modal */}
-      {selectedFreeGuide && (
-        <FreeGuideDetailsModal
-          video={selectedFreeGuide}
-          onClose={() => setSelectedFreeGuide(null)}
-          onWatchVideo={(v) => {
-            setSelectedFreeGuide(null);
-            onSelectVideo(v);
-          }}
-        />
-      )}
     </section>
   );
 };

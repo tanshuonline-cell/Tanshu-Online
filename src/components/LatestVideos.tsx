@@ -18,8 +18,7 @@ interface PurchasedRecord {
 }
 
 export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal }) => {
-  const { t } = useLanguage();
-  const [filterType, setFilterType] = useState<'all' | 'free' | 'premium'>('all');
+  const { t, isHindi } = useLanguage();
 
   // Video playback & modal states
   const [activeFreeVideo, setActiveFreeVideo] = useState<VideoGuide | null>(null);
@@ -108,12 +107,10 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
     if (onCloseModal) onCloseModal();
   };
 
-  // Filter video list based on active tab
-  const displayedVideos = LATEST_VIDEOS.filter((video) => {
-    if (filterType === 'free') return !video.isPremium && video.accessType !== 'premium';
-    if (filterType === 'premium') return video.isPremium || video.accessType === 'premium';
-    return true;
-  });
+  // Public Latest Videos section displays only active paid masterclasses; free guides remain stored but hidden.
+  const displayedVideos = LATEST_VIDEOS.filter(
+    (video) => video.isActive !== false && (video.isPremium || video.accessType === 'premium')
+  );
 
   return (
     <section id="videos" className="py-16 bg-slate-50 border-b border-slate-200">
@@ -124,7 +121,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
             <div className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1 flex items-center gap-1.5">
               <span>{t('videos.kicker', 'Practical Video Tutorials & Masterclasses')}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-              <span className="text-amber-600 font-bold">Cloudflare Stream Token-Signed Playback & Dynamic Watermarking</span>
+              <span className="text-amber-600 font-bold">{isHindi ? 'Cloudflare Stream सुरक्षित वीडियो प्लेबैक • डायनामिक वॉटरमार्क' : 'Cloudflare Stream Token-Signed Playback & Dynamic Watermarking'}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {t('videos.title', 'Latest Videos & Masterclasses')}
@@ -138,45 +135,15 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
           </p>
         </div>
 
-        {/* Filter Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-2 border-b border-slate-200">
-          <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setFilterType('all')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                filterType === 'all'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All Videos ({LATEST_VIDEOS.length})
-            </button>
-            <button
-              onClick={() => setFilterType('free')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                filterType === 'free'
-                  ? 'bg-white text-emerald-800 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Free Tutorials ({LATEST_VIDEOS.filter((v) => !v.isPremium).length})
-            </button>
-            <button
-              onClick={() => setFilterType('premium')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                filterType === 'premium'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-2xs font-black'
-                  : 'text-amber-800 hover:text-amber-950'
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>Premium Masterclasses ({LATEST_VIDEOS.filter((v) => v.isPremium).length})</span>
-            </button>
+        {/* Premium-only catalog summary; free guides are hidden from the public section. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-3 border-b border-slate-200">
+          <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isHindi ? `प्रीमियम मास्टरक्लास (${displayedVideos.length})` : `Premium Masterclasses (${displayedVideos.length})`}</span>
           </div>
-
           <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
             <Shield className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Server-Verified Cashfree UPI & Cards • Dynamic Watermarking</span>
+            <span>{t('video.paymentSecurity', 'Secure UPI & card payments • Protected video access')}</span>
           </div>
         </div>
 
@@ -186,6 +153,9 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
             const isPremium = Boolean(video.isPremium || video.accessType === 'premium');
             const isPurchased = Boolean(purchasedVideos[video.id]);
             const price = video.price || 99;
+            const displayTitle = isHindi && video.hindiTitle ? video.hindiTitle : video.title;
+            const displayDescription = isHindi && video.hindiDescription ? video.hindiDescription : video.description;
+            const displayCategory = isHindi ? 'वीडियो गाइड' : video.category;
 
             return (
               <div
@@ -246,40 +216,40 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       {isPurchased ? (
                         <div className="px-2.5 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <CheckCircle className="w-3 h-3" />
-                          <span>PURCHASED</span>
+                          <span>{t('video.purchased', 'PURCHASED')}</span>
                         </div>
                       ) : isPremium ? (
                         <div className="flex items-center gap-1">
                           <div className="px-2.5 py-0.5 bg-amber-500 text-slate-950 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
                             <Lock className="w-2.5 h-2.5 text-slate-950" />
-                            <span>PREMIUM • ₹{price}</span>
+                            <span>{isHindi ? 'प्रीमियम' : 'PREMIUM'} • ₹{price}</span>
                           </div>
                           {video.isSample && (
                             <div className="px-1.5 py-0.5 bg-indigo-950/90 text-indigo-300 border border-indigo-500/40 rounded text-[9px] font-bold tracking-wider">
-                              SAMPLE
+                              {isHindi ? 'नमूना' : 'SAMPLE'}
                             </div>
                           )}
                         </div>
                       ) : (
                         <div className="px-2 py-0.5 bg-slate-900/90 text-emerald-400 border border-slate-700/60 rounded text-[10px] font-bold">
-                          FREE
+                          {isHindi ? 'मुफ़्त' : 'FREE'}
                         </div>
                       )}
                     </div>
 
                     {/* Category (Top Right) */}
                     <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
-                      {video.category}
+                      {displayCategory}
                     </div>
                   </div>
 
                   {/* Card Content Details */}
                   <div className="p-4 sm:p-5">
                     <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
-                      <span>By {video.instructor}</span>
+                      <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
                       {video.level && (
                         <span className="text-[10px] uppercase font-bold text-slate-400">
-                          {video.level}
+                          {isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : video.level}
                         </span>
                       )}
                     </div>
@@ -288,20 +258,20 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       onClick={() => handleVideoClick(video)}
                       className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight mb-2 hover:text-blue-700 transition-colors cursor-pointer line-clamp-2 leading-snug"
                     >
-                      {video.title}
+                      {displayTitle}
                     </h3>
 
                     <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                      {video.description}
+                      {displayDescription}
                     </p>
 
                     {/* Key Chapters / Topics Covered */}
                     <div className="pt-2.5 border-t border-slate-100 mb-2">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                        Key Curriculum Chapters:
+                        {isHindi ? 'मुख्य पाठ्यक्रम के अध्याय:' : 'Key Curriculum Chapters:'}
                       </span>
                       <ul className="space-y-1 text-xs text-slate-700">
-                        {video.topics.slice(0, 3).map((topic, idx) => (
+                        {(isHindi && video.hindiTopics ? video.hindiTopics : video.topics).slice(0, 3).map((topic, idx) => (
                           <li key={idx} className="flex items-center gap-2 truncate">
                             <span
                               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -328,7 +298,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-sm"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Watch Unlocked Masterclass</span>
+                      <span>{t('video.watchUnlocked', 'Watch Purchased Masterclass')}</span>
                     </button>
                   ) : isPremium ? (
                     <button
@@ -336,7 +306,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:shadow-lg"
                     >
                       <Lock className="w-3.5 h-3.5" />
-                      <span>Unlock Masterclass • ₹{price}</span>
+                      <span>{t('video.unlock', 'Unlock Masterclass')} • ₹{price}</span>
                     </button>
                   ) : (
                     <button
@@ -344,7 +314,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-slate-900 hover:bg-blue-700 text-white rounded-xl text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-sm"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Watch Free Tutorial</span>
+                      <span>{t('video.watchFree', 'Watch Free Tutorial')}</span>
                     </button>
                   )}
                 </div>
@@ -361,10 +331,10 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
               <div className="p-4 px-6 border-b border-slate-200 flex justify-between items-center bg-white">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">
-                    FREE TUTORIAL
+                    {isHindi ? 'मुफ़्त ट्यूटोरियल' : 'FREE TUTORIAL'}
                   </span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-xs font-semibold text-blue-700">{activeFreeVideo.category}</span>
+                  <span className="text-xs font-semibold text-blue-700">{isHindi ? 'वीडियो गाइड' : activeFreeVideo.category}</span>
                   <span className="text-slate-300">·</span>
                   <span className="text-xs text-slate-500 font-mono">{activeFreeVideo.duration}</span>
                 </div>
@@ -381,8 +351,8 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                 <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center shadow-lg mb-4 animate-pulse">
                   <Play className="w-7 h-7 fill-current ml-1" />
                 </div>
-                <h4 className="text-base font-bold text-center max-w-lg mb-1">{activeFreeVideo.title}</h4>
-                <p className="text-xs text-slate-400 text-center">Free High-Definition Tutorial Stream (1080p)</p>
+                <h4 className="text-base font-bold text-center max-w-lg mb-1">{isHindi && activeFreeVideo.hindiTitle ? activeFreeVideo.hindiTitle : activeFreeVideo.title}</h4>
+                <p className="text-xs text-slate-400 text-center">{t('video.freeStream', 'Free High-Definition Tutorial Stream (1080p)')}</p>
 
                 {/* Progress bar */}
                 <div className="absolute inset-x-0 bottom-0 h-1.5 bg-slate-800">
@@ -393,16 +363,16 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
               {/* Notes & Transcript */}
               <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-700">
                 <div>
-                  <h5 className="font-bold text-slate-900 text-sm mb-1">Tutorial Synopsis</h5>
-                  <p className="leading-relaxed text-slate-600">{activeFreeVideo.description}</p>
+                  <h5 className="font-bold text-slate-900 text-sm mb-1">{t('video.synopsis', 'Tutorial Summary')}</h5>
+                  <p className="leading-relaxed text-slate-600">{isHindi && activeFreeVideo.hindiDescription ? activeFreeVideo.hindiDescription : activeFreeVideo.description}</p>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <h5 className="font-bold text-slate-900 mb-2 uppercase tracking-wider text-[11px] text-blue-900">
-                    Step-by-Step Chapters Covered
+                    {isHindi ? 'चरण-दर-चरण शामिल विषय' : 'Step-by-Step Chapters Covered'}
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {activeFreeVideo.topics.map((t, idx) => (
+                    {(isHindi && activeFreeVideo.hindiTopics ? activeFreeVideo.hindiTopics : activeFreeVideo.topics).map((t, idx) => (
                       <div key={idx} className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
                         <span className="font-mono text-blue-700 font-bold">0{idx + 1}.</span>
                         <span className="text-slate-700">{t}</span>
@@ -418,7 +388,7 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                   onClick={handleCloseFreeModal}
                   className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer"
                 >
-                  Close Player
+                  {isHindi ? 'प्लेयर बंद करें' : 'Close Player'}
                 </button>
               </div>
             </div>
