@@ -54,7 +54,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
               <span className="text-sm sm:text-base font-black text-white tracking-wide">
                 TANSHU
               </span>
-              <span className="text-sm sm:text-base font-black text-blue-400 tracking-wide">
+              <span className="text-sm sm:text-base font-black text-[#F87171] tracking-wide">
                 ONLINE
               </span>
             </div>
@@ -90,8 +90,8 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 <button
                   key={link.id}
                   onClick={() => handleLinkClick(link.id)}
-                  className={`transition-colors whitespace-nowrap shrink-0 hover:text-blue-700 cursor-pointer ${
-                    isActive ? 'text-blue-700 font-bold border-b-2 border-blue-600 py-1' : ''
+                  className={`transition-colors whitespace-nowrap shrink-0 hover:text-[#C62828] cursor-pointer ${
+                    isActive ? 'text-[#C62828] font-bold border-b-2 border-[#C62828] py-1' : ''
                   }`}
                 >
                   {link.label}
@@ -102,7 +102,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
 
           {/* Left on Mobile / Tablet: Quick section label */}
           <div className="lg:hidden flex items-center gap-1.5 text-xs font-bold text-slate-800">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-[#C62828] shrink-0" />
             <span className="truncate">Digital Public Services Hub</span>
           </div>
 
@@ -148,7 +148,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 className="inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:border-slate-300 hover:bg-slate-50 cursor-pointer sm:w-[132px] sm:px-3"
                 title={language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Access'}
               >
-                <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <User className="w-3.5 h-3.5 text-[#C62828] shrink-0" />
                 <span className="hidden sm:inline">
                   {language === 'hi' ? 'ग्राहक लॉगिन' : 'Customer Access'}
                 </span>
@@ -158,7 +158,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             {/* Explore Tools Action */}
             <button
               onClick={() => handleLinkClick('all-tools')}
-              className="hidden h-8 w-[132px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3.5 py-1.5 text-xs font-bold tracking-wide text-white shadow-xs transition-colors hover:bg-blue-800 cursor-pointer whitespace-nowrap sm:flex"
+              className="hidden h-8 w-[132px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#C62828] px-3.5 py-1.5 text-xs font-bold tracking-wide text-white shadow-xs transition-colors hover:bg-[#A61F2A] cursor-pointer whitespace-nowrap sm:flex"
             >
               <span>{t('btn.exploreTools', 'Explore Tools')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -183,7 +183,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 key={link.id}
                 onClick={() => handleLinkClick(link.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer block ${
-                  activeSection === link.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                  activeSection === link.id ? 'bg-red-50 text-[#C62828] font-bold' : 'text-slate-700 hover:bg-red-50 hover:text-[#C62828]'
                 }`}
               >
                 {link.label}
@@ -199,9 +199,9 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                     setMobileMenuOpen(false);
                     onOpenCustomerAuth();
                   }}
-                  className="w-full py-2 px-3 border border-slate-200 bg-slate-50 hover:bg-blue-50 rounded-lg text-xs font-bold text-slate-800 hover:text-blue-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2 px-3 border border-slate-200 bg-slate-50 hover:bg-blue-50 rounded-lg text-xs font-bold text-slate-800 hover:text-[#C62828] flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
-                  <User className="w-4 h-4 text-blue-600" />
+                  <User className="w-4 h-4 text-[#C62828]" />
                   <span>{language === 'hi' ? 'ग्राहक लॉगिन एवं वीडियो एक्सेस' : 'Customer Video Access / Sign In'}</span>
                 </button>
               </div>
@@ -210,7 +210,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             <div className="pt-1">
               <button
                 onClick={() => handleLinkClick('all-tools')}
-                className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold text-center block shadow-sm cursor-pointer"
+                className="w-full py-2.5 bg-[#C62828] hover:bg-[#A61F2A] text-white rounded-lg text-xs font-bold text-center block shadow-sm cursor-pointer"
               >
                 {t('btn.exploreAllTools', 'Explore All 89 Tools')}
               </button>
