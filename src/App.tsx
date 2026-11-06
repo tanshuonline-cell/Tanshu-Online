@@ -270,10 +270,10 @@ export default function App() {
         if (video) {
           setSelectedDetailVideo(video);
           setCurrentPage('video-detail');
-          window.history.replaceState({}, '', `/video/${video.id}`);
+          window.history.replaceState({}, '', `/video/${video.id}?order_id=${encodeURIComponent(orderId)}&video_id=${encodeURIComponent(video.id)}`);
         } else {
           setCurrentPage('videos');
-          window.history.replaceState({}, '', '/videos');
+          window.history.replaceState({}, '', `/videos?order_id=${encodeURIComponent(orderId)}&video_id=${encodeURIComponent(resolvedVideoId)}`);
         }
       });
 
