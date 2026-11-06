@@ -131,7 +131,31 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     const customerPhone = orderData.customer_details?.customer_phone;
     const customerEmail = orderData.customer_details?.customer_email;
 
-    // Handle failed / dropped payments
+    // A signed webhook must also match an order persisted by this server.
+    if (!env.DB) {
+      return new Response(JSON.stringify({ error: 'Payment records are temporarily unavailable; event was not processed.' }), { status: 503, headers: jsonHeaders });
+    }
+
+    let existingOrder: any;
+    try {
+      existingOrder = await env.DB.prepare(
+        'SELECT video_id, order_amount, order_currency, customer_phone, order_status, cf_payment_id FROM payment_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+    } catch (dbErr) {
+      console.error('Webhook order lookup failed:', dbErr);
+      return new Response(JSON.stringify({ error: 'Could not validate the original payment order.' }), { status: 503, headers: jsonHeaders });
+    }
+
+    if (!existingOrder) {
+      return new Response(JSON.stringify({ error: 'Unknown order. No access was granted.' }), { status: 404, headers: jsonHeaders });
+    }
+
+    const sanitizedPhone = String(customerPhone || '').replace(/\D/g, '').slice(-10);
+    if (!sanitizedPhone || sanitizedPhone.length !== 10 || sanitizedPhone !== String(existingOrder.customer_phone)) {
+      return new Response(JSON.stringify({ error: 'Customer details do not match the saved order.' }), { status: 400, headers: jsonHeaders });
+    }
+
+    // Handle failed / dropped payments only for a known, matching order.
     if (
       eventType.includes('FAILED') ||
       orderStatus === 'FAILED' ||
@@ -139,20 +163,17 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       paymentStatus === 'FAILED' ||
       paymentStatus === 'CANCELLED'
     ) {
-      if (env.DB) {
-        try {
-          await env.DB.prepare(
-            `UPDATE payment_orders
-             SET order_status = 'FAILED',
-                 raw_verification_json = ?,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE order_id = ?`
-          )
-            .bind(JSON.stringify(eventData), orderId)
-            .run();
-        } catch (dbErr) {
-          console.warn('D1 failed order update notice:', dbErr);
-        }
+      try {
+        await env.DB.prepare(
+          `UPDATE payment_orders
+           SET order_status = 'FAILED',
+               raw_verification_json = ?,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE order_id = ? AND order_status != 'PAID'`
+        ).bind(JSON.stringify(eventData), orderId).run();
+      } catch (dbErr) {
+        console.error('D1 failed order update failed:', dbErr);
+        return new Response(JSON.stringify({ error: 'Could not save the failed payment status.' }), { status: 503, headers: jsonHeaders });
       }
       return new Response(
         JSON.stringify({ status: 'RECORDED_PAYMENT_FAILED', orderId }),
@@ -160,10 +181,11 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // Strictly enforce: Only unlock when status is genuinely PAID and SUCCESS
+    // Only the final Cashfree success event may unlock access.
     const isGenuinelyPaid =
+      eventType === 'PAYMENT_SUCCESS_WEBHOOK' &&
       orderStatus === 'PAID' &&
-      (paymentStatus === 'SUCCESS' || eventType === 'PAYMENT_SUCCESS_WEBHOOK');
+      paymentStatus === 'SUCCESS';
 
     if (!isGenuinelyPaid) {
       return new Response(
@@ -177,79 +199,64 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       );
     }
 
-    // 5. Database lookup & Idempotent Entitlement Grant
-    if (env.DB) {
-      try {
-        const existingOrder = await env.DB.prepare(
-          'SELECT video_id, order_amount, order_status FROM payment_orders WHERE order_id = ?'
-        )
-          .bind(orderId)
-          .first();
+    // Compare the signed event with the server-created order before granting access.
+    const recordedAmount = Number(existingOrder.order_amount);
+    const recordedCurrency = String(existingOrder.order_currency || 'INR').toUpperCase();
+    const webhookCurrency = String(orderData.order_currency || 'INR').toUpperCase();
+    if (
+      !Number.isFinite(orderAmount) ||
+      !Number.isFinite(recordedAmount) ||
+      Math.abs(orderAmount - recordedAmount) > 0.01 ||
+      recordedCurrency !== 'INR' ||
+      webhookCurrency !== 'INR'
+    ) {
+      return new Response(JSON.stringify({ error: 'Order amount or currency does not match the saved INR order.' }), { status: 400, headers: jsonHeaders });
+    }
 
-        if (existingOrder) {
-          // Amount tamper verification
-          if (
-            !isNaN(orderAmount) &&
-            existingOrder.order_amount &&
-            Math.abs(orderAmount - Number(existingOrder.order_amount)) > 0.01
-          ) {
-            console.error('Webhook amount mismatch warning for order:', orderId);
-            return new Response(
-              JSON.stringify({ error: 'Order amount mismatch between webhook and recorded order.' }),
-              { status: 400, headers: jsonHeaders }
-            );
-          }
-        }
+    const videoId = existingOrder.video_id;
+    const paymentId = paymentData?.cf_payment_id ? String(paymentData.cf_payment_id) : '';
+    if (!videoId || !paymentId) {
+      return new Response(JSON.stringify({ error: 'The successful payment event is missing its saved video or payment reference.' }), { status: 400, headers: jsonHeaders });
+    }
 
-        const videoId = existingOrder ? existingOrder.video_id : null;
+    if (String(existingOrder.order_status).toUpperCase() === 'PAID' &&
+        existingOrder.cf_payment_id &&
+        String(existingOrder.cf_payment_id) !== paymentId) {
+      return new Response(JSON.stringify({ error: 'This order is already linked to a different successful payment. Manual review is required.' }), { status: 409, headers: jsonHeaders });
+    }
 
-        // Update payment_orders to PAID
-        await env.DB.prepare(
-          `UPDATE payment_orders
-           SET order_status = 'PAID',
-               cf_payment_id = ?,
-               payment_method = ?,
-               raw_verification_json = ?,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE order_id = ?`
-        )
-          .bind(
-            paymentData?.cf_payment_id ? String(paymentData.cf_payment_id) : null,
-            paymentData?.payment_group || 'CASHFREE_WEBHOOK',
-            JSON.stringify(eventData),
-            orderId
-          )
-          .run();
+    try {
+      await env.DB.prepare(
+        `UPDATE payment_orders
+         SET order_status = 'PAID',
+             cf_payment_id = ?,
+             payment_method = ?,
+             raw_verification_json = ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE order_id = ?`
+      ).bind(
+        paymentId,
+        paymentData?.payment_group || 'CASHFREE_WEBHOOK',
+        JSON.stringify(eventData),
+        orderId
+      ).run();
 
-        // Grant customer video access idempotently
-        if (videoId && customerPhone) {
-          const sanitizedPhone = String(customerPhone).replace(/\D/g, '').slice(-10);
-          const accessId = `acc_wh_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-          await env.DB.prepare(
-            `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
-             VALUES (?, ?, ?, ?, ?, 0)
-             ON CONFLICT(customer_phone, video_id) DO UPDATE SET
-               order_id = excluded.order_id,
-               is_revoked = 0,
-               updated_at = CURRENT_TIMESTAMP`
-          )
-            .bind(
-              accessId,
-              sanitizedPhone,
-              customerEmail || null,
-              videoId,
-              orderId
-            )
-            .run();
-        }
-      } catch (dbErr) {
-        console.error('Webhook database processing error:', dbErr);
-        return new Response(
-          JSON.stringify({ error: 'Database processing error during webhook entitlement.' }),
-          { status: 500, headers: jsonHeaders }
-        );
-      }
+      // Idempotent grant: Cashfree may retry the same event.
+      const accessId = `acc_wh_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await env.DB.prepare(
+        `INSERT INTO customer_video_access (id, customer_phone, customer_email, video_id, order_id, is_revoked)
+         VALUES (?, ?, ?, ?, ?, 0)
+         ON CONFLICT(customer_phone, video_id) DO UPDATE SET
+           order_id = excluded.order_id,
+           is_revoked = 0,
+           updated_at = CURRENT_TIMESTAMP`
+      ).bind(accessId, sanitizedPhone, customerEmail || null, videoId, orderId).run();
+    } catch (dbErr) {
+      console.error('Webhook database processing error:', dbErr);
+      return new Response(
+        JSON.stringify({ error: 'Payment event was verified, but access could not be saved. Cashfree may retry this event.' }),
+        { status: 503, headers: jsonHeaders }
+      );
     }
 
     return new Response(
