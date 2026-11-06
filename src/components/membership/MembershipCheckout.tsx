@@ -10,7 +10,7 @@ declare global {
 }
 
 type Customer = { id: string; email: string; display_name: string };
-type Subscription = { id: string; status: string; current_period_end: string | null; cancel_at_period_end: number | boolean; plan_name: string; monthly_amount_paise: number };
+type Subscription = { id: string; gateway_subscription_id: string; status: string; current_period_end: string | null; cancel_at_period_end: number | boolean; plan_name: string; monthly_amount_paise: number };
 
 export const MembershipCheckout: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -145,6 +145,28 @@ export const MembershipCheckout: React.FC = () => {
     }
   };
 
+  const refreshMembershipStatus = async () => {
+    if (!subscription?.gateway_subscription_id) return;
+    setNotice('Cashfree से Membership status दोबारा जाँचा जा रहा है…');
+    setNoticeType('info');
+    try {
+      const response = await fetch('/api/membership/subscription-status?subscription_id=' + encodeURIComponent(subscription.gateway_subscription_id), {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'Status check failed.');
+      setNotice(data.message || 'Membership status updated.');
+      setNoticeType(data.active ? 'success' : 'info');
+      const accountResponse = await fetch('/api/membership/account', { credentials: 'include', cache: 'no-store' });
+      const account = await accountResponse.json().catch(() => ({}));
+      if (accountResponse.ok && account.success) setSubscription(account.subscription || null);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Status check failed.');
+      setNoticeType('error');
+    }
+  };
+
   const cancelAutoRenewal = async () => {
     if (cancelBusy) return;
     setCancelBusy(true);
@@ -213,7 +235,11 @@ export const MembershipCheckout: React.FC = () => {
                 <button type="button" onClick={cancelAutoRenewal} disabled={cancelBusy} className="mt-3 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-60">
                   {cancelBusy ? 'Cancelling…' : 'Cancel auto-renewal'}
                 </button>
-              ) : null}
+              ) : (
+                <button type="button" onClick={refreshMembershipStatus} className="mt-3 rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">
+                  Refresh payment status
+                </button>
+              )}
             </div>
           )}
           <div>
@@ -227,9 +253,9 @@ export const MembershipCheckout: React.FC = () => {
             <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-blue-700" />
             <span>मैं ₹49 प्रति माह की Membership और Cashfree के माध्यम से recurring payment / AutoPay mandate सेटअप करने की स्पष्ट अनुमति देता/देती हूँ। मैं Cashfree Checkout में mandate की शर्तें देखकर पुष्टि करूँगा/करूँगी। Cancellation के लिए Membership पेज से अनुरोध उपलब्ध कराया जाएगा।</span>
           </label>
-          <button type="submit" disabled={busy || !sdkReady} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={busy || !sdkReady || subscription?.status === 'active'} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">
             {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-            {busy ? 'Cashfree Checkout खोला जा रहा है…' : '₹49 / month — Cashfree से आगे बढ़ें'}
+            {busy ? 'Cashfree Checkout खोला जा रहा है…' : subscription?.status === 'active' ? 'Membership पहले से Active है' : '₹49 / month — Cashfree से आगे बढ़ें'}
           </button>
           <p className="flex items-start gap-2 text-[11px] leading-5 text-slate-500"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Payment details Cashfree के सुरक्षित Checkout में दर्ज होंगे। Membership केवल server-verified successful recurring charge के बाद सक्रिय होगी।</p>
         </form>
