@@ -239,21 +239,25 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                     </div>
 
                     {/* Category (Top Right) */}
-                    <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
-                      {displayCategory}
-                    </div>
+                    {video.id !== 'video_1793562264012' && (
+                      <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-slate-950/80 border border-slate-700/60 rounded text-[9px] font-bold text-slate-300">
+                        {displayCategory}
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Content Details */}
                   <div className="p-4 sm:p-5">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
-                      <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
-                      {video.level && (
-                        <span className="text-[10px] uppercase font-bold text-slate-400">
-                          {isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : video.level}
-                        </span>
-                      )}
-                    </div>
+                    {video.id !== 'video_1793562264012' && (
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                        <span>{isHindi ? 'प्रशिक्षक:' : 'By'} {video.instructor}</span>
+                        {video.level && (
+                          <span className="text-[10px] uppercase font-bold text-slate-400">
+                            {isHindi ? (video.level === 'Beginner' ? 'शुरुआती' : video.level === 'Advanced' ? 'उन्नत' : 'मध्यम') : video.level}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     <h3
                       onClick={() => handleVideoClick(video)}
@@ -262,9 +266,11 @@ export const LatestVideos: React.FC<Props> = ({ selectedVideoModal, onCloseModal
                       {displayTitle}
                     </h3>
 
-                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                      {displayDescription}
-                    </p>
+                    {video.id !== 'video_1793562264012' && (
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
+                        {displayDescription}
+                      </p>
+                    )}
 
                     {/* Key Chapters / Topics Covered */}
                     <div className="pt-2.5 border-t border-slate-100 mb-2">
