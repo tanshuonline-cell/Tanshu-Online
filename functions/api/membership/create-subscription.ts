@@ -43,7 +43,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   let localId = '';
   try {
     if (!env.DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || !env.MEMBERSHIP_SESSION_SECRET || !env.APP_BASE_URL ||
-        String(env.CASHFREE_ENVIRONMENT).toUpperCase() === 'PRODUCTION') {
+        String(env.CASHFREE_ENVIRONMENT).toUpperCase() !== 'SANDBOX') {
       return json({ success: false, error: 'Preview checkout is not configured.' }, 503);
     }
     const customer = await getCustomer(request, env);
@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!consent) return json({ success: false, error: 'Please confirm the monthly recurring payment consent.' }, 400);
 
     const base = new URL(env.APP_BASE_URL);
-    if (base.protocol !== 'https:' || base.origin !== env.APP_BASE_URL.replace(/\\/$/, '')) {
+    if (base.protocol !== 'https:' || !base.hostname.endsWith('.tanshu-online.pages.dev') || base.hostname === 'tanshu-online.pages.dev' || base.pathname !== '/' || base.search || base.hash || base.origin !== env.APP_BASE_URL.replace(/\\/$/, '')) {
       return json({ success: false, error: 'Preview APP_BASE_URL must be an HTTPS origin.' }, 503);
     }
 
