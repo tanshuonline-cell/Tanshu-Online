@@ -136,7 +136,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
                   allowFullScreen
                 />
               ) : isUnlocked ? (
-                // Unlocked Premium Video: Play button launches verified Cloudflare Stream player
+                // Unlocked Premium Video: Play button launches the purchase-verified premium player
                 <div className="relative w-full h-full">
                   <img
                     src={
@@ -405,11 +405,11 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
               <div className="pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Cloudflare Stream Token-Signed Playback</span>
+                  <span>Verified purchase before video playback</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Dynamic Watermarking for Piracy Protection</span>
+                  <span>Licensed mobile number displayed during playback</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
@@ -430,7 +430,7 @@ export const VideoDetailPage: React.FC<Props> = ({ video, onBack, onNavigateHome
         />
       )}
 
-      {/* Cloudflare Stream Fullscreen Player */}
+      {/* Purchase-verified Premium Video Player */}
       {isPlayerOpen && (
         <PremiumVideoPlayer
           video={video}
