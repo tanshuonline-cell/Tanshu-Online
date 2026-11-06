@@ -97,7 +97,7 @@ export const MembershipCheckout: React.FC = () => {
       setNoticeType('error');
       return;
     }
-    if (!/^[6-9]\\d{9}$/.test(phone)) {
+    if (!/^[6-9]\d{9}$/.test(phone)) {
       setNotice('कृपया 10 अंकों का सही भारतीय मोबाइल नंबर दर्ज करें।');
       setNoticeType('error');
       return;
@@ -220,7 +220,7 @@ export const MembershipCheckout: React.FC = () => {
             <label htmlFor="membership-phone" className="mb-1.5 block text-xs font-bold text-slate-700">मोबाइल नंबर (Cashfree mandate के लिए)</label>
             <div className="flex overflow-hidden rounded-xl border border-slate-300 focus-within:border-blue-600">
               <span className="bg-slate-100 px-3 py-3 text-sm font-semibold text-slate-600">+91</span>
-              <input id="membership-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} required value={phone} onChange={e => setPhone(e.target.value.replace(/\\D/g, '').slice(0, 10))} placeholder="10 अंकों का मोबाइल नंबर" className="min-w-0 flex-1 px-3 py-3 text-sm text-slate-900 outline-none" />
+              <input id="membership-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} required value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10 अंकों का मोबाइल नंबर" className="min-w-0 flex-1 px-3 py-3 text-sm text-slate-900 outline-none" />
             </div>
           </div>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-xs leading-5 text-slate-700">
