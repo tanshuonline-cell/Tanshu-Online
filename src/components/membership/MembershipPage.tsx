@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { AadhaarBasicGuidance } from './AadhaarBasicGuidance';
-import { MembershipCheckout } from './MembershipCheckout';
 
 interface Props {
   onBackHome: () => void;
+  onPayNow: () => void;
 }
 
 const plans = [
@@ -66,7 +66,7 @@ const plans = [
   },
 ];
 
-export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
+export const MembershipPage: React.FC<Props> = ({ onBackHome, onPayNow }) => {
   const { isHindi } = useLanguage();
 
   const copy = {
@@ -86,8 +86,6 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
       : 'Ask about your situation through private Chat in Basic Membership. You can also ask about PAN Card, Voter ID, Birth Certificate, Ration Card, Bihar Government and other public services. Helpful short videos on relevant topics may also be available.',
     month: isHindi ? '/ महीना' : '/ month',
     payNow: isHindi ? 'अभी भुगतान करें' : 'Pay Now',
-    detailsGuide: isHindi ? 'जानकारी / गाइड' : 'Details / Guide',
-    backToBasic: isHindi ? '← Basic Membership पर वापस जाएँ' : '← Back to Basic Membership',
     comingSoon: isHindi ? 'जल्द उपलब्ध होगा' : 'Coming Soon',
     billingTitle: isHindi ? 'भुगतान और सदस्यता:' : 'Payment and membership:',
     billing: isHindi
@@ -168,12 +166,9 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
                 <div className="flex-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-500">{copy.comingSoon}</div>
               )}
               {plan.name === 'Basic' ? (
-                <div className="mt-7 grid grid-cols-1 gap-2">
-                  <button type="button" onClick={() => document.getElementById('basic-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition ${plan.buttonTone}`}>
+                <div className="mt-7">
+                  <button type="button" onClick={onPayNow} className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold text-white shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${plan.buttonTone}`}>
                     {copy.payNow} <ArrowRight className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={() => document.getElementById('basic-guidance')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-extrabold text-slate-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-800">
-                    {copy.detailsGuide}
                   </button>
                 </div>
               ) : (
@@ -183,14 +178,7 @@ export const MembershipPage: React.FC<Props> = ({ onBackHome }) => {
           ))}
         </div>
 
-        <MembershipCheckout />
         <AadhaarBasicGuidance />
-        <div className="mx-auto mt-4 max-w-3xl text-center">
-          <button type="button" onClick={() => document.getElementById('basic-membership-plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-xs font-bold text-blue-800 shadow-sm transition hover:bg-blue-50">
-            {copy.backToBasic}
-          </button>
-        </div>
-
         <div className="mt-10 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 text-xs leading-6 text-amber-950 shadow-sm sm:p-6">
           <strong>{copy.billingTitle}</strong> {copy.billing}
           <p className="mt-2">{copy.verification}</p>
