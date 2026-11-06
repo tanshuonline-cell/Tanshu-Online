@@ -289,12 +289,12 @@ export const AllToolsDirectory: React.FC<Props> = ({
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
           <span className="text-[11px] text-slate-500 font-medium">
-            {isHindi ? '7 श्रेणियों में 89 ऑनलाइन उपयोगिताएँ' : 'Browse full directory with search & category filters'}
+            {isHindi ? '7 श्रेणियों में 90 ऑनलाइन उपयोगिताएँ' : 'Browse full directory with search & category filters'}
           </span>
         </div>
       </div>
 
-      {/* 3. ALL TOOLS MODAL: COMPLETE 89-TOOL DIRECTORY WITH SEARCH & CATEGORY FILTERS */}
+      {/* 3. ALL TOOLS MODAL: COMPLETE 90-TOOL DIRECTORY WITH SEARCH & CATEGORY FILTERS */}
       {isModalOpen && (
         <div
           ref={backdropRef}
