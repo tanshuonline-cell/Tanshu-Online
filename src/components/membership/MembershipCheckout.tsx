@@ -1,9 +1,36 @@
-import React,{useEffect,useState} from 'react';
-import {ShieldCheck,ArrowRight,Loader2} from 'lucide-react';
-declare global { interface Window { Cashfree?: (options:{mode:'sandbox'|'production'})=>{subscriptionsCheckout:(options:{subsSessionId:string,redirectTarget?:string})=>Promise<any>}; } }
-type Customer={id:string,email:string,display_name:string};
-export const MembershipCheckout:React.FC=()=>{const [customer,setCustomer]=useState<Customer|null>(null);const [phone,setPhone]=useState('');const [loading,setLoading]=useState(false);const [message,setMessage]=useState('');const [status,setStatus]=useState('');const [sdkReady,setSdkReady]=useState(false);
-useEffect(()=>{let alive=true;fetch('/api/membership/auth',{credentials:'same-origin'}).then(r=>r.json()).then(d=>{if(alive&&d.authenticated)setCustomer(d.customer)}).catch(()=>{});const script=document.querySelector<HTMLScriptElement>('script[data-cashfree-sdk]');if(window.Cashfree){setSdkReady(true)}else if(script){script.addEventListener('load',()=>alive&&setSdkReady(true));}else{const s=document.createElement('script');s.src='https://sdk.cashfree.com/js/v3/cashfree.js';s.async=true;s.dataset.cashfreeSdk='true';s.onload=()=>alive&&setSdkReady(true);s.onerror=()=>alive&&setMessage('Checkout SDK लोड नहीं हो पाया। कृपया पेज Refresh करें।');document.head.appendChild(s)}return()=>{alive=false}},[]);
-useEffect(()=>{const sid=new URLSearchParams(window.location.search).get('membership_subscription_id');if(!sid)return;fetch('/api/membership/subscription-status?subscription_id='+encodeURIComponent(sid),{credentials:'same-origin'}).then(r=>r.json()).then(d=>{if(d.success){setStatus(d.subscriptionStatus||'');setMessage(d.message||'Status checked.')}else setMessage(d.error||'Status verify नहीं हो पाया।')}).catch(()=>setMessage('Status verify नहीं हो पाया।'));},[]);
-const start=async()=>{setMessage('');if(!/^[0-9]{10}$/.test(phone)){setMessage('कृपया 10 अंकों का सही मोबाइल नंबर डालें।');return}if(!sdkReady||!window.Cashfree){setMessage('Checkout अभी लोड हो रहा है। एक बार फिर कोशिश करें।');return}setLoading(true);try{const r=await fetch('/api/membership/create-subscription',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({phone})});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Checkout शुरू नहीं हो पाया।');const cashfree=window.Cashfree({mode:'sandbox'});await cashfree.subscriptionsCheckout({subsSessionId:d.subscriptionSessionId,redirectTarget:'_self'});}catch(e:any){setMessage(e.message||'Checkout शुरू नहीं हो पाया।')}finally{setLoading(false)}};
-return <section id="basic-checkout" className="mx-auto mt-10 max-w-3xl scroll-mt-24 rounded-3xl border border-blue-200 bg-white p-6 shadow-lg sm:p-8"><p className="text-xs font-semibold text-slate-500">₹49 / month · recurring subscription</p>{customer?<><p className="mt-4 text-sm text-slate-700">Google से साइन इन: <strong>{customer.email}</strong></p><label className="mt-5 block text-xs font-bold text-slate-700">Mobile number / मोबाइल नंबर</label><input value={phone} onChange={e=>setPhone(e.target.value.replace(/[^0-9]/g,'').slice(0,10))} inputMode="numeric" autoComplete="tel-national" maxLength={10} placeholder="10-digit mobile number" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"/><p className="mt-2 text-[11px] leading-5 text-slate-500">यह नंबर Cashfree recurring mandate के लिए निजी तौर पर इस्तेमाल होगा। वेबसाइट पर सार्वजनिक नहीं दिखेगा।</p><div className="mt-4 rounded-xl bg-amber-50 p-4 text-xs leading-5 text-amber-950"><strong>ध्यान दें:</strong> ₹49 हर महीने recurring billing है। UPI AutoPay / उपलब्ध mandate method से अगली billing हो सकती है। भुगतान/mandate की मंजूरी Cashfree पर होगी। केवल Cashfree की पुष्टि के बाद Membership Active होगी।</div><button type="button" disabled={loading||!sdkReady} onClick={start} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-extrabold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{loading?<Loader2 className="h-4 w-4 animate-spin"/>:<ArrowRight className="h-4 w-4"/>}{loading?'Connecting to Cashfree…':'Continue to secure ₹49/month checkout'}</button></>:<><p className="mt-4 text-sm leading-6 text-slate-600">Checkout से पहले Google Account से साइन इन करें।</p><a href="/api/membership/auth?action=start" className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-bold text-white hover:bg-slate-800">Continue with Google <ArrowRight className="h-4 w-4"/></a></>}{message&&<p role="status" className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{message}</p>}{status&&<p className="mt-2 text-xs font-semibold text-slate-600">Cashfree status: {status}</p>}<p className="mt-5 flex items-start gap-2 text-[11px] leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"/>Card/UPI details Cashfree के सुरक्षित checkout पर ही दर्ज होंगे। TANSHU ONLINE इन्हें नहीं देखता।</p></section>};
+import React from 'react';
+import { LockKeyhole, ShieldCheck } from 'lucide-react';
+
+export const MembershipCheckout: React.FC = () => (
+  <section
+    id="basic-checkout"
+    className="mx-auto mt-10 max-w-3xl scroll-mt-24 rounded-3xl border border-amber-200 bg-white p-6 shadow-lg sm:p-8"
+  >
+    <div className="flex items-start gap-3">
+      <span className="rounded-xl bg-amber-100 p-3 text-amber-800">
+        <LockKeyhole className="h-5 w-5" />
+      </span>
+      <div>
+        <p className="text-xs font-extrabold uppercase tracking-wider text-amber-800">
+          Membership checkout temporarily locked
+        </p>
+        <h3 className="mt-1 text-lg font-black text-slate-900">
+          ₹49 / month · Basic Membership
+        </h3>
+      </div>
+    </div>
+    <p className="mt-4 text-sm leading-6 text-slate-700">
+      Cashfree Sandbox checkout अभी सुरक्षा और recurring-consent जाँच पूरी होने तक बंद है।
+      इस Preview से अभी कोई नया subscription, UPI AutoPay mandate, payment या Email/SMS
+      notification शुरू नहीं किया जा सकता।
+    </p>
+    <p className="mt-3 text-xs leading-5 text-slate-500">
+      Checkout तभी खोला जाएगा जब recurring billing की स्पष्ट सहमति, account security,
+      payment verification और membership access के सभी परीक्षण पूरे हो जाएँगे।
+    </p>
+    <div className="mt-5 flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+      अभी कोई भुगतान या mandate बनाने की आवश्यकता नहीं है।
+    </div>
+  </section>
+);
