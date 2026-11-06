@@ -184,7 +184,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const currency = String(data.payment_currency || 'INR').toUpperCase();
 
       const localSubscription = await env.DB.prepare(
-        'SELECT s.id AS subscription_id,s.customer_id,s.plan_id,p.monthly_amount_paise FROM membership_subscriptions s JOIN membership_plans p ON p.id=s.plan_id WHERE s.gateway=? AND s.gateway_subscription_id=? LIMIT 1',
+        'SELECT s.id AS subscription_id,s.customer_id,s.plan_id,s.current_period_end,p.monthly_amount_paise FROM membership_subscriptions s JOIN membership_plans p ON p.id=s.plan_id WHERE s.gateway=? AND s.gateway_subscription_id=? LIMIT 1',
       )
         .bind('cashfree', subscriptionId)
         .first();
@@ -223,11 +223,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         .run();
 
       // Only a verified successful recurring charge grants membership access.
-      await env.DB.prepare(
-        "UPDATE membership_subscriptions SET status=?,updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
-      )
-        .bind(paymentStatus === 'success' ? 'active' : 'payment_failed', subscriptionId)
-        .run();
+      // Track the paid-through month so a later cancellation can stop future debits
+      // while preserving access until the already-paid period ends.
+      if (paymentStatus === 'success') {
+        const now = new Date();
+        const previousEnd = localSubscription.current_period_end ? new Date(localSubscription.current_period_end) : null;
+        const periodStart = previousEnd && !Number.isNaN(previousEnd.getTime()) && previousEnd > now
+          ? previousEnd
+          : new Date(paidAt || now.toISOString());
+        const periodEnd = new Date(periodStart);
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+        await env.DB.prepare(
+          "UPDATE membership_subscriptions SET status='active',current_period_start=?,current_period_end=?,updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
+        ).bind(periodStart.toISOString(), periodEnd.toISOString(), subscriptionId).run();
+      } else {
+        await env.DB.prepare(
+          "UPDATE membership_subscriptions SET status='payment_failed',updated_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_subscription_id=?",
+        ).bind(subscriptionId).run();
+      }
     }
 
     await env.DB.prepare(
