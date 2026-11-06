@@ -33,9 +33,15 @@ Last updated: 2026-11-06
 - The user also reported that repeat access and "Already Purchased? Restore" worked for the same phone.
 - That earlier result does not by itself prove the current `78ba1a4` build, D1 setup, webhook, or Production setup is correct.
 
+## Latest investigation — Cashfree brand name (2026-11-06)
+- Audited the Preview `create-order.ts` payload. It sends order/customer details and order note, but no merchant checkout brand-name field; Cashfree's hosted checkout header brand is configured in the Cashfree Merchant Dashboard, not by adding a guessed field to this order payload.
+- Cashfree's current guidance says to use Merchant Dashboard → Visual Customization → Header, choose the logo display type, upload the suitable logo, enter the Display Brand Name, and submit it for verification. The approved display name may require Cashfree verification before it appears on checkout.
+- Target display brand: `TANSHU ONLINE`.
+- Official Cashfree guidance: https://www.cashfree.com/blog/trust-at-checkout-now-easier-to-build/
+
 ## Next work — Preview only
-1. Investigate why Cashfree checkout displays only "B" / generic Business Name instead of TANSHU ONLINE. Check the checkout request payload and Cashfree merchant/display-name configuration; do not expose secrets.
-2. Fix and verify the business display name in Preview only.
+1. In Cashfree Merchant Dashboard, open Visual Customization → Header and submit `TANSHU ONLINE` as Display Brand Name (and matching logo if desired); wait for Cashfree verification/approval.
+2. Reopen the Preview checkout and confirm the approved full brand name appears instead of the single-letter `B` / generic label.
 3. Verify Preview Pages D1 binding is named exactly `DB`, and confirm the required schema and active premium video row exist.
 4. Verify Cloudflare Stream account/token configuration and the video stream UID needed for signed playback.
 5. Re-test order creation, payment verification/return handling, playback, repeat access, and restore flow in Sandbox on the latest Preview.
