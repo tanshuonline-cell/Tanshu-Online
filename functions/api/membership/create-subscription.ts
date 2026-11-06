@@ -25,7 +25,7 @@ async function getCustomer(request: Request, env: Env) {
   const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(parts[0])));
   let binary = '';
   sig.forEach(b => binary += String.fromCharCode(b));
-  const expected = btoa(binary).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');
+  const expected = btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   if (expected.length !== parts[1].length) return null;
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ parts[1].charCodeAt(i);
@@ -50,13 +50,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!customer) return json({ success: false, error: 'Please sign in with Google first.' }, 401);
 
     const body: any = await request.json().catch(() => ({}));
-    const phone = String(body.phone || '').replace(/\\D/g, '');
+    const phone = String(body.phone || '').replace(/\D/g, '');
     const consent = body.recurringConsent === true;
-    if (!/^[6-9]\\d{9}$/.test(phone)) return json({ success: false, error: 'Enter a valid 10-digit Indian mobile number.' }, 400);
+    if (!/^[6-9]\d{9}$/.test(phone)) return json({ success: false, error: 'Enter a valid 10-digit Indian mobile number.' }, 400);
     if (!consent) return json({ success: false, error: 'Please confirm the monthly recurring payment consent.' }, 400);
 
     const base = new URL(env.APP_BASE_URL);
-    if (base.protocol !== 'https:' || !base.hostname.endsWith('.tanshu-online.pages.dev') || base.hostname === 'tanshu-online.pages.dev' || base.pathname !== '/' || base.search || base.hash || base.origin !== env.APP_BASE_URL.replace(/\\/$/, '')) {
+    if (base.protocol !== 'https:' || !base.hostname.endsWith('.tanshu-online.pages.dev') || base.hostname === 'tanshu-online.pages.dev' || base.pathname !== '/' || base.search || base.hash || base.origin !== env.APP_BASE_URL.replace(/\/$/, '')) {
       return json({ success: false, error: 'Preview APP_BASE_URL must be an HTTPS origin.' }, 503);
     }
 
