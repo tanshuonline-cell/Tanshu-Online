@@ -147,15 +147,18 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
   return (
     <section id="category-navigation" className="py-12 bg-white border-b border-slate-200/90 relative">
     <style>{`
-      @keyframes category-border-flow { 0% { background-position: -100% 0, 100% 100%, 0 -100%, 100% 100%; } 100% { background-position: 100% 0, -100% 100%, 0 100%, 100% -100%; } }
-      .category-tab-glow { position: relative; isolation: isolate; overflow: hidden; box-shadow: 0 0 0 1px var(--category-glow-soft), 0 0 18px var(--category-glow-shadow); }
-      .category-tab-glow::before { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 2px; background-image: linear-gradient(90deg, transparent 0%, var(--category-glow) 48%, transparent 100%), linear-gradient(270deg, transparent 0%, var(--category-glow) 48%, transparent 100%), linear-gradient(180deg, transparent 0%, var(--category-glow) 48%, transparent 100%), linear-gradient(0deg, transparent 0%, var(--category-glow) 48%, transparent 100%); background-size: 200% 2px, 200% 2px, 2px 200%, 2px 200%; background-position: -100% 0, 100% 100%, 0 -100%, 100% 100%; background-repeat: no-repeat; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: category-border-flow 4.8s linear infinite; pointer-events: none; }
-      .category-tab-glow > span { position: relative; z-index: 2; }
-      .category-tab-indigo { --category-glow: rgba(199,184,255,.98); --category-glow-soft: rgba(129,92,246,.30); --category-glow-shadow: rgba(99,72,190,.26); }
-      .category-tab-blue { --category-glow: rgba(147,197,253,.98); --category-glow-soft: rgba(59,130,246,.30); --category-glow-shadow: rgba(59,130,246,.26); }
-      .category-tab-emerald { --category-glow: rgba(110,231,183,.98); --category-glow-soft: rgba(16,185,129,.30); --category-glow-shadow: rgba(16,185,129,.26); }
-      .category-tab-amber { --category-glow: rgba(253,230,138,.98); --category-glow-soft: rgba(245,158,11,.30); --category-glow-shadow: rgba(245,158,11,.26); }
-      @media (prefers-reduced-motion: reduce) { .category-tab-glow::before { animation: none; } }
+
+      @keyframes category-premium-flow { 0% { background-position: -110% 0, 110% 100%, 0 110%, 100% -110%; } 100% { background-position: 110% 0, -110% 100%, 0 -110%, 100% 110%; } }
+      @keyframes category-halo-pulse { from { opacity: .28; filter: blur(9px); } to { opacity: .62; filter: blur(15px); } }
+      .category-card-grid > div { isolation: isolate; }
+      .category-card-grid > div::before { content: ""; position: absolute; inset: -5px; z-index: 0; border-radius: inherit; background: linear-gradient(115deg, var(--card-light-a), var(--card-light-b), var(--card-light-c), var(--card-light-a)); animation: category-halo-pulse 3.8s ease-in-out infinite alternate; pointer-events: none; }
+      .category-card-grid > div::after { content: ""; position: absolute; inset: 0; z-index: 5; border-radius: inherit; padding: 2px; background-image: linear-gradient(90deg, transparent 0%, var(--card-light-a) 26%, var(--card-light-b) 65%, transparent 100%), linear-gradient(270deg, transparent 0%, var(--card-light-c) 28%, var(--card-light-a) 70%, transparent 100%), linear-gradient(180deg, transparent 0%, var(--card-light-b) 30%, var(--card-light-a) 72%, transparent 100%), linear-gradient(0deg, transparent 0%, var(--card-light-a) 28%, var(--card-light-c) 70%, transparent 100%); background-size: 220% 2px, 220% 2px, 2px 220%, 2px 220%; background-position: -110% 0, 110% 100%, 0 110%, 100% -110%; background-repeat: no-repeat; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: category-premium-flow 5.4s linear infinite; pointer-events: none; }
+      .category-card-grid > div:nth-child(1) { --card-light-a: rgba(129,140,248,.98); --card-light-b: rgba(216,180,254,.98); --card-light-c: rgba(99,102,241,.95); box-shadow: 0 0 0 1px rgba(129,140,248,.16), 0 0 22px rgba(99,102,241,.16), 0 0 34px rgba(216,180,254,.10); }
+      .category-card-grid > div:nth-child(2) { --card-light-a: rgba(96,165,250,.98); --card-light-b: rgba(165,243,252,.98); --card-light-c: rgba(37,99,235,.95); box-shadow: 0 0 0 1px rgba(96,165,250,.16), 0 0 22px rgba(37,99,235,.16), 0 0 34px rgba(165,243,252,.10); }
+      .category-card-grid > div:nth-child(3) { --card-light-a: rgba(52,211,153,.98); --card-light-b: rgba(167,243,208,.98); --card-light-c: rgba(5,150,105,.95); box-shadow: 0 0 0 1px rgba(52,211,153,.16), 0 0 22px rgba(5,150,105,.16), 0 0 34px rgba(167,243,208,.10); }
+      .category-card-grid > div:nth-child(4) { --card-light-a: rgba(251,191,36,.98); --card-light-b: rgba(253,230,138,.98); --card-light-c: rgba(217,119,6,.95); box-shadow: 0 0 0 1px rgba(251,191,36,.16), 0 0 22px rgba(217,119,6,.16), 0 0 34px rgba(253,230,138,.10); }
+      .category-card-grid > div:nth-child(5) { --card-light-a: rgba(244,114,182,.98); --card-light-b: rgba(196,181,253,.98); --card-light-c: rgba(219,39,119,.95); box-shadow: 0 0 0 1px rgba(244,114,182,.16), 0 0 22px rgba(219,39,119,.16), 0 0 34px rgba(196,181,253,.10); }
+      @media (prefers-reduced-motion: reduce) { .category-card-grid > div::before, .category-card-grid > div::after { animation: none; } }
     `}</style>
     
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -178,7 +181,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
 
         {/* 5 PREMIUM COLORFUL CATEGORY CARDS GRID (When no category is expanded) */}
         {activeCategory === 'none' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+          <div className="category-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
             
             {/* CARD A: Bihar Government Services (Refined Indigo & Royal Lavender) */}
             <div
