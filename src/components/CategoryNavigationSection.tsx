@@ -146,6 +146,18 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
 
   return (
     <section id="category-navigation" className="py-12 bg-white border-b border-slate-200/90 relative">
+    <style>{`
+      @keyframes category-border-flow { 0% { background-position: -100% 0, 100% 100%, 0 -100%, 100% 100%; } 100% { background-position: 100% 0, -100% 100%, 0 100%, 100% -100%; } }
+      .category-tab-glow { position: relative; isolation: isolate; overflow: hidden; box-shadow: 0 0 0 1px var(--category-glow-soft), 0 0 18px var(--category-glow-shadow); }
+      .category-tab-glow::before { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 2px; background-image: linear-gradient(90deg, transparent 0%, var(--category-glow) 48%, transparent 100%), linear-gradient(270deg, transparent 0%, var(--category-glow) 48%, transparent 100%), linear-gradient(180deg, transparent 0%, var(--category-glow) 48%, transparent 100%), linear-gradient(0deg, transparent 0%, var(--category-glow) 48%, transparent 100%); background-size: 200% 2px, 200% 2px, 2px 200%, 2px 200%; background-position: -100% 0, 100% 100%, 0 -100%, 100% 100%; background-repeat: no-repeat; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: category-border-flow 4.8s linear infinite; pointer-events: none; }
+      .category-tab-glow > span { position: relative; z-index: 2; }
+      .category-tab-indigo { --category-glow: rgba(199,184,255,.98); --category-glow-soft: rgba(129,92,246,.30); --category-glow-shadow: rgba(99,72,190,.26); }
+      .category-tab-blue { --category-glow: rgba(147,197,253,.98); --category-glow-soft: rgba(59,130,246,.30); --category-glow-shadow: rgba(59,130,246,.26); }
+      .category-tab-emerald { --category-glow: rgba(110,231,183,.98); --category-glow-soft: rgba(16,185,129,.30); --category-glow-shadow: rgba(16,185,129,.26); }
+      .category-tab-amber { --category-glow: rgba(253,230,138,.98); --category-glow-soft: rgba(245,158,11,.30); --category-glow-shadow: rgba(245,158,11,.26); }
+      @media (prefers-reduced-motion: reduce) { .category-tab-glow::before { animation: none; } }
+    `}</style>
+    
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -374,7 +386,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   onClick={() => handleSelectCategory('bihar-services')}
                   className={`px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer ${
                     activeCategory === 'bihar-services' 
-                      ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                      ? 'bg-indigo-600 text-white shadow-xs font-bold category-tab-glow category-tab-indigo' 
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
@@ -384,7 +396,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   onClick={() => handleSelectCategory('central-services')}
                   className={`px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer ${
                     activeCategory === 'central-services' 
-                      ? 'bg-blue-600 text-white shadow-xs font-bold' 
+                      ? 'bg-blue-600 text-white shadow-xs font-bold category-tab-glow category-tab-blue' 
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
@@ -394,7 +406,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   onClick={() => handleSelectCategory('bihar-schemes')}
                   className={`px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer ${
                     activeCategory === 'bihar-schemes' 
-                      ? 'bg-emerald-600 text-white shadow-xs font-bold' 
+                      ? 'bg-emerald-600 text-white shadow-xs font-bold category-tab-glow category-tab-emerald' 
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
@@ -404,7 +416,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   onClick={() => handleSelectCategory('central-schemes')}
                   className={`px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer ${
                     activeCategory === 'central-schemes' 
-                      ? 'bg-amber-600 text-white shadow-xs font-bold' 
+                      ? 'bg-amber-600 text-white shadow-xs font-bold category-tab-glow category-tab-amber' 
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
