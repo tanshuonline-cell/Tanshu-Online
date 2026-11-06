@@ -94,21 +94,27 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
         mode: env === 'PRODUCTION' ? 'production' : 'sandbox',
       });
 
-      if (cashfreeInstance) {
-        cashfreeInstance.checkout({
-          paymentSessionId: sessionId,
-        }).then((result: any) => {
-          if (result.error) {
-            console.warn('Cashfree popup error or closed:', result.error);
-          }
-          if (result.redirect) {
-            console.log('Payment redirection started');
-          }
-          if (result.paymentDetails) {
-            handleVerifyPayment(orderId);
-          }
-        });
+      if (!cashfreeInstance) {
+        setStep('failed');
+        setErrorMessage('Cashfree checkout could not be loaded. Please check your connection and try again. No payment has been confirmed.');
+        return;
       }
+
+      cashfreeInstance.checkout({
+        paymentSessionId: sessionId,
+      }).then((result: any) => {
+        if (result?.error) {
+          setStep('failed');
+          setErrorMessage(result.error.message || 'Cashfree could not open the payment page. Please try again.');
+          return;
+        }
+        if (result?.paymentDetails) {
+          handleVerifyPayment(orderId);
+        }
+      }).catch((error: any) => {
+        setStep('failed');
+        setErrorMessage(error?.message || 'Cashfree checkout could not be started. Please try again.');
+      });
     };
 
     if (!script) {
@@ -116,9 +122,19 @@ export const CashfreeCheckoutModal: React.FC<Props> = ({ video, onClose, onPayme
       script.id = cfScriptId;
       script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
       script.onload = onScriptLoaded;
+      script.onerror = () => {
+        setStep('failed');
+        setErrorMessage('Cashfree checkout could not be loaded. Please check your internet connection and try again.');
+      };
       document.body.appendChild(script);
-    } else {
+    } else if ((window as any).Cashfree) {
       onScriptLoaded();
+    } else {
+      script.addEventListener('load', onScriptLoaded, { once: true });
+      script.addEventListener('error', () => {
+        setStep('failed');
+        setErrorMessage('Cashfree checkout could not be loaded. Please check your internet connection and try again.');
+      }, { once: true });
     }
   };
 
