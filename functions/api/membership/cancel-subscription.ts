@@ -4,7 +4,6 @@ interface Env {
   CASHFREE_SECRET_KEY: string;
   CASHFREE_ENVIRONMENT: string;
   MEMBERSHIP_SESSION_SECRET: string;
-  APP_BASE_URL: string;
 }
 const HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: HEADERS });
