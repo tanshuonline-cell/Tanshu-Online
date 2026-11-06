@@ -59,10 +59,10 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   return (
     <section className="py-12 bg-slate-50 border-b border-slate-200">
       <style>{`
-        @keyframes future-tool-orbit { to { transform: rotate(360deg); } }
-        .future-tool-glow { position: relative; isolation: isolate; border-color: rgba(56,189,248,.72) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.16), 0 0 18px rgba(56,189,248,.16); }
-        .future-tool-glow::before { content: ""; position: absolute; inset: -2px; z-index: 1; border-radius: inherit; padding: 2px; background: conic-gradient(from 0deg, transparent 0 24%, rgba(56,189,248,.16) 30%, rgba(56,189,248,.98) 42%, rgba(14,165,233,.12) 55%, transparent 68% 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: future-tool-orbit 6s linear infinite; pointer-events: none; }
-        .future-tool-glow:hover { border-color: rgba(14,165,233,.98) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.28), 0 0 28px rgba(56,189,248,.32); }
+        @keyframes border-flow-horizontal { 0% { background-position: -100% 0, 100% 100%, 0 -100%, 100% 100%; } 100% { background-position: 100% 0, -100% 100%, 0 100%, 100% -100%; } }
+        .future-tool-glow { position: relative; isolation: isolate; border-color: rgba(56,189,248,.72) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.16), 0 0 20px rgba(56,189,248,.20), 0 0 34px rgba(56,189,248,.08); }
+        .future-tool-glow::before { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 2px; background-image: linear-gradient(90deg, transparent 0%, rgba(56,189,248,.95) 48%, transparent 100%), linear-gradient(270deg, transparent 0%, rgba(56,189,248,.95) 48%, transparent 100%), linear-gradient(180deg, transparent 0%, rgba(56,189,248,.95) 48%, transparent 100%), linear-gradient(0deg, transparent 0%, rgba(56,189,248,.95) 48%, transparent 100%); background-size: 200% 2px, 200% 2px, 2px 200%, 2px 200%; background-position: -100% 0, 100% 100%, 0 -100%, 100% 100%; background-repeat: no-repeat; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: border-flow-horizontal 4.8s linear infinite; pointer-events: none; }
+        .future-tool-glow:hover { border-color: rgba(14,165,233,.98) !important; box-shadow: 0 0 0 1px rgba(56,189,248,.28), 0 0 30px rgba(56,189,248,.34); }
         @media (prefers-reduced-motion: reduce) { .future-tool-glow::before { animation: none; } }
       `}</style>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
