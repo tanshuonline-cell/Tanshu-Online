@@ -38,27 +38,13 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { orderId, customerPhone, customerEmail, videoId } = body as {
-      orderId?: string;
-      customerPhone?: string;
-      customerEmail?: string;
-      videoId?: string;
-    };
+    const { orderId } = body as { orderId?: string };
 
-    if (!orderId || !customerPhone || !videoId) {
+    if (!orderId || typeof orderId !== 'string' || orderId.length > 64) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          isPaid: false,
-          error: 'Missing required parameters: orderId, customerPhone, and videoId are required.',
-        }),
+        JSON.stringify({ success: false, isPaid: false, error: 'A valid orderId is required.' }),
         { status: 400, headers: corsHeaders }
       );
-    }
-
-    const sanitizedPhone = customerPhone.replace(/\D/g, '').slice(-10);
-    if (sanitizedPhone.length !== 10) {
-      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Invalid customer mobile number.' }), { status: 400, headers: corsHeaders });
     }
 
     // Never verify or grant access without a recorded order and a private server signing key.
@@ -73,15 +59,21 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     let orderRecord: any;
     try {
       orderRecord = await env.DB.prepare(
-        'SELECT video_id, customer_phone, order_amount, order_status FROM payment_orders WHERE order_id = ?'
+        'SELECT video_id, customer_phone, customer_email, order_amount, order_currency, order_status FROM payment_orders WHERE order_id = ?'
       ).bind(orderId).first();
     } catch (dbErr) {
       console.error('D1 order validation failed:', dbErr);
       return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Could not verify the payment order.' }), { status: 503, headers: corsHeaders });
     }
-    if (!orderRecord || orderRecord.video_id !== videoId || orderRecord.customer_phone !== sanitizedPhone) {
-      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Order validation failed. This order does not belong to this video and customer.' }), { status: 403, headers: corsHeaders });
+    if (!orderRecord || !orderRecord.video_id || !orderRecord.customer_phone) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'The payment order was not found. Please contact support with your order reference.' }), { status: 404, headers: corsHeaders });
     }
+
+    const sanitizedPhone = String(orderRecord.customer_phone).replace(/\D/g, '').slice(-10);
+    if (sanitizedPhone.length !== 10) {
+      return new Response(JSON.stringify({ success: false, isPaid: false, error: 'The saved customer details for this order are invalid.' }), { status: 409, headers: corsHeaders });
+    }
+    const videoId = String(orderRecord.video_id);
 
     const appId = env.CASHFREE_APP_ID;
     const secretKey = env.CASHFREE_SECRET_KEY;
@@ -138,7 +130,8 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
       !Number.isFinite(verifiedAmount) ||
       !Number.isFinite(recordedAmount) ||
       Math.abs(verifiedAmount - recordedAmount) > 0.01 ||
-      String(cfData.order_currency || '').toUpperCase() !== 'INR'
+      String(cfData.order_currency || '').toUpperCase() !== String(orderRecord.order_currency || 'INR').toUpperCase() ||
+      String(orderRecord.order_currency || 'INR').toUpperCase() !== 'INR'
     ) {
       return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Cashfree order ID, amount or currency does not match the recorded order.' }), { status: 400, headers: corsHeaders });
     }
@@ -152,6 +145,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
           success: true,
           isPaid: false,
           orderStatus: cfData.order_status,
+          videoId,
           message: `Order status is currently ${cfData.order_status}. Video remains locked until payment is confirmed.`,
         }),
         { status: 200, headers: corsHeaders }
@@ -184,7 +178,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
          WHERE order_id = ?`
       ).bind(
         cfPaymentId || null,
-        paymentMethod || 'UPI/Card/Netbanking',
+        paymentMethod || 'Cashfree Checkout',
         JSON.stringify(rawVerification),
         orderId
       ).run();
@@ -196,7 +190,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
            order_id = excluded.order_id,
            is_revoked = 0,
            updated_at = CURRENT_TIMESTAMP`
-      ).bind(accessId, sanitizedPhone, customerEmail || null, videoId, orderId).run();
+       ).bind(accessId, sanitizedPhone, orderRecord.customer_email || null, videoId, orderId).run();
     } catch (dbErr) {
       console.error('D1 payment entitlement write failed:', dbErr);
       return new Response(JSON.stringify({ success: false, isPaid: false, error: 'Payment was verified, but access could not be saved. Please contact support with your order ID.' }), { status: 503, headers: corsHeaders });
@@ -224,6 +218,7 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
         orderId,
         videoId,
         customerPhone: sanitizedPhone,
+        customerEmail: orderRecord.customer_email || null,
         sessionToken,
         message: 'Payment verified and video unlocked successfully.',
       }),

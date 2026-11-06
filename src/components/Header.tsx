@@ -220,11 +220,44 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           </div>
         )}
 
-        {/* Thin saffron-white-green decorative strip directly below navigation */}
-        <div className="h-[2.5px] w-full flex">
-          <div className="flex-1 bg-[#FF9933]" />
-          <div className="flex-1 bg-white border-t border-b border-slate-200/50" />
-          <div className="flex-1 bg-[#138808]" />
+        {/* Animated tricolor ambient glow — horizontal motion only; no orbit or fan rotation */}
+        <style>{`
+          @keyframes tanshu-tricolor-flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+          }
+          .tanshu-tricolor-wrap {
+            isolation: isolate;
+            position: relative;
+            z-index: 0;
+            cursor: default;
+          }
+          .tanshu-tricolor-base {
+            background: linear-gradient(90deg, #ff9933 0%, #ffb35e 18%, #fff 38%, #fff 58%, #138808 78%, #21a51b 100%);
+            background-size: 220% 100%;
+            animation: tanshu-tricolor-flow 6s linear infinite alternate;
+          }
+          .tanshu-tricolor-pointer {
+            background: radial-gradient(115px circle at var(--tanshu-pointer-x, 50%) 50%, rgba(255,255,255,.95), rgba(255,153,51,.55) 22%, rgba(19,136,8,.35) 48%, transparent 76%);
+            mix-blend-mode: screen;
+            opacity: .9;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .tanshu-tricolor-base { animation: none; }
+          }
+        `}</style>
+        <div
+          className="tanshu-tricolor-wrap h-[2.5px] w-full"
+          onPointerMove={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const x = Math.max(0, Math.min(bounds.width, event.clientX - bounds.left));
+            event.currentTarget.style.setProperty('--tanshu-pointer-x', `${(x / bounds.width) * 100}%`);
+          }}
+          onPointerLeave={(event) => event.currentTarget.style.removeProperty('--tanshu-pointer-x')}
+          aria-hidden="true"
+        >
+          <div className="tanshu-tricolor-base absolute inset-0" />
+          <div className="tanshu-tricolor-pointer absolute inset-x-0 -top-[8px] -bottom-[8px] pointer-events-none" />
         </div>
       </header>
     </div>

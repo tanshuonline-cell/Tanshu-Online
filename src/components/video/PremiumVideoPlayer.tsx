@@ -189,7 +189,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center text-slate-300 gap-3 p-6 text-center">
               <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
-              <div className="text-sm font-semibold">Verifying Purchase & Generating Cloudflare Stream Token...</div>
+              <div className="text-sm font-semibold">Verifying purchase and preparing video...</div>
               <div className="text-xs text-slate-500">Checking server entitlement records</div>
             </div>
           ) : authorized ? (
@@ -351,7 +351,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
 
               <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800 text-slate-400 text-[11px]">
                 <strong className="text-slate-200 block mb-1">Licensed Access Notice:</strong>
-                This video is digitally watermarked with your registered number ({maskedPhone}). Stream URL tokens are short-lived and non-transferable.
+                This video is digitally watermarked with your registered number ({maskedPhone}). Playback access is checked against your verified purchase.
               </div>
             </div>
           )}
@@ -361,7 +361,7 @@ export const PremiumVideoPlayer: React.FC<Props> = ({
         <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Cloudflare Stream Token-Signed Playback & Dynamic Watermarking</span>
+            <span>Verified Premium Playback • Purchase Access Check</span>
           </div>
           <button
             onClick={onClose}
