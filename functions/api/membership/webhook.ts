@@ -99,8 +99,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       .bind('wh_' + crypto.randomUUID(), eventId, eventType, eventId)
       .run();
 
-    // Cashfree can retry webhooks. A previously accepted event must remain harmless.
-    if (!inserted.meta?.changes) return reply(200);
+    // Claim new or failed events atomically. processed_at is used as a short-lived
+    // processing lease so concurrent duplicate deliveries cannot process the same event.
+    // A stale lease can be reclaimed if an invocation crashes before completing.
+    const claimed = await env.DB.prepare(
+      "UPDATE membership_webhook_events SET processing_status='received',processed_at=CURRENT_TIMESTAMP WHERE gateway='cashfree' AND gateway_event_id=? AND ((processing_status IN ('received','failed') AND processed_at IS NULL) OR (processing_status='received' AND processed_at < datetime('now','-5 minutes')) OR (processing_status='failed' AND processed_at < datetime('now','-5 minutes')))",
+    )
+      .bind(eventId)
+      .run();
+
+    // A processed/ignored event, or one currently being handled, is an idempotent no-op.
+    if (!claimed.meta?.changes) return reply(200);
 
     if (!subscriptionId) {
       await env.DB.prepare(
@@ -220,7 +229,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   } catch (error) {
     console.error('Cashfree membership webhook processing failed:', error);
     await env.DB.prepare(
-      "UPDATE membership_webhook_events SET processing_status='failed' WHERE gateway='cashfree' AND gateway_event_id=?",
+      "UPDATE membership_webhook_events SET processing_status='failed',processed_at=NULL WHERE gateway='cashfree' AND gateway_event_id=?",
     )
       .bind(eventId)
       .run()
