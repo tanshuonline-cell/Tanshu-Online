@@ -94,7 +94,7 @@ function validOrigin(request: Request): boolean {
 export async function onRequestGet({ request, env }: { request: Request; env: Env }): Promise<Response> {
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva database is not connected.' }, 503);
   try {
     let result: any;
     try {
@@ -150,7 +150,7 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva database is not connected.' }, 503);
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The status update is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
@@ -189,7 +189,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva database is not connected.' }, 503);
   const rawBody = await request.text();
   if (rawBody.length > 2048) return json({ success: false, error: 'The document request is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
@@ -212,7 +212,7 @@ export async function onRequestDelete({ request, env }: { request: Request; env:
   if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva database is not connected.' }, 503);
   const rawBody = await request.text();
   if (rawBody.length > 2048) return json({ success: false, error: 'The document request is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
