@@ -157,6 +157,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
+        {textInput('incomeFatherName', "Father's full name", 'पिता का पूरा नाम')}
+        {textInput('incomeMotherName', "Mother's full name", 'माता का पूरा नाम')}
         {textInput('incomeApplicantOccupation', 'Applicant occupation / income source', 'आवेदक का पेशा / आय का स्रोत')}
         {textInput('incomeGovernment', 'Income from government service', 'सरकारी सेवा से आय')}
         {textInput('incomeAgriculture', 'Income from agriculture', 'कृषि से आय')}
@@ -197,6 +199,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         {textInput('residencePoliceStation', 'Police station', 'थाना')}
         {textInput('residencePin', 'PIN code', 'पिन कोड')}
       </div>}
+      {service.id === 'voter-correction' && textInput('epicNumber', 'Existing EPIC number (if available)', 'मौजूदा EPIC नंबर (यदि उपलब्ध हो)')}
       {service.id === 'voter-new' && <div className="ds-application-field-grid">
         {textInput('voterDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
         {textInput('voterAddress', 'Ordinary residence address', 'सामान्य निवास का पता')}
@@ -251,6 +254,13 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           { value: 'ADDRESS', label: 'Address change', hi: 'पता बदलना' }, { value: 'OTHER', label: 'Other', hi: 'अन्य' }
         ])}
         {textInput('memberName', 'Affected member name', 'प्रभावित सदस्य का नाम')}
+        {textInput('memberRelation', 'Relationship to family head', 'परिवार के मुखिया से संबंध')}
+        {textInput('memberDob', 'Member date of birth (if relevant)', 'सदस्य की जन्मतिथि (यदि लागू हो)')}
+      </div>}
+      {service.id === 'certificate-correction' && <div className="ds-application-field-grid">
+        {textInput('certificateNumber', 'Existing certificate number', 'मौजूदा प्रमाणपत्र संख्या')}
+        {textInput('issuingOffice', 'Issuing office / authority', 'जारी करने वाला कार्यालय / प्राधिकरण')}
+        {textInput('issueDate', 'Issue date', 'जारी करने की तारीख')}
       </div>}
       {service.id === 'scheme-check' && textInput('schemeName', 'Scheme name', 'योजना का नाम')}
       {service.id === 'online-form' && <div className="ds-application-field-grid">
