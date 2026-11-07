@@ -253,3 +253,24 @@
 .ds-application-form .ds-application-profile>p:hover{color:#9b2632}
 .ds-booking-fee-summary b:hover,.ds-booking-fee-summary strong:hover,.ds-booking-fee-summary p:hover{color:#9b2632}
 @media(max-width:620px){.ds-address-choice-options{grid-template-columns:1fr}.ds-address-choice-info{justify-content:flex-start}.ds-address-form-grid>label{grid-template-columns:1fr;gap:5px}.ds-address-form-grid .ds-pin-input{width:150px}}
+
+
+/* Digital Seva premium interaction polish: keep labels aligned and emphasize key text on hover. */
+.ds-address-form-grid>label{grid-template-columns:minmax(210px,0.85fr) minmax(0,1.55fr);white-space:nowrap}
+.ds-address-form-grid>label>input{white-space:normal}
+.ds-page h1:hover,.ds-page h2:hover,.ds-page h3:hover,
+.ds-page .ds-section-heading strong:hover,.ds-page .ds-important-note:hover,
+.ds-page .ds-trust-row b:hover,.ds-page .ds-category-card strong:hover,
+.ds-page .ds-service-card h3:hover,.ds-page .ds-service-card .ds-service-tag:hover,
+.ds-page .ds-detail-modal>h2:hover,.ds-page .ds-detail-modal>h3:hover,
+.ds-page .ds-booking-fee-summary>strong:hover,
+.ds-page .ds-booking-fee-summary p:hover,
+.ds-page .ds-booking-fee-summary p b:hover,
+.ds-page .ds-booking-fee-summary small:hover,
+.ds-page .ds-refund-notice-heading strong:hover,
+.ds-page .ds-refund-row b:hover,.ds-page .ds-refund-row p:hover,
+.ds-page .ds-refund-timeline b:hover,.ds-page .ds-refund-timeline p:hover{color:var(--ds-red,#8f1725)!important}
+.ds-page .ds-booking-fee-summary>strong,.ds-page .ds-booking-fee-summary p b,
+.ds-page .ds-refund-notice-heading strong,.ds-page .ds-refund-row b,
+.ds-page .ds-refund-timeline b{color:#292c32}
+@media(max-width:620px){.ds-address-form-grid>label{grid-template-columns:1fr;white-space:normal}}
