@@ -21,13 +21,15 @@
 - Server-side validation, same-origin checks, isolate-level rate limiting and idempotency key.
 - Separate private admin route using the existing signed superadmin session; booking list and audited status updates.
 - Booking APIs fail closed until the dedicated `DIGITAL_SEVA_DB` Preview binding and migration are configured.
-- No Aadhaar/PAN number, OTP, biometric, portal password, document upload or payment credential collection.
+- No document uploads or payment credential collection until the private R2 bucket, document migration, consent wording, retention/deletion policy and admin-only retrieval are implemented and verified.
 
-## Phase 3 — isolated infrastructure (database creation and binding pending)
-- A dedicated Cloudflare D1 database for Digital Seva; do not reuse the existing video/payment D1 database or tables.
-- A dedicated private R2 bucket for customer documents; no public bucket or public object URLs.
-- Separate preview bindings and production bindings; never point preview at production customer data.
-- Confirm actual Cloudflare account bindings, retention, backups, access controls and deletion policy before enabling uploads.
+## Phase 3 — secure document upload (in progress)
+- Dedicated Preview D1 is provisioned and bound as `DIGITAL_SEVA_DB`; migration `0003_digital_seva_documents.sql` adds upload-token and document metadata fields.
+- Next: create a dedicated private R2 bucket `digital-seva-preview-docs` and bind it only to Preview as `DIGITAL_SEVA_DOCS`.
+- Uploads must be tied to an existing booking using a short-lived, one-time-purpose token; no public object URLs.
+- Allow only PDF, JPEG and PNG after server-side file-signature validation; maximum 5 MB per file and a small per-booking file-count cap.
+- Admin document listing/download must require the existing signed administrator session; never expose raw R2 keys to the browser.
+- Do not enable real customer uploads until retention/deletion policy, privacy consent, access controls and backups are reviewed. Use dummy files only in Preview.
 
 ## Phase 4 — payments and operations (not started)
 - Cashfree sandbox first, with server-side order creation and signed webhook verification.
