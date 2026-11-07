@@ -1,4 +1,4 @@
-const BUCKET = 'digital-seva-preview-docs';
+const PREVIEW_BUCKET = 'digital-seva-preview-docs';
 
 export interface StoredDocument {
   id: string;
@@ -11,30 +11,43 @@ export interface StoredDocument {
   sha256: string;
 }
 
-function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string }) {
+type StorageEnv = {
+  SUPABASE_URL?: string;
+  SUPABASE_SECRET_KEY?: string;
+  DIGITAL_SEVA_STORAGE_BUCKET?: string;
+  CASHFREE_ENVIRONMENT?: string;
+};
+
+function storageConfig(env: StorageEnv) {
   const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = String(env.SUPABASE_SECRET_KEY || '');
+  // Preserve the already-working Preview bucket, but never let Production fall back to it.
+  const bucket = String(env.DIGITAL_SEVA_STORAGE_BUCKET ||
+    (env.CASHFREE_ENVIRONMENT === 'SANDBOX' ? PREVIEW_BUCKET : '')).trim();
   if (!base || !key) throw new Error('Private document storage is not configured.');
+  if (!bucket || !/^[a-z0-9][a-z0-9._-]{1,62}$/.test(bucket)) {
+    throw new Error('A dedicated Digital Seva document bucket must be configured for this environment.');
+  }
   const parsed = new URL(base);
   if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
     throw new Error('Private document storage URL is invalid.');
   }
-  return { base, key };
+  return { base, key, bucket };
 }
 
-function objectUrl(base: string, objectKey: string) {
+function objectUrl(base: string, bucket: string, objectKey: string) {
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
-  return `${base}/storage/v1/object/${BUCKET}/${path}`;
+  return `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${path}`;
 }
 
 export async function uploadPrivateDocument(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
+  env: StorageEnv,
   objectKey: string,
   bytes: ArrayBuffer,
   contentType: string
 ): Promise<void> {
-  const { base, key } = storageConfig(env);
-  const response = await fetch(objectUrl(base, objectKey), {
+  const { base, key, bucket } = storageConfig(env);
+  const response = await fetch(objectUrl(base, bucket, objectKey), {
     method: 'POST',
     headers: { apikey: key, 'Content-Type': contentType, 'x-upsert': 'false', 'Cache-Control': 'no-store' },
     body: bytes
@@ -46,11 +59,11 @@ export async function uploadPrivateDocument(
 }
 
 export async function deletePrivateDocument(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
+  env: StorageEnv,
   objectKey: string
 ): Promise<void> {
-  const { base, key } = storageConfig(env);
-  const response = await fetch(objectUrl(base, objectKey), {
+  const { base, key, bucket } = storageConfig(env);
+  const response = await fetch(objectUrl(base, bucket, objectKey), {
     method: 'DELETE',
     headers: { apikey: key, 'Cache-Control': 'no-store' }
   });
@@ -61,14 +74,14 @@ export async function deletePrivateDocument(
 }
 
 export async function createPrivateDocumentUrl(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
+  env: StorageEnv,
   objectKey: string,
   expiresIn = 60,
   downloadName?: string
 ): Promise<string> {
-  const { base, key } = storageConfig(env);
+  const { base, key, bucket } = storageConfig(env);
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
-  const response = await fetch(`${base}/storage/v1/object/sign/${BUCKET}/${path}`, {
+  const response = await fetch(`${base}/storage/v1/object/sign/${encodeURIComponent(bucket)}/${path}`, {
     method: 'POST',
     headers: { apikey: key, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     body: JSON.stringify({ expiresIn, ...(downloadName ? { download: downloadName } : {}) })
@@ -82,4 +95,6 @@ export async function createPrivateDocumentUrl(
   return data.signedURL.startsWith('http') ? data.signedURL : `${base}/storage/v1${data.signedURL.startsWith('/') ? data.signedURL : `/${data.signedURL}`}`;
 }
 
-export const DOCUMENT_BUCKET_NAME = BUCKET;
+// Kept for compatibility with existing imports; runtime requests always use the
+// environment-specific bucket resolved by storageConfig().
+export const DOCUMENT_BUCKET_NAME = PREVIEW_BUCKET;

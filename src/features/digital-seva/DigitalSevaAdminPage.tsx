@@ -267,7 +267,6 @@ export default function DigitalSevaAdminPage() {
       setBookings(rows);
       setDraftStatuses(Object.fromEntries(rows.map((row) => [row.id, row.status])));
       setDraftEstimates(Object.fromEntries(rows.map((row) => [row.id, toLocalDateTimeInput(row.estimated_completion_at)])));
-      setDraftPaymentAmounts(Object.fromEntries(rows.map((row) => [row.id, row.payment_amount != null ? String(row.payment_amount) : ''])));
       setDraftNotes({});
     } catch (e: any) { setError(e?.message || 'Could not load booking requests.'); }
     finally { setLoading(false); }
