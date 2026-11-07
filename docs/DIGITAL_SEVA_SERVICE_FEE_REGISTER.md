@@ -19,10 +19,10 @@
 |---|---|---|---|---|
 | pan-new | New PAN | Live official quote required for current form/provider/mode/card/dispatch; eligible Instant e-PAN is free. | Exact provider route rule required | ₹150 assistance fee |
 | pan-correction | PAN correction | Live provider quote; depends on paperless/physical mode, card and dispatch | Exact provider rule required | ₹150 assistance fee |
-| aadhaar-address-doc | Aadhaar address update with document | UIDAI demographic update ₹75 separately; free with biometric update. Separate PoI/PoA document-only concession is free online until 14 June 2027; do not confuse these services. | Exact transaction/appointment rule; check receipt | Not configured |
-| aadhaar-address-hof | Aadhaar HoF address update | ₹75 demographic update when separate; free with biometric update; confirm exact HoF online flow | Exact transaction/appointment rule | Not configured |
-| aadhaar-co | Aadhaar C/O address detail | ₹75 demographic address update when separate; free with biometric update; exact route check | Exact transaction/appointment rule | Not configured |
-| aadhaar-mobile | Aadhaar mobile update | ₹75 demographic update when separate; free with biometric update; confirm app/centre route | Exact transaction/appointment rule | Not configured |
+| aadhaar-address-doc | Aadhaar address update with document | UIDAI demographic update ₹75 separately; free with biometric update. Separate PoI/PoA document-only concession is free online until 14 June 2027; do not confuse these services. | Exact transaction/appointment rule; check receipt | ₹200 assistance fee |
+| aadhaar-address-hof | Aadhaar HoF address update | ₹75 demographic update when separate; free with biometric update; confirm exact HoF online flow | Exact transaction/appointment rule | ₹100 assistance fee |
+| aadhaar-co | Aadhaar C/O address detail | ₹75 demographic address update when separate; free with biometric update; exact route check | Exact transaction/appointment rule | ₹200 assistance fee |
+| aadhaar-mobile | Aadhaar mobile update | ₹75 demographic update when separate; free with biometric update; confirm app/centre route | Exact transaction/appointment rule | ₹100 assistance fee |
 | aadhaar-email | Aadhaar email update | ₹75 demographic update when separate; free with biometric update. UIDAI app waiver from 1 July–31 December 2026 must be checked for availability. | Exact transaction/appointment rule | ₹100 assistance fee |
 | aadhaar-lost | Lost Aadhaar / UID retrieval | Online retrieval: no fee shown; optional centre Find Aadhaar/search and A4 colour print ₹40 if requested | No government fee refund if free; separate centre charge follows its rule | ₹50 basic UID retrieval guidance |
 | aadhaar-download | e-Aadhaar download | Official online download free; optional centre Find Aadhaar/search and A4 colour print ₹40 | No refund on free download; separate print/service follows its rule | ₹30 download; B/W print ₹30; colour print ₹50; download+B/W ₹50; download+colour ₹70 |
@@ -35,7 +35,7 @@
 | certificate-correction | Certificate correction | Issuing-authority live quote; certificate type dependent | Issuing-authority rule not yet verified | ₹150 standard correction assistance; complex cases quoted |
 | voter-new | New Voter registration | ₹0 for ECI Form 6 new registration | No official fee collected on this route | ₹100 assistance fee |
 | voter-correction | Voter correction / replacement | Form 8 request type must be checked. Lost EPIC replacement: ECI FAQ lists ₹25 with police complaint; fee waived for loss beyond elector control (e.g. flood/fire/natural disaster). Do not apply ₹25 to every correction. | Exact Form 8 route required | ₹100 assistance fee |
-| ration-new | New ration card | Bihar EPDS / department live quote; verify current route | Department rule not yet verified | ₹150 assistance fee |
+| ration-new | New ration card | Bihar EPDS / department live quote; verify current route | Department rule not yet verified | ₹300 assistance fee |
 | ration-update | Ration member/detail update | Bihar EPDS / department live quote; verify exact change type | Department rule not yet verified | ₹100 assistance fee |
 | scheme-check | Scheme eligibility | Identify exact scheme; many may be free, but do not assume | Scheme-specific rule required | ₹50 for one scheme eligibility checklist and route |
 | online-form | Online form filling | Exact department/portal live quote | Exact portal rule required | ₹100–₹200 based on form length, steps and complexity |
