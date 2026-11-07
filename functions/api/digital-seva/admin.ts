@@ -47,7 +47,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
   try {
     const result = await env.DIGITAL_SEVA_DB.prepare(
-      `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
+      `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
        FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
     ).all();
     const documentResult = await env.DIGITAL_SEVA_DB.prepare(
