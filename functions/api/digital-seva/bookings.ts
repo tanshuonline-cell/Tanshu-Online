@@ -12,7 +12,7 @@ function json(data: unknown, status = 200) {
 
 function validOrigin(request: Request): boolean {
   const origin = request.headers.get('Origin');
-  return !origin || origin === new URL(request.url).origin;
+  return Boolean(origin) && origin === new URL(request.url).origin;
 }
 
 function normalizePhone(value: unknown): string {
@@ -32,6 +32,7 @@ function makeReference(): string {
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
+  if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Digital Seva booking is not enabled yet. The dedicated Preview database must be connected first.' }, 503);
 
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
@@ -46,7 +47,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!current || current.resetAt <= now) attempts.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
   else attempts.set(ip, { count: current.count + 1, resetAt: current.resetAt });
 
-  const body = await request.json().catch(() => null) as any;
+  const rawBody = await request.text();
+  if (rawBody.length > 8192) return json({ success: false, error: 'The booking request is too large.' }, 413);
+  const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
   if (!body || body.consent !== true) return json({ success: false, error: 'Please confirm the contact consent to continue.' }, 400);
   const serviceId = String(body.serviceId || '');
   const name = String(body.customerName || '').trim().replace(/\s+/g, ' ');
