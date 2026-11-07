@@ -55,6 +55,7 @@ function parseApplicationDetails(raw?: string | null): ApplicationDetails {
 const FIELD_LABELS: Record<string, string> = {
   docRelationName: "Father's name / पिता का नाम",
   aadhaarNumber: 'Aadhaar Number / आधार नंबर',
+  hofAadhaarNumber: 'Head of Family Aadhaar Number / मुखिया का आधार नंबर',
   existingPanNumber: 'Existing PAN Number / मौजूदा PAN नंबर',
   hofRelation: 'Relationship to Head of Family',
   hofName: 'Head of Family name',
