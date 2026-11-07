@@ -96,10 +96,24 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
   try {
-    const result = await env.DIGITAL_SEVA_DB.prepare(
-      `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, estimated_completion_at, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
-       FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
-    ).all();
+    let result: any;
+    try {
+      result = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT b.id, b.booking_reference, b.service_id, b.customer_name, b.customer_phone, b.customer_email, b.requester_type, b.application_for, b.operator_name, b.operator_phone, b.operator_email, b.centre_name, b.centre_address, b.agency_name, b.agency_address, b.application_details_json, b.status, b.estimated_completion_at, b.consent_at, b.terms_accepted_at, b.terms_policy_version, b.refund_policy_accepted_at, b.refund_policy_version, b.created_at, b.updated_at,
+          (SELECT p.amount FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS payment_amount,
+          (SELECT p.status FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS payment_status,
+          (SELECT p.link_url FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS payment_link_url,
+          (SELECT p.cashfree_link_id FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS cashfree_link_id,
+          (SELECT p.paid_at FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS payment_paid_at
+         FROM digital_seva_bookings b ORDER BY b.created_at DESC LIMIT 200`
+      ).all();
+    } catch {
+      // Keep the existing Admin Panel usable until migration 0008 is applied to Preview D1.
+      result = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, estimated_completion_at, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
+         FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
+      ).all();
+    }
     const documentResult = await env.DIGITAL_SEVA_DB.prepare(
       `SELECT id, booking_id, document_type, original_file_name, content_type, size_bytes, created_at
        FROM digital_seva_documents ORDER BY created_at DESC`
