@@ -454,8 +454,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           <details className="ds-address-choice-info">
             <summary aria-label={hi ? 'पते के विकल्प की जानकारी' : 'Address choice information'} title={hi ? 'जानकारी' : 'More information'}>i</summary>
             <p>{hi
-              ? 'पते में गाँव/शहर, PIN कोड, एरिया, मकान नंबर या कोई भी छोटा बदलाव करना हो, तो New Address चुनें। यदि ऑनलाइन दिख रहा मौजूदा पता बिना बदलाव रखना है, तो Old Address चुनें।'
-              : 'Select New Address if even a small detail—such as village/city, PIN code, area or house number—needs to change. Select Old Address to keep the address currently shown online exactly as it is.'}</p>
+              ? 'OLD चुनने पर अपना मौजूदा पता भरें और NEW चुनने पर नया पता भरें। दोनों ही स्थितियों में नीचे पूरा एड्रेस भरना अनिवार्य है।'
+              : 'Choose whether the details below are your existing (OLD) address or the new (NEW) address. In both cases, complete address details must be entered below.'}</p>
           </details>
         </div>
       </div>}
