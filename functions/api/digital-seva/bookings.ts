@@ -34,6 +34,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (contentLength > 22 * 1024 * 1024) return json({ success: false, error: 'The total upload is too large. Please upload fewer or smaller files.' }, 413);
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Digital Seva booking is not enabled yet. The dedicated Preview database must be connected first.' }, 503);
 
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const now = Date.now();
+  const current = attempts.get(ip);
+  if (attempts.size > 1000) {
+    for (const [key, value] of attempts) if (value.resetAt <= now) attempts.delete(key);
+  }
+  if (current && current.resetAt > now && current.count >= 5) {
+    return json({ success: false, error: 'Too many requests. Please wait a few minutes and try again.' }, 429);
+  }
+  if (!current || current.resetAt <= now) attempts.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
+  else attempts.set(ip, { count: current.count + 1, resetAt: current.resetAt });
+
   let body: any = null;
   let uploadInputs: Array<{ documentType: string; file: File }> = [];
   if (requestContentType.includes('application/json')) {
@@ -57,6 +69,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   } else {
     return json({ success: false, error: 'A JSON or multipart form request is required.' }, 415);
   }
+  if (!body || typeof body !== 'object' || body.consent !== true) return json({ success: false, error: 'Please confirm the contact consent to continue.' }, 400);
   const serviceId = String(body.serviceId || '');
   const name = String(body.customerName || '').trim().replace(/\s+/g, ' ');
   const phone = normalizePhone(body.customerPhone);
