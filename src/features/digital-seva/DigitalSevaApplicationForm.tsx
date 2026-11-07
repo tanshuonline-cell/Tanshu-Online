@@ -61,7 +61,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setApplicationFor(value);
     setApplicant(value === 'SELF' ? { ...operator } : emptyContact());
   };
-  const clearFieldError = (key: string) => setFieldErrors((old) => { if (!old[key]) return old; const next = { ...old }; delete next[key]; return next; });
+  const clearFieldError = (key: string) => { setError(''); setFieldErrors((old) => { if (!old[key]) return old; const next = { ...old }; delete next[key]; return next; }); };
   const setField = (key: string, value: string) => { setFieldValues((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const setOption = (key: string, value: string) => { setServiceOptions((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const changeCorrection = (id: string, checked: boolean) => {
@@ -414,7 +414,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           </div>)}
           <label className="ds-application-doc-option"><input type="checkbox" checked={selectedDocuments.includes('other')} onChange={(e) => setSelectedDocuments((old) => e.target.checked ? [...old, 'other'] : old.filter((x) => x !== 'other'))} /><span><strong>{hi ? 'अन्य दस्तावेज़' : 'Other document'}</strong><small>{hi ? 'सूची में नहीं है तो उसका नाम लिखें।' : 'If it is not listed, enter its exact name.'}</small></span></label>
         </div>
-        {selectedDocuments.includes('other') && <label className="ds-application-wide">{hi ? 'अन्य दस्तावेज़ का नाम' : 'Name of other document'}<input value={otherDocumentName} onChange={(e) => setOtherDocumentName(e.target.value)} required /></label>}
+        {selectedDocuments.includes('other') && <label className="ds-application-wide">{hi ? 'अन्य दस्तावेज़ का नाम' : 'Name of other document'}<input data-validation-key="otherDocumentName" value={otherDocumentName} onChange={(e) => { setOtherDocumentName(e.target.value); clearFieldError("otherDocumentName"); }} required /></label>}
         <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'सुरक्षित दस्तावेज़ अपलोड इस Preview में अभी चालू नहीं है। यहाँ Aadhaar/PAN या कोई निजी दस्तावेज़ अपलोड न करें। अभी केवल उपलब्ध दस्तावेज़ों की सूची दर्ज होगी।' : 'Secure document upload is not enabled in this Preview. Do not upload Aadhaar/PAN or other private documents here. This step records only the documents you have available.'}</span></div>
       </div>
     </section>}
@@ -432,7 +432,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       </div>
       <div className="ds-booking-privacy"><ShieldCheck size={18} /><span>{hi ? 'नाम, मोबाइल और ईमेल अनिवार्य हैं। OTP, पासवर्ड, PIN या पूरा Aadhaar/PAN नंबर न लिखें। यह सहायता अनुरोध है, सरकारी आवेदन जमा होने का प्रमाण नहीं।' : 'Name, mobile and email are required. Do not enter OTPs, passwords, PINs or full Aadhaar/PAN numbers. This is an assistance request, not proof that a government application has been filed.'}</span></div>
       <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={setTermsAccepted} onRefundChange={setRefundAccepted} />
-      <label className="ds-booking-consent"><input type="checkbox" checked={bookingConsent} onChange={(e) => setBookingConsent(e.target.checked)} required /><span>{hi ? 'मैं सहमत हूँ कि TANSHU ONLINE इस सेवा अनुरोध के बारे में मुझसे संपर्क कर सकता है। मैं समझता/समझती हूँ कि यह स्वतंत्र सहायता सेवा है, सरकारी विभाग नहीं।' : 'I agree that TANSHU ONLINE may contact me about this service request. I understand this is an independent assistance service, not a government department.'}</span></label>
+      <label className="ds-booking-consent"><input data-validation-key="bookingConsent" type="checkbox" checked={bookingConsent} onChange={(e) => { setBookingConsent(e.target.checked); clearFieldError("bookingConsent"); }} required /><span>{hi ? 'मैं सहमत हूँ कि TANSHU ONLINE इस सेवा अनुरोध के बारे में मुझसे संपर्क कर सकता है। मैं समझता/समझती हूँ कि यह स्वतंत्र सहायता सेवा है, सरकारी विभाग नहीं।' : 'I agree that TANSHU ONLINE may contact me about this service request. I understand this is an independent assistance service, not a government department.'}</span></label>
     </section>}
 
     {error && <p className="ds-booking-error" role="alert">{error}</p>}
@@ -440,7 +440,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {step > 0 && <button type="button" className="ds-application-back" onClick={() => { setError(''); setStep((n) => n - 1); }} disabled={submitting}><ArrowLeft size={15} /> {hi ? 'पीछे' : 'Back'}</button>}
       <span>{hi ? 'चरण ' + (step + 1) + ' / 4' : 'Step ' + (step + 1) + ' of 4'}</span>
       {step < 3 ? <button type="button" className="ds-modal-book" onClick={next}>{hi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={16} /></button> :
-        <button className="ds-modal-book" type="submit" disabled={submitting || !bookingConsent || !termsAccepted || !refundAccepted}>{submitting ? (hi ? 'जमा हो रहा है…' : 'Submitting…') : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request')} <ArrowRight size={16} /></button>}
+        <button className="ds-modal-book" type="submit" disabled={submitting}>{submitting ? (hi ? 'जमा हो रहा है…' : 'Submitting…') : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request')} <ArrowRight size={16} /></button>}
     </div>
   </form>;
 }
