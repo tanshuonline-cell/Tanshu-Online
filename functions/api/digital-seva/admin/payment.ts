@@ -42,16 +42,28 @@ function validOrigin(request: Request): boolean {
   return Boolean(origin) && origin === new URL(request.url).origin;
 }
 async function cancelCashfreeLink(linkId: string, appId: string, secret: string): Promise<boolean> {
-  const response = await fetch(`${CASHFREE_API}/links/${encodeURIComponent(linkId)}/cancel`, {
-    method: 'POST',
-    headers: {
-      'x-client-id': appId,
-      'x-client-secret': secret,
-      'x-api-version': '2022-09-01',
-      'x-request-id': crypto.randomUUID()
-    }
-  });
-  return response.ok;
+  try {
+    const response = await fetch(`${CASHFREE_API}/links/${encodeURIComponent(linkId)}/cancel`, {
+      method: 'POST',
+      headers: {
+        'x-client-id': appId,
+        'x-client-secret': secret,
+        'x-api-version': '2022-09-01',
+        'x-request-id': crypto.randomUUID()
+      }
+    });
+    if (response.ok) return true;
+    // A previous retry may already have cancelled this link. Confirm the remote state
+    // rather than treating every non-2xx cancellation response as an active link.
+    const statusResponse = await fetch(`${CASHFREE_API}/links/${encodeURIComponent(linkId)}`, {
+      headers: { 'x-client-id': appId, 'x-client-secret': secret, 'x-api-version': '2022-09-01' }
+    });
+    if (!statusResponse.ok) return false;
+    const status = await statusResponse.json().catch(() => ({})) as any;
+    return ['CANCELLED', 'EXPIRED'].includes(String(status.link_status || '').toUpperCase());
+  } catch {
+    return false;
+  }
 }
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
@@ -96,8 +108,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const cancelledRows: any[] = [];
     const failedLinkIds: string[] = [];
     for (const oldLink of olderLinks.results || []) {
-      if (await cancelCashfreeLink(String(oldLink.cashfree_link_id), appId, secret)) cancelledRows.push(oldLink);
-      else failedLinkIds.push(String(oldLink.cashfree_link_id));
+      const oldLinkId = String(oldLink.cashfree_link_id);
+      if (await cancelCashfreeLink(oldLinkId, appId, secret)) cancelledRows.push(oldLink);
+      else failedLinkIds.push(oldLinkId);
     }
     if (cancelledRows.length) {
       await env.DIGITAL_SEVA_DB.batch(cancelledRows.map((oldLink) =>
