@@ -163,3 +163,10 @@
 .ds-application-back{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4dcd7;border-radius:9px;padding:9px 12px;background:#fff;color:#4c4f56;font-size:11px;font-weight:800;cursor:pointer}
 .ds-application-details{margin:10px 0;padding:10px;border:1px solid #e8e0dc;border-radius:10px}
 @media(max-width:560px){.ds-application-progress{gap:3px}.ds-application-progress>div{flex-direction:column;align-items:flex-start;gap:4px}.ds-application-progress small{font-size:8px}.ds-application-field-grid,.ds-application-review{grid-template-columns:1fr}.ds-application-role-grid>button{padding:10px}.ds-application-profile-heading{align-items:flex-start;flex-direction:column}}
+
+
+.ds-application-doc-row{display:flex;flex-direction:column;gap:5px}
+.ds-application-file-disabled{display:flex;flex-direction:column;gap:4px;margin:0 0 3px 28px;font-size:9px;font-weight:700;color:#8a7d74}
+.ds-application-file-disabled input{width:100%;max-width:100%;border:1px dashed #d9cec7;border-radius:8px;padding:7px;background:#faf8f6;color:#8c8580;font:inherit;font-size:10px;cursor:not-allowed}
+.dsa-application-details pre{max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:10px;line-height:1.5;color:#4b4e55;background:#faf9f8;border-radius:8px;padding:10px}
+.dsa-application-details summary{font-size:11px;font-weight:800;color:#8d2630;cursor:pointer}
