@@ -112,6 +112,33 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
     officialSourceUrl: UIDAI,
     note: 'Do not combine an optional print charge with the free online download.',
   },
+  'aadhaar-pvc-assistance': {
+    ...DEFAULT_DISCLOSURE,
+    governmentFee: 'UIDAI Aadhaar PVC card order charge is ₹75 inclusive of taxes and Speed Post delivery (effective 1 January 2026). The customer must place/confirm the order on UIDAI and enter OTP themselves.',
+    governmentRefund: 'Check the current UIDAI order/cancellation rule for the exact transaction. Do not promise refund after an order is placed or dispatched unless UIDAI confirms eligibility.',
+    governmentStatus: 'official-fixed',
+    officialSourceLabel: 'UIDAI Aadhaar PVC Card official fee',
+    officialSourceUrl: 'https://uidai.gov.in/hi/aadhaar-online-services',
+    note: 'UIDAI delivers to the address registered in Aadhaar, normally by Speed Post. TANSHU ONLINE assistance is a separate ₹100 service fee.',
+  },
+  'bw-print': {
+    ...DEFAULT_DISCLOSURE,
+    governmentFee: 'Not applicable for private document printing.',
+    governmentRefund: 'No government fee applies. Any reprint/cancellation adjustment follows the disclosed print-work terms and actual pages already printed.',
+    governmentStatus: 'not-applicable',
+    officialSourceLabel: 'Private printing service',
+    officialSourceUrl: 'https://www.consumerhelpline.gov.in/',
+    note: 'TANSHU ONLINE print charge is ₹5 per printed page. Confirm page count and print settings before printing.',
+  },
+  'colour-print': {
+    ...DEFAULT_DISCLOSURE,
+    governmentFee: 'Not applicable for private document printing.',
+    governmentRefund: 'No government fee applies. Any reprint/cancellation adjustment follows the disclosed print-work terms and actual pages already printed.',
+    governmentStatus: 'not-applicable',
+    officialSourceLabel: 'Private printing service',
+    officialSourceUrl: 'https://www.consumerhelpline.gov.in/',
+    note: 'TANSHU ONLINE print charge is ₹10 per printed page. Special photo paper or other media, if requested, must be quoted separately.',
+  },
   'certificate-income': routeQuote('Bihar ServicePlus / OGRAS', BIHAR, 'Fee can vary by service and delivery level (CO/SDO/DM). Verify the exact live application and OGRAS amount.'),
   'certificate-caste': routeQuote('Bihar ServicePlus / OGRAS', BIHAR, 'Fee can vary by service and delivery level (CO/SDO/DM). Verify the exact live application and OGRAS amount.'),
   'certificate-residence': routeQuote('Bihar ServicePlus / OGRAS', BIHAR, 'Fee can vary by service and delivery level (CO/SDO/DM). Verify the exact live application and OGRAS amount.'),
@@ -152,6 +179,33 @@ for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-wor
   };
 }
 
+const TANSHU_SERVICE_FEES: Record<string, string> = {
+  'pan-new': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
+  'pan-correction': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
+  'aadhaar-download': '₹30 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹50; download + colour print ₹70.',
+  'certificate-income': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
+  'certificate-caste': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
+  'certificate-residence': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
+  'voter-new': '₹100 TANSHU ONLINE assistance fee. ECI Form 6 government fee is ₹0.',
+  'voter-correction': '₹100 TANSHU ONLINE assistance fee + any applicable official replacement/provider fee.',
+  'ration-new': '₹150 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
+  'ration-update': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
+  'online-form': '₹100–₹150 depending on the form and work complexity; quote before starting + any applicable portal fee.',
+  'pdf-compress': '₹30 per PDF task.',
+  'pdf-merge': '₹30 per PDF task.',
+  'pdf-split': '₹30 per PDF task.',
+  'pdf-jpg': '₹30 per conversion task.',
+  'pdf-word': '₹30 per conversion task; complex formatting/OCR must be quoted separately.',
+  'pdf-edit': '₹30 per PDF task; extensive editing must be quoted separately.',
+  'image-compress': '₹30 per image resize/compression task.',
+  'signature-resize': '₹30 per signature resize task.',
+  'scan-clean': '₹10 per page.',
+  'bw-print': '₹5 per printed page.',
+  'colour-print': '₹10 per printed page.',
+  'aadhaar-pvc-assistance': '₹100 TANSHU ONLINE assistance fee + ₹75 UIDAI PVC card order fee.',
+};
+
 export function getServiceFeeDisclosure(service: SevaService): ServiceFeeDisclosure {
-  return disclosures[service.id] || routeQuote('Relevant official department/provider portal', 'https://www.india.gov.in/', 'The exact authority, route, fee and refund rule have not yet been verified for this service.');
+  const disclosure = disclosures[service.id] || routeQuote('Relevant official department/provider portal', 'https://www.india.gov.in/', 'The exact authority, route, fee and refund rule have not yet been verified for this service.');
+  return { ...disclosure, serviceFee: TANSHU_SERVICE_FEES[service.id] || disclosure.serviceFee };
 }
