@@ -122,3 +122,11 @@ export function getRequiredCorrectionFieldKeys(corrections: string[]): string[] 
   const textCorrections = new Set(['name', 'father-name', 'mother-name', 'date-of-birth', 'gender', 'address', 'care-of', 'relation-type', 'relation-name', 'mobile', 'category', 'other', 'add-member', 'remove-member', 'member-correction', 'head-change']);
   return corrections.filter((id) => textCorrections.has(id)).flatMap((id) => [`${id}-current`, `${id}-correct`]);
 }
+
+export function isMeaningfulDescription(value: unknown): boolean {
+  const text = String(value ?? '').trim().replace(/\\s+/g, ' ');
+  if (text.length < 10 || !/[\\p{L}]{3,}/u.test(text)) return false;
+  if (/(.)\\1{4,}/u.test(text.replace(/\\s/g, ''))) return false;
+  const words = text.split(' ').filter((word) => word.length >= 2);
+  return words.length >= 2 || /\\d/.test(text);
+}
