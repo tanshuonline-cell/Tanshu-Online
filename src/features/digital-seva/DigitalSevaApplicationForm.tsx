@@ -174,6 +174,16 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         {textInput('casteSubcategory', 'Sub-caste (if applicable)', 'उपजाति (यदि लागू हो)')}
         {textInput('ancestorName', "Father's / ancestor's name in revenue record", 'राजस्व रिकॉर्ड में पिता / पूर्वज का नाम')}
       </div>}
+      {['certificate-income', 'certificate-caste'].includes(service.id) && <div className="ds-application-field-grid">
+        {textInput('certificateDistrict', 'District', 'जिला')}
+        {textInput('certificateSubdivision', 'Sub-division', 'अनुमंडल')}
+        {textInput('certificateBlock', 'Block', 'प्रखंड')}
+        {textInput('certificateLocalBody', 'Panchayat / Municipality / Ward', 'पंचायत / नगर निकाय / वार्ड')}
+        {textInput('certificateVillage', 'Village / Mohalla', 'गाँव / मोहल्ला')}
+        {textInput('certificatePostOffice', 'Post office', 'डाकघर')}
+        {textInput('certificatePoliceStation', 'Police station', 'थाना')}
+        {textInput('certificatePin', 'PIN code', 'पिन कोड')}
+      </div>}
       {service.id === 'certificate-residence' && <div className="ds-application-field-grid">
         {selectInput('residenceType', 'Residence type', 'निवास का प्रकार', [
           { value: 'PERMANENT', label: 'Permanent', hi: 'स्थायी' }, { value: 'TEMPORARY', label: 'Temporary', hi: 'अस्थायी' }
@@ -195,6 +205,11 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {service.id === 'ration-new' && <div className="ds-application-field-grid">
         {textInput('familyMemberCount', 'Number of family members', 'परिवार के सदस्यों की संख्या')}
         {textInput('familyMemberNames', 'Family members names (one per line)', 'परिवार के सदस्यों के नाम (एक पंक्ति में एक)')}
+        {textInput('rationDistrict', 'District', 'जिला')}
+        {textInput('rationBlock', 'Block', 'प्रखंड')}
+        {textInput('rationVillageWard', 'Village / Ward / Mohalla', 'गाँव / वार्ड / मोहल्ला')}
+        {textInput('rationPostOffice', 'Post office', 'डाकघर')}
+        {textInput('rationPin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'aadhaar-lost' && textInput('aadhaarRecordedName', 'Name as recorded in Aadhaar (no Aadhaar number)', 'आधार में दर्ज नाम (आधार नंबर नहीं)')}
       {correctionsForService.length > 0 && <div className="ds-application-field-grid">
