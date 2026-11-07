@@ -47,7 +47,7 @@ async function revealApplicationDetails(raw: string | null, secret: string): Pro
   let details: any;
   try { details = JSON.parse(raw); } catch { return raw; }
   if (!details || typeof details !== 'object' || Array.isArray(details)) return raw;
-  const sensitiveKey = /^(aadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
+  const sensitiveKey = /^(aadhaarnumber|hofaadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
   const encryptedValues = [details.fieldValues, details.serviceOptions].some((collection) =>
     collection && typeof collection === 'object' && Object.entries(collection).some(([key, value]) => sensitiveKey.test(key) && typeof value === 'string' && value.startsWith('enc:v1:'))
   );
