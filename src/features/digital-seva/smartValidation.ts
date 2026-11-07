@@ -98,6 +98,7 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'aadhaar-mobile': ['aadhaarNumber', 'newMobile'],
     'aadhaar-email': ['aadhaarNumber', 'newEmail'],
     'aadhaar-download': ['aadhaarNumber'],
+    'aadhaar-pvc-assistance': ['aadhaarNumber'],
     'certificate-income': ['incomeFatherName', 'certificateDistrict', 'certificateSubdivision', 'certificateBlock', 'certificateVillage', 'certificatePin', 'level'],
     'certificate-caste': ['casteFatherName', 'casteCategory', 'casteName', 'certificateDistrict', 'certificateSubdivision', 'certificateBlock', 'certificateVillage', 'certificatePin', 'level'],
     'certificate-residence': ['certificatePurpose', 'residenceDistrict', 'residenceSubdivision', 'residenceBlock', 'residenceVillageWard', 'residencePin', 'level', 'residenceType'],
