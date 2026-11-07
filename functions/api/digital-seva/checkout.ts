@@ -69,7 +69,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({ success: false, error: 'This checkout attempt has already been used. Please start a fresh payment attempt.' }, 409);
     }
 
-    const orderId = `ds_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+    const orderId = `ds_${idempotencyKey.replace(/-/g, '')}`;
     const origin = new URL(request.url).origin;
     const cashfreeResponse = await fetch(`${CASHFREE_API}/orders`, {
       method: 'POST',
