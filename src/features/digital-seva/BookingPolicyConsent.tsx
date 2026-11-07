@@ -4,22 +4,24 @@ export const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
 export const REFUND_POLICY_VERSION = 'refund-2026-11-07-v1';
 
 interface Props {
+  language?: 'en' | 'hi';
   termsAccepted: boolean;
   refundAccepted: boolean;
   onTermsChange: (accepted: boolean) => void;
   onRefundChange: (accepted: boolean) => void;
 }
 
-export default function BookingPolicyConsent({ termsAccepted, refundAccepted, onTermsChange, onRefundChange }: Props) {
+export default function BookingPolicyConsent({ language = 'en', termsAccepted, refundAccepted, onTermsChange, onRefundChange }: Props) {
+  const hindi = language === 'hi';
   return (
-    <section className="ds-policy-consents" aria-label="Required policy acceptance">
+    <section className="ds-policy-consents" aria-label={hindi ? 'नीतियों की अनिवार्य स्वीकृति' : 'Required policy acceptance'}>
       <div className="ds-policy-consent-card">
         <label className="ds-policy-checkbox">
           <input type="checkbox" checked={termsAccepted} onChange={(event) => onTermsChange(event.target.checked)} required />
-          <span><strong>I agree to the Terms &amp; Conditions</strong><small>This is a required, separate confirmation. It is not pre-selected.</small></span>
+          <span><strong>{hindi ? 'मैं नियम और शर्तों से सहमत हूँ' : 'I agree to the Terms &amp; Conditions'}</strong><small>{hindi ? 'यह अलग से अनिवार्य पुष्टि है। इसे पहले से चुना नहीं गया है।' : 'This is a required, separate confirmation. It is not pre-selected.'}</small></span>
         </label>
         <details className="ds-policy-details">
-          <summary>Read full Terms &amp; Conditions</summary>
+          <summary>{hindi ? 'पूरे नियम और शर्तें पढ़ें' : 'Read full Terms &amp; Conditions'}</summary>
           <ol>
             <li><b>Independent assistance:</b> TANSHU ONLINE is a private digital assistance provider, not UIDAI, an election office, a government department or an issuing authority.</li>
             <li><b>Service scope:</b> We provide only the assistance described for the selected service, such as document preparation, form-filling guidance, file processing or submission assistance where authorised.</li>
@@ -39,10 +41,10 @@ export default function BookingPolicyConsent({ termsAccepted, refundAccepted, on
       <div className="ds-policy-consent-card">
         <label className="ds-policy-checkbox">
           <input type="checkbox" checked={refundAccepted} onChange={(event) => onRefundChange(event.target.checked)} required />
-          <span><strong>I have read and agree to the Refund Policy</strong><small>This is a second, independent confirmation. It is not pre-selected.</small></span>
+          <span><strong>{hindi ? 'मैंने रिफंड नीति पढ़ ली है और सहमत हूँ' : 'I have read and agree to the Refund Policy'}</strong><small>{hindi ? 'यह दूसरी, स्वतंत्र पुष्टि है। इसे पहले से चुना नहीं गया है।' : 'This is a second, independent confirmation. It is not pre-selected.'}</small></span>
         </label>
         <details className="ds-policy-details">
-          <summary>Read full Refund Policy</summary>
+          <summary>{hindi ? 'पूरी रिफंड नीति पढ़ें' : 'Read full Refund Policy'}</summary>
           <ol>
             <li><b>Separate fee components:</b> The official Government/Provider Fee, TANSHU ONLINE Service Fee, applicable taxes and payment-provider charges will be shown as separate line items before any live payment.</li>
             <li><b>Government/provider fee:</b> Refunds and cancellations follow the exact department/provider rule for the selected service and route. A government fee is not automatically non-refundable. If the amount has not been paid to the authority, it must not be represented as already deposited. If the authority permits a refund, we will explain the available process and assist with the records reasonably required.</li>
