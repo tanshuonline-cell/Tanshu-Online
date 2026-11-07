@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from './smartValidation';
+import { getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from './smartValidation';
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
@@ -115,7 +115,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       for (const key of getRequiredServiceFieldKeys(service.id, serviceOptions)) {
         if (!String(valueOf(key)).trim()) return reject(key, requiredMessages[key] || 'यह जानकारी भरना अनिवार्य है।');
       }
-      for (const [key, value] of Object.entries(fieldValues)) { const issue = validateByKind(validationKindForField(key), value); if (issue) return reject(key, issue); }
+      for (const [key, value] of Object.entries(fieldValues)) { const issue = validateFieldByKey(key, value); if (issue) return reject(key, issue); }
       for (const [key, value] of Object.entries(serviceOptions)) { const issue = validateByKind(validationKindForField(key), value); if (issue) return reject(key, issue); }
     }
     if (step === 3 && !bookingConsent) return reject('bookingConsent', 'संपर्क की सहमति स्वीकार करें।');
