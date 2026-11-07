@@ -31,8 +31,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const event = JSON.parse(rawBody) as any;
     const linkId = String(event?.data?.link_id || event?.data?.link?.link_id || event?.data?.payment_link?.link_id || '');
     if (!linkId || linkId.length > 100) return json({ success: true, ignored: true });
-    const sandbox = (env.CASHFREE_ENV || 'SANDBOX').toUpperCase() !== 'PRODUCTION';
-    const apiBase = sandbox ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
+    // This Preview branch is deliberately pinned to Cashfree Sandbox; it cannot charge real money.
+    const apiBase = 'https://sandbox.cashfree.com/pg';
     const verifyResponse = await fetch(`${apiBase}/links/${encodeURIComponent(linkId)}`, {
       headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
     });
