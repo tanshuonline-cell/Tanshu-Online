@@ -134,6 +134,42 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
 
   const renderServiceFields = () => (
     <>
+      {service.id === 'pan-new' && <div className="ds-application-field-grid">
+        {textInput('panApplicantName', 'Full name exactly as per Aadhaar', 'आधार के अनुसार पूरा नाम')}
+        {textInput('panFatherName', "Father's full name", 'पिता का पूरा नाम')}
+        {textInput('panMotherName', "Mother's full name", 'माता का पूरा नाम')}
+        {textInput('panDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
+        {selectInput('panParentPrint', 'Parent name to print on PAN', 'PAN पर किसका नाम छपे', [
+          { value: 'FATHER', label: 'Father', hi: 'पिता' }, { value: 'MOTHER', label: 'Mother', hi: 'माता' }
+        ])}
+        {textInput('panAddress', 'Communication address', 'पत्राचार का पता')}
+      </div>}
+      {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
+      {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
+      {service.id === 'certificate-income' && <div className="ds-application-field-grid">
+        {textInput('incomeApplicantOccupation', 'Applicant occupation / income source', 'आवेदक का पेशा / आय का स्रोत')}
+        {textInput('incomeAmount', 'Approximate annual family income', 'परिवार की अनुमानित वार्षिक आय')}
+      </div>}
+      {service.id === 'certificate-caste' && <div className="ds-application-field-grid">
+        {textInput('casteCategory', 'Category / caste', 'श्रेणी / जाति')}
+        {textInput('ancestorName', "Father's / ancestor's name in revenue record", 'राजस्व रिकॉर्ड में पिता / पूर्वज का नाम')}
+      </div>}
+      {service.id === 'certificate-residence' && <div className="ds-application-field-grid">
+        {selectInput('residenceType', 'Residence type', 'निवास का प्रकार', [
+          { value: 'PERMANENT', label: 'Permanent', hi: 'स्थायी' }, { value: 'TEMPORARY', label: 'Temporary', hi: 'अस्थायी' }
+        ])}
+        {textInput('certificatePurpose', 'Purpose of certificate', 'प्रमाणपत्र का उद्देश्य')}
+      </div>}
+      {service.id === 'voter-new' && <div className="ds-application-field-grid">
+        {textInput('voterDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
+        {textInput('voterAddress', 'Ordinary residence address', 'सामान्य निवास का पता')}
+        {textInput('voterRelativeName', "Father's / mother's / spouse's name", 'पिता / माता / पति-पत्नी का नाम')}
+      </div>}
+      {service.id === 'ration-new' && <div className="ds-application-field-grid">
+        {textInput('familyMemberCount', 'Number of family members', 'परिवार के सदस्यों की संख्या')}
+        {textInput('familyMemberNames', 'Family members names (one per line)', 'परिवार के सदस्यों के नाम (एक पंक्ति में एक)')}
+      </div>}
+      {service.id === 'aadhaar-lost' && textInput('aadhaarRecordedName', 'Name as recorded in Aadhaar (no Aadhaar number)', 'आधार में दर्ज नाम (आधार नंबर नहीं)')}
       {correctionsForService.length > 0 && <div className="ds-application-field-grid">
         {corrections.map((id) => {
           const item = correctionsForService.find((x) => x.id === id);
