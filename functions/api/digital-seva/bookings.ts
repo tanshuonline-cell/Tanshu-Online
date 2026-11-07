@@ -2,7 +2,8 @@ import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getR
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
-interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; }
+import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
+interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; }
 
 const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -190,12 +191,55 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
   if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v2') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
   if (!/^[0-9a-f-]{36}$/i.test(key)) return json({ success: false, error: 'The booking session expired. Please reopen the form.' }, 400);
+  const paymentMode = String(body.paymentMode || 'SHARE_LINK');
+  const paymentOrderId = String(body.paymentOrderId || '');
+  if (!['SHARE_LINK', 'AUTO_PAY'].includes(paymentMode)) return json({ success: false, error: 'Invalid payment option.' }, 400);
+  if (paymentMode === 'SHARE_LINK' && paymentOrderId) return json({ success: false, error: 'Unexpected payment order.' }, 400);
+  if (paymentMode === 'AUTO_PAY' && (!getAutoPaymentQuote(serviceId) || !/^ds_[0-9a-f]{32}$/i.test(paymentOrderId))) {
+    return json({ success: false, error: 'A valid automatic checkout payment is required before booking submission.' }, 402);
+  }
 
   try {
     const prior = await env.DIGITAL_SEVA_DB.prepare(
       'SELECT booking_reference FROM digital_seva_bookings WHERE idempotency_key = ?'
     ).bind(key).first();
     if (prior?.booking_reference) return json({ success: true, bookingReference: prior.booking_reference, existing: true });
+
+    if (paymentMode === 'AUTO_PAY') {
+      if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree Sandbox verification is not configured.' }, 503);
+      const quote = getAutoPaymentQuote(serviceId)!;
+      const checkoutOrder = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT order_id, service_id, customer_phone, amount, currency, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
+      ).bind(paymentOrderId).first();
+      if (!checkoutOrder) return json({ success: false, error: 'Payment order was not found. Please restart checkout.' }, 404);
+      if (checkoutOrder.status === 'CLAIMED') {
+        const existing = await env.DIGITAL_SEVA_DB.prepare('SELECT booking_reference FROM digital_seva_bookings WHERE checkout_order_id = ?').bind(paymentOrderId).first();
+        if (existing?.booking_reference) return json({ success: true, bookingReference: existing.booking_reference, existing: true });
+        return json({ success: false, error: 'This payment order is already being attached to a booking. Please contact support before retrying.' }, 409);
+      }
+      if (!['PENDING', 'PAID'].includes(String(checkoutOrder.status)) || checkoutOrder.service_id !== serviceId ||
+          normalizePhone(checkoutOrder.customer_phone) !== phone || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
+          Math.round(Number(checkoutOrder.amount) * 100) !== quote.totalAmount * 100) {
+        return json({ success: false, error: 'The payment order does not match this service, customer or approved total.' }, 409);
+      }
+      const cashfreeResponse = await fetch(`https://sandbox.cashfree.com/pg/orders/${encodeURIComponent(paymentOrderId)}`, {
+        headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
+      });
+      const verifiedOrder = await cashfreeResponse.json().catch(() => ({})) as any;
+      if (!cashfreeResponse.ok || String(verifiedOrder.order_id || '') !== paymentOrderId) {
+        return json({ success: false, error: 'Cashfree payment could not be verified. Please refresh and try again.' }, 502);
+      }
+      if (String(verifiedOrder.order_status || '').toUpperCase() !== 'PAID') {
+        return json({ success: false, error: 'Payment is not confirmed yet. Your booking has not been submitted.' }, 402);
+      }
+      if (String(verifiedOrder.order_currency || '').toUpperCase() !== 'INR' || Math.round(Number(verifiedOrder.order_amount) * 100) !== quote.totalAmount * 100) {
+        console.error('Digital Seva checkout amount/currency mismatch:', { paymentOrderId, expected: quote.totalAmount, actual: verifiedOrder.order_amount, currency: verifiedOrder.order_currency });
+        return json({ success: false, error: 'The paid amount does not match the approved service total. Booking was not submitted.' }, 409);
+      }
+      await env.DIGITAL_SEVA_DB.prepare(
+        "UPDATE digital_seva_checkout_orders SET status = 'PAID', paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'PENDING'"
+      ).bind(paymentOrderId).run();
+    }
 
     const bookingId = crypto.randomUUID();
     const bookingReference = makeReference();
@@ -223,13 +267,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           `INSERT INTO digital_seva_bookings
            (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email,
             requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address,
-            agency_name, agency_address, application_details_json,
+            agency_name, agency_address, application_details_json, checkout_order_id,
             status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
         ).bind(bookingId, bookingReference, key, serviceId, name, phone, email,
           requesterType, applicationFor, operatorName || null, operatorPhone || null, operatorEmail || null,
           centerName || null, centerAddress || null, agencyName || null, agencyAddress || null, applicationDetails,
-          termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
+          paymentMode === 'AUTO_PAY' ? paymentOrderId : null, termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
         env.DIGITAL_SEVA_DB.prepare(
           `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
            VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
@@ -240,6 +284,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           `INSERT INTO digital_seva_documents (id, booking_id, document_type, object_key, original_file_name, content_type, size_bytes, sha256)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(doc.id, bookingId, doc.documentType, doc.objectKey, doc.originalFileName, doc.contentType, doc.sizeBytes, doc.sha256));
+      }
+      if (paymentMode === 'AUTO_PAY') {
+        statements.push(env.DIGITAL_SEVA_DB.prepare(
+          "UPDATE digital_seva_checkout_orders SET status = 'CLAIMED', booking_id = ?, claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'PAID'"
+        ).bind(bookingId, paymentOrderId));
       }
       await env.DIGITAL_SEVA_DB.batch(statements);
       return json({ success: true, bookingReference, status: 'RECEIVED', uploadedDocuments: uploaded.length }, 201);
