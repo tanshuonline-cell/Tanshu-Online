@@ -186,7 +186,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setFieldErrors({});
     const reject = (key: string, message: string) => { setFieldErrors({ [key]: message }); setError(message); return message; };
     const requiredMessages: Record<string, string> = {
-      panApplicantName: 'आवेदक का सही नाम भरें।', panDob: 'जन्मतिथि भरें।', panAddress: 'पत्राचार का पूरा पता भरें।',
+      existingPanNumber: 'मौजूदा PAN नंबर भरें।', aadhaarNumber: '12 अंकों का Aadhaar नंबर भरें।', panApplicantName: 'आवेदक का सही नाम भरें।', panDob: 'जन्मतिथि भरें।', panAddress: 'पत्राचार का पूरा पता भरें।',
       newMobile: 'नया मोबाइल नंबर भरें।', newEmail: 'नई ईमेल आईडी भरें।', incomeFatherName: 'पिता का नाम भरें।',
       casteFatherName: 'पिता का नाम भरें।', casteCategory: 'श्रेणी / जाति भरें।', casteName: 'जाति का नाम भरें।',
       certificateDistrict: 'जिला भरें।', certificateSubdivision: 'अनुमंडल भरें।', certificateBlock: 'प्रखंड भरें।', certificateVillage: 'गाँव / मोहल्ला भरें।', certificatePin: '6 अंकों का PIN कोड भरें।',
@@ -293,7 +293,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}
       {key === 'familyMemberNames'
         ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={3} />
-        : <input className={/pin$/i.test(key) ? 'ds-pin-input' : undefined} data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={/pin$/i.test(key) ? 'numeric' : undefined} maxLength={/pin$/i.test(key) ? 6 : undefined} value={fieldValues[key] || ''} onChange={(e) => setField(key, /pin$/i.test(key) ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} />}
+        : <input className={/pin$/i.test(key) ? 'ds-pin-input' : undefined} data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={/pin$|aadhaarNumber/i.test(key) ? 'numeric' : undefined} maxLength={/pin$/i.test(key) ? 6 : /aadhaarNumber/i.test(key) ? 12 : /PanNumber/i.test(key) ? 10 : undefined} value={fieldValues[key] || ''} onChange={(e) => setField(key, /pin$|aadhaarNumber/i.test(key) ? e.target.value.replace(/\D/g, '').slice(0, /pin$/i.test(key) ? 6 : 12) : /PanNumber/i.test(key) ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) : e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} />}
       {fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}
     </label>
   );
@@ -303,7 +303,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
 
   const renderServiceFields = () => (
     <>
-      {service.id === 'pan-new' && <div className="ds-application-field-grid">
+      {service.id === 'pan-new' && <div className="ds-application-field-grid">\n        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
         {textInput('panApplicantName', 'Full name exactly as per Aadhaar', 'आधार के अनुसार पूरा नाम')}
         {textInput('panFatherName', "Father's full name", 'पिता का पूरा नाम')}
         {textInput('panMotherName', "Mother's full name", 'माता का पूरा नाम')}
@@ -313,7 +313,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         ])}
         {textInput('panAddress', 'Communication address', 'पत्राचार का पता')}
       </div>}
-      {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
+      {['pan-correction', 'pan-photo-signature'].includes(service.id) && <div className="ds-application-field-grid">\n        {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}\n        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}\n      </div>}\n      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}\n      {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
         {textInput('incomeFatherName', "Father's full name", 'पिता का पूरा नाम')}
