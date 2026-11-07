@@ -152,8 +152,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         if (view.length >= 5 && String.fromCharCode(...view.slice(0, 5)) === '%PDF-') contentType = 'application/pdf';
         else if (view.length >= 3 && view[0] === 0xff && view[1] === 0xd8 && view[2] === 0xff) contentType = 'image/jpeg';
         else if (view.length >= 8 && [137,80,78,71,13,10,26,10].every((value, index) => view[index] === value)) contentType = 'image/png';
-        if (!contentType) return json({ success: false, error: 'Only genuine PDF, JPG and PNG documents are accepted.' }, 400);
-        if (item.file.type && item.file.type !== contentType) return json({ success: false, error: 'A document file type does not match its actual contents.' }, 400);
+        if (!contentType) { await Promise.all(uploaded.map((doc) => deletePrivateDocument(env, doc.objectKey).catch(() => undefined))); return json({ success: false, error: 'Only genuine PDF, JPG and PNG documents are accepted.' }, 400); }
+        if (item.file.type && item.file.type !== contentType) { await Promise.all(uploaded.map((doc) => deletePrivateDocument(env, doc.objectKey).catch(() => undefined))); return json({ success: false, error: 'A document file type does not match its actual contents.' }, 400); }
         const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
         const sha256 = Array.from(digest).map((value) => value.toString(16).padStart(2, '0')).join('');
         const extension = contentType === 'application/pdf' ? 'pdf' : contentType === 'image/jpeg' ? 'jpg' : 'png';
