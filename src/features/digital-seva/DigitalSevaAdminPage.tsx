@@ -124,6 +124,7 @@ function maskSlipValue(key: string, value: unknown): string {
   const normalized = key.toLowerCase();
   if (/aadhaar|uid/.test(normalized)) return text.replace(/\D/g, '').length >= 4 ? `XXXX XXXX ${text.replace(/\D/g, '').slice(-4)}` : text;
   if (/pan(number|no)?$|existingpan/.test(normalized)) return text.length >= 4 ? `XXXXXX${text.slice(-4)}` : text;
+  if (/mobile|phone/.test(normalized)) { const digits = text.replace(/\D/g, ''); return digits.length >= 4 ? `${digits.slice(0, 2)}XXXXXX${digits.slice(-2)}` : text; }
   return text;
 }
 
