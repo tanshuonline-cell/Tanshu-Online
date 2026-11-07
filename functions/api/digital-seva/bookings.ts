@@ -1,4 +1,4 @@
-import { getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
+import { normalizeIndianMobile, getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores only a minimal booking request. Customer documents and payments are deliberately out of scope.
 interface Env { DIGITAL_SEVA_DB?: any; }
