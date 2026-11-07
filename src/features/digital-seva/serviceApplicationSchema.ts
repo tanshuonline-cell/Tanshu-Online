@@ -19,6 +19,7 @@ export const CORRECTION_OPTIONS: Record<string, ApplicantCorrection[]> = {
   "pan-correction": [
     { id: "name", label: "Applicant name", hindi: "आवेदक का नाम" },
     { id: "father-name", label: "Father's name", hindi: "पिता का नाम" },
+    { id: "mobile", label: "Contact mobile number (where supported)", hindi: "संपर्क मोबाइल नंबर (जहाँ प्रदाता अनुमति दे)" },
     { id: "mother-name", label: "Mother's name", hindi: "माता का नाम" },
     { id: "date-of-birth", label: "Date of birth", hindi: "जन्मतिथि" },
     { id: "gender", label: "Gender", hindi: "लिंग" },
