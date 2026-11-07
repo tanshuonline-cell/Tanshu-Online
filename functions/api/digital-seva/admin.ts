@@ -44,7 +44,28 @@ function fromBase64(value: string): ArrayBuffer {
   return bytes.buffer as ArrayBuffer;
 }
 
-async function revealApplicationDetails(raw: string | null, secret: string): Promise<string | null> {
+async function decryptIdentifier(value: string, secrets: string[]): Promise<string> {
+  const parts = value.split(':');
+  if (parts.length !== 4 || parts[0] !== 'enc' || parts[1] !== 'v1') {
+    throw new Error('Encrypted Digital Seva identifier has an invalid format.');
+  }
+  let lastError: unknown = null;
+  for (const secret of secrets) {
+    if (secret.length < 32) continue;
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`TANSHU-ONLINE-DIGITAL-SEVA-PII-v1:${secret}`));
+      const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(parts[2]) }, key, fromBase64(parts[3]));
+      return new TextDecoder().decode(decrypted);
+    } catch (error) {
+      // A failed AES-GCM authentication means this ciphertext belongs to another configured key.
+      lastError = error;
+    }
+  }
+  throw new Error('Could not decrypt a Digital Seva identifier with the configured current or legacy keys.', { cause: lastError });
+}
+
+async function revealApplicationDetails(raw: string | null, secrets: string[]): Promise<string | null> {
   if (!raw) return raw;
   let details: any;
   try { details = JSON.parse(raw); } catch { return raw; }
@@ -54,17 +75,12 @@ async function revealApplicationDetails(raw: string | null, secret: string): Pro
     collection && typeof collection === 'object' && Object.entries(collection).some(([key, value]) => sensitiveKey.test(key) && typeof value === 'string' && value.startsWith('enc:v1:'))
   );
   if (!encryptedValues) return raw;
-  if (secret.length < 32) throw new Error('Digital Seva PII decryption secret is missing or too short.');
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`TANSHU-ONLINE-DIGITAL-SEVA-PII-v1:${secret}`));
-  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+  if (!secrets.some((secret) => secret.length >= 32)) throw new Error('Digital Seva PII decryption secret is missing or too short.');
   for (const collection of [details.fieldValues, details.serviceOptions]) {
     if (!collection || typeof collection !== 'object') continue;
     for (const [field, value] of Object.entries(collection)) {
       if (!sensitiveKey.test(field) || typeof value !== 'string' || !value.startsWith('enc:v1:')) continue;
-      const parts = value.split(':');
-      if (parts.length !== 4 || parts[1] !== 'v1') throw new Error('Encrypted Digital Seva identifier has an invalid format.');
-      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(parts[2]) }, key, fromBase64(parts[3]));
-      collection[field] = new TextDecoder().decode(decrypted);
+      collection[field] = await decryptIdentifier(value, secrets);
     }
   }
   return JSON.stringify(details);
@@ -96,7 +112,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     }
     const bookings = await Promise.all((result.results || []).map(async (booking: any) => ({
       ...booking,
-      application_details_json: await revealApplicationDetails(booking.application_details_json, env.DIGITAL_SEVA_PII_SECRET || env.ADMIN_SECRET_TOKEN || ''),
+      application_details_json: await revealApplicationDetails(booking.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index)),
       documents: grouped.get(booking.id) || []
     })));
     return json({ success: true, bookings });
