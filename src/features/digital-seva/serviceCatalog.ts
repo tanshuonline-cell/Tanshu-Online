@@ -8,6 +8,11 @@ export interface SevaService {
   hindi: string;
   category: SevaCategory;
   description: string;
+  descriptionHindi?: string;
+  documentsHindi?: string[];
+  availabilityHindi?: string;
+  assistanceHindi?: string;
+  noteHindi?: string;
   keywords: string[];
   documents: string[];
   serviceFee: string;
