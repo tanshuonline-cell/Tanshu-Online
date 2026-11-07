@@ -37,7 +37,7 @@ async function adminUser(request: Request, env: Env): Promise<string | null> {
 
 function validOrigin(request: Request): boolean {
   const origin = request.headers.get('Origin');
-  return !origin || origin === new URL(request.url).origin;
+  return Boolean(origin) && origin === new URL(request.url).origin;
 }
 
 export async function onRequestGet({ request, env }: { request: Request; env: Env }): Promise<Response> {
@@ -58,10 +58,13 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
 
 export async function onRequestPatch({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
+  if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
-  const body = await request.json().catch(() => null) as any;
+  const rawBody = await request.text();
+  if (rawBody.length > 4096) return json({ success: false, error: 'The status update is too large.' }, 413);
+  const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
   const id = String(body?.bookingId || '');
   const nextStatus = String(body?.status || '');
   const note = String(body?.note || '').trim().slice(0, 500);
