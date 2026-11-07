@@ -189,9 +189,9 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'pan-correction': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
   'pan-photo-signature': '₹250 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
   'aadhaar-download': '₹30 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹50; download + colour print ₹70.',
-  'certificate-income': 'Bihar: ₹50 TANSHU ONLINE fee per Income Certificate. Uttar Pradesh: ₹100 per certificate. Other states: quote before starting. Add any applicable government/portal fee separately after checking the exact application route.'
-  'certificate-caste': 'Bihar: ₹50 TANSHU ONLINE fee per Caste Certificate. Uttar Pradesh: ₹100 per certificate. Other states: quote before starting. Add any applicable government/portal fee separately after checking the exact application route.'
-  'certificate-residence': 'Bihar: ₹50 TANSHU ONLINE fee per Domicile/Residence Certificate. Uttar Pradesh: ₹100 per certificate. Other states: quote before starting. Add any applicable government/portal fee separately after checking the exact application route.'
+  'certificate-income': '₹50 TANSHU ONLINE assistance fee per Bihar Income Certificate. This Preview is currently configured for Bihar only. Any applicable Bihar government/portal fee must be checked on the exact application route and shown separately.'
+  'certificate-caste': '₹50 TANSHU ONLINE assistance fee per Bihar Caste Certificate. This Preview is currently configured for Bihar only. Any applicable Bihar government/portal fee must be checked on the exact application route and shown separately.'
+  'certificate-residence': '₹50 TANSHU ONLINE assistance fee per Bihar Domicile/Residence Certificate. This Preview is currently configured for Bihar only. Any applicable Bihar government/portal fee must be checked on the exact application route and shown separately.'
   'voter-new': '₹100 TANSHU ONLINE assistance fee. ECI Form 6 government fee is ₹0.',
   'voter-correction': '₹100 TANSHU ONLINE assistance fee + any applicable official replacement/provider fee.',
   'ration-new': '₹300 TANSHU ONLINE assistance fee + any applicable Bihar department fee, which must be checked on the exact official application route and shown separately.',
