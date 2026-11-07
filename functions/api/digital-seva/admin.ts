@@ -79,7 +79,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
   try {
     const result = await env.DIGITAL_SEVA_DB.prepare(
-      `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
+      `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, estimated_completion_at, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
        FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
     ).all();
     const documentResult = await env.DIGITAL_SEVA_DB.prepare(
@@ -116,21 +116,25 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   const id = String(body?.bookingId || '');
   const nextStatus = String(body?.status || '');
   const note = String(body?.note || '').trim().slice(0, 500);
-  if (!id || id.length > 64 || !ALLOWED_STATUSES.has(nextStatus)) return json({ success: false, error: 'Invalid booking or status.' }, 400);
+  const estimateInput = String(body?.estimatedCompletionAt || '').trim();
+  const estimatedCompletionAt = estimateInput ? new Date(estimateInput).toISOString() : null;
+  if (!id || id.length > 64 || !ALLOWED_STATUSES.has(nextStatus) || (estimateInput && (!Number.isFinite(Date.parse(estimateInput)) || !estimatedCompletionAt))) {
+    return json({ success: false, error: 'Invalid booking, status or estimated completion time.' }, 400);
+  }
   try {
-    const current = await env.DIGITAL_SEVA_DB.prepare('SELECT status FROM digital_seva_bookings WHERE id = ?').bind(id).first();
+    const current = await env.DIGITAL_SEVA_DB.prepare('SELECT status, estimated_completion_at FROM digital_seva_bookings WHERE id = ?').bind(id).first();
     if (!current) return json({ success: false, error: 'Booking not found.' }, 404);
-    if (current.status === nextStatus) return json({ success: true, unchanged: true });
+    if (current.status === nextStatus && (current.estimated_completion_at || null) === estimatedCompletionAt && !note) return json({ success: true, unchanged: true });
     await env.DIGITAL_SEVA_DB.batch([
-      env.DIGITAL_SEVA_DB.prepare('UPDATE digital_seva_bookings SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(nextStatus, id),
+      env.DIGITAL_SEVA_DB.prepare('UPDATE digital_seva_bookings SET status = ?, estimated_completion_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(nextStatus, estimatedCompletionAt, id),
       env.DIGITAL_SEVA_DB.prepare(
         'INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note) VALUES (?, ?, ?, ?, ?, ?)'
       ).bind(crypto.randomUUID(), id, current.status, nextStatus, actor, note || null),
     ]);
-    return json({ success: true, bookingId: id, status: nextStatus });
+    return json({ success: true, bookingId: id, status: nextStatus, estimatedCompletionAt });
   } catch (error) {
     console.error('Digital Seva status update failed:', error);
-    return json({ success: false, error: 'Could not update this booking. Please retry.' }, 503);
+    return json({ success: false, error: 'Could not update this booking. Confirm migration 0007 is applied, then retry.' }, 503);
   }
 }
 
