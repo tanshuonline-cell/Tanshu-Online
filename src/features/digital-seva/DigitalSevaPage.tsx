@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X, Globe } from 'lucide-react';
 import { SEVA_CATEGORIES, SEVA_SERVICES, searchSevaServices, type SevaCategory, type SevaService } from './serviceCatalog';
 import { SEVA_SERVICE_HINDI } from './serviceCatalogHindi';
 import RefundPolicyNotice from './RefundPolicyNotice';
@@ -9,7 +9,7 @@ import './digitalSeva.css';
 
 const categoryIcon: Record<string, React.ElementType> = {
   'id-card': FileText, fingerprint: Fingerprint, 'file-check': FileCheck2, vote: BadgeCheck,
-  wheat: Sparkles, landmark: Landmark, 'clipboard-list': BookOpenCheck, 'file-pdf': FileText, files: FileCheck2,
+  wheat: Sparkles, landmark: Landmark, 'clipboard-list': BookOpenCheck, 'file-pdf': FileText, files: FileCheck2, globe: Globe,
 };
 
 function ServiceCard({ service, onSelect, hindi }: { service: SevaService; onSelect: (service: SevaService) => void; hindi: boolean }) {
@@ -112,11 +112,10 @@ export default function DigitalSevaPage() {
 
   return (
     <div className="ds-page" lang={language === 'hi' ? 'hi' : 'en'}>
-      <div className="ds-back-row"><div className="ds-language-switch" role="group" aria-label="Choose language"><button type="button" className={!hindi ? "active" : ""} aria-pressed={!hindi} onClick={() => setLanguage("en")}>English</button><button type="button" className={hindi ? "active" : ""} aria-pressed={hindi} onClick={() => setLanguage("hi")}>हिंदी</button></div><a className="ds-back-home" href="/" aria-label="Back to TANSHU ONLINE homepage">{hindi ? '← मुख्य पृष्ठ पर जाएँ' : '← Back to Home'}</a></div>
       <div className="ds-topline"><span>{hindi ? 'स्वतंत्र डिजिटल सहायता' : 'INDEPENDENT DIGITAL ASSISTANCE'}</span><span><ShieldCheck size={14} /> {hindi ? 'गोपनीयता • स्पष्ट शुल्क • पारदर्शी प्रक्रिया' : 'Privacy-first • Clear fees • Transparent process'}</span></div>
       <header className="ds-header">
-        <a href="/" className="ds-brand" aria-label="TANSHU ONLINE home"><span className="ds-brand-mark">T</span><span><strong>TANSHU ONLINE</strong><small>{hindi ? 'डिजिटल सेवा केंद्र' : 'Digital Seva Center'}</small></span></a>
-        <nav><a href="/">{hindi ? 'होम' : 'Home'}</a><a href="#ds-government-services">{hindi ? 'सेवाएँ' : 'Services'}</a><a href="#ds-document-services">{hindi ? 'PDF और दस्तावेज़' : 'PDF & Documents'}</a><button onClick={() => setShowTrackingInfo(true)}>{hindi ? 'अनुरोध ट्रैक करें' : 'Track Request'}</button></nav>
+        <a href="/" className="ds-brand" aria-label="TANSHU ONLINE home"><img className="ds-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="TANSHU ONLINE" /><span><strong><span className="ds-brand-name-dark">TANSHU</span> <span className="ds-brand-name-accent">ONLINE</span></strong><small>{hindi ? 'डिजिटल सेवा केंद्र' : 'Digital Seva Center'}</small></span></a>
+        <nav><a href="/">{hindi ? 'होम' : 'Home'}</a><a href="#ds-government-services">{hindi ? 'सेवाएँ' : 'Services'}</a><a href="#ds-document-services">{hindi ? 'PDF और दस्तावेज़' : 'PDF & Documents'}</a><button onClick={() => setShowTrackingInfo(true)}>{hindi ? 'अनुरोध ट्रैक करें' : 'Track Request'}</button><a className="ds-back-home" href="/" aria-label="Back to TANSHU ONLINE homepage">{hindi ? '← मुख्य पृष्ठ' : '← Back to Home'}</a><div className="ds-language-switch" role="group" aria-label="Choose language"><button type="button" className={!hindi ? "active" : ""} aria-pressed={!hindi} onClick={() => setLanguage("en")}>English</button><button type="button" className={hindi ? "active" : ""} aria-pressed={hindi} onClick={() => setLanguage("hi")}>हिंदी</button></div></nav>
       </header>
 
       <main>
@@ -144,7 +143,7 @@ export default function DigitalSevaPage() {
         <section className="ds-section" id="ds-government-services">
           <div className="ds-section-heading"><div><span className="ds-kicker">{hindi ? 'सरकारी और नागरिक सेवाएँ' : 'GOVERNMENT & CITIZEN SERVICES'}</span><h2>{hindi ? 'सेवा की श्रेणी चुनें' : 'Choose a service category'}</h2><p>{hindi ? 'लोकप्रिय सेवाएँ देखें और शुरू करने से पहले ज़रूरी जानकारी जानें।' : 'Explore popular services and see what may be required before you begin.'}</p></div><button className="ds-outline-button" onClick={() => { setActiveCategory('all'); setShowAll(true); scrollToServices(); }}>{hindi ? 'सभी सेवाएँ देखें' : 'View all services'} <ArrowUpRight size={16} /></button></div>
           <div className="ds-category-grid">
-            {SEVA_CATEGORIES.slice(0, 7).map((category, index) => {
+            {SEVA_CATEGORIES.slice(0, 8).map((category, index) => {
               const Icon = categoryIcon[category.icon] || FileText;
               return <button key={category.id} className={`ds-category-card ds-category-${index}`} onClick={() => { setActiveCategory(category.id); setQuery(''); setShowAll(true); document.getElementById('ds-service-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
                 <span className="ds-category-icon"><Icon size={22} /></span><strong>{hindi ? category.hindi : category.label}</strong><small>{hindi ? category.label : category.hindi}</small><span className="ds-category-arrow"><ArrowUpRight size={17} /></span>
@@ -162,7 +161,7 @@ export default function DigitalSevaPage() {
 
         <section className="ds-document-band" id="ds-document-services">
           <div className="ds-document-intro"><span className="ds-kicker">{hindi ? 'रोज़मर्रा के फ़ाइल और दस्तावेज़ कार्य' : 'EVERYDAY FILE & DOCUMENT HELP'}</span><h2>{hindi ? 'दस्तावेज़ और PDF सेवाएँ' : 'Document & PDF Services'}</h2><p>{hindi ? 'फ़ाइल का आकार कम करना, इमेज बदलना, स्कैन साफ़ करना और दस्तावेज़ फ़ॉर्मेट करना — आसान चरणों में।' : 'Small file-size limits, image conversions, scan cleanup and document formatting — explained in simple steps.'}</p><button className="ds-light-button" onClick={() => { setActiveCategory('pdf'); setQuery(''); setShowAll(true); document.getElementById('ds-service-results')?.scrollIntoView({ behavior: 'smooth' }); }}>{hindi ? 'PDF सेवाएँ देखें' : 'Explore PDF services'} <ArrowRight size={16} /></button></div>
-          <div className="ds-document-tiles">{SEVA_CATEGORIES.slice(7).map((category) => { const Icon = categoryIcon[category.icon] || FileText; return <button key={category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); setShowAll(true); document.getElementById('ds-service-results')?.scrollIntoView({ behavior: 'smooth' }); }}><Icon size={21} /><strong>{hindi ? category.hindi : category.label}</strong><span>{hindi ? 'इस श्रेणी की डिजिटल सहायता सेवाएँ देखें।' : category.description}</span><ArrowUpRight size={16} /></button>; })}</div>
+          <div className="ds-document-tiles">{SEVA_CATEGORIES.slice(8).map((category) => { const Icon = categoryIcon[category.icon] || FileText; return <button key={category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); setShowAll(true); document.getElementById('ds-service-results')?.scrollIntoView({ behavior: 'smooth' }); }}><Icon size={21} /><strong>{hindi ? category.hindi : category.label}</strong><span>{hindi ? 'इस श्रेणी की डिजिटल सहायता सेवाएँ देखें।' : category.description}</span><ArrowUpRight size={16} /></button>; })}</div>
         </section>
 
         <section className="ds-trust-row"><div><ShieldCheck size={22} /><span><b>{hindi ? 'आपके दस्तावेज़ महत्वपूर्ण हैं' : 'Your documents matter'}</b><small>{hindi ? 'चुनी गई सेवा के लिए केवल ज़रूरी जानकारी माँगी जाएगी।' : 'We will request only what is needed for the selected service.'}</small></span></div><div><WalletCards size={22} /><span><b>{hindi ? 'शुल्क अलग-अलग दिखेंगे' : 'Fees shown separately'}</b><small>{hindi ? 'सेवा शुल्क और सरकारी शुल्क कभी मिलाए नहीं जाएँगे।' : 'Service charges and government fees will never be mixed.'}</small></span></div><div><LifeBuoy size={22} /><span><b>{hindi ? 'व्यक्तिगत सहायता' : 'Human assistance'}</b><small>{hindi ? 'कोई चरण समझ न आए तो आगे बढ़ने से पहले पूछें।' : 'Ask before proceeding if a step is unclear.'}</small></span></div></section>
