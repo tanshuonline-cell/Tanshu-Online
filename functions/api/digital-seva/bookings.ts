@@ -1,3 +1,4 @@
+import { getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores only a minimal booking request. Customer documents and payments are deliberately out of scope.
 interface Env { DIGITAL_SEVA_DB?: any; }
@@ -15,12 +16,7 @@ function validOrigin(request: Request): boolean {
   return Boolean(origin) && origin === new URL(request.url).origin;
 }
 
-function normalizePhone(value: unknown): string {
-  let digits = String(value || '').replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
-  return digits;
-}
+function normalizePhone(value: unknown): string { return normalizeIndianMobile(value); }
 
 function makeReference(): string {
   const bytes = new Uint8Array(5);
@@ -82,19 +78,32 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
   if (!['DIRECT_CUSTOMER', 'CYBER_CAFE', 'CSC_CENTER', 'INDEPENDENT_AGENT'].includes(requesterType)) return json({ success: false, error: 'Please select a valid submitting-party type.' }, 400);
   if (!['SELF', 'CUSTOMER'].includes(applicationFor) || (requesterType === 'DIRECT_CUSTOMER' && applicationFor !== 'SELF')) return json({ success: false, error: 'Please select whose work is being requested.' }, 400);
-  if (name.length < 2 || name.length > 80) return json({ success: false, error: 'Please enter an applicant name between 2 and 80 characters.' }, 400);
-  if (!/^\d{10}$/.test(phone)) return json({ success: false, error: 'Please enter a valid 10-digit applicant mobile number.' }, 400);
-  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ success: false, error: 'Please enter a valid applicant email address.' }, 400);
+  if (!isValidName(name)) return json({ success: false, error: 'Please enter a valid applicant name using Hindi or English letters.' }, 400);
+  if (!isValidMobile(phone)) return json({ success: false, error: 'Please enter a valid 10-digit Indian applicant mobile number.' }, 400);
+  if (!isValidEmail(email)) return json({ success: false, error: 'Please enter a valid applicant email address.' }, 400);
   if (requesterType !== 'DIRECT_CUSTOMER') {
-    if (!operator || operatorName.length < 2 || operatorName.length > 80 || !/^\d{10}$/.test(operatorPhone) || operatorEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(operatorEmail)) return json({ success: false, error: 'Please enter the operator/agent name, valid mobile and email.' }, 400);
-    if (['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && (!centerName || centerName.length > 120 || !centerAddress || centerAddress.length > 500)) return json({ success: false, error: 'Centre name and full address are required.' }, 400);
-    if (requesterType === 'INDEPENDENT_AGENT' && (!agencyName || agencyName.length > 120)) return json({ success: false, error: 'Agent/business name is required.' }, 400);
+    if (!operator || !isValidName(operatorName) || !isValidMobile(operatorPhone) || !isValidEmail(operatorEmail)) return json({ success: false, error: 'Please enter the operator/agent name, valid mobile and email.' }, 400);
+    if (['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && (!centerName || centerName.length > 120 || !isValidAddress(centerAddress))) return json({ success: false, error: 'Centre name and full address are required.' }, 400);
+    if (requesterType === 'INDEPENDENT_AGENT' && (!agencyName || agencyName.length > 120 || (agencyAddress && !isValidAddress(agencyAddress)))) return json({ success: false, error: 'Agent/business name is required.' }, 400);
     if (centerName.length > 120 || centerAddress.length > 500 || agencyName.length > 120 || agencyAddress.length > 500) return json({ success: false, error: 'Operator or centre details are too long.' }, 400);
     if (applicationFor === 'SELF' && (name !== operatorName || phone !== operatorPhone || email.toLowerCase() !== operatorEmail.toLowerCase())) return json({ success: false, error: 'For own work, applicant contact details must match the operator profile.' }, 400);
   } else if (operator) {
     return json({ success: false, error: 'Direct customer requests must not include an operator profile.' }, 400);
   }
-  if (taskDetails.length < 5 || taskDetails.length > 4000 || applicationDetails.length > 16000 || otherDocumentName.length > 160) return json({ success: false, error: 'Please provide valid service details and document selections.' }, 400);
+  if (taskDetails.length < 10 || taskDetails.length > 4000 || !/[\\p{L}]{3,}/u.test(taskDetails) || applicationDetails.length > 16000 || otherDocumentName.length > 160) return json({ success: false, error: 'Please provide a clear description of the requested service and valid document selections.' }, 400);
+  const requiredServiceFields = getRequiredServiceFieldKeys(serviceId, serviceOptions);
+  for (const field of requiredServiceFields) {
+    const value = fieldValues[field] ?? serviceOptions[field];
+    if (value == null || !String(value).trim()) return json({ success: false, error: `Required service field is missing: ${field}.` }, 400);
+  }
+  for (const [field, value] of Object.entries(fieldValues)) {
+    const issue = validateByKind(validationKindForField(field), value);
+    if (issue) return json({ success: false, error: `Invalid service field: ${field}. ${issue}` }, 400);
+  }
+  for (const [field, value] of Object.entries(serviceOptions)) {
+    const issue = validateByKind(validationKindForField(field), value);
+    if (issue) return json({ success: false, error: `Invalid service option: ${field}. ${issue}` }, 400);
+  }
   if (!consent) return json({ success: false, error: 'Please confirm that TANSHU ONLINE may contact you about this request.' }, 400);
   if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
   if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v2') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
