@@ -22,7 +22,7 @@
 .ds-modal-book{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--ds-red);color:#fff;border:0;border-radius:10px;padding:13px 17px;font:700 12px 'DM Sans';cursor:pointer}
 .ds-modal-book:hover{background:var(--ds-red-dark)}
 .ds-modal-book:disabled{opacity:.6;cursor:not-allowed}
-.ds-booking-modal{max-width:560px}
+.ds-booking-modal{width:min(980px,calc(100vw - 36px));max-width:980px;max-height:94vh}
 .ds-booking-form{display:grid;gap:14px;margin-top:20px}
 .ds-booking-form>label:not(.ds-booking-consent){display:grid;gap:7px;font-size:12px;font-weight:700;color:#41454c}
 .ds-booking-form label span{font-weight:500;color:#777d86}
@@ -295,3 +295,19 @@
 .dsa-slip-action button{border:0;border-radius:8px;padding:9px 13px;background:#8f1725;color:#fff;font:800 11px 'DM Sans',sans-serif;cursor:pointer;box-shadow:0 4px 12px #8f17251c;transition:transform .18s,box-shadow .18s}
 .dsa-slip-action button:hover{transform:translateY(-1px);box-shadow:0 7px 16px #8f17252b}
 @media(max-width:560px){.dsa-slip-action{justify-content:stretch}.dsa-slip-action button{width:100%;min-height:40px}}
+
+/* Larger government-portal style workspace for the Digital Seva application only. */
+.ds-booking-modal .ds-application-form{gap:19px}
+.ds-booking-modal .ds-application-step{gap:16px}
+.ds-booking-modal .ds-application-field-grid input,
+.ds-booking-modal .ds-application-field-grid select,
+.ds-booking-modal .ds-application-wide input,
+.ds-booking-modal .ds-application-wide textarea{min-height:45px;font-size:13px;padding:11px 13px}
+.ds-booking-modal .ds-application-step h3{font-size:19px}
+@media(max-width:600px){
+  .ds-booking-modal{width:calc(100vw - 18px);max-height:96vh;padding:19px 14px}
+  .ds-booking-modal .ds-application-field-grid input,
+  .ds-booking-modal .ds-application-field-grid select,
+  .ds-booking-modal .ds-application-wide input,
+  .ds-booking-modal .ds-application-wide textarea{min-height:44px;font-size:14px}
+}
