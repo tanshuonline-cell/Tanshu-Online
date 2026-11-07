@@ -61,3 +61,15 @@
 .dsa-status-row{display:flex;align-items:end;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid #f0ece8}.dsa-status-row label{min-width:220px}.dsa-status-row button{height:43px}
 .dsa-footer{display:flex;justify-content:space-between;gap:15px;margin-top:28px;padding-top:18px;border-top:1px solid #e6e0da;font-size:11px;color:#777d86}.dsa-footer a{color:#8f1725;text-decoration:none;font-weight:700}
 @media(max-width:640px){.dsa-header{align-items:flex-start;flex-direction:column}.dsa-toolbar,.dsa-footer{align-items:stretch;flex-direction:column}.dsa-header-actions{width:100%}.dsa-header-actions button{flex:1}.dsa-status-row{align-items:stretch;flex-direction:column}.dsa-status-row label{min-width:0}.dsa-status-row button{width:100%}.dsa-booking-card-top{align-items:flex-start;flex-direction:column}}
+
+/* Service-specific fee and refund transparency notice */
+.ds-refund-notice{margin:18px 0;padding:17px;border:1px solid #eadfd7;border-radius:13px;background:#fffaf6}
+.ds-refund-notice-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.ds-refund-notice-heading strong{font:800 14px Manrope;color:#292c32}
+.ds-refund-notice-heading span{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#8f1725;background:#f8e9e7;border-radius:20px;padding:6px 9px}
+.ds-refund-row{padding:10px 0;border-top:1px solid #eee6df}
+.ds-refund-row b,.ds-refund-timeline b{display:block;font-size:11px;color:#34373d;margin-bottom:5px}
+.ds-refund-row p,.ds-refund-timeline p{font-size:11px;line-height:1.65;color:#646a73;margin:0}
+.ds-refund-timeline{margin-top:9px;padding:12px;border-radius:9px;background:#f1f5f3}
+.ds-refund-preview-note{font-size:10px;line-height:1.55;color:#8a6a35;margin:11px 0 0}
+@media(max-width:600px){.ds-refund-notice{padding:14px}.ds-refund-notice-heading{align-items:flex-start;flex-direction:column;gap:7px}}
