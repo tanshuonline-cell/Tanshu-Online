@@ -76,6 +76,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const completedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const manuallyEditedHindiFieldsRef = useRef<Set<string>>(new Set());
+  const autoResumeAttemptedRef = useRef(false);
   useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
 
   useEffect(() => {
@@ -416,6 +417,14 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       setError(e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.'));
     } finally { setSubmitting(false); }
   };
+
+  useEffect(() => {
+    const returnedOrderId = new URLSearchParams(window.location.search).get('cashfree_order_id');
+    if (!draftReady || !draftRestored || !returnedOrderId || returnedOrderId !== pendingCheckoutOrderId || step !== 3 || autoResumeAttemptedRef.current) return;
+    autoResumeAttemptedRef.current = true;
+    formRef.current?.requestSubmit();
+  }, [draftReady, draftRestored, pendingCheckoutOrderId, step]);
+
 
   const textInput = (key: string, label: string, labelHi: string) => {
     const bilingual = BILINGUAL_FIELD_KEYS.has(key) || /^(address|father-name|mother-name|relation-name)(-current|-correct)$/i.test(key);
