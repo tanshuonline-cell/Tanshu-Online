@@ -9,9 +9,9 @@
 2. Never label every Government Fee as non-refundable by default. Show the official department/provider's current cancellation/refund rule for the exact service route. If not verified, display: "Please confirm the current official portal fee and refund rule before payment" and do not invent a value.
 3. Do not apply a blanket "no refund after work starts" clause. Any fee retained must reflect work actually performed and remain subject to applicable consumer law and the agreed service description.
 4. If TANSHU ONLINE does not submit an application due to its own technical/system/process failure, assess a refund of the unearned TANSHU service charge and any government amount not paid to the department or recoverable from it.
-5. The proposed 7-calendar-day target and 15-calendar-day outer limit are a TANSHU service commitment, not a government processing guarantee. Customer-caused pauses (missing documents/clarification) and government authority processing after successful submission must be recorded separately and explained.
+5. Normal target: after the customer submits the completed form, required information/documents and all necessary consent, TANSHU ONLINE starts promptly and aims to complete its agreed work the same day (often around 10–30 minutes, depending on the service; some work may take longer). If completed that day, provide the receipt/slip that day. The 7–15 calendar-day period is not normal processing time; it applies only to exceptional serious technical disruption of TANSHU ONLINE’s own website/server/system. If the agreed service remains incomplete within 15 calendar days because of that technical problem, refund the TANSHU ONLINE service fee on day 15. Government/portal fees remain separate and are handled according to actual remittance and the relevant department’s rules. This is not a government approval or processing guarantee.
 6. Record affirmative, unticked-by-default consent for Terms and Conditions and Refund Policy separately, with policy version and timestamp. Do not treat a pre-ticked checkbox as consent.
-7. Keep complaint/grievance handling separate from the voluntary 7–15 day service target. If the E-Commerce Rules apply, acknowledge complaints within 48 hours and redress within one month.
+7. Keep complaint/grievance handling separate from the service-completion/refund commitment. If the E-Commerce Rules apply, acknowledge complaints within 48 hours and redress within one month.
 8. Keep this work on the Digital Seva Preview branch. No production merge, production deployment, fee collection, refunds, or D1 migration is authorised by this document.
 
 ## 2. Official-source findings (reviewed 7 November 2026)
@@ -51,7 +51,7 @@ The official Rules apply broadly to goods/services bought or sold over digital/e
 Official Gazette copy: https://consumeraffairs.nic.in/sites/default/files/E%20commerce%20rules_0.pdf
 
 ### Failed UPI merchant payments
-RBI's failed-transaction framework provides an auto-reversal timeline of T+5 days for a UPI payment to a merchant where the payer is debited but the merchant does not receive confirmation, with compensation for delay beyond the prescribed period. This payment-system reversal is different from a discretionary service refund and must not be replaced by the site's 7–15 day policy.
+RBI's failed-transaction framework provides an auto-reversal timeline of T+5 days for a UPI payment to a merchant where the payer is debited but the merchant does not receive confirmation, with compensation for delay beyond the prescribed period. This payment-system reversal is different from a service refund and must not be replaced by the site's 15-day technical-failure refund commitment.
 Official RBI circular: https://rbi.org.in/commonman/Upload/English/Notification/PDFs/CIRCULAR677EC931A7A65E4D99AA957D8E85BC0A2A.PDF
 
 ## 4. Recommended customer-facing wording principles
@@ -84,7 +84,7 @@ Official RBI circular: https://rbi.org.in/commonman/Upload/English/Notification/
 - [ ] Configure fee values with a source URL, checked date, route/mode and last-reviewed date; expire or re-check stale values.
 - [ ] Decide and publish the business legal name, business address, customer-care contact and grievance officer contact required for the applicable business model.
 - [ ] Finalise a fair service-fee cancellation/refund matrix with Indian consumer-law review.
-- [ ] Define the 7-day start event, customer-pause rules, 15-day escalation and refund initiation workflow.
+- [ ] Define same-day work start/completion tracking, customer-pause rules, 15-day technical-failure escalation and refund initiation workflow.
 - [ ] Record policy version, affirmative consent and timestamp in the Preview database after the required migration is reviewed and applied.
 - [ ] Keep payment gateway integration disabled until the above items and test cases are complete.
 
