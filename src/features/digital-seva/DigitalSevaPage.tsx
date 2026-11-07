@@ -12,10 +12,10 @@ const categoryIcon: Record<string, React.ElementType> = {
   wheat: Sparkles, landmark: Landmark, 'clipboard-list': BookOpenCheck, 'file-pdf': FileText, files: FileCheck2, globe: Globe,
 };
 
-function ServiceCard({ service, onSelect, hindi }: { service: SevaService; onSelect: (service: SevaService) => void; hindi: boolean }) {
+function ServiceCard({ service, onSelect, hindi, highlighted }: { service: SevaService; onSelect: (service: SevaService) => void; hindi: boolean; highlighted: boolean }) {
   const category = SEVA_CATEGORIES.find((item) => item.id === service.category);
   return (
-    <article className="ds-service-card">
+    <article id={`ds-service-${service.id}`} className={`ds-service-card${highlighted ? ' ds-search-highlight' : ''}`} aria-current={highlighted ? 'true' : undefined}>
       <div className="ds-service-card-top"><span className="ds-service-icon"><FileText size={19} /></span><span className="ds-service-tag">{hindi ? category?.hindi : category?.label}</span></div>
       <h3>{hindi ? service.hindi : service.name}</h3>
       <p className="ds-service-hindi">{hindi ? service.name : service.hindi}</p>
@@ -34,6 +34,8 @@ export default function DigitalSevaPage() {
   const [selected, setSelected] = useState<SevaService | null>(null);
   const serviceHindi = selected ? { ...selected, ...SEVA_SERVICE_HINDI[selected.id] } : null;
   const [showAll, setShowAll] = useState(false);
+  const [searchTarget, setSearchTarget] = useState<string | null>(null);
+  const [searchAttempt, setSearchAttempt] = useState(0);
   const [showTrackingInfo, setShowTrackingInfo] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingReference, setBookingReference] = useState('');
@@ -52,6 +54,26 @@ export default function DigitalSevaPage() {
   }, []);
 
   const scrollToServices = () => document.getElementById('ds-government-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const runServiceSearch = () => {
+    const matches = searchSevaServices(query);
+    setActiveCategory('all');
+    setShowAll(true);
+    setSearchTarget(matches[0]?.id || null);
+    setSearchAttempt((attempt) => attempt + 1);
+  };
+
+  useEffect(() => {
+    if (!searchTarget || !searchAttempt) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`ds-service-${searchTarget}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    const clear = window.setTimeout(() => setSearchTarget(null), 3600);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(clear);
+    };
+  }, [searchAttempt, searchTarget, results, showAll]);
 
   const openBookingForm = () => {
     setBookingReference('');
@@ -84,7 +106,7 @@ export default function DigitalSevaPage() {
 
         <section className="ds-search-section" aria-label={hindi ? 'सेवाएँ खोजें' : 'Search services'}>
           <div className="ds-search-heading"><div><span className="ds-kicker">{hindi ? 'सही सेवा खोजें' : 'FIND THE RIGHT SERVICE'}</span><h2>{hindi ? 'आपको किस काम में सहायता चाहिए?' : 'What do you need help with?'}</h2></div><span className="ds-language-note">{hindi ? 'हिंदी और English दोनों में खोजें' : 'Search in Hindi and English'}</span></div>
-          <label className="ds-searchbox"><Search size={22} /><input value={query} onChange={(event) => { setQuery(event.target.value); setActiveCategory('all'); }} placeholder={hindi ? 'जैसे “PDF छोटा”, “आधार पता”, “फोटो KB कम”...' : 'Try “PDF chhota”, “Aadhaar me pita ka naam”, “photo KB kam”...'} /><kbd>{hindi ? 'खोजें' : 'Search'}</kbd>{query && <button aria-label="Clear search" onClick={() => setQuery('')}><X size={17} /></button>}</label>
+          <label className="ds-searchbox"><Search size={22} /><input value={query} onChange={(event) => { setQuery(event.target.value); setActiveCategory('all'); }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); runServiceSearch(); } }} placeholder={hindi ? 'जैसे “वोटर आईडी सुधार”, “पैन करेक्शन”, “आधार पता”...' : 'Try “Voter ID correction”, “PAN correction”, “Aadhaar address”...'} aria-label={hindi ? 'सेवा खोजें' : 'Search for a service'} /><button type="button" className="ds-search-submit" onClick={runServiceSearch}>{hindi ? 'खोजें' : 'Search'} <ArrowRight size={15} /></button>{query && <button type="button" aria-label="Clear search" onClick={() => { setQuery(''); setSearchTarget(null); }}><X size={17} /></button>}</label>
           <div className="ds-search-hints"><span>{hindi ? 'लोकप्रिय खोज:' : 'Popular searches:'}</span>{['PDF size kam', 'PDF jodna', 'आधार पता', 'Photo 20 KB'].map((hint) => <button key={hint} onClick={() => { setQuery(hint); setActiveCategory('all'); }}>{hint}</button>)}</div>
         </section>
 
@@ -103,7 +125,7 @@ export default function DigitalSevaPage() {
         <section className="ds-section ds-results-section" id="ds-service-results">
           <div className="ds-section-heading"><div><span className="ds-kicker">{query ? (hindi ? 'खोज परिणाम' : 'SEARCH RESULTS') : (hindi ? 'लोकप्रिय सेवाएँ' : 'POPULAR SERVICES')}</span><h2>{query ? `“${query}” के परिणाम` : (hindi ? 'लोकप्रिय सरकारी सेवाएँ' : 'Popular government services')}</h2><p>{hindi ? `इस सूची में ${results.length} मिलती-जुलती सेवाएँ हैं।` : `${results.length} matching services in this catalogue preview.`}</p></div><button className="ds-clear-filter" onClick={() => { setQuery(''); setActiveCategory('all'); }}>{hindi ? 'फ़िल्टर हटाएँ' : 'Clear filters'}</button></div>
           <div className="ds-filter-row"><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => setActiveCategory('all')}>{hindi ? 'सभी' : 'All'}</button>{SEVA_CATEGORIES.slice(0, 7).map((category) => <button key={category.id} className={activeCategory === category.id ? 'active' : ''} onClick={() => setActiveCategory(category.id)}>{hindi ? category.hindi : category.label}</button>)}</div>
-          {results.length ? <div className="ds-service-grid">{(showAll ? results : results.slice(0, 6)).map((service) => <ServiceCard key={service.id} service={service} onSelect={setSelected} hindi={hindi} />)}</div> : <div className="ds-empty"><Search size={28} /><h3>{hindi ? 'कोई सटीक परिणाम नहीं मिला' : 'No exact match yet'}</h3><p>{hindi ? 'छोटा शब्द, हिंदी शब्द या आम काम का नाम लिखकर देखें।' : 'Try a shorter phrase, a Hindi word, or a common task name.'}</p><button onClick={() => { setQuery(''); setActiveCategory('all'); }}>{hindi ? 'सभी सेवाएँ दिखाएँ' : 'Show all services'}</button></div>}
+          {results.length ? <div className="ds-service-grid">{(showAll ? results : results.slice(0, 6)).map((service) => <ServiceCard key={service.id} service={service} onSelect={setSelected} hindi={hindi} highlighted={searchTarget === service.id} />)}</div> : <div className="ds-empty"><Search size={28} /><h3>{hindi ? 'कोई सटीक परिणाम नहीं मिला' : 'No exact match yet'}</h3><p>{hindi ? 'छोटा शब्द, हिंदी शब्द या आम काम का नाम लिखकर देखें।' : 'Try a shorter phrase, a Hindi word, or a common task name.'}</p><button onClick={() => { setQuery(''); setActiveCategory('all'); }}>{hindi ? 'सभी सेवाएँ दिखाएँ' : 'Show all services'}</button></div>}
           {!showAll && results.length > 6 && <button className="ds-load-more" onClick={() => setShowAll(true)}>{hindi ? `सभी ${results.length} सेवाएँ दिखाएँ` : `Show all ${results.length} matching services`} <ChevronDown size={16} /></button>}
         </section>
 
