@@ -100,7 +100,7 @@ export default function DigitalSevaPage() {
     setTrackingReference(bookingReferenceValue);
     setTrackingError('');
     setTrackingResult(null);
-    if (!/^DS-\\d{8}-[0-9A-F]{10}$/.test(bookingReferenceValue)) {
+    if (!/^DS-\d{8}-[0-9A-F]{10}$/.test(bookingReferenceValue)) {
       setTrackingError(hindi ? 'कृपया रसीद पर दिया गया पूरा बुकिंग रेफरेंस भरें।' : 'Enter the complete booking reference printed on your receipt.');
       return;
     }
