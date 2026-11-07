@@ -17,7 +17,7 @@
 
 | Service ID | Service | Government fee shown in Preview | Official refund status | TANSHU fee |
 |---|---|---|---|---|
-| pan-new | New PAN | Route quote required. Income Tax Department describes ₹107 incl. GST for its listed Indian-address route; other providers/modes/card/dispatch differ; eligible Instant e-PAN is free. | Exact provider route rule required | ₹150 assistance fee |
+| pan-new | New PAN | Live official quote required for current form/provider/mode/card/dispatch; eligible Instant e-PAN is free. | Exact provider route rule required | ₹150 assistance fee |
 | pan-correction | PAN correction | Live provider quote; depends on paperless/physical mode, card and dispatch | Exact provider rule required | ₹150 assistance fee |
 | aadhaar-address-doc | Aadhaar address update with document | UIDAI demographic update ₹75 separately; free with biometric update. Separate PoI/PoA document-only concession is free online until 14 June 2027; do not confuse these services. | Exact transaction/appointment rule; check receipt | Not configured |
 | aadhaar-address-hof | Aadhaar HoF address update | ₹75 demographic update when separate; free with biometric update; confirm exact HoF online flow | Exact transaction/appointment rule | Not configured |
@@ -56,7 +56,8 @@
 - UIDAI email-app waiver memorandum (1 July–31 December 2026): https://uidai.gov.in/images/OM_dated_18-06-2026.pdf
 - UIDAI e-Aadhaar, PVC card and service information: https://uidai.gov.in/hi/my-aadhaar
 - UIDAI PVC card order charge memorandum: https://uidai.gov.in/images/OM_for_revision_of_rate_of_Aadhaar_PVC_Card_service.pdf
-- Income Tax Department PAN: https://www.incometaxindia.gov.in/en/tax-services/apply-for-pan
+- Income Tax Department PAN / Instant e-PAN: https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/Instant%20e-PAN-faq
+- Income Tax Forms 2026 (new PAN forms from 1 April 2026): https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/income-tax-forms
 - Protean PAN provider: https://tinpan.proteantech.in/services/pan/form-form_93-form_94.html
 - ECI Form 6 / new registration: https://www.eci.gov.in/faq/en/how-to-register/
 - ECI FAQ including replacement EPIC: https://www.eci.gov.in/faq/2/9
