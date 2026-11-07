@@ -50,3 +50,16 @@
 - Verify existing homepage, 89 tools, /videos, /video/:id, /admin and existing payment paths remain unchanged.
 - Verify no migration is applied to the current production D1.
 - User must explicitly approve any merge or production deployment.
+
+
+## Fee disclosure and separate policy consent — Preview implementation (7 November 2026)
+- A service-wise fee/refund registry now covers all 29 catalogue services in `src/features/digital-seva/serviceFeeRegistry.ts`.
+- Official fee amounts are shown only where the reviewed official source supports the exact route. PAN, Bihar RTPS, ration, scheme and other route-dependent services remain live-quote-required.
+- TANSHU ONLINE service prices are intentionally left unconfigured until the business supplies its price schedule and deliverables.
+- Service details show Government/Provider Fee, official refund rule, TANSHU service fee/refund basis, official source link, review date and service-specific caveat.
+- Booking now requires separate unticked Terms & Conditions and Refund Policy checkboxes in addition to the existing contact permission. Full text is expandable before submission.
+- Booking API validates both policy booleans and policy-version identifiers, requires email, and writes separate server timestamps/version strings.
+- Admin booking list displays both acceptance records and policy versions.
+- Migration `0004_digital_seva_policy_consents.sql` adds the four audit columns. It is prepared only; it has NOT been applied to any D1 database.
+- Until migration 0004 is reviewed and applied to the dedicated Preview D1, new booking inserts that include these columns fail closed. Do not accept real requests through this Preview.
+- No fee collection, Cashfree, document upload or Production deployment is enabled by this work.
