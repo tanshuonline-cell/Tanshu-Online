@@ -116,6 +116,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [directoryCategory, setDirectoryCategory] = useState<ToolCategory>('all');
   const [directoryOpenRequest, setDirectoryOpenRequest] = useState(0);
+  const [directoryReturnRequest, setDirectoryReturnRequest] = useState(0);
   const [returnToDirectoryAfterTool, setReturnToDirectoryAfterTool] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedScheme, setSelectedScheme] = useState<GovernmentScheme | null>(null);
@@ -377,7 +378,7 @@ export default function App() {
   const handleCloseTool = () => {
     setActiveTool(null);
     if (returnToDirectoryAfterTool) {
-      setDirectoryOpenRequest((request) => request + 1);
+      setDirectoryReturnRequest((request) => request + 1);
     }
     setReturnToDirectoryAfterTool(false);
   };
@@ -510,6 +511,7 @@ export default function App() {
           initialSearchQuery={searchQuery}
           initialCategory={directoryCategory}
           openRequestKey={directoryOpenRequest}
+          returnRequestKey={directoryReturnRequest}
         />
 
         {/* Government Services Directory */}
