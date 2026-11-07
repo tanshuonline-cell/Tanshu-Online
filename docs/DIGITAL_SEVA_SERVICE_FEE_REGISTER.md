@@ -9,7 +9,7 @@
 - Show the Government / Department / Provider fee separately from the TANSHU ONLINE service fee.
 - Show taxes and payment-provider charges separately if they apply.
 - Do not mark an official fee non-refundable unless the current rule for the exact service and route says so.
-- Apply the previously accepted TANSHU ONLINE price schedule to the services listed below. For catalogue items with no previously agreed price, keep the amount marked **Not configured** and do not invent or collect a price. A written quote must define the work/deliverable before payment.
+- The TANSHU ONLINE amounts below are the previously accepted business service-charge schedule, not government fees. Apply them only to the listed service scope. For catalogue items with no previously agreed price, keep the amount marked **Not configured** and do not invent or collect a price. A written quote must define the work/deliverable before payment.
 - Where the official amount or refund rule is route-dependent or not verified, show a live-quote warning and do not accept payment until the official portal/receipt is checked.
 - Source review date is not a guarantee that the amount remains current. Re-check the official portal immediately before quoting.
 
