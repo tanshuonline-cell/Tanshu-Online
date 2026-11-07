@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X } from 'lucide-react';
 import { SEVA_CATEGORIES, SEVA_SERVICES, searchSevaServices, type SevaCategory, type SevaService } from './serviceCatalog';
 import './digitalSeva.css';
 
