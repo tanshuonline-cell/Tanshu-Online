@@ -104,7 +104,7 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
     'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
     'aadhaar-address-doc': ['aadhaarNumber', 'docRelationName'],
-    'aadhaar-address-hof': ['aadhaarNumber', 'hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea'],
+    'aadhaar-address-hof': ['aadhaarNumber', 'hofAadhaarNumber', 'hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea'],
     'aadhaar-co': ['aadhaarNumber', 'coRelation', 'requestedCo'],
     'certificate-correction': ['certificateNumber', 'issuingOffice', 'issueDate'],
     'scheme-check': ['schemeName'],
@@ -165,7 +165,7 @@ export function validateFieldByKey(key: string, value: unknown): string | null {
   const text = String(value ?? '').trim();
   if (!text) return null;
   const field = key.toLowerCase();
-  if (field === 'aadhaarnumber') return /^[2-9]\d{11}$/.test(text) ? null : '12 अंकों का सही Aadhaar नंबर लिखें।';
+  if (field === 'aadhaarnumber' || field === 'hofaadhaarnumber') return /^[2-9]\d{11}$/.test(text) ? null : '12 अंकों का सही Aadhaar नंबर लिखें।';
   if (field === 'existingpannumber' || field === 'pannumber') return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(text.toUpperCase()) ? null : 'सही 10 अक्षरों का PAN नंबर लिखें।';
   if (field === 'pagerange') return /^\d+(?:\s*[-,]\s*\d+)*$/.test(text) ? null : 'पेज नंबर / रेंज सही लिखें, जैसे 1-3 या 1,3,5।';
   if (field === 'targetsize') return /^\d+(?:\.\d+)?\s*(?:kb|mb|px|cm|mm|in|inch)?(?:\s*[x×]\s*\d+(?:\.\d+)?\s*(?:px|cm|mm|in|inch)?)?$/i.test(text) ? null : 'लक्ष्य साइज सही लिखें, जैसे 50 KB या 3x4 inch।';
