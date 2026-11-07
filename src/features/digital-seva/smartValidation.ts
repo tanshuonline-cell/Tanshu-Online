@@ -100,7 +100,7 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'certificate-residence': ['certificatePurpose', 'residenceDistrict', 'residenceSubdivision', 'residenceBlock', 'residenceVillageWard', 'residencePin', 'level', 'residenceType'],
     'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
     'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
-    'aadhaar-address-doc': ['docRelation', 'docRelationName', 'aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea'],
+    'aadhaar-address-doc': ['docRelation', 'docRelationName'],
     'aadhaar-address-hof': ['hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea'],
     'aadhaar-co': ['coRelation', 'requestedCo'],
     'certificate-correction': ['certificateNumber', 'issuingOffice', 'issueDate'],
@@ -110,6 +110,10 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'ration-update': ['rationAction']
   };
   const fields = [...(required[serviceId] || [])];
+  if (serviceId === 'aadhaar-address-doc') {
+    fields.push('addressChoice');
+    if (options.addressChoice === 'NEW') fields.push('aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea');
+  }
   if (serviceId === 'ration-update' && ['ADD_MEMBER', 'REMOVE_MEMBER', 'CORRECT_MEMBER', 'ADDRESS'].includes(String(options.rationAction))) fields.push('memberName');
   if (serviceId === 'ration-update' && options.rationAction === 'ADD_MEMBER') fields.push('memberRelation');
   return fields;
