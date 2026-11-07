@@ -141,7 +141,7 @@ export function isMeaningfulDescription(value: unknown): boolean {
 
 /** Convert English words in names/addresses to readable Title Case; preserve Indian scripts and known acronyms. */
 export function formatEnglishTitleCase(value: unknown): string {
-  const acronyms = new Set(['PIN', 'PAN', 'UIDAI', 'CSC', 'PSU', 'SDO', 'DM', 'CO', 'C/O', 'PO']);
+  const acronyms = new Set(['PIN', 'PAN', 'UIDAI', 'CSC', 'PSU', 'SDO', 'DM', 'CO', 'C/O', 'PO', 'PDF', 'JPG', 'JPEG', 'PNG', 'WEBP', 'A4', 'A3', 'KB', 'MB', 'GB', 'OTP', 'UPI', 'ID', 'DOB', 'SMS', 'URL', 'USB', 'GST', 'IFSC', 'ATM']);
   return String(value ?? '').replace(/[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)?/gu, (word) => {
     if (!/[A-Za-z]/.test(word) || acronyms.has(word.toUpperCase())) return word;
     const lower = word.toLowerCase();
