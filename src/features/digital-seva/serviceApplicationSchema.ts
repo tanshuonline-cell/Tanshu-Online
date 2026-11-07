@@ -167,7 +167,7 @@ export const SERVICE_DOCUMENTS: Record<string, ServiceDocumentOption[]> = {
     doc("self-affidavit", "Form-XVII self-affidavit", "Form-XVII स्व-शपथ-पत्र", "Listed in Bihar ServicePlus income-certificate enclosure checklist.", "बिहार ServicePlus की आय प्रमाणपत्र सूची में।"),
     doc("salary-pension", "Salary slip / pension slip", "वेतन पर्ची / पेंशन पर्ची", "Where applicable to the applicant's income source.", "आवेदक की आय के स्रोत के अनुसार।"),
     doc("itr", "Income-tax return", "आयकर रिटर्न", "Where available and relevant.", "जहाँ उपलब्ध और लागू हो।"),
-    doc("previous-certificate", "Previous-level income certificate (SDO: CO certificate; DM: SDO certificate)", "पिछले स्तर का आय प्रमाणपत्र (SDO: CO प्रमाणपत्र; DM: SDO प्रमाणपत्र)", "Bihar ServicePlus higher-level forms ask for the certificate issued at the preceding level.", "बिहार ServicePlus के उच्च स्तर के फॉर्म में पिछले स्तर का प्रमाणपत्र माँगा गया है।"),
+    doc("previous-certificate", "Previous-level income certificate (SDO: CO certificate; DM: SDO certificate)", "पिछले स्तर का आय प्रमाणपत्र (SDO: CO प्रमाणपत्र; DM: SDO प्रमाणपत्र)", "Bihar ServicePlus higher-level forms ask for the certificate issued at the preceding level.", "बिहार ServicePlus के उच्च स्तर के फॉर्म में पिछले स्तर का प्रमाणपत्र माँगा गया है।", true),
     doc("other-income", "Other income supporting record", "आय का अन्य सहायक रिकॉर्ड", "Describe the exact record; authority may ask for additional evidence.", "रिकॉर्ड का सही नाम लिखें; अधिकारी अतिरिक्त प्रमाण माँग सकता है।")
   ],
   "certificate-caste": [
@@ -177,7 +177,7 @@ export const SERVICE_DOCUMENTS: Record<string, ServiceDocumentOption[]> = {
     doc("form-v", "Form-V self-affidavit", "Form-V स्व-शपथ-पत्र", "Listed in Bihar ServicePlus caste-certificate checklist.", "बिहार ServicePlus की जाति प्रमाणपत्र सूची में।"),
     doc("khatiyan", "Ancestor's revenue record / Khatiyan", "पूर्वज का राजस्व रिकॉर्ड / खतियान", "Bihar ServicePlus lists revenue records as caste evidence.", "बिहार ServicePlus जाति प्रमाण के रूप में राजस्व रिकॉर्ड सूचीबद्ध करता है।"),
     doc("gift-deed", "Gift deed / land document / land-allotment record", "दानपत्र / भूमि दस्तावेज़ / भूमि आवंटन रिकॉर्ड", "Select the relevant record of the applicant's father/ancestor.", "आवेदक के पिता/पूर्वज का संबंधित रिकॉर्ड चुनें।"),
-    doc("previous-certificate", "Previous-level caste certificate (for SDO / DM route)", "पिछले स्तर का जाति प्रमाणपत्र (SDO / DM के लिए)", "Higher-level applications may require the certificate from the preceding level.", "उच्च स्तर के आवेदन में पिछले स्तर का प्रमाणपत्र माँगा जा सकता है।"),
+    doc("previous-certificate", "Previous-level caste certificate (for SDO / DM route)", "पिछले स्तर का जाति प्रमाणपत्र (SDO / DM के लिए)", "Higher-level applications may require the certificate from the preceding level.", "उच्च स्तर के आवेदन में पिछले स्तर का प्रमाणपत्र माँगा जा सकता है।", true),
     doc("field-verification", "Request for field verification if revenue records are unavailable", "राजस्व रिकॉर्ड न होने पर स्थल जाँच का अनुरोध", "Bihar ServicePlus form includes this route.", "बिहार ServicePlus फॉर्म में यह विकल्प है।")
   ],
   "certificate-residence": [
