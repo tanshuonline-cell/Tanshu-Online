@@ -107,3 +107,8 @@
 .ds-back-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.ds-language-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid #e5dcd5;border-radius:999px;background:#fff;box-shadow:0 3px 12px #24181808}.ds-language-switch button{border:0;border-radius:999px;background:transparent;color:#686b72;padding:7px 12px;font:700 10px 'DM Sans','Noto Sans Devanagari',sans-serif;cursor:pointer;transition:background .18s,color .18s}.ds-language-switch button.active{background:var(--ds-red);color:#fff}.ds-language-switch button:focus-visible{outline:2px solid #c7a15a;outline-offset:2px}@media(max-width:600px){.ds-back-row{align-items:center}.ds-language-switch button{padding:7px 10px}}
 
 .ds-modal-language-switch{display:flex;justify-content:flex-end;margin:0 44px 12px 0}.ds-modal-language-switch button{border:1px solid #e5dcd5;background:#fff;color:#686b72;padding:6px 10px;font:700 10px 'DM Sans','Noto Sans Devanagari',sans-serif;cursor:pointer}.ds-modal-language-switch button:first-child{border-radius:999px 0 0 999px}.ds-modal-language-switch button:last-child{border-radius:0 999px 999px 0}.ds-modal-language-switch button.active{background:var(--ds-red);border-color:var(--ds-red);color:#fff}
+
+
+/* Digital Seva language switch: keep the outer capsule, highlight only the selected language */
+.ds-header nav .ds-language-switch button{background:transparent!important;color:#686b72!important;border:0!important;border-radius:999px!important;box-shadow:none!important}
+.ds-header nav .ds-language-switch button.active{background:var(--ds-red)!important;color:#fff!important}
