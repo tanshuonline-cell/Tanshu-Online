@@ -191,6 +191,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
   if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v2') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
   if (!/^[0-9a-f-]{36}$/i.test(key)) return json({ success: false, error: 'The booking session expired. Please reopen the form.' }, 400);
+  if (body.validateOnly === true) {
+    if (body.paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId)) return json({ success: false, error: 'Validation-only mode is reserved for an enabled automatic-payment service.' }, 400);
+    return json({ success: true, validated: true });
+  }
   const paymentMode = String(body.paymentMode || 'SHARE_LINK');
   const paymentOrderId = String(body.paymentOrderId || '');
   if (!['SHARE_LINK', 'AUTO_PAY'].includes(paymentMode)) return json({ success: false, error: 'Invalid payment option.' }, 400);
