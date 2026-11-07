@@ -192,7 +192,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'certificate-residence': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
   'voter-new': '₹100 TANSHU ONLINE assistance fee. ECI Form 6 government fee is ₹0.',
   'voter-correction': '₹100 TANSHU ONLINE assistance fee + any applicable official replacement/provider fee.',
-  'ration-new': 'TANSHU ONLINE fee: minimum ₹200; exact amount to be confirmed and shown before the request. Add any applicable Bihar department fee separately after checking the official route.',
+  'ration-new': '₹300 TANSHU ONLINE assistance fee + any applicable Bihar department fee, which must be checked on the exact official application route and shown separately.',
   'ration-update': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
   'online-form': '₹100–₹150 depending on the form and work complexity; quote before starting + any applicable portal fee.',
   'pdf-compress': '₹30 per PDF task.',
