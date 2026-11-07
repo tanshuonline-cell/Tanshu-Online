@@ -224,20 +224,17 @@
 
 
 /* Premium Aadhaar address selector and aligned single-row address fields. */
-.ds-address-choice-panel{margin:14px 0;padding:16px;border:1px solid #ead8d5;border-radius:15px;background:linear-gradient(145deg,#fff 0%,#fff8f6 100%);box-shadow:0 8px 22px #6b1b1510}
-.ds-address-choice-panel h4{margin:0 0 12px;color:#24242a;font-size:14px;font-weight:800;line-height:1.45}
-.ds-address-choice-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;align-items:stretch}
-.ds-address-choice-card{display:flex!important;align-items:flex-start;gap:10px;padding:13px!important;border:1px solid #e6d9d6;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s}
-.ds-address-choice-card:hover{border-color:#9b2632;box-shadow:0 7px 18px #8f17251a;transform:translateY(-1px)}
-.ds-address-choice-card.is-selected{border-color:#922331;background:#fff7f6;box-shadow:0 0 0 2px #92233118,0 7px 18px #8f172514}
-.ds-address-choice-card input{flex:0 0 auto;width:17px;height:17px;margin:2px 0 0;accent-color:#922331}
-.ds-address-choice-card>span{display:grid;gap:5px;min-width:0}
-.ds-address-choice-card strong{color:#25252b;font-size:13px;line-height:1.4}
-.ds-address-choice-card small{color:#5b6069;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
-.ds-address-choice-info{position:relative;display:flex;align-items:flex-start;justify-content:flex-end}
-.ds-address-choice-info summary{display:grid;place-items:center;width:25px;height:25px;border:1px solid #c9a7a5;border-radius:50%;background:#fff;color:#8f1725;font-weight:900;font-size:13px;cursor:pointer;list-style:none}
+/* Compact Aadhaar address selector: checkbox-style choices, not large cards. */
+.ds-address-choice-panel{margin:10px 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.ds-address-choice-panel h4{display:inline-block;margin:0 12px 8px 0;color:#24242a;font-size:13px;font-weight:800;line-height:1.4}
+.ds-address-choice-options{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+.ds-address-choice-option{display:inline-flex!important;align-items:center;gap:7px;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;font-size:13px;font-weight:650;line-height:1.4}
+.ds-address-choice-option input{width:15px;height:15px;margin:0;flex:0 0 15px;accent-color:#922331}
+.ds-address-choice-option span{color:#303139}
+.ds-address-choice-info{position:relative;display:inline-flex;align-items:center;margin-left:2px}
+.ds-address-choice-info summary{display:grid;place-items:center;width:19px;height:19px;border:1px solid #c9a7a5;border-radius:50%;background:#fff;color:#8f1725;font-weight:800;font-size:11px;cursor:pointer;list-style:none}
 .ds-address-choice-info summary::-webkit-details-marker{display:none}
-.ds-address-choice-info p{grid-column:1/-1;margin:8px 0 0;padding:10px 12px;border-left:3px solid #9b2632;border-radius:7px;background:#fff;color:#45464c;font-size:11px;line-height:1.65}
+.ds-address-choice-info p{position:absolute;z-index:5;top:24px;left:0;width:min(320px,80vw);margin:0;padding:9px 11px;border:1px solid #ead8d5;border-left:3px solid #9b2632;border-radius:7px;background:#fff;color:#45464c;font-size:11px;line-height:1.6;box-shadow:0 5px 16px #28201a18}
 .ds-address-profile{border:1px solid #e9e1dc;border-radius:15px;background:#fff;padding:16px;box-shadow:0 8px 24px #28201a0b}
 .ds-address-profile h4{line-height:1.5;overflow-wrap:anywhere}
 .ds-address-form-grid{display:grid;gap:10px}
