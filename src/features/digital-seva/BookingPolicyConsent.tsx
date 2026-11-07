@@ -12,17 +12,20 @@ interface Props {
   refundAccepted: boolean;
   onTermsChange: (accepted: boolean) => void;
   onRefundChange: (accepted: boolean) => void;
+  termsError?: string;
+  refundError?: string;
 }
 
-export default function BookingPolicyConsent({ language = 'en', termsAccepted, refundAccepted, onTermsChange, onRefundChange }: Props) {
+export default function BookingPolicyConsent({ language = 'en', termsAccepted, refundAccepted, onTermsChange, onRefundChange, termsError, refundError }: Props) {
   const hindi = language === 'hi';
   return (
     <section className="ds-policy-consents" aria-label={hindi ? 'नीतियों की अनिवार्य स्वीकृति' : 'Required policy acceptance'}>
       <div className="ds-policy-consent-card">
-        <label className="ds-policy-checkbox">
-          <input type="checkbox" checked={termsAccepted} onChange={(event) => onTermsChange(event.target.checked)} required />
+        <label className={termsError ? "ds-policy-checkbox ds-field-invalid" : "ds-policy-checkbox"}>
+          <input data-validation-key="termsAccepted" aria-invalid={Boolean(termsError)} type="checkbox" checked={termsAccepted} onChange={(event) => onTermsChange(event.target.checked)} required />
           <span><strong>{hindi ? 'मैं नियम और शर्तों से सहमत हूँ' : 'I agree to the Terms &amp; Conditions'}</strong><small>{hindi ? 'यह अलग से अनिवार्य पुष्टि है। इसे पहले से चुना नहीं गया है।' : 'This is a required, separate confirmation. It is not pre-selected.'}</small></span>
         </label>
+        {termsError && <small className="ds-field-error" role="alert">{termsError}</small>}
         <details className="ds-policy-details">
           <summary>{hindi ? 'पूरे नियम और शर्तें पढ़ें' : 'Read full Terms &amp; Conditions'}</summary>
           {hindi ? <ol>{TERMS_HINDI.map(([title, body]) => <li key={title}><b>{title}:</b> {body}</li>)}</ol> : <ol>
@@ -42,10 +45,11 @@ export default function BookingPolicyConsent({ language = 'en', termsAccepted, r
         </details>
       </div>
       <div className="ds-policy-consent-card">
-        <label className="ds-policy-checkbox">
-          <input type="checkbox" checked={refundAccepted} onChange={(event) => onRefundChange(event.target.checked)} required />
+        <label className={refundError ? "ds-policy-checkbox ds-field-invalid" : "ds-policy-checkbox"}>
+          <input data-validation-key="refundAccepted" aria-invalid={Boolean(refundError)} type="checkbox" checked={refundAccepted} onChange={(event) => onRefundChange(event.target.checked)} required />
           <span><strong>{hindi ? 'मैंने रिफंड नीति पढ़ ली है और सहमत हूँ' : 'I have read and agree to the Refund Policy'}</strong><small>{hindi ? 'यह दूसरी, स्वतंत्र पुष्टि है। इसे पहले से चुना नहीं गया है।' : 'This is a second, independent confirmation. It is not pre-selected.'}</small></span>
         </label>
+        {refundError && <small className="ds-field-error" role="alert">{refundError}</small>}
         <details className="ds-policy-details">
           <summary>{hindi ? 'पूरी रिफंड नीति पढ़ें' : 'Read full Refund Policy'}</summary>
           {hindi ? <ol>{REFUND_HINDI.map(([title, body]) => <li key={title}><b>{title}:</b> {body}</li>)}</ol> : <ol>
