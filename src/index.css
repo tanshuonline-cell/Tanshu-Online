@@ -51,3 +51,9 @@
 .ds-application-form [aria-invalid="true"] {
   border-color: #dc2626 !important;
 }
+
+.ds-application-form .ds-application-doc-list.ds-field-invalid {
+  outline: 2px solid rgba(220, 38, 38, 0.55);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
