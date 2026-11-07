@@ -148,7 +148,8 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   const details = parseApplicationDetails(booking.application_details_json);
   const values = { ...(details.fieldValues || {}), ...(details.serviceOptions || {}) };
   const addressOrder = ['aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea', 'aadhaarLandmark', 'aadhaarPostOffice'];
-  const orderedKeys = [...addressOrder.filter((key) => String(values[key] ?? '').trim()), ...Object.keys(values).filter((key) => !addressOrder.includes(key) && !key.endsWith('Hindi') && String(values[key] ?? '').trim())];
+  const hasFieldValue = (key: string) => Boolean(String(values[key] ?? '').trim() || String(values[`${key}Hindi`] ?? '').trim());
+  const orderedKeys = [...addressOrder.filter(hasFieldValue), ...Object.keys(values).filter((key) => !addressOrder.includes(key) && !key.endsWith('Hindi') && hasFieldValue(key))];
   const correctionOptions = CORRECTION_OPTIONS[booking.service_id] || [];
   const correctionLabels = (details.corrections || []).map((id) => correctionOptions.find((item) => item.id === id)?.label || id);
   const documentOptions = getServiceDocumentOptions(booking.service_id, details.corrections || []);
@@ -156,10 +157,13 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   const fieldRows = orderedKeys.map((key) => {
     const hindiKey = `${key}Hindi`;
     const hindiValue = String(values[hindiKey] ?? '').trim();
-    const englishValue = escapeSlipHtml(maskSlipValue(key, values[key]));
-    const valueHtml = hindiValue
+    const rawEnglishValue = String(values[key] ?? '').trim();
+    const englishValue = escapeSlipHtml(maskSlipValue(key, rawEnglishValue));
+    const valueHtml = hindiValue && rawEnglishValue
       ? `<div class="bilingual"><div><small>English</small><b>${englishValue}</b></div><div><small>हिंदी</small><b>${escapeSlipHtml(hindiValue)}</b></div></div>`
-      : englishValue;
+      : hindiValue
+        ? `<div class="bilingual"><div><small>हिंदी</small><b>${escapeSlipHtml(hindiValue)}</b></div></div>`
+        : englishValue;
     return `<tr><th>${escapeSlipHtml(humanizeKey(key))}</th><td>${valueHtml}</td></tr>`;
   }).join('');
   const correctionsHtml = correctionLabels.length ? `<section><h2>Selected Work / चुना गया कार्य</h2><p>${correctionLabels.map(escapeSlipHtml).join(' · ')}</p></section>` : '';
