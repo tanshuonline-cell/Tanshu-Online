@@ -2,7 +2,7 @@ import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getR
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
-interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; }
+interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; }
 
 const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -18,6 +18,33 @@ function validOrigin(request: Request): boolean {
 }
 
 function normalizePhone(value: unknown): string { return normalizeIndianMobile(value); }
+
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function encryptIdentifier(value: string, secret: string): Promise<string> {
+  if (secret.length < 32) throw new Error('Digital Seva PII encryption secret must be at least 32 characters.');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(value));
+  return `enc:v1:${toBase64(iv)}:${toBase64(new Uint8Array(encrypted))}`;
+}
+
+async function protectApplicationDetails(details: Record<string, any>, secret: string): Promise<string> {
+  const copy = { ...details, fieldValues: { ...(details.fieldValues || {}) }, serviceOptions: { ...(details.serviceOptions || {}) } };
+  const sensitiveKey = /^(aadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
+  for (const collection of [copy.fieldValues, copy.serviceOptions]) {
+    for (const [key, value] of Object.entries(collection)) {
+      if (sensitiveKey.test(key) && String(value ?? '').trim()) collection[key] = await encryptIdentifier(String(value).trim(), secret);
+    }
+  }
+  return JSON.stringify(copy);
+}
 
 function makeReference(): string {
   const bytes = new Uint8Array(5);
@@ -103,7 +130,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (item.file.size > 5 * 1024 * 1024) return json({ success: false, error: 'Each document must be 5 MB or smaller.' }, 413);
   }
   if (totalUploadBytes > 20 * 1024 * 1024) return json({ success: false, error: 'The combined document upload limit is 20 MB.' }, 413);
-  const applicationDetails = JSON.stringify({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails });
+  let applicationDetails = '';
+  try {
+    applicationDetails = await protectApplicationDetails({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails }, env.DIGITAL_SEVA_PII_SECRET || '');
+  } catch (error) {
+    console.error('Digital Seva identifier encryption is not configured:', error);
+    return json({ success: false, error: 'Secure Aadhaar/PAN storage is not configured yet. Please contact the administrator before submitting this request.' }, 503);
+  }
   const consent = body.consent === true;
   const termsAccepted = body.termsAccepted === true;
   const termsPolicyVersion = String(body.termsPolicyVersion || '');
