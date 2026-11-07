@@ -288,3 +288,10 @@
 .dsa-no-details{margin:0;color:#777d86;font-size:12px}
 .dsa-document-row > div:last-child button:nth-child(2){border-color:#c9d9cf;background:#f4faf6;color:#246044}
 @media(max-width:640px){.dsa-detail-grid{grid-template-columns:1fr}.dsa-application-details{padding:11px}}
+
+
+/* Branded Digital Seva application slip action — admin only */
+.dsa-slip-action{display:flex;justify-content:flex-end;margin:8px 0 12px}
+.dsa-slip-action button{border:0;border-radius:8px;padding:9px 13px;background:#8f1725;color:#fff;font:800 11px 'DM Sans',sans-serif;cursor:pointer;box-shadow:0 4px 12px #8f17251c;transition:transform .18s,box-shadow .18s}
+.dsa-slip-action button:hover{transform:translateY(-1px);box-shadow:0 7px 16px #8f17252b}
+@media(max-width:560px){.dsa-slip-action{justify-content:stretch}.dsa-slip-action button{width:100%;min-height:40px}}
