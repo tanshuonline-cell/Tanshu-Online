@@ -153,7 +153,7 @@ export default function DigitalSevaPage() {
       const hindi = bookingReceipt.fieldValues[`${key}Hindi`] || '';
       const label = fieldLabels[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
       const hindiLabel = fieldLabelsHindi[key] || '';
-      return `<tr><th><div class="field-label"><b>${escape(label)}</b>${hindiLabel ? `<small>${escape(hindiLabel)}</small>` : ''}</div></th><td><div class="field-values"><div><small>English</small><b>${escape(mask(key, value))}</b></div>${hindi ? `<div><small>हिंदी</small><b>${escape(hindi)}</b></div>` : ''}</div></td></tr>`;
+      return `<tr><th><div class="field-label"><b>${escape(label)}</b>${hindiLabel ? `<small>${escape(hindiLabel)}</small>` : ''}</div></th><td><div class="field-values"><div><small>English</small><b>${escape(value.trim() ? mask(key, value) : '—')}</b></div>${hindi ? `<div><small>हिंदी</small><b>${escape(hindi)}</b></div>` : ''}</div></td></tr>`;
     }).join('');
     const optionLabels: Record<string, string> = { addressChoice: 'Address selected / चुना गया पता', level: 'Certificate level / प्रमाणपत्र स्तर', applicationType: 'Application type / आवेदन प्रकार' };
     const optionValue = (key: string, value: string) => key === 'addressChoice' ? (value === 'NEW' ? 'New Address / नया पता' : value === 'OLD' ? 'Old Address / पुराना पता' : value) : value;
