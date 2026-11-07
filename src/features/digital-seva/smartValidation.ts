@@ -47,10 +47,10 @@ export function isValidPin(value: unknown): boolean {
 export function isValidDate(value: unknown): boolean {
   const text = String(value ?? '').trim();
   let year = 0, month = 0, day = 0;
-  const local = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(text);
+  const local = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
   if (local) { day = Number(local[1]); month = Number(local[2]); year = Number(local[3]); }
   else {
-    const iso = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(text);
+    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
     if (!iso) return false;
     year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
   }
@@ -60,7 +60,6 @@ export function isValidDate(value: unknown): boolean {
   const today = new Date(); today.setHours(23, 59, 59, 999);
   return date <= today;
 }
-
 export function validateByKind(kind: ValidationKind, value: unknown): string | null {
   const text = String(value ?? '').trim();
   if (!text) return null;
