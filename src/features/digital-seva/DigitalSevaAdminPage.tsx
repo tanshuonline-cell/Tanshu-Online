@@ -104,6 +104,17 @@ function humanizeKey(key: string): string {
   return hindi ? `${label} — हिंदी` : label;
 }
 
+function displayAdminFieldValue(key: string, value: unknown): string {
+  const text = String(value ?? '').trim();
+  const normalized = key.toLowerCase();
+  if (/aadhaar|uid/.test(normalized)) {
+    const digits = text.replace(/\\D/g, '');
+    return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : text.startsWith('enc:v1:') ? 'Encrypted / protected' : text;
+  }
+  if (/pan(number|no)?$|existingpan/.test(normalized)) return text.length >= 4 ? `XXXXXX${text.slice(-4)}` : text;
+  return text.startsWith('enc:v1:') ? 'Encrypted / protected' : text;
+}
+
 function displayOptionValue(key: string, value: unknown): string {
   const text = String(value ?? '').trim();
   if (key === 'addressChoice') return text === 'NEW' ? 'New Address' : text === 'OLD' ? 'Old Address — keep the current online address unchanged' : text;
@@ -202,7 +213,7 @@ function BookingApplicationDetails({ booking }: { booking: Booking }) {
 
   return <div className="dsa-detail-panel">
     {correctionLabels.length > 0 && <section><h3>Selected corrections</h3><div className="dsa-detail-chips">{correctionLabels.map((label, index) => <span key={index}>{label}</span>)}</div></section>}
-    {rows.length > 0 && <section><h3>Customer-provided details</h3><dl className="dsa-detail-grid">{rows.map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{String(value)}</dd></div>)}</dl></section>}
+    {rows.length > 0 && <section><h3>Customer-provided details</h3><dl className="dsa-detail-grid">{rows.map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{displayAdminFieldValue(key, value)}</dd></div>)}</dl></section>}
     {Object.entries(fieldValues).some(([key, value]) => /aadhaar|uid|pan/i.test(key) && String(value ?? '').startsWith('enc:v1:')) && <p className="dsa-no-details">Aadhaar / PAN value is encrypted and protected. Check only the masked identifier in the application slip.</p>}
     {optionRows.length > 0 && <section><h3>Service options</h3><dl className="dsa-detail-grid">{optionRows.map(([key, value]) => <div key={key}><dt>{humanizeKey(key)}</dt><dd>{displayOptionValue(key, value)}</dd></div>)}</dl></section>}
     {documentLabels.length > 0 && <section><h3>Selected documents</h3><div className="dsa-detail-chips">{documentLabels.map((label, index) => <span key={index}>{label}</span>)}</div></section>}
