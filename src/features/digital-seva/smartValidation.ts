@@ -92,9 +92,9 @@ export function validationKindForField(key: string): ValidationKind {
 
 export function getRequiredServiceFieldKeys(serviceId: string, options: Record<string, unknown> = {}): string[] {
   const required: Record<string, string[]> = {
-    'pan-new': ['panApplicantName', 'panDob', 'panAddress'],
-    'pan-correction': ['existingPanNumber'],
-    'pan-photo-signature': ['existingPanNumber'],
+    'pan-new': ['panApplicantName', 'panDob', 'panAddress', 'aadhaarNumber'],
+    'pan-correction': ['existingPanNumber', 'aadhaarNumber'],
+    'pan-photo-signature': ['existingPanNumber', 'aadhaarNumber'],
     'aadhaar-mobile': ['aadhaarNumber', 'newMobile'],
     'aadhaar-email': ['aadhaarNumber', 'newEmail'],
     'aadhaar-download': ['aadhaarNumber'],
