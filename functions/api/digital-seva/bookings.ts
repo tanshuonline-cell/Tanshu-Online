@@ -1,4 +1,4 @@
-import { normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
+import { normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores only a minimal booking request. Customer documents and payments are deliberately out of scope.
 interface Env { DIGITAL_SEVA_DB?: any; }
@@ -100,7 +100,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (value == null || !String(value).trim()) return json({ success: false, error: `Required service field is missing: ${field}.` }, 400);
   }
   for (const [field, value] of Object.entries(fieldValues)) {
-    const issue = validateByKind(validationKindForField(field), value);
+    const issue = validateFieldByKey(field, value);
     if (issue) return json({ success: false, error: `Invalid service field: ${field}. ${issue}` }, 400);
   }
   for (const [field, value] of Object.entries(serviceOptions)) {
