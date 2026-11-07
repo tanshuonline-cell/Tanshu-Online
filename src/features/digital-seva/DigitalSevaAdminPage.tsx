@@ -291,12 +291,14 @@ export default function DigitalSevaAdminPage() {
   };
 
   const updateStatus = async (booking: Booking) => {
-    const status = draftStatuses[booking.id];
-    if (!status || status === booking.status) return;
+    const status = draftStatuses[booking.id] || booking.status;
+    const estimateChanged = (draftEstimates[booking.id] || '') !== toLocalDateTimeInput(booking.estimated_completion_at);
+    const note = (draftNotes[booking.id] || '').trim();
+    if (!status || (status === booking.status && !estimateChanged && !note)) return;
     setSavingId(booking.id);
     setError('');
     try {
-      const response = await fetch('/api/digital-seva/admin', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: booking.id, status, estimatedCompletionAt: draftEstimates[booking.id] ? new Date(draftEstimates[booking.id]).toISOString() : '', note: draftNotes[booking.id] || '' }) });
+      const response = await fetch('/api/digital-seva/admin', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: booking.id, status, estimatedCompletionAt: draftEstimates[booking.id] ? new Date(draftEstimates[booking.id]).toISOString() : '', note }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) throw new Error(data.error || 'Status update failed.');
       await loadBookings();
