@@ -396,7 +396,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       </div>}
       {service.id === 'aadhaar-address-doc' && <div className="ds-application-field-grid">
         {textInput('docRelationName', "Father's name", 'पिता का नाम')}
-        <small>{hi ? 'इस सेवा में केवल पिता का नाम लिया जाएगा। C/O, S/O या D/O जैसे विकल्प शामिल नहीं हैं।' : "This service collects the father's name only. C/O, S/O and D/O options are not used here."}</small>
+        <small>{hi ? 'यहाँ केवल पिता का सही नाम भरें।' : "Enter the father's correct name only."}</small>
       </div>}
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-field-grid">
         {selectInput('hofRelation', 'Eligible relation to Head of Family', 'परिवार के मुखिया से संबंध चुनें', [
