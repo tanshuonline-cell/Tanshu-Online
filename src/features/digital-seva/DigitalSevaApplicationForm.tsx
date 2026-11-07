@@ -36,7 +36,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [error, setError] = useState('');
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
-  const documents = useMemo(() => getServiceDocumentOptions(service.id), [service.id]);
+  const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections), [service.id, corrections]);
   const intermediary = requesterType !== '' && requesterType !== 'DIRECT_CUSTOMER';
   const isOwnWork = !intermediary || applicationFor === 'SELF';
   const requesterOptions = [
@@ -57,6 +57,12 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   };
   const setField = (key: string, value: string) => setFieldValues((old) => ({ ...old, [key]: value }));
   const setOption = (key: string, value: string) => setServiceOptions((old) => ({ ...old, [key]: value }));
+  const changeCorrection = (id: string, checked: boolean) => {
+    const next = checked ? [...corrections, id] : corrections.filter((value) => value !== id);
+    setCorrections(next);
+    const validDocuments = new Set(getServiceDocumentOptions(service.id, next).map((item) => item.id));
+    setSelectedDocuments((old) => old.filter((value) => value === 'other' || validDocuments.has(value)));
+  };
 
   const validateStep = () => {
     if (step === 0 && !requesterType) return hi ? 'कृपया आवेदन करने की श्रेणी चुनें।' : 'Please select who is submitting this request.';
@@ -312,6 +318,16 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
 
     {step === 2 && <section className="ds-application-step">
       <span className="ds-kicker">{hi ? 'चरण 3' : 'STEP 3'}</span><h3>{hi ? 'काम का विवरण और उपलब्ध दस्तावेज़' : 'Work details and available documents'}</h3>
+      {correctionsForService.length > 0 && <div className="ds-application-profile">
+        <h4>{hi ? 'किस विवरण में सुधार करवाना है?' : 'Which details need correction?'}</h4>
+        <p>{hi ? 'एक या एक से अधिक विकल्प चुनें। उसी के अनुसार दस्तावेज़ों की सूची बदलेगी।' : 'Select one or more options. The document checklist will update to match your selections.'}</p>
+        <div className="ds-application-doc-list">
+          {correctionsForService.map((option) => <label key={option.id} className="ds-application-doc-option">
+            <input type="checkbox" checked={corrections.includes(option.id)} onChange={(e) => changeCorrection(option.id, e.target.checked)} />
+            <span><strong>{hi ? option.hindi : option.label}</strong></span>
+          </label>)}
+        </div>
+      </div>}
       {renderServiceFields()}
       <div className="ds-application-profile">
         <h4>{hi ? 'आपके पास कौन-कौन से दस्तावेज़ उपलब्ध हैं?' : 'Which documents do you currently have?'}</h4>
