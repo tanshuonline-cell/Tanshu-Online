@@ -142,7 +142,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     const shouldFormat = /(name|address|district|subdivision|block|village|town|city|postoffice|policestation|localbody|ward|occupation|profession|purpose|scheme)/.test(normalizedKey);
     if (!shouldFormat) return value;
     return normalizedKey === 'familymembernames'
-      ? value.split(/\\r?\\n/).map((line) => formatEnglishTitleCase(line)).join('\\n')
+      ? value.split(/\r?\n/).map((line) => formatEnglishTitleCase(line)).join('\n')
       : formatEnglishTitleCase(value);
   };
   const startNewApplication = async () => {
@@ -190,7 +190,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       newMobile: 'नया मोबाइल नंबर भरें।', newEmail: 'नई ईमेल आईडी भरें।', incomeFatherName: 'पिता का नाम भरें।',
       casteFatherName: 'पिता का नाम भरें।', casteCategory: 'श्रेणी / जाति भरें।', casteName: 'जाति का नाम भरें।',
       certificateDistrict: 'जिला भरें।', certificateSubdivision: 'अनुमंडल भरें।', certificateBlock: 'प्रखंड भरें।', certificateVillage: 'गाँव / मोहल्ला भरें।', certificatePin: '6 अंकों का PIN कोड भरें।',
-      certificatePurpose: 'प्रमाणपत्र का उद्देश्य भरें।', residenceDistrict: 'जिला भरें।', residenceSubdivision: 'अनुमंडल भरें।', residenceBlock: 'प्रखंड भरें।', residenceVillageWard: 'गाँव / मोहल्ला / वार्ड भरें।', residencePin: '6 अंकों का PIN कोड भरें।',
+      aadhaarAddress: 'UIDAI अपडेट के लिए पूरा पता भरें।', aadhaarAddressPin: 'सही 6 अंकों का PIN कोड भरें।', certificatePurpose: 'प्रमाणपत्र का उद्देश्य भरें।', residenceDistrict: 'जिला भरें।', residenceSubdivision: 'अनुमंडल भरें।', residenceBlock: 'प्रखंड भरें।', residenceVillageWard: 'गाँव / मोहल्ला / वार्ड भरें।', residencePin: '6 अंकों का PIN कोड भरें।',
       voterDob: 'जन्मतिथि भरें।', voterAddress: 'निवास का पूरा पता भरें।', voterRelativeName: 'रिश्तेदार का नाम भरें।',
       familyMemberCount: 'परिवार के सदस्यों की संख्या भरें।', familyMemberNames: 'परिवार के सदस्यों के नाम भरें।', rationDistrict: 'जिला भरें।', rationBlock: 'प्रखंड भरें।', rationVillageWard: 'गाँव / वार्ड / मोहल्ला भरें।', rationPin: '6 अंकों का PIN कोड भरें।',
       hofRelation: 'परिवार के मुखिया से संबंध चुनें।', hofName: 'मुखिया का नाम भरें।', currentCo: 'मौजूदा C/O विवरण भरें।',
@@ -292,7 +292,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}
       {key === 'familyMemberNames' || key === 'aadhaarAddress'
         ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={key === 'aadhaarAddress' ? 3 : 3} />
-        : <input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={/pin$/i.test(key) ? 'numeric' : undefined} maxLength={/pin$/i.test(key) ? 6 : undefined} value={fieldValues[key] || ''} onChange={(e) => setField(key, /pin$/i.test(key) ? e.target.value.replace(/\\D/g, '').slice(0, 6) : e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} />}
+        : <input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={/pin$/i.test(key) ? 'numeric' : undefined} maxLength={/pin$/i.test(key) ? 6 : undefined} value={fieldValues[key] || ''} onChange={(e) => setField(key, /pin$/i.test(key) ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} />}
       {fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}
     </label>
   );

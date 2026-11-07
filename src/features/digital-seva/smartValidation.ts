@@ -137,7 +137,7 @@ export function isMeaningfulDescription(value: unknown): boolean {
 /** Convert English words in names/addresses to readable Title Case; preserve Indian scripts and known acronyms. */
 export function formatEnglishTitleCase(value: unknown): string {
   const acronyms = new Set(['PIN', 'PAN', 'UIDAI', 'CSC', 'PSU', 'SDO', 'DM', 'CO', 'C/O', 'PO']);
-  return String(value ?? '').replace(/[\\p{L}\\p{M}]+(?:['’][\\p{L}\\p{M}]+)?/gu, (word) => {
+  return String(value ?? '').replace(/[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)?/gu, (word) => {
     if (!/[A-Za-z]/.test(word) || acronyms.has(word.toUpperCase())) return word;
     const lower = word.toLowerCase();
     return lower.charAt(0).toUpperCase() + lower.slice(1);
@@ -145,7 +145,7 @@ export function formatEnglishTitleCase(value: unknown): string {
 }
 
 export function containsForbiddenAadhaarAddressInstruction(value: unknown): boolean {
-  const normalized = String(value ?? '').toLowerCase().normalize('NFKC').replace(/[^\\p{L}\\p{N}]/gu, '');
+  const normalized = String(value ?? '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '');
   return [
     'yeaddnahihonachahiyekahibhii',
     'yeaddnahihonachahiyekahibhi',
