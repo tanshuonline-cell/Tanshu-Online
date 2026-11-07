@@ -335,10 +335,13 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <h4>{hi ? 'आपके पास कौन-कौन से दस्तावेज़ उपलब्ध हैं?' : 'Which documents do you currently have?'}</h4>
         <p>{hi ? 'सिर्फ वही विकल्प टिक करें जो वास्तव में आपके पास हैं। अंतिम स्वीकार्यता विभाग के नियमों से जाँची जाएगी।' : 'Tick only documents you actually have. Final acceptance is checked against the current official rules.'}</p>
         <div className="ds-application-doc-list">
-          {documents.map((item) => <label key={item.id} className="ds-application-doc-option">
-            <input type="checkbox" checked={selectedDocuments.includes(item.id)} onChange={(e) => setSelectedDocuments((old) => e.target.checked ? [...old, item.id] : old.filter((x) => x !== item.id))} />
-            <span><strong>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
-          </label>)}
+          {documents.map((item) => <div key={item.id} className="ds-application-doc-row">
+            <label className="ds-application-doc-option">
+              <input type="checkbox" checked={selectedDocuments.includes(item.id)} onChange={(e) => setSelectedDocuments((old) => e.target.checked ? [...old, item.id] : old.filter((x) => x !== item.id))} />
+              <span><strong>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
+            </label>
+            {selectedDocuments.includes(item.id) && <label className="ds-application-file-disabled">{hi ? 'फाइल अपलोड (सुरक्षित अपलोड चालू होने पर)' : 'File upload (available after secure storage setup)'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled /></label>}
+          </div>)}
           <label className="ds-application-doc-option"><input type="checkbox" checked={selectedDocuments.includes('other')} onChange={(e) => setSelectedDocuments((old) => e.target.checked ? [...old, 'other'] : old.filter((x) => x !== 'other'))} /><span><strong>{hi ? 'अन्य दस्तावेज़' : 'Other document'}</strong><small>{hi ? 'सूची में नहीं है तो उसका नाम लिखें।' : 'If it is not listed, enter its exact name.'}</small></span></label>
         </div>
         {selectedDocuments.includes('other') && <label className="ds-application-wide">{hi ? 'अन्य दस्तावेज़ का नाम' : 'Name of other document'}<input value={otherDocumentName} onChange={(e) => setOtherDocumentName(e.target.value)} required /></label>}
