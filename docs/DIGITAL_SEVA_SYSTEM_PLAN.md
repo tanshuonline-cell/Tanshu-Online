@@ -53,9 +53,9 @@
 
 
 ## Fee disclosure and separate policy consent — Preview implementation (7 November 2026)
-- A service-wise fee/refund registry now covers all 29 catalogue services in `src/features/digital-seva/serviceFeeRegistry.ts`.
+- A service-wise fee/refund registry now covers all 32 catalogue services in `src/features/digital-seva/serviceFeeRegistry.ts`.
 - Official fee amounts are shown only where the reviewed official source supports the exact route. PAN, Bihar RTPS, ration, scheme and other route-dependent services remain live-quote-required.
-- TANSHU ONLINE service prices are intentionally left unconfigured until the business supplies its price schedule and deliverables.
+- Previously accepted TANSHU ONLINE rates are applied to PAN, Aadhaar download/print/PVC, certificates, Voter ID, ration, form filling, PDF/image/signature and scan services. Remaining unpriced items stay explicitly unconfigured.
 - Service details show Government/Provider Fee, official refund rule, TANSHU service fee/refund basis, official source link, review date and service-specific caveat.
 - Booking now requires separate unticked Terms & Conditions and Refund Policy checkboxes in addition to the existing contact permission. Full text is expandable before submission.
 - Booking API validates both policy booleans and policy-version identifiers, requires email, and writes separate server timestamps/version strings.
