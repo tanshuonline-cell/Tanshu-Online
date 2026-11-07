@@ -36,7 +36,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [serviceOptions, setServiceOptions] = useState<Record<string, string>>({});
   const [bookingConsent, setBookingConsent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsAcceptedAt, setTermsAcceptedAt] = useState<string | null>(null);
   const [refundAccepted, setRefundAccepted] = useState(false);
+  const [refundAcceptedAt, setRefundAcceptedAt] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -76,7 +78,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setServiceOptions(d.serviceOptions || {});
         setBookingConsent(Boolean(d.bookingConsent));
         setTermsAccepted(Boolean(d.termsAccepted));
+        setTermsAcceptedAt(typeof d.termsAcceptedAt === 'string' ? d.termsAcceptedAt : null);
         setRefundAccepted(Boolean(d.refundAccepted));
+        setRefundAcceptedAt(typeof d.refundAcceptedAt === 'string' ? d.refundAcceptedAt : null);
         setDraftRestored(true);
       }
       setDraftReady(true);
@@ -92,7 +96,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       step, requesterType, applicationFor, operator, centerName, centerAddress,
       agencyName, agencyAddress, applicant, corrections, selectedDocuments,
       documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions,
-      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, refundAccepted
+      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt
     };
     draftStateRef.current = data;
     const persist = () => {
@@ -108,7 +112,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       window.removeEventListener('pagehide', onPageHide);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, refundAccepted]);
+  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt]);
 
   useEffect(() => () => {
     if (!completedRef.current && Object.keys(draftStateRef.current).length) {
@@ -180,7 +184,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setServiceOptions({});
     setBookingConsent(false);
     setTermsAccepted(false);
+    setTermsAcceptedAt(null);
     setRefundAccepted(false);
+    setRefundAcceptedAt(null);
     setError('');
     setFieldErrors({});
     setDraftRestored(false);
@@ -281,8 +287,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
         customerEmail: applicant.email.trim(), corrections, fieldValues, serviceOptions,
         selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(),
-        consent: bookingConsent, termsAccepted, termsPolicyVersion: TERMS_POLICY_VERSION,
-        refundPolicyAccepted: refundAccepted, refundPolicyVersion: REFUND_POLICY_VERSION,
+        consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
+        refundPolicyAccepted: refundAccepted, refundAcceptedAt, refundPolicyVersion: REFUND_POLICY_VERSION,
         idempotencyKey: window.crypto.randomUUID()
       };
       const formData = new FormData();
@@ -661,7 +667,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <div><small>{hi ? 'काम के निर्देश' : 'Work instructions'}</small><strong>{taskDetails}</strong></div>
       </div>
       <div className="ds-booking-privacy"><ShieldCheck size={18} /><span>{hi ? 'नाम, मोबाइल और ईमेल अनिवार्य हैं। यह सहायता अनुरोध है, सरकारी आवेदन जमा होने का प्रमाण नहीं।' : 'Name, mobile and email are required. This is an assistance request, not proof that a government application has been filed.'}</span></div>
-      <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); clearFieldError("termsAccepted"); }} onRefundChange={(value) => { setRefundAccepted(value); clearFieldError("refundAccepted"); }} termsError={fieldErrors.termsAccepted} refundError={fieldErrors.refundAccepted} />
+      <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); setTermsAcceptedAt(value ? new Date().toISOString() : null); clearFieldError("termsAccepted"); }} onRefundChange={(value) => { setRefundAccepted(value); setRefundAcceptedAt(value ? new Date().toISOString() : null); clearFieldError("refundAccepted"); }} termsError={fieldErrors.termsAccepted} refundError={fieldErrors.refundAccepted} />
       <label className={fieldErrors.bookingConsent ? "ds-booking-consent ds-field-invalid" : "ds-booking-consent"}><input data-validation-key="bookingConsent" aria-invalid={Boolean(fieldErrors.bookingConsent)} type="checkbox" checked={bookingConsent} onChange={(e) => { setBookingConsent(e.target.checked); clearFieldError("bookingConsent"); }} required /><span>{hi ? 'मैं सहमत हूँ कि TANSHU ONLINE इस सेवा अनुरोध के बारे में मुझसे संपर्क कर सकता है। मैं समझता/समझती हूँ कि यह स्वतंत्र सहायता सेवा है, सरकारी विभाग नहीं।' : 'I agree that TANSHU ONLINE may contact me about this service request. I understand this is an independent assistance service, not a government department.'}</span></label>
     </section>}
 
