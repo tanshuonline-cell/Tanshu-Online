@@ -1,7 +1,7 @@
 // Cloudflare Pages Function: /api/digital-seva/admin
 // Admin-only booking and private document operations. Uses the existing signed superadmin session cookie.
 import { createPrivateDocumentUrl, deletePrivateDocument } from './_storage';
-interface Env { DIGITAL_SEVA_DB?: any; ADMIN_SECRET_TOKEN?: string; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; }
+interface Env { DIGITAL_SEVA_DB?: any; ADMIN_SECRET_TOKEN?: string; DIGITAL_SEVA_PII_SECRET?: string; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const ALLOWED_STATUSES = new Set(['RECEIVED', 'IN_REVIEW', 'WAITING_FOR_CUSTOMER', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
 
@@ -36,6 +36,38 @@ async function adminUser(request: Request, env: Env): Promise<string | null> {
   } catch { return null; }
 }
 
+
+function fromBase64(value: string): Uint8Array {
+  const binary = atob(value);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function revealApplicationDetails(raw: string | null, secret: string): Promise<string | null> {
+  if (!raw) return raw;
+  let details: any;
+  try { details = JSON.parse(raw); } catch { return raw; }
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return raw;
+  const sensitiveKey = /^(aadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
+  const encryptedValues = [details.fieldValues, details.serviceOptions].some((collection) =>
+    collection && typeof collection === 'object' && Object.entries(collection).some(([key, value]) => sensitiveKey.test(key) && typeof value === 'string' && value.startsWith('enc:v1:'))
+  );
+  if (!encryptedValues) return raw;
+  if (secret.length < 32) throw new Error('Digital Seva PII decryption secret is missing or too short.');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+  const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+  for (const collection of [details.fieldValues, details.serviceOptions]) {
+    if (!collection || typeof collection !== 'object') continue;
+    for (const [field, value] of Object.entries(collection)) {
+      if (!sensitiveKey.test(field) || typeof value !== 'string' || !value.startsWith('enc:v1:')) continue;
+      const parts = value.split(':');
+      if (parts.length !== 4 || parts[1] !== 'v1') throw new Error('Encrypted Digital Seva identifier has an invalid format.');
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(parts[2]) }, key, fromBase64(parts[3]));
+      collection[field] = new TextDecoder().decode(decrypted);
+    }
+  }
+  return JSON.stringify(details);
+}
+
 function validOrigin(request: Request): boolean {
   const origin = request.headers.get('Origin');
   return Boolean(origin) && origin === new URL(request.url).origin;
@@ -60,7 +92,11 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       list.push({ id: doc.id, documentType: doc.document_type, fileName: doc.original_file_name, contentType: doc.content_type, sizeBytes: doc.size_bytes, createdAt: doc.created_at });
       grouped.set(doc.booking_id, list);
     }
-    const bookings = (result.results || []).map((booking: any) => ({ ...booking, documents: grouped.get(booking.id) || [] }));
+    const bookings = await Promise.all((result.results || []).map(async (booking: any) => ({
+      ...booking,
+      application_details_json: await revealApplicationDetails(booking.application_details_json, env.DIGITAL_SEVA_PII_SECRET || ''),
+      documents: grouped.get(booking.id) || []
+    })));
     return json({ success: true, bookings });
   } catch (error) {
     console.error('Digital Seva admin list failed:', error);
