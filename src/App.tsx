@@ -491,6 +491,22 @@ export default function App() {
           onScrollToTop={() => scrollToSection('home')}
         />
 
+        {/* Digital Seva entry card: placed between Government Category and Video Learning Center */}
+        <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Digital Seva Center">
+          <a href="/digital-seva" className="group flex flex-col gap-4 rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-rose-200 hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:p-7">
+            <div className="flex items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-rose-900 text-lg font-extrabold tracking-wide text-white shadow-md">DS</span>
+              <div>
+                <span className="mb-1 inline-block text-xs font-bold uppercase tracking-widest text-rose-800">Independent Digital Assistance</span>
+                <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">Digital Seva Center</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Government service guidance, document help and PDF services — all in one place.</p>
+                <p className="mt-1 text-sm font-medium text-slate-500">सरकारी सेवाओं और डॉक्यूमेंट सहायता की जानकारी एक ही जगह।</p>
+              </div>
+            </div>
+            <span className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-rose-900 px-5 py-3 text-sm font-bold text-white transition-colors group-hover:bg-rose-800 sm:self-center">Explore Digital Seva <span aria-hidden="true">→</span></span>
+          </a>
+        </section>
+
         {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
         <VideoLearningCenter
           videos={catalogVideos}
