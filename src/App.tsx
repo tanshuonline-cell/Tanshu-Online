@@ -297,8 +297,7 @@ export default function App() {
           const headerOffset = 80;
           const elementPosition = element.getBoundingClientRect().top;
           const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-        }
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });        }
       }, 100);
       return;
     }
@@ -489,7 +488,6 @@ export default function App() {
             setDirectoryCategory(category || 'all');
             setDirectoryOpenRequest((request) => request + 1);
             setSearchQuery('');
-            scrollToSection('all-tools');
           }}
           onScrollToTop={() => scrollToSection('home')}
         />
