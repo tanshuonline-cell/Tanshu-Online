@@ -37,6 +37,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
   const now = Date.now();
   const current = attempts.get(ip);
+  if (attempts.size > 1000) {
+    for (const [key, value] of attempts) if (value.resetAt <= now) attempts.delete(key);
+  }
   if (current && current.resetAt > now && current.count >= 5) {
     return json({ success: false, error: 'Too many requests. Please wait a few minutes and try again.' }, 429);
   }
@@ -64,15 +67,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     const bookingId = crypto.randomUUID();
     const bookingReference = makeReference();
-    await env.DIGITAL_SEVA_DB.prepare(
-      `INSERT INTO digital_seva_bookings
-       (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email, status, consent_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP)`
-    ).bind(bookingId, bookingReference, key, serviceId, name, phone, email || null).run();
-    await env.DIGITAL_SEVA_DB.prepare(
-      `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
-       VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
-    ).bind(crypto.randomUUID(), bookingId).run();
+    await env.DIGITAL_SEVA_DB.batch([
+      env.DIGITAL_SEVA_DB.prepare(
+        `INSERT INTO digital_seva_bookings
+         (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email, status, consent_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP)`
+      ).bind(bookingId, bookingReference, key, serviceId, name, phone, email || null),
+      env.DIGITAL_SEVA_DB.prepare(
+        `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
+         VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
+      ).bind(crypto.randomUUID(), bookingId),
+    ]);
     return json({ success: true, bookingReference, status: 'RECEIVED' }, 201);
   } catch (error) {
     console.error('Digital Seva booking save failed:', error);
