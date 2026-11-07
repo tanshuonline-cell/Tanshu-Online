@@ -37,7 +37,7 @@ async function encryptIdentifier(value: string, secret: string): Promise<string>
 
 async async function protectApplicationDetails(details: Record<string, any>, secret: string): Promise<string> {
   const copy = { ...details, fieldValues: { ...(details.fieldValues || {}) }, serviceOptions: { ...(details.serviceOptions || {}) } };
-  const sensitiveKey = /^(aadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
+  const sensitiveKey = /^(aadhaarnumber|hofaadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
   for (const collection of [copy.fieldValues, copy.serviceOptions]) {
     for (const [key, value] of Object.entries(collection)) {
       if (sensitiveKey.test(key) && String(value ?? '').trim()) collection[key] = await encryptIdentifier(String(value).trim(), secret);
