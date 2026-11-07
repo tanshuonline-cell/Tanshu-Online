@@ -26,6 +26,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [applicant, setApplicant] = useState<Contact>(emptyContact());
   const [corrections, setCorrections] = useState<string[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<Record<string, File>>({});
   const [otherDocumentName, setOtherDocumentName] = useState('');
   const [taskDetails, setTaskDetails] = useState('');
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
@@ -69,6 +70,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setCorrections(next);
     const validDocuments = new Set(getServiceDocumentOptions(service.id, next).map((item) => item.id));
     setSelectedDocuments((old) => old.filter((value) => value === 'other' || validDocuments.has(value)));
+    setDocumentFiles((old) => Object.fromEntries(Object.entries(old).filter(([key]) => key === 'other' || validDocuments.has(key))));
   };
 
   const validateStep = () => {
@@ -112,6 +114,12 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       }
       if (!isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
+      const attachedFiles = Object.values(documentFiles);
+      if (attachedFiles.length > 8) return reject('documentFiles', 'एक बार में अधिकतम 8 दस्तावेज़ अपलोड करें।');
+      if (attachedFiles.some((file) => file.size > 5 * 1024 * 1024)) return reject('documentFiles', 'हर दस्तावेज़ 5 MB या उससे कम होना चाहिए।');
+      if (attachedFiles.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024) return reject('documentFiles', 'सभी दस्तावेज़ों का कुल आकार 20 MB से अधिक नहीं होना चाहिए।');
+      if (attachedFiles.some((file) => !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type))) return reject('documentFiles', 'केवल PDF, JPG और PNG फ़ाइल अपलोड करें।');
+
       for (const key of getRequiredServiceFieldKeys(service.id, serviceOptions)) {
         if (!String(valueOf(key)).trim()) return reject(key, requiredMessages[key] || 'यह जानकारी भरना अनिवार्य है।');
       }
@@ -152,8 +160,13 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         refundPolicyAccepted: refundAccepted, refundPolicyVersion: REFUND_POLICY_VERSION,
         idempotencyKey: window.crypto.randomUUID()
       };
+      const formData = new FormData();
+      formData.append('payload', JSON.stringify(payload));
+      const filesToUpload = Object.entries(documentFiles).filter(([documentType, file]) => selectedDocuments.includes(documentType) && file);
+      formData.append('documentTypes', JSON.stringify(filesToUpload.map(([documentType]) => documentType)));
+      filesToUpload.forEach(([, file]) => formData.append('documentFile', file, file.name));
       const response = await fetch('/api/digital-seva/bookings', {
-        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'POST', credentials: 'same-origin', body: formData
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success || !data.bookingReference) throw new Error(data.error || 'Booking could not be saved. Please try again later.');
@@ -434,15 +447,31 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <div className="ds-application-doc-list">
           {documents.map((item) => <div key={item.id} className="ds-application-doc-row">
             <label className="ds-application-doc-option">
-              <input type="checkbox" checked={selectedDocuments.includes(item.id)} onChange={(e) => setSelectedDocuments((old) => e.target.checked ? [...old, item.id] : old.filter((x) => x !== item.id))} />
+              <input type="checkbox" checked={selectedDocuments.includes(item.id)} onChange={(e) => {
+                const checked = e.target.checked;
+                setSelectedDocuments((old) => checked ? [...old, item.id] : old.filter((x) => x !== item.id));
+                if (!checked) setDocumentFiles((old) => { const next = { ...old }; delete next[item.id]; return next; });
+              }} />
               <span><strong>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
             </label>
-            {selectedDocuments.includes(item.id) && <label className="ds-application-file-disabled">{hi ? 'फाइल अपलोड (सुरक्षित अपलोड चालू होने पर)' : 'File upload (available after secure storage setup)'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled /></label>}
+            {selectedDocuments.includes(item.id) && <label className="ds-application-file-upload">{hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)'}
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => {
+                const file = e.target.files?.[0];
+                setDocumentFiles((old) => { const next = { ...old }; if (file) next[item.id] = file; else delete next[item.id]; return next; });
+                clearFieldError('documentFiles');
+              }} />
+              {documentFiles[item.id] && <small>{documentFiles[item.id].name} · {(documentFiles[item.id].size / 1024 / 1024).toFixed(2)} MB</small>}
+            </label>}
           </div>)}
-          <label className="ds-application-doc-option"><input type="checkbox" checked={selectedDocuments.includes('other')} onChange={(e) => setSelectedDocuments((old) => e.target.checked ? [...old, 'other'] : old.filter((x) => x !== 'other'))} /><span><strong>{hi ? 'अन्य दस्तावेज़' : 'Other document'}</strong><small>{hi ? 'सूची में नहीं है तो उसका नाम लिखें।' : 'If it is not listed, enter its exact name.'}</small></span></label>
+          <label className="ds-application-doc-option"><input type="checkbox" checked={selectedDocuments.includes('other')} onChange={(e) => {
+            const checked = e.target.checked;
+            setSelectedDocuments((old) => checked ? [...old, 'other'] : old.filter((x) => x !== 'other'));
+            if (!checked) setDocumentFiles((old) => { const next = { ...old }; delete next.other; return next; });
+          }} /><span><strong>{hi ? 'अन्य दस्तावेज़' : 'Other document'}</strong><small>{hi ? 'सूची में नहीं है तो उसका नाम लिखें।' : 'If it is not listed, enter its exact name.'}</small></span></label>
         </div>
         {selectedDocuments.includes('other') && <label className={fieldErrors.otherDocumentName ? "ds-application-wide ds-field-invalid" : "ds-application-wide"}>{hi ? 'अन्य दस्तावेज़ का नाम' : 'Name of other document'}<input aria-invalid={Boolean(fieldErrors.otherDocumentName)} data-validation-key="otherDocumentName" value={otherDocumentName} onChange={(e) => { setOtherDocumentName(e.target.value); clearFieldError("otherDocumentName"); }} required /></label>}
-        <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'सुरक्षित दस्तावेज़ अपलोड इस Preview में अभी चालू नहीं है। यहाँ Aadhaar/PAN या कोई निजी दस्तावेज़ अपलोड न करें। अभी केवल उपलब्ध दस्तावेज़ों की सूची दर्ज होगी।' : 'Secure document upload is not enabled in this Preview. Do not upload Aadhaar/PAN or other private documents here. This step records only the documents you have available.'}</span></div>
+        {selectedDocuments.includes('other') && <label className="ds-application-file-upload">{hi ? 'अन्य दस्तावेज़ की फ़ाइल (वैकल्पिक)' : 'Other document file (optional)'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => { const file = e.target.files?.[0]; setDocumentFiles((old) => { const next = { ...old }; if (file) next.other = file; else delete next.other; return next; }); clearFieldError('documentFiles'); }} />{documentFiles.other && <small>{documentFiles.other.name} · {(documentFiles.other.size / 1024 / 1024).toFixed(2)} MB</small>}</label>}
+        <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'फ़ाइलें निजी Preview स्टोरेज में सुरक्षित अपलोड होंगी। PDF, JPG या PNG स्वीकार हैं; हर फ़ाइल अधिकतम 5 MB और कुल 20 MB तक। फ़ाइल अपलोड वैकल्पिक है। OTP, पासवर्ड या पूरा Aadhaar/PAN नंबर साझा न करें।' : 'Files are uploaded to private Preview storage. PDF, JPG and PNG only; up to 5 MB per file and 20 MB total. Uploading is optional. Never share OTPs, passwords or full Aadhaar/PAN numbers.'}</span></div>
       </div>
     </section>}
 
