@@ -47,18 +47,17 @@ export function isValidPin(value: unknown): boolean {
 export function isValidDate(value: unknown): boolean {
   const text = String(value ?? '').trim();
   let year = 0, month = 0, day = 0;
-  let match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
-  if (match) [, day, month, year] = match.map((part, index) => index === 0 ? part : Number(part)) as any;
+  const local = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(text);
+  if (local) { day = Number(local[1]); month = Number(local[2]); year = Number(local[3]); }
   else {
-    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    const iso = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(text);
     if (!iso) return false;
     year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
   }
   if (!year || month < 1 || month > 12 || day < 1 || day > 31) return false;
   const date = new Date(year, month - 1, day);
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return false;
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const today = new Date(); today.setHours(23, 59, 59, 999);
   return date <= today;
 }
 
@@ -80,12 +79,13 @@ export function validateByKind(kind: ValidationKind, value: unknown): string | n
 
 export function validationKindForField(key: string): ValidationKind {
   const k = key.toLowerCase();
+  if (k === 'familymembernames') return 'text';
   if (/(name|applicant|father|mother|relative|ancestor|hof|membername|recordedname)/.test(k)) return 'name';
   if (/(mobile|phone)/.test(k)) return 'mobile';
   if (/(email)/.test(k)) return 'email';
   if (/(pin)$/.test(k) || /pincode/.test(k)) return 'pin';
   if (/(dob|date|issuedate)/.test(k)) return 'date';
-  if (/(address|village|mohalla|postoffice|policestation|subdivision|district|block|localbody)/.test(k)) return 'address';
+  if (/(address)$/.test(k) || k === 'centeraddress' || k === 'agencyaddress') return 'address';
   if (/(amount|count|copies)$/.test(k)) return 'number';
   if (/(link|url)$/.test(k)) return 'url';
   return 'text';
