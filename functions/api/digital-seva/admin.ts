@@ -117,9 +117,14 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   const nextStatus = String(body?.status || '');
   const note = String(body?.note || '').trim().slice(0, 500);
   const estimateInput = String(body?.estimatedCompletionAt || '').trim();
-  const estimatedCompletionAt = estimateInput ? new Date(estimateInput).toISOString() : null;
-  if (!id || id.length > 64 || !ALLOWED_STATUSES.has(nextStatus) || (estimateInput && (!Number.isFinite(Date.parse(estimateInput)) || !estimatedCompletionAt))) {
-    return json({ success: false, error: 'Invalid booking, status or estimated completion time.' }, 400);
+  let estimatedCompletionAt: string | null = null;
+  if (estimateInput) {
+    const estimateDate = new Date(estimateInput);
+    if (!Number.isFinite(estimateDate.getTime())) return json({ success: false, error: 'Enter a valid estimated completion time.' }, 400);
+    estimatedCompletionAt = estimateDate.toISOString();
+  }
+  if (!id || id.length > 64 || !ALLOWED_STATUSES.has(nextStatus)) {
+    return json({ success: false, error: 'Invalid booking or status.' }, 400);
   }
   try {
     const current = await env.DIGITAL_SEVA_DB.prepare('SELECT status, estimated_completion_at FROM digital_seva_bookings WHERE id = ?').bind(id).first();
