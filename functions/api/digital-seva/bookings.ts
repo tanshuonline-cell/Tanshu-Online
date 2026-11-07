@@ -113,7 +113,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
   if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(serviceId) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return json({ success: false, error: 'Please remove instructional or placeholder text and enter only the actual Aadhaar address details.' }, 400);
   if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
-  for (const field of getRequiredCorrectionFieldKeys(corrections)) {
+  const requiredCorrectionFields = getRequiredCorrectionFieldKeys(
+    corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(serviceId) && id === 'address'))
+  );
+  for (const field of requiredCorrectionFields) {
     if (!String(fieldValues[field] || '').trim()) return json({ success: false, error: `Required correction detail is missing: ${field}.` }, 400);
   }
   if (!['DIRECT_CUSTOMER', 'CYBER_CAFE', 'CSC_CENTER', 'INDEPENDENT_AGENT'].includes(requesterType)) return json({ success: false, error: 'Please select a valid submitting-party type.' }, 400);
