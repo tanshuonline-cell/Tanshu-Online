@@ -1,38 +1,44 @@
 import React from 'react';
-import type { SevaCategory } from './serviceCatalog';
+import type { SevaService } from './serviceCatalog';
+import { getServiceFeeDisclosure } from './serviceFeeRegistry';
 
-interface RefundPolicyNoticeProps {
-  category: SevaCategory;
-}
+interface RefundPolicyNoticeProps { service: SevaService; }
 
-export default function RefundPolicyNotice({ category }: RefundPolicyNoticeProps) {
-  const privateFileService = category === 'pdf' || category === 'documents';
+export default function RefundPolicyNotice({ service }: RefundPolicyNoticeProps) {
+  const fee = getServiceFeeDisclosure(service);
+  const governmentStatus = fee.governmentStatus === 'not-applicable'
+    ? 'NOT APPLICABLE'
+    : fee.governmentStatus === 'official-fixed'
+      ? 'OFFICIAL ROUTE — RECHECK'
+      : 'LIVE QUOTE REQUIRED';
 
   return (
-    <section className="ds-refund-notice" aria-label="Fee and refund information">
+    <section className="ds-refund-notice" aria-label="Service-specific fee and refund information">
       <div className="ds-refund-notice-heading">
-        <strong>Fees & Refund Information</strong>
-        <span>Read before proceeding</span>
+        <strong>Service Fee &amp; Refund Details</strong>
+        <span>{governmentStatus}</span>
       </div>
       <div className="ds-refund-row">
-        <b>Government Fee</b>
-        <p>
-          {privateFileService
-            ? 'Not applicable for private file-processing work. If a separate government or external portal fee applies, it will be shown separately before payment.'
-            : 'Depends on the exact official department/provider route. Refund and cancellation follow that authority’s current rules; not every government fee is automatically non-refundable.'}
-        </p>
+        <b>1. Government / Official Provider Fee</b>
+        <p>{fee.governmentFee}</p>
+        <p className="ds-fee-refund"><strong>Government refund rule:</strong> {fee.governmentRefund}</p>
+        <a className="ds-fee-source" href={fee.officialSourceUrl} target="_blank" rel="noreferrer">{fee.officialSourceLabel} ↗</a>
       </div>
       <div className="ds-refund-row">
-        <b>TANSHU ONLINE Service Fee</b>
-        <p>
-          This charge will be shown separately. Refund eligibility depends on the work actually completed, the reason the service could not be completed, and applicable consumer-protection rules. A blanket no-refund rule will not be applied.
-        </p>
+        <b>2. TANSHU ONLINE Service Fee</b>
+        <p>{fee.serviceFee}</p>
+        <p className="ds-fee-refund"><strong>Service-fee refund:</strong> {fee.serviceRefund}</p>
+      </div>
+      <div className="ds-refund-row">
+        <b>3. Service-specific note</b>
+        <p>{fee.note}</p>
       </div>
       <div className="ds-refund-timeline">
         <b>Our service-time commitment</b>
-        <p>We aim to complete our part within 7 calendar days. In exceptional technical or system situations, this may extend up to 15 calendar days. This is TANSHU ONLINE’s service commitment, not a guarantee of government approval or government processing time.</p>
+        <p>We aim to complete our own agreed work within 7 calendar days after receiving the required information, documents and authorisation. In exceptional technical/system situations, our work may take up to 15 calendar days. This is TANSHU ONLINE’s service commitment only—not a government approval or processing guarantee.</p>
       </div>
-      <p className="ds-refund-preview-note">Preview information only. Exact fees and service-specific refund terms must be verified and displayed before payments are enabled.</p>
+      <p className="ds-refund-preview-note">Preview only — no payment is being collected. Any official fee, provider rule, TANSHU service price, taxes and payment charges must be confirmed and shown separately in a dated quote before live payment.</p>
+      <small className="ds-fee-checked">Source review date: {fee.checkedOn}. Official amounts/rules can change; the live portal and exact route must be rechecked before payment.</small>
     </section>
   );
 }
