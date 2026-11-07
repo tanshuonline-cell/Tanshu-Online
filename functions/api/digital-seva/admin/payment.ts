@@ -45,7 +45,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
   const appId = env.CASHFREE_APP_ID;
   const secret = env.CASHFREE_SECRET_KEY;
-  const sandbox = (env.CASHFREE_ENV || 'SANDBOX').toUpperCase() !== 'PRODUCTION';
   if (!appId || !secret) return json({ success: false, error: 'Cashfree Sandbox credentials are not configured in this Preview environment yet.' }, 503);
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The payment request is too large.' }, 413);
@@ -62,7 +61,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!booking) return json({ success: false, error: 'Booking not found.' }, 404);
     const linkId = `ds_${String(booking.booking_reference).replace(/[^A-Za-z0-9_-]/g, '').toLowerCase()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`.slice(0, 50);
     const origin = new URL(request.url).origin;
-    const apiBase = sandbox ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
+    // This Preview branch is deliberately pinned to Cashfree Sandbox; it cannot charge real money.
+    const apiBase = 'https://sandbox.cashfree.com/pg';
     const cashfreeResponse = await fetch(`${apiBase}/links`, {
       method: 'POST',
       headers: {
