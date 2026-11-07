@@ -5,6 +5,7 @@ import { SEVA_SERVICE_HINDI } from './serviceCatalogHindi';
 import RefundPolicyNotice from './RefundPolicyNotice';
 import DigitalSevaApplicationForm, { type DigitalSevaReceiptData } from './DigitalSevaApplicationForm';
 import { getServiceFeeDisclosure } from './serviceFeeRegistry';
+import { buildDigitalSevaReceiptHtml } from './digitalSevaReceipt';
 import './digitalSeva.css';
 
 const categoryIcon: Record<string, React.ElementType> = {
@@ -135,38 +136,36 @@ export default function DigitalSevaPage() {
 
   const openCustomerReceipt = () => {
     if (!bookingReference || !selected || !bookingReceipt) return;
-    const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
-    const mask = (key: string, value: string) => {
-      const digits = value.replace(/\D/g, '');
-      if (/aadhaar|uid/i.test(key)) return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : 'Protected';
-      if (/pan(number|no)?$/i.test(key)) return value.length >= 4 ? `XXXXXX${value.slice(-4)}` : 'Protected';
-      return value;
-    };
-    const fieldLabels: Record<string, string> = { docRelationName: "Father's name", aadhaarNumber: 'Aadhaar number', aadhaarHouse: 'House / Building / Apartment', aadhaarStreet: 'Street / Road / Lane', aadhaarArea: 'Area / Locality / Mohalla', aadhaarLandmark: 'Landmark', aadhaarVillage: 'Village / Town / City', aadhaarBlock: 'Block', aadhaarSubdivision: 'Sub-division', aadhaarDistrict: 'District', aadhaarPoliceStation: 'Police Station', aadhaarPostOffice: 'Post Office', aadhaarState: 'State', aadhaarPin: 'PIN Code', hofName: 'Head of Family name', hofAadhaarNumber: 'Head of Family Aadhaar' };
-    const fieldLabelsHindi: Record<string, string> = { docRelationName: 'पिता का नाम', aadhaarNumber: 'आधार नंबर', aadhaarHouse: 'मकान / भवन / अपार्टमेंट', aadhaarStreet: 'गली / सड़क / लेन', aadhaarArea: 'क्षेत्र / लोकैलिटी / मोहल्ला', aadhaarLandmark: 'पहचान की जगह', aadhaarVillage: 'गाँव / कस्बा / शहर', aadhaarBlock: 'प्रखंड / ब्लॉक', aadhaarSubdivision: 'अनुमंडल / सब-डिवीजन', aadhaarDistrict: 'जिला', aadhaarPoliceStation: 'थाना', aadhaarPostOffice: 'डाकघर', aadhaarState: 'राज्य', aadhaarPin: 'पिन कोड', hofName: 'परिवार के मुखिया का नाम', hofAadhaarNumber: 'मुखिया का आधार नंबर' };
-    const receiptFieldValues = bookingReceipt.fieldValues || {};
-    const receiptFieldKeys = Array.from(new Set(Object.keys(receiptFieldValues).map((key) => key.endsWith('Hindi') ? key.slice(0, -5) : key)));
-    const fields = receiptFieldKeys.filter((key) => String(receiptFieldValues[key] || '').trim() || String(receiptFieldValues[`${key}Hindi`] || '').trim()).map((key) => [key, String(receiptFieldValues[key] || '')] as [string, string]);
-    const addressOrder = ['aadhaarHouse','aadhaarStreet','aadhaarArea','aadhaarLandmark','aadhaarVillage','aadhaarBlock','aadhaarSubdivision','aadhaarDistrict','aadhaarPoliceStation','aadhaarPostOffice','aadhaarState','aadhaarPin'];
-    fields.sort(([a],[b]) => { const ai = addressOrder.indexOf(a), bi = addressOrder.indexOf(b); return ai < 0 && bi < 0 ? 0 : ai < 0 ? 1 : bi < 0 ? -1 : ai - bi; });
-    const rows = fields.map(([key, value]) => {
-      const hindi = bookingReceipt.fieldValues[`${key}Hindi`] || '';
-      const label = fieldLabels[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
-      const hindiLabel = fieldLabelsHindi[key] || '';
-      return `<tr><th><div class="field-label"><b>${escape(label)}</b>${hindiLabel ? `<small>${escape(hindiLabel)}</small>` : ''}</div></th><td><div class="field-values"><div><small>English</small><b>${escape(value.trim() ? mask(key, value) : '—')}</b></div>${hindi ? `<div><small>हिंदी</small><b>${escape(hindi)}</b></div>` : ''}</div></td></tr>`;
-    }).join('');
-    const optionLabels: Record<string, string> = { addressChoice: 'Address selected / चुना गया पता', level: 'Certificate level / प्रमाणपत्र स्तर', applicationType: 'Application type / आवेदन प्रकार' };
-    const optionValue = (key: string, value: string) => key === 'addressChoice' ? (value === 'NEW' ? 'New Address / नया पता' : value === 'OLD' ? 'Old Address / पुराना पता' : value) : value;
-    const options = Object.entries(bookingReceipt.serviceOptions || {}).filter(([, value]) => value.trim()).map(([key, value]) => `<tr><th>${escape(optionLabels[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2'))}</th><td>${escape(optionValue(key, value))}</td></tr>`).join('');
-    const docs = bookingReceipt.selectedDocuments.map((item) => item === 'other' ? bookingReceipt.otherDocumentName || 'Other document' : item.replace(/[-_]/g, ' '));
-    const corrections = bookingReceipt.corrections.map((item) => item.replace(/[-_]/g, ' '));
-    const submitted = new Date(bookingReceipt.submittedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
-    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(bookingReference)} - TANSHU ONLINE</title><style>
-      *{box-sizing:border-box}body{margin:0;padding:24px;background:#f4f4f4;color:#191919;font:13px "Noto Sans Devanagari","Nirmala UI",Mangal,Arial,sans-serif}.sheet{max-width:790px;margin:auto;background:#fff;padding:30px 34px;border:1px solid #ddd}.brand{text-align:center;border-bottom:2px solid #a51f32;padding-bottom:12px}.brand h1{margin:0;color:#a51f32;font-size:27px;letter-spacing:1px}.brand p{margin:5px 0;color:#555;font-size:10px}.heading{text-align:center;margin:17px 0}.heading h2{font-size:17px;margin:0}.ref{display:flex;justify-content:space-between;gap:10px;padding:11px;background:#fff7f7;border:1px solid #eadada}.ref b{color:#a51f32}section{margin-top:16px}h3{font-size:12px;color:#84202e;background:#f8eeee;padding:8px;border-left:3px solid #a51f32}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}th{width:38%;background:#fafafa}.field-label{display:grid;gap:4px}.field-label b{font-weight:750}.field-label small,.field-values small{color:#777;font-size:9px;font-weight:700}.field-values{display:grid;gap:7px}.field-values>div{display:grid;gap:3px}.field-values b{font-size:12px;line-height:1.5;overflow-wrap:anywhere}.customer{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.cell{border:1px solid #ddd;padding:9px}.cell small{display:block;color:#777;font-size:9px;margin-bottom:4px}.cell b{overflow-wrap:anywhere}.note{margin-top:16px;border-top:1px solid #ddd;padding-top:10px;color:#555;font-size:10px;line-height:1.5}.actions{text-align:center;margin:15px}.actions button{background:#922331;color:white;border:0;border-radius:7px;padding:11px 18px;font-weight:bold;cursor:pointer}@page{size:A4;margin:12mm}@media print{body{padding:0;background:white}.sheet{border:0;padding:0}.actions{display:none}}@media(max-width:560px){body{padding:0}.sheet{padding:18px 14px}.customer{grid-template-columns:1fr}.ref{display:grid}}
-      </style></head><body><main class="sheet"><header class="brand"><h1>TANSHU ONLINE</h1><p>RELIABLE • SECURE • PROFESSIONAL SERVICE</p></header><div class="heading"><h2>DIGITAL SEVA APPLICATION ACKNOWLEDGEMENT</h2><p>डिजिटल सेवा आवेदन प्राप्ति रसीद</p></div><div class="ref"><span>Booking Reference / बुकिंग संदर्भ</span><b>${escape(bookingReference)}</b></div><section><h3>01. Applicant Details / आवेदक की जानकारी</h3><div class="customer"><div class="cell"><small>Customer Name / ग्राहक का नाम</small><b>${escape(bookingReceipt.customerName)}</b></div><div class="cell"><small>Mobile / मोबाइल</small><b>${escape(bookingReceipt.customerPhone.length===10 ? bookingReceipt.customerPhone.slice(0,2)+'XXXXXX'+bookingReceipt.customerPhone.slice(-2) : '—')}</b></div><div class="cell"><small>Service / सेवा</small><b>${escape(selected.name)} / ${escape(selected.hindi)}</b></div><div class="cell"><small>Email / ईमेल</small><b>${escape(bookingReceipt.customerEmail || '—')}</b></div></div></section><section><h3>02. Application Details / आवेदन का विवरण</h3><table><tbody>${rows || '<tr><td colspan="2">No additional details provided.</td></tr>'}${options}</tbody></table></section><section><h3>03. Selected Work / चुना गया कार्य</h3><p>${escape(corrections.join(' • ') || 'As per selected service')}</p></section><section><h3>04. Documents Submitted / जमा दस्तावेज़</h3><p>${escape(docs.join(' • ') || 'No documents selected')}</p></section>${bookingReceipt.taskDetails ? `<section><h3>Customer Instructions / ग्राहक के निर्देश</h3><p>${escape(bookingReceipt.taskDetails)}</p></section>` : ''}<section><h3>05. Request Status / अनुरोध की स्थिति</h3><p><b>REQUEST RECEIVED / अनुरोध प्राप्त हुआ</b></p><p>Submitted: ${escape(submitted)}</p></section><section><h3>06. Customer Consent / ग्राहक की सहमति</h3><p><b>Terms &amp; Conditions:</b> ${bookingReceipt.termsAccepted ? 'Accepted / स्वीकार किया' : 'Not recorded / दर्ज नहीं'} · ${escape(bookingReceipt.termsAcceptedAt ? new Date(bookingReceipt.termsAcceptedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'}) : 'Time not recorded')} · ${escape(bookingReceipt.termsPolicyVersion || 'Version not recorded')}</p><p><b>Refund Policy:</b> ${bookingReceipt.refundAccepted ? 'Accepted / स्वीकार किया' : 'Not recorded / दर्ज नहीं'} · ${escape(bookingReceipt.refundAcceptedAt ? new Date(bookingReceipt.refundAcceptedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'}) : 'Time not recorded')} · ${escape(bookingReceipt.refundPolicyVersion || 'Version not recorded')}</p></section><div class="note">This is a TANSHU ONLINE service request acknowledgement, not proof that a government application has been filed.<br>यह TANSHU ONLINE की सेवा अनुरोध रसीद है, सरकारी आवेदन जमा होने का प्रमाण नहीं।</div></main><div class="actions"><button onclick="window.print()">Download / Save as PDF / Print</button></div></body></html>`;
+    const html = buildDigitalSevaReceiptHtml({
+      bookingReference,
+      customerName: bookingReceipt.customerName,
+      customerPhone: bookingReceipt.customerPhone,
+      customerEmail: bookingReceipt.customerEmail,
+      serviceName: `${selected.name} / ${selected.hindi}`,
+      status: 'REQUEST RECEIVED / अनुरोध प्राप्त हुआ',
+      contactConsentAt: bookingReceipt.submittedAt,
+      submittedAt: bookingReceipt.submittedAt,
+      termsAcceptedAt: bookingReceipt.termsAcceptedAt,
+      termsPolicyVersion: bookingReceipt.termsPolicyVersion,
+      refundPolicyAcceptedAt: bookingReceipt.refundAcceptedAt,
+      refundPolicyVersion: bookingReceipt.refundPolicyVersion,
+      fieldValues: bookingReceipt.fieldValues,
+      serviceOptions: bookingReceipt.serviceOptions,
+      selectedWork: bookingReceipt.corrections.map((item) => item.replace(/[-_]/g, ' ')),
+      documents: bookingReceipt.selectedDocuments.map((item) =>
+        item === 'other' ? bookingReceipt.otherDocumentName || 'Other document' : item.replace(/[-_]/g, ' ')
+      ),
+      customerInstructions: bookingReceipt.taskDetails
+    });
     const popup = window.open('', '_blank');
-    if (!popup) { window.alert(hindi ? 'कृपया इस वेबसाइट के लिए पॉप-अप की अनुमति दें।' : 'Please allow pop-ups for this website to open your receipt.'); return; }
-    popup.document.open(); popup.document.write(html); popup.document.close(); popup.focus();
+    if (!popup) {
+      window.alert(hindi ? 'कृपया इस वेबसाइट के लिए पॉप-अप की अनुमति दें।' : 'Please allow pop-ups for this website to open your receipt.');
+      return;
+    }
+    popup.document.open();
+    popup.document.write(html);
+    popup.document.close();
+    popup.focus();
   };
 
   const closeBookingForm = () => {
