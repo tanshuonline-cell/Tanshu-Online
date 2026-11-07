@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ClipboardList, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { SEVA_SERVICES } from './serviceCatalog';
 import { buildDigitalSevaReceiptHtml } from './digitalSevaReceipt';
+import { getAutoPaymentQuote } from './autoPaymentPricing';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
 import './digitalSeva.css';
 
@@ -178,6 +179,10 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   const documentLabels = (details.selectedDocuments || []).map((id) =>
     id === 'other' ? details.otherDocumentName || 'Other document' : documentOptions.find((item) => item.id === id)?.label || id
   );
+  const feeQuote = getAutoPaymentQuote(booking.service_id);
+  const feeBreakdown = feeQuote && booking.payment_amount != null && Number(booking.payment_amount) === feeQuote.totalAmount
+    ? { governmentFee: feeQuote.governmentFee, tanshuFee: feeQuote.tanshuFee, totalAmount: feeQuote.totalAmount, paymentStatus: booking.payment_status === 'PAID' ? 'PAID / भुगतान सफल' : 'PENDING / भुगतान बाकी' }
+    : null;
   const html = buildDigitalSevaReceiptHtml({
     bookingReference: booking.booking_reference,
     customerName: booking.customer_name,
@@ -196,7 +201,8 @@ function printBookingSlip(booking: Booking, serviceName: string) {
     serviceOptions: details.serviceOptions || {},
     selectedWork: correctionLabels,
     documents: documentLabels,
-    customerInstructions: details.taskDetails || ''
+    customerInstructions: details.taskDetails || '',
+    feeBreakdown
   });
   popup.document.open();
   popup.document.write(html);
