@@ -22,7 +22,7 @@ export default function RefundPolicyNotice({ service }: RefundPolicyNoticeProps)
         <b>1. Government / Official Provider Fee</b>
         <p>{fee.governmentFee}</p>
         <p className="ds-fee-refund"><strong>Government refund rule:</strong> {fee.governmentRefund}</p>
-        <a className="ds-fee-source" href={fee.officialSourceUrl} target="_blank" rel="noreferrer">{fee.officialSourceLabel} ↗</a>
+        {fee.governmentStatus !== 'not-applicable' && <a className="ds-fee-source" href={fee.officialSourceUrl} target="_blank" rel="noreferrer">{fee.officialSourceLabel} ↗</a>}
       </div>
       <div className="ds-refund-row">
         <b>2. TANSHU ONLINE Service Fee</b>
