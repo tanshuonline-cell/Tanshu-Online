@@ -339,7 +339,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}
         {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
       </div>}
-      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
+      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
       {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
