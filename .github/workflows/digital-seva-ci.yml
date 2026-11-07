@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
-      - 'migrations/000*.sql'
+      - 'migrations/*.sql'
       - '.github/workflows/digital-seva-ci.yml'
       - 'package.json'
       - 'package-lock.json'
@@ -15,7 +15,7 @@ on:
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
-      - 'migrations/000*.sql'
+      - 'migrations/*.sql'
       - '.github/workflows/digital-seva-ci.yml'
       - 'package.json'
       - 'package-lock.json'
