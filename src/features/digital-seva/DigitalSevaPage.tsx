@@ -162,7 +162,7 @@ export default function DigitalSevaPage() {
         governmentFee: getAutoPaymentQuote(selected)!.governmentFee,
         tanshuFee: getAutoPaymentQuote(selected)!.tanshuFee,
         totalAmount: getAutoPaymentQuote(selected)!.totalAmount,
-        paymentStatus: bookingReceipt.paymentMode === 'AUTO_PAY' ? 'PAID / भुगतान सफल' : 'PAYMENT LINK PENDING / भुगतान लिंक बाकी'
+        paymentStatus: bookingReceipt.paymentMode === 'AUTO_PAY' ? 'SANDBOX PAID / परीक्षण सफल — कोई वास्तविक पैसा नहीं कटा' : 'PAYMENT LINK PENDING / भुगतान लिंक बाकी'
       } : null
     });
     const popup = window.open('', '_blank');
