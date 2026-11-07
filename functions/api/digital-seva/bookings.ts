@@ -1,6 +1,6 @@
 import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
-// Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
+// Stores booking metadata in the dedicated Digital Seva D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
 interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
@@ -66,7 +66,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const requestContentType = (request.headers.get('Content-Type') || '').toLowerCase();
   const contentLength = Number(request.headers.get('Content-Length') || 0);
   if (contentLength > 22 * 1024 * 1024) return json({ success: false, error: 'The total upload is too large. Please upload fewer or smaller files.' }, 413);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Digital Seva booking is not enabled yet. The dedicated Preview database must be connected first.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Digital Seva booking is not enabled yet. The dedicated Digital Seva database must be connected first.' }, 503);
 
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
   const now = Date.now();
