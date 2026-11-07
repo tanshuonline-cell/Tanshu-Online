@@ -18,6 +18,7 @@ const CHECKED_ON = '8 November 2026';
 const UIDAI = 'https://www.uidai.gov.in/en/aadhaar-seva-kendra';
 const PAN = 'https://www.incometaxindia.gov.in/en/tax-services/apply-for-pan';
 const PROTEAN = 'https://tinpan.proteantech.in/services/pan/form-form_93-form_94.html';
+const PROTEAN_CORRECTION = 'https://tinpan.proteantech.in/services/pan/correction.html';
 const ECI = 'https://voters.eci.gov.in/';
 const ECI_FAQ = 'https://www.eci.gov.in/faq/en/how-to-register/';
 const BIHAR = 'https://serviceonline.bihar.gov.in/';
@@ -48,8 +49,8 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
     officialSourceUrl: PAN,
     note: 'The configured customer total for the standard Indian physical-card route is ₹300, including ₹107 official/provider fee and ₹193 TANSHU ONLINE assistance. If the customer selects a different paperless/e-PAN route, the official fee and TANSHU portion must be recalculated and shown before payment. Confirm the current form and live quote.',
   },
-  'pan-correction': { ...routeQuote('Protean PAN correction service', PROTEAN, 'The configured customer total is ₹300 for the standard Indian physical-card route, including ₹107 official/provider fee and ₹193 TANSHU ONLINE assistance. Correction of applicant name, father name or mobile details uses this same total. Reconfirm the exact provider route and refund rule before payment.'), governmentFee: 'Standard Indian physical-card route: ₹107 inclusive of taxes. Protean paperless physical-card route: ₹101. Exact route and any provider variation must be confirmed before payment.' }, 
-  'pan-photo-signature': { ...routeQuote('Authorised PAN provider — photo/signature correction', PROTEAN, 'TANSHU ONLINE assistance fee is ₹250 plus the exact official/provider charge. For the standard Indian physical-card route, the current example total is ₹357 (₹250 + ₹107); paperless/e-PAN routes can differ. Verify the live provider quote before payment.'), governmentFee: 'Standard Indian physical-card route: ₹107 inclusive of taxes. Protean paperless physical-card route: ₹101. e-PAN-only route may differ; verify the exact mode and dispatch before payment.' }, 
+  'pan-correction': { ...routeQuote('Protean PAN correction service', PROTEAN_CORRECTION, 'The configured customer total is ₹300 for the standard Indian physical-card route, including ₹107 official/provider fee and ₹193 TANSHU ONLINE assistance. Correction of applicant name, father name or mobile details uses this same total. Reconfirm the exact provider route and refund rule before payment.'), governmentFee: 'Standard Indian physical-card route: ₹107 inclusive of taxes. Protean paperless physical-card route: ₹101. Exact route and any provider variation must be confirmed before payment.' }, 
+  'pan-photo-signature': { ...routeQuote('Authorised PAN provider — photo/signature correction', PROTEAN_CORRECTION, 'TANSHU ONLINE assistance fee is ₹250 plus the exact official/provider charge. For the standard Indian physical-card route, the current example total is ₹357 (₹250 + ₹107); paperless/e-PAN routes can differ. Verify the live provider quote before payment.'), governmentFee: 'Standard Indian physical-card route: ₹107 inclusive of taxes. Protean paperless physical-card route: ₹101. e-PAN-only route may differ; verify the exact mode and dispatch before payment.' }, 
   'aadhaar-address-doc': {
     ...DEFAULT_DISCLOSURE,
     governmentFee: 'For a separate demographic address change, UIDAI lists ₹75; it is free when combined with a biometric update. The separate online PoI/PoA document-only update concession is free until 14 June 2027 and is not the same as changing the address.',
