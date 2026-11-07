@@ -1,5 +1,6 @@
 // Cloudflare Pages Function: POST /api/digital-seva/admin/payment
 // Admin-only creation of one-time Cashfree Payment Links for manually priced requests.
+// This branch is deliberately Sandbox-only. Live credentials/endpoints must not be enabled here.
 interface Env {
   DIGITAL_SEVA_DB?: any;
   ADMIN_SECRET_TOKEN?: string;
@@ -7,6 +8,9 @@ interface Env {
   CASHFREE_SECRET_KEY?: string;
 }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
+const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
+const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
 function json(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status, headers }); }
 async function hmac(payload: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -37,6 +41,18 @@ function validOrigin(request: Request): boolean {
   const origin = request.headers.get('Origin');
   return Boolean(origin) && origin === new URL(request.url).origin;
 }
+async function cancelCashfreeLink(linkId: string, appId: string, secret: string): Promise<boolean> {
+  const response = await fetch(`${CASHFREE_API}/links/${encodeURIComponent(linkId)}/cancel`, {
+    method: 'POST',
+    headers: {
+      'x-client-id': appId,
+      'x-client-secret': secret,
+      'x-api-version': '2022-09-01',
+      'x-request-id': crypto.randomUUID()
+    }
+  });
+  return response.ok;
+}
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
   if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
@@ -54,16 +70,50 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!bookingId || bookingId.length > 64 || !Number.isFinite(amount) || amount < 1 || amount > 100000 || Math.round(amount * 100) !== amount * 100) {
     return json({ success: false, error: 'Enter a valid service fee between ₹1 and ₹1,00,000 (up to 2 decimal places).' }, 400);
   }
+
+  let createdCashfreeLinkId = '';
   try {
     const booking = await env.DIGITAL_SEVA_DB.prepare(
-      'SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email FROM digital_seva_bookings WHERE id = ?'
+      `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email,
+              consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version
+       FROM digital_seva_bookings WHERE id = ?`
     ).bind(bookingId).first();
     if (!booking) return json({ success: false, error: 'Booking not found.' }, 404);
+    if (!booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== TERMS_POLICY_VERSION ||
+        !booking.refund_policy_accepted_at || booking.refund_policy_version !== REFUND_POLICY_VERSION) {
+      return json({ success: false, error: 'A payment link cannot be created until the customer has recorded contact consent and accepted the current Terms & Conditions and Refund Policy.' }, 409);
+    }
+    const alreadyPaid = await env.DIGITAL_SEVA_DB.prepare(
+      "SELECT id FROM digital_seva_payments WHERE booking_id = ? AND status = 'PAID' LIMIT 1"
+    ).bind(bookingId).first();
+    if (alreadyPaid) return json({ success: false, error: 'This booking is already marked PAID. Do not create another payment link.' }, 409);
+
+    // Cancel every older pending Cashfree link first. A database-only SUPERSEDED flag
+    // does not deactivate the hosted Cashfree URL.
+    const olderLinks = await env.DIGITAL_SEVA_DB.prepare(
+      "SELECT id, cashfree_link_id FROM digital_seva_payments WHERE booking_id = ? AND status = 'PENDING'"
+    ).bind(bookingId).all();
+    const cancelledRows: any[] = [];
+    const failedLinkIds: string[] = [];
+    for (const oldLink of olderLinks.results || []) {
+      if (await cancelCashfreeLink(String(oldLink.cashfree_link_id), appId, secret)) cancelledRows.push(oldLink);
+      else failedLinkIds.push(String(oldLink.cashfree_link_id));
+    }
+    if (cancelledRows.length) {
+      await env.DIGITAL_SEVA_DB.batch(cancelledRows.map((oldLink) =>
+        env.DIGITAL_SEVA_DB.prepare(
+          "UPDATE digital_seva_payments SET status = 'CANCELLED', cashfree_link_status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'PENDING'"
+        ).bind(oldLink.id)
+      ));
+    }
+    if (failedLinkIds.length) {
+      console.error('Could not cancel every older Cashfree payment link; no replacement was created:', failedLinkIds);
+      return json({ success: false, error: 'An earlier payment link could not be safely cancelled. No new link was created. Refresh the booking and contact support if it remains pending.' }, 502);
+    }
+
     const linkId = `ds_${String(booking.booking_reference).replace(/[^A-Za-z0-9_-]/g, '').toLowerCase()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`.slice(0, 50);
     const origin = new URL(request.url).origin;
-    // This Preview branch is deliberately pinned to Cashfree Sandbox; it cannot charge real money.
-    const apiBase = 'https://sandbox.cashfree.com/pg';
-    const cashfreeResponse = await fetch(`${apiBase}/links`, {
+    const cashfreeResponse = await fetch(`${CASHFREE_API}/links`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -97,17 +147,19 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       console.error('Cashfree link creation failed:', cashfreeResponse.status, result);
       return json({ success: false, error: 'Cashfree could not create the payment link. Check Sandbox credentials and Cashfree API access.' }, 502);
     }
+    createdCashfreeLinkId = String(result.link_id);
     const paymentId = crypto.randomUUID();
-    await env.DIGITAL_SEVA_DB.batch([
-      env.DIGITAL_SEVA_DB.prepare("UPDATE digital_seva_payments SET status = 'SUPERSEDED', updated_at = CURRENT_TIMESTAMP WHERE booking_id = ? AND status = 'PENDING'").bind(bookingId),
-      env.DIGITAL_SEVA_DB.prepare(
-        `INSERT INTO digital_seva_payments
-         (id, booking_id, amount, currency, cashfree_link_id, link_url, status, cashfree_link_status, created_by)
-         VALUES (?, ?, ?, 'INR', ?, ?, 'PENDING', ?, ?)`
-      ).bind(paymentId, bookingId, amount, String(result.link_id), String(result.link_url), String(result.link_status || 'ACTIVE'), actor)
-    ]);
-    return json({ success: true, paymentId, amount, status: 'PENDING', linkId: result.link_id, linkUrl: result.link_url });
+    await env.DIGITAL_SEVA_DB.prepare(
+      `INSERT INTO digital_seva_payments
+       (id, booking_id, amount, currency, cashfree_link_id, link_url, status, cashfree_link_status, created_by)
+       VALUES (?, ?, ?, 'INR', ?, ?, 'PENDING', ?, ?)`
+    ).bind(paymentId, bookingId, amount, createdCashfreeLinkId, String(result.link_url), String(result.link_status || 'ACTIVE'), actor).run();
+    return json({ success: true, paymentId, amount, status: 'PENDING', linkId: createdCashfreeLinkId, linkUrl: result.link_url });
   } catch (error) {
+    if (createdCashfreeLinkId) {
+      try { await cancelCashfreeLink(createdCashfreeLinkId, appId, secret); }
+      catch (cancelError) { console.error('Could not cancel an unrecorded Cashfree link:', cancelError); }
+    }
     console.error('Digital Seva Cashfree link creation failed:', error);
     return json({ success: false, error: 'Could not create and save the payment link. Please retry after checking the Admin Panel.' }, 503);
   }
