@@ -17,6 +17,7 @@ export interface DigitalSevaReceiptView {
   selectedWork?: string[];
   documents?: string[];
   customerInstructions?: string;
+  feeBreakdown?: { governmentFee: number; tanshuFee: number; totalAmount: number; paymentStatus: string } | null;
 }
 
 const ENGLISH_LABELS: Record<string, string> = {
@@ -114,6 +115,13 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
     ? `<section class="compact-section"><h2>Documents Submitted / जमा दस्तावेज़</h2><p>${data.documents.map(escapeHtml).join(' · ')}</p></section>` : '';
   const instructionsHtml = data.customerInstructions?.trim()
     ? `<section class="compact-section"><h2>Customer Instructions / ग्राहक के निर्देश</h2><p class="preserve">${escapeHtml(data.customerInstructions)}</p></section>` : '';
+  const feeHtml = data.feeBreakdown
+    ? `<section><h2>03. Fee &amp; Payment Details / शुल्क और भुगतान विवरण</h2><div class="fee-grid">
+      <div class="fee-item"><small>Government / Provider Fee · सरकारी / प्रदाता शुल्क</small><b>₹${escapeHtml(data.feeBreakdown.governmentFee)}</b></div>
+      <div class="fee-item"><small>TANSHU ONLINE Service Fee · सेवा शुल्क</small><b>₹${escapeHtml(data.feeBreakdown.tanshuFee)}</b></div>
+      <div class="fee-item fee-total"><small>Total · कुल राशि</small><b>₹${escapeHtml(data.feeBreakdown.totalAmount)}</b></div>
+      <div class="fee-item"><small>Payment Status · भुगतान स्थिति</small><b>${escapeHtml(data.feeBreakdown.paymentStatus)}</b></div>
+    </div></section>` : null;
   const mobileDigits = String(data.customerPhone || '').replace(/\D/g, '');
   const mobile = mobileDigits.length >= 4 ? `${mobileDigits.slice(0, 2)}XXXXXX${mobileDigits.slice(-2)}` : '—';
   const audit = [
@@ -135,7 +143,7 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
     .customer-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.customer-cell{border:1px solid #e2e2e2;padding:4px 6px;min-width:0;break-inside:avoid}.customer-cell small{display:block;color:#686868;font-size:7px;font-weight:700;margin-bottom:1px}.customer-cell b{font-size:9px;overflow-wrap:anywhere}
     .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 5px}.detail-item{display:grid;grid-template-columns:minmax(29%,.9fr) 1.1fr;gap:4px;align-items:start;border:1px solid #e5e5e5;padding:3px 5px;min-width:0;break-inside:avoid}.detail-label{display:grid;gap:1px;min-width:0}.detail-label b{font-size:8px;line-height:1.25}.detail-label small{font-size:7px;color:#696969;line-height:1.2}.detail-values{display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:0}.detail-values>div{display:grid;gap:1px;min-width:0}.detail-values small{font-size:6px;color:#777;font-weight:700}.detail-values b{font-size:8px;line-height:1.25;overflow-wrap:anywhere;font-weight:650}.detail-values> b{font-size:8px}
     .compact-section p{margin:0;padding:3px 5px;border:1px solid #e5e5e5;line-height:1.35;overflow-wrap:anywhere}.preserve{white-space:pre-wrap}
-    .status-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #e3e3e3;padding:4px 6px}.status{display:inline-block;padding:2px 6px;border-radius:10px;background:#e8f4ec;color:#21663b;font-weight:750;font-size:8px}.estimate{font-size:8px}
+    .fee-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 5px}.fee-item{display:grid;gap:2px;border:1px solid #e2e2e2;padding:5px 6px}.fee-item small{font-size:7px;color:#666;font-weight:700}.fee-item b{font-size:10px}.fee-total{background:#fff7f7;border-color:#e8cfd2}.fee-total b{color:#922331;font-size:12px}.status-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #e3e3e3;padding:4px 6px}.status{display:inline-block;padding:2px 6px;border-radius:10px;background:#e8f4ec;color:#21663b;font-weight:750;font-size:8px}.estimate{font-size:8px}
     .audit-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 5px}.audit-item{display:grid;grid-template-columns:37% 1fr;gap:4px;border:1px solid #e5e5e5;padding:3px 5px;min-width:0;break-inside:avoid}.audit-item b{font-size:7px;line-height:1.25}.audit-item span{font-size:7px;line-height:1.25;overflow-wrap:anywhere}
     .foot{text-align:center;border-top:1px solid #ddd;margin-top:6px;padding-top:4px;color:#555;font-size:7px;line-height:1.35}.actions{display:flex;justify-content:center;margin:9px auto}.actions button{border:0;border-radius:6px;padding:7px 12px;background:#922331;color:#fff;font-weight:700;cursor:pointer}
     @page{size:A4 portrait;margin:7mm}@media print{html,body{width:auto;background:#fff}.sheet{max-width:none;margin:0}.actions{display:none}section{break-inside:auto}.detail-item,.customer-cell,.audit-item{break-inside:avoid}}
@@ -150,9 +158,9 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
       <div class="customer-cell"><small>EMAIL / ईमेल</small><b>${escapeHtml(data.customerEmail || '—')}</b></div>
     </div></section>
     <section><h2>02. Application Details / आवेदन का विवरण</h2><div class="detail-grid">${detailHtml || '<div class="detail-item"><b>No additional details recorded / कोई अतिरिक्त विवरण दर्ज नहीं</b></div>'}</div></section>
-    ${workHtml}${docsHtml}${instructionsHtml}
-    <section><h2>03. Application Status / आवेदन की स्थिति</h2><div class="status-line"><span class="status">${escapeHtml(data.status.replaceAll('_', ' '))}</span><span class="estimate"><b>Estimated completion / अनुमानित पूरा होने का समय:</b> ${escapeHtml(estimate)}</span></div></section>
-    <section><h2>04. Legal Consent &amp; Submission / कानूनी सहमति एवं जमा विवरण</h2><div class="audit-grid">${auditHtml}</div></section>
+    ${workHtml}${docsHtml}${instructionsHtml}${feeHtml || ''}
+    <section><h2>04. Application Status / आवेदन की स्थिति</h2><div class="status-line"><span class="status">${escapeHtml(data.status.replaceAll('_', ' '))}</span><span class="estimate"><b>Estimated completion / अनुमानित पूरा होने का समय:</b> ${escapeHtml(estimate)}</span></div></section>
+    <section><h2>05. Legal Consent &amp; Submission / कानूनी सहमति एवं जमा विवरण</h2><div class="audit-grid">${auditHtml}</div></section>
     <footer class="foot">This is a TANSHU ONLINE service request receipt, not proof that a government application has been filed.<br>यह TANSHU ONLINE की सेवा अनुरोध रसीद है, सरकारी आवेदन जमा होने का प्रमाण नहीं।</footer>
   </main><div class="actions"><button onclick="window.print()">Download / Save as PDF / Print</button></div></body></html>`;
 }
