@@ -79,6 +79,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const refundPolicyVersion = String(body.refundPolicyVersion || '');
   const key = String(body.idempotencyKey || '');
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
+  if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
   if (!['DIRECT_CUSTOMER', 'CYBER_CAFE', 'CSC_CENTER', 'INDEPENDENT_AGENT'].includes(requesterType)) return json({ success: false, error: 'Please select a valid submitting-party type.' }, 400);
   if (!['SELF', 'CUSTOMER'].includes(applicationFor) || (requesterType === 'DIRECT_CUSTOMER' && applicationFor !== 'SELF')) return json({ success: false, error: 'Please select whose work is being requested.' }, 400);
   if (name.length < 2 || name.length > 80) return json({ success: false, error: 'Please enter an applicant name between 2 and 80 characters.' }, 400);
