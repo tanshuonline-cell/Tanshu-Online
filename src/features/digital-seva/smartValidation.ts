@@ -124,9 +124,9 @@ export function getRequiredCorrectionFieldKeys(corrections: string[]): string[] 
 }
 
 export function isMeaningfulDescription(value: unknown): boolean {
-  const text = String(value ?? '').trim().replace(/\\s+/g, ' ');
-  if (text.length < 10 || !/[\\p{L}]{3,}/u.test(text)) return false;
-  if (/(.)\\1{4,}/u.test(text.replace(/\\s/g, ''))) return false;
+  const text = String(value ?? '').trim().replace(/\s+/g, ' ');
+  if (text.length < 10 || !/[\p{L}]{3,}/u.test(text)) return false;
+  if (/(.)\1{4,}/u.test(text.replace(/\s/g, ''))) return false;
   const words = text.split(' ').filter((word) => word.length >= 2);
-  return words.length >= 2 || /\\d/.test(text);
+  return words.length >= 2 || /\d/.test(text);
 }
