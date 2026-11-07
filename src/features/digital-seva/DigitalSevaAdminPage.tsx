@@ -181,7 +181,7 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   );
   const feeQuote = getAutoPaymentQuote(booking.service_id);
   const feeBreakdown = feeQuote && booking.payment_amount != null && Number(booking.payment_amount) === feeQuote.totalAmount
-    ? { governmentFee: feeQuote.governmentFee, tanshuFee: feeQuote.tanshuFee, totalAmount: feeQuote.totalAmount, paymentStatus: booking.payment_status === 'PAID' ? 'PAID / भुगतान सफल' : 'PENDING / भुगतान बाकी' }
+    ? { governmentFee: feeQuote.governmentFee, tanshuFee: feeQuote.tanshuFee, totalAmount: feeQuote.totalAmount, paymentStatus: booking.payment_status === 'PAID' ? 'SANDBOX PAID / परीक्षण भुगतान सफल' : 'PENDING / भुगतान बाकी' }
     : null;
   const html = buildDigitalSevaReceiptHtml({
     bookingReference: booking.booking_reference,
