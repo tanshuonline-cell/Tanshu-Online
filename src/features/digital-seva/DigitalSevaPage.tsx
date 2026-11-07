@@ -6,6 +6,7 @@ import { SEVA_SERVICE_HINDI } from './serviceCatalogHindi';
 import RefundPolicyNotice from './RefundPolicyNotice';
 import DigitalSevaApplicationForm, { type DigitalSevaReceiptData } from './DigitalSevaApplicationForm';
 import { getServiceFeeDisclosure } from './serviceFeeRegistry';
+import { getAutoPaymentQuote } from './autoPaymentPricing';
 import { buildDigitalSevaReceiptHtml } from './digitalSevaReceipt';
 import './digitalSeva.css';
 
@@ -156,7 +157,13 @@ export default function DigitalSevaPage() {
       documents: bookingReceipt.selectedDocuments.map((item) =>
         item === 'other' ? bookingReceipt.otherDocumentName || 'Other document' : item.replace(/[-_]/g, ' ')
       ),
-      customerInstructions: bookingReceipt.taskDetails
+      customerInstructions: bookingReceipt.taskDetails,
+      feeBreakdown: getAutoPaymentQuote(selected) ? {
+        governmentFee: getAutoPaymentQuote(selected)!.governmentFee,
+        tanshuFee: getAutoPaymentQuote(selected)!.tanshuFee,
+        totalAmount: getAutoPaymentQuote(selected)!.totalAmount,
+        paymentStatus: bookingReceipt.paymentMode === 'AUTO_PAY' ? 'PAID / भुगतान सफल' : 'PAYMENT LINK PENDING / भुगतान लिंक बाकी'
+      } : null
     });
     const popup = window.open('', '_blank');
     if (!popup) {
