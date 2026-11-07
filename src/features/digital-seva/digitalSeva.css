@@ -112,3 +112,54 @@
 /* Digital Seva language switch: keep the outer capsule, highlight only the selected language */
 .ds-header nav .ds-language-switch button{background:transparent!important;color:#686b72!important;border:0!important;border-radius:999px!important;box-shadow:none!important}
 .ds-header nav .ds-language-switch button.active{background:var(--ds-red)!important;color:#fff!important}
+
+
+/* Guided multi-step application form — inherits the existing Digital Seva typography and theme. */
+.ds-application-form{display:flex;flex-direction:column;gap:16px}
+.ds-application-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 12px}
+.ds-application-progress>div{display:flex;align-items:center;gap:6px;min-width:0;color:#8a8d95;font-size:10px}
+.ds-application-progress>div>span{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border:1px solid #ddd5d1;border-radius:50%;font-weight:800;background:#fff}
+.ds-application-progress>div.active{color:var(--ds-red);font-weight:800}
+.ds-application-progress>div.active>span,.ds-application-progress>div.complete>span{background:var(--ds-red);border-color:var(--ds-red);color:#fff}
+.ds-application-progress small{line-height:1.25}
+.ds-application-step{display:flex;flex-direction:column;gap:13px}
+.ds-application-step h3{font-size:17px;line-height:1.35;font-weight:850;color:#20232a;margin:0}
+.ds-application-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ds-application-role-grid>button{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;padding:13px;border:1px solid #e7e0dc;border-radius:13px;background:#fff;color:#282b31;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+.ds-application-role-grid>button.selected{border-color:var(--ds-red);background:#fff6f6;box-shadow:0 0 0 2px color-mix(in srgb,var(--ds-red) 12%,transparent)}
+.ds-application-role-grid>button strong{font-size:13px;font-weight:850}
+.ds-application-role-grid>button small{font-size:11px;line-height:1.4;color:#737780}
+.ds-application-choice,.ds-application-profile{border:1px solid #e9e2de;border-radius:13px;padding:13px;background:#fff}
+.ds-application-choice{display:flex;flex-direction:column;gap:10px}
+.ds-application-choice>strong,.ds-application-profile h4{font-size:13px;font-weight:850;color:#292c32;margin:0}
+.ds-application-choice label{display:flex;align-items:center;gap:8px;font-size:12px;color:#42454c}
+.ds-application-choice input,.ds-application-doc-option input{accent-color:var(--ds-red)}
+.ds-application-profile{display:flex;flex-direction:column;gap:11px}
+.ds-application-profile>p,.ds-application-note{font-size:11px;line-height:1.5;color:#737780;margin:0}
+.ds-application-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.ds-application-field-grid label,.ds-application-wide{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:750;color:#44474e;min-width:0}
+.ds-application-field-grid input,.ds-application-field-grid select,.ds-application-field-grid textarea,.ds-application-wide input,.ds-application-wide textarea{width:100%;min-width:0;border:1px solid #ddd8d4;border-radius:9px;background:#fff;padding:10px 11px;font:inherit;font-size:12px;color:#292c32;outline:none}
+.ds-application-field-grid input:focus,.ds-application-field-grid select:focus,.ds-application-field-grid textarea:focus,.ds-application-wide input:focus,.ds-application-wide textarea:focus{border-color:var(--ds-red);box-shadow:0 0 0 2px color-mix(in srgb,var(--ds-red) 12%,transparent)}
+.ds-application-wide{width:100%}
+.ds-application-correction-fields{display:flex;flex-direction:column;gap:8px;border:1px dashed #e5d9d4;border-radius:10px;padding:10px}
+.ds-application-correction-fields>strong{font-size:12px;color:#333}
+.ds-application-profile-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ds-application-copy{border:1px solid #e4d5d1;border-radius:8px;padding:7px 9px;font-size:10px;font-weight:800;color:var(--ds-red);background:#fff;cursor:pointer}
+.ds-application-copy:disabled{opacity:.45;cursor:not-allowed}
+.ds-application-doc-list{display:flex;flex-direction:column;gap:8px}
+.ds-application-doc-option{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid #eee7e3;border-radius:10px;background:#fff;cursor:pointer}
+.ds-application-doc-option input{margin-top:2px;flex:0 0 auto}
+.ds-application-doc-option span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ds-application-doc-option strong{font-size:11px;color:#34373e}
+.ds-application-doc-option small{font-size:10px;line-height:1.45;color:#777b83}
+.ds-application-upload-notice{display:flex;align-items:flex-start;gap:9px;padding:11px;border:1px solid #ead9b6;border-radius:10px;background:#fffaf0;color:#74541d;font-size:10px;line-height:1.5}
+.ds-application-upload-notice svg{flex:0 0 auto}
+.ds-application-review{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ds-application-review>div{display:flex;flex-direction:column;gap:4px;padding:10px;border:1px solid #eee7e3;border-radius:9px;min-width:0}
+.ds-application-review small{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#858891;font-weight:800}
+.ds-application-review strong{font-size:11px;line-height:1.45;color:#30333a;overflow-wrap:anywhere}
+.ds-application-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:5px}
+.ds-application-nav>span{font-size:10px;color:#858891;font-weight:700}
+.ds-application-back{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4dcd7;border-radius:9px;padding:9px 12px;background:#fff;color:#4c4f56;font-size:11px;font-weight:800;cursor:pointer}
+.ds-application-details{margin:10px 0;padding:10px;border:1px solid #e8e0dc;border-radius:10px}
+@media(max-width:560px){.ds-application-progress{gap:3px}.ds-application-progress>div{flex-direction:column;align-items:flex-start;gap:4px}.ds-application-progress small{font-size:8px}.ds-application-field-grid,.ds-application-review{grid-template-columns:1fr}.ds-application-role-grid>button{padding:10px}.ds-application-profile-heading{align-items:flex-start;flex-direction:column}}
