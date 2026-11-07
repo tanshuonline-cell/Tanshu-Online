@@ -170,3 +170,13 @@
 .ds-application-file-disabled input{width:100%;max-width:100%;border:1px dashed #d9cec7;border-radius:8px;padding:7px;background:#faf8f6;color:#8c8580;font:inherit;font-size:10px;cursor:not-allowed}
 .dsa-application-details pre{max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:10px;line-height:1.5;color:#4b4e55;background:#faf9f8;border-radius:8px;padding:10px}
 .dsa-application-details summary{font-size:11px;font-weight:800;color:#8d2630;cursor:pointer}
+
+/* Search action and temporary target emphasis — Digital Seva only */
+.ds-searchbox .ds-search-submit{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--ds-red);color:#fff;font:800 11px 'DM Sans','Noto Sans Devanagari',sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 5px 14px #8f17251f;transition:transform .18s,box-shadow .18s,background .18s}
+.ds-searchbox .ds-search-submit:hover{background:var(--ds-red-dark);transform:translateY(-1px);box-shadow:0 8px 18px #8f17252c}
+.ds-searchbox .ds-search-submit:focus-visible{outline:3px solid #c7a15a;outline-offset:3px}
+.ds-service-card[id^="ds-service-"]{scroll-margin-top:112px}
+.ds-service-card.ds-search-highlight{position:relative;z-index:2;border-color:var(--ds-red);box-shadow:0 0 0 3px #8f17251c,0 18px 42px #8f17252b;animation:ds-search-pulse 1s ease-in-out 3}
+@keyframes ds-search-pulse{0%,100%{box-shadow:0 0 0 3px #8f17251c,0 18px 42px #8f17252b}50%{box-shadow:0 0 0 7px #c7a15a55,0 22px 48px #8f172533}}
+@media(max-width:600px){.ds-searchbox .ds-search-submit{min-height:36px;padding:0 11px;font-size:10px;gap:5px}.ds-searchbox .ds-search-submit svg{width:13px;height:13px}}
+@media(prefers-reduced-motion:reduce){.ds-service-card.ds-search-highlight{animation:none}}
