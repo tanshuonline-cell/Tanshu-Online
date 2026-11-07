@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { containsForbiddenAadhaarAddressInstruction, formatEnglishTitleCase, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from './smartValidation';
+import { containsForbiddenAadhaarAddressInstruction, formatEnglishTitleCase, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, suggestHindiTransliteration, validateFieldByKey } from './smartValidation';
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
@@ -13,6 +13,8 @@ interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (ref
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","casteFatherName","voterRelativeName","aadhaarHouse","aadhaarVillage","aadhaarDistrict","aadhaarState","aadhaarArea","aadhaarLandmark","aadhaarPostOffice","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
+
 
 export default function DigitalSevaApplicationForm({ service, language, onSubmitted }: Props) {
   const hi = language === 'hi';
@@ -43,6 +45,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const draftStateRef = useRef<Record<string, unknown>>({});
   const completedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const manuallyEditedHindiFieldsRef = useRef<Set<string>>(new Set());
   useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
 
   useEffect(() => {
@@ -69,6 +72,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setOtherDocumentName(d.otherDocumentName || '');
         setTaskDetails(d.taskDetails || '');
         setFieldValues(d.fieldValues || {});
+        manuallyEditedHindiFieldsRef.current = new Set(Array.isArray(d.manualHindiFields) ? d.manualHindiFields : []);
         setServiceOptions(d.serviceOptions || {});
         setBookingConsent(Boolean(d.bookingConsent));
         setTermsAccepted(Boolean(d.termsAccepted));
@@ -88,7 +92,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       step, requesterType, applicationFor, operator, centerName, centerAddress,
       agencyName, agencyAddress, applicant, corrections, selectedDocuments,
       documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions,
-      bookingConsent, termsAccepted, refundAccepted
+      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, refundAccepted
     };
     draftStateRef.current = data;
     const persist = () => {
@@ -136,6 +140,15 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   };
   const clearFieldError = (key: string) => { setError(''); setFieldErrors((old) => { if (!old[key]) return old; const next = { ...old }; delete next[key]; return next; }); };
   const setField = (key: string, value: string) => { setFieldValues((old) => ({ ...old, [key]: value })); clearFieldError(key); };
+  const setBilingualEnglish = (key: string, value: string) => {
+    setField(key, value);
+    if (!manuallyEditedHindiFieldsRef.current.has(key)) setField(`${key}Hindi`, suggestHindiTransliteration(value));
+  };
+  const setBilingualHindi = (key: string, value: string) => {
+    if (value.trim()) manuallyEditedHindiFieldsRef.current.add(key);
+    else manuallyEditedHindiFieldsRef.current.delete(key);
+    setField(`${key}Hindi`, value);
+  };
   const setOption = (key: string, value: string) => { setServiceOptions((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const formatFieldOnBlur = (key: string, value: string) => {
     const normalizedKey = key.toLowerCase();
@@ -163,6 +176,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setOtherDocumentName('');
     setTaskDetails('');
     setFieldValues({});
+    manuallyEditedHindiFieldsRef.current.clear();
     setServiceOptions({});
     setBookingConsent(false);
     setTermsAccepted(false);
@@ -289,14 +303,21 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     } finally { setSubmitting(false); }
   };
 
-  const textInput = (key: string, label: string, labelHi: string) => (
-    <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}
-      {key === 'familyMemberNames'
-        ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={3} />
-        : <input className={/pin$/i.test(key) ? 'ds-pin-input' : undefined} data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={/pin$|aadhaarNumber/i.test(key) ? 'numeric' : undefined} maxLength={/pin$/i.test(key) ? 6 : /aadhaarNumber/i.test(key) ? 12 : /PanNumber/i.test(key) ? 10 : undefined} value={fieldValues[key] || ''} onChange={(e) => setField(key, /pin$|aadhaarNumber/i.test(key) ? e.target.value.replace(/\D/g, '').slice(0, /pin$/i.test(key) ? 6 : 12) : /PanNumber/i.test(key) ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) : e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} />}
-      {fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}
-    </label>
-  );
+  const textInput = (key: string, label: string, labelHi: string) => {
+    const bilingual = BILINGUAL_FIELD_KEYS.has(key);
+    const isPin = /pin$/i.test(key);
+    const isAadhaar = /aadhaarNumber/i.test(key);
+    const isPan = /PanNumber/i.test(key);
+    const englishValue = fieldValues[key] || '';
+    const englishControl = key === 'familyMemberNames'
+      ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={englishValue} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={3} />
+      : <input className={isPin ? 'ds-pin-input' : undefined} data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={isPin || isAadhaar ? 'numeric' : undefined} maxLength={isPin ? 6 : isAadhaar ? 12 : isPan ? 10 : undefined} value={englishValue} onChange={(e) => setField(key, isPin || isAadhaar ? e.target.value.replace(/\D/g, '').slice(0, isPin ? 6 : 12) : isPan ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) : e.target.value)} onBlur={(e) => bilingual ? setBilingualEnglish(key, formatFieldOnBlur(key, e.target.value)) : setField(key, formatFieldOnBlur(key, e.target.value))} />;
+    if (!bilingual) return <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}{englishControl}{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>;
+    return <div key={key} className="ds-bilingual-pair">
+      <label className={fieldErrors[key] ? 'ds-field-invalid' : ''}><span>English — {label}</span><input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={englishValue} onChange={(e) => setBilingualEnglish(key, e.target.value)} onBlur={(e) => setBilingualEnglish(key, formatFieldOnBlur(key, e.target.value))} />{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>
+      <label><span>हिंदी — {labelHi}</span><input data-validation-key={`${key}Hindi`} value={fieldValues[`${key}Hindi`] || ''} onChange={(e) => setBilingualHindi(key, e.target.value)} /></label>
+    </div>;
+  };
   const selectInput = (key: string, label: string, labelHi: string, opts: { value: string; label: string; hi: string }[]) => (
     <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}<select data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={serviceOptions[key] || ''} onChange={(e) => setOption(key, e.target.value)}><option value="">{hi ? 'चुनें' : 'Select'}</option>{opts.map((o) => <option key={o.value} value={o.value}>{hi ? o.hi : o.label}</option>)}</select>{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>
   );
