@@ -90,3 +90,31 @@ export function validationKindForField(key: string): ValidationKind {
   if (/(link|url)$/.test(k)) return 'url';
   return 'text';
 }
+
+export function getRequiredServiceFieldKeys(serviceId: string, options: Record<string, unknown> = {}): string[] {
+  const required: Record<string, string[]> = {
+    'pan-new': ['panApplicantName', 'panDob', 'panAddress'],
+    'aadhaar-mobile': ['newMobile'],
+    'aadhaar-email': ['newEmail'],
+    'certificate-income': ['incomeFatherName', 'certificateDistrict', 'certificateSubdivision', 'certificateBlock', 'certificateVillage', 'certificatePin', 'level'],
+    'certificate-caste': ['casteFatherName', 'casteCategory', 'casteName', 'certificateDistrict', 'certificateSubdivision', 'certificateBlock', 'certificateVillage', 'certificatePin', 'level'],
+    'certificate-residence': ['certificatePurpose', 'residenceDistrict', 'residenceSubdivision', 'residenceBlock', 'residenceVillageWard', 'residencePin', 'level', 'residenceType'],
+    'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
+    'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
+    'aadhaar-address-hof': ['hofRelation', 'hofName'],
+    'aadhaar-co': ['currentCo'],
+    'certificate-correction': ['certificateNumber', 'issuingOffice', 'issueDate'],
+    'scheme-check': ['schemeName'],
+    'online-form': ['formName'],
+    'website-services': ['websiteScope'],
+    'ration-update': ['rationAction']
+  };
+  const fields = [...(required[serviceId] || [])];
+  if (serviceId === 'ration-update' && options.rationAction === 'ADD_MEMBER') fields.push('memberName', 'memberRelation');
+  if (serviceId === 'ration-update' && options.rationAction === 'ADDRESS') fields.push('memberName');
+  return fields;
+}
+
+export function validateServiceFieldValue(key: string, value: unknown): string | null {
+  return validateByKind(validationKindForField(key), value);
+}
