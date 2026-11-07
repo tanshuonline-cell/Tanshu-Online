@@ -228,7 +228,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'scan-clean': '₹10 per page.',
   'bw-print': '₹5 per printed page.',
   'colour-print': '₹10 per printed page.',
-  'aadhaar-pvc-assistance': '₹100 TANSHU ONLINE assistance fee + ₹75 UIDAI PVC card order fee.',,
+  'aadhaar-pvc-assistance': '₹100 TANSHU ONLINE assistance fee + ₹75 UIDAI PVC card order fee.',
 
   'aadhaar-email': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; check the temporary app waiver before payment.',
   'aadhaar-lost': '₹50 TANSHU ONLINE fee for basic UID retrieval guidance. Customer enters OTP directly; optional centre services are separate.',
