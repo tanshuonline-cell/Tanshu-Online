@@ -100,7 +100,19 @@ export const SERVICE_DOCUMENTS: Record<string, ServiceDocumentOption[]> = {
     doc("aadhaar", "Aadhaar (mandatory except exempt categories)", "आधार (छूट वाली श्रेणी को छोड़कर अनिवार्य)", "Quote Aadhaar except exempt categories.", "छूट वाली श्रेणी छोड़कर आधार देना आवश्यक है।", true),
     ...COMMON_IDENTITY,
     doc("gazette", "Gazette notification / official name-change proof", "राजपत्र अधिसूचना / आधिकारिक नाम परिवर्तन प्रमाण", "May be needed for a material name change; exact proof depends on the correction and provider.", "बड़े नाम परिवर्तन में आवश्यक हो सकता है; सही प्रमाण सुधार और प्रदाता पर निर्भर है।"),
-    doc("father-proof", "Document supporting the corrected father's name", "सुधारे गए पिता के नाम का समर्थन करने वाला दस्तावेज़", "Select a document that actually shows the requested correct particulars; PAN provider may request additional evidence.", "ऐसा दस्तावेज़ चुनें जिसमें सही विवरण स्पष्ट हो; PAN प्रदाता अतिरिक्त प्रमाण माँग सकता है।")
+    doc("father-proof", "Document supporting the corrected father's name", "सुधारे गए पिता के नाम का समर्थन करने वाला दस्तावेज़", "Select a document that actually shows the requested correct particulars; PAN provider may request additional evidence.", "ऐसा दस्तावेज़ चुनें जिसमें सही विवरण स्पष्ट हो; PAN प्रदाता अतिरिक्त प्रमाण माँग सकता है।"),
+    doc("electricity", "Electricity bill (not older than 3 months)", "बिजली बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where the current PAN route accepts it.", "Rule 158 के अनुसार पता प्रमाण, जहाँ वर्तमान PAN माध्यम स्वीकार करे।"),
+    doc("water-bill", "Water bill (not older than 3 months)", "पानी का बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
+    doc("phone-bill", "Landline / broadband bill (not older than 3 months)", "लैंडलाइन / ब्रॉडबैंड बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
+    doc("gas-bill", "Gas connection card / book / piped gas bill (not older than 3 months)", "गैस कनेक्शन कार्ड / बुक / पाइप गैस बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
+    doc("bank-statement", "Bank account statement (not older than 3 months)", "बैंक खाता स्टेटमेंट (3 महीने से पुराना नहीं)", "Proof of address under Rule 158, subject to the listed conditions.", "Rule 158 के अनुसार पता प्रमाण, सूची की शर्तों के अधीन।"),
+    doc("post-office", "Post-office passbook with applicant address", "आवेदक के पते वाली पोस्ट ऑफिस पासबुक", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
+    doc("property-record", "Property registration document / latest property tax assessment", "प्रॉपर्टी रजिस्ट्रेशन दस्तावेज़ / नवीनतम प्रॉपर्टी टैक्स आकलन", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
+    doc("accommodation-letter", "Government accommodation allotment letter (not older than 3 years)", "सरकारी आवास आवंटन पत्र (3 वर्ष से पुराना नहीं)", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
+    doc("government-id", "Government / PSU photo identity card", "सरकारी / PSU फोटो पहचान पत्र", "Proof of identity; category-specific use applies.", "पहचान प्रमाण; श्रेणी के अनुसार उपयोग लागू होगा।"),
+    doc("pension-order", "Pension payment order", "पेंशन भुगतान आदेश", "Date-of-birth proof where the current PAN table accepts it.", "वर्तमान PAN सूची में जहाँ स्वीकार हो वहाँ जन्मतिथि प्रमाण।"),
+    doc("marriage-certificate", "Marriage certificate issued by Registrar of Marriages", "विवाह रजिस्ट्रार द्वारा जारी विवाह प्रमाणपत्र", "Date-of-birth proof in the current PAN table; additional change proof may be required.", "वर्तमान PAN सूची में जन्मतिथि प्रमाण; अतिरिक्त सुधार प्रमाण माँगा जा सकता है।"),
+    doc("magistrate-affidavit", "Magistrate-sworn affidavit stating date of birth", "जन्मतिथि बताने वाला मजिस्ट्रेट के समक्ष शपथपत्र", "Date-of-birth proof under Rule 158 where accepted.", "Rule 158 के अनुसार जन्मतिथि प्रमाण, जहाँ स्वीकार हो।")
   ],
   "pan-photo-signature": [
     doc("existing-pan", "Existing PAN card / PAN allotment letter", "मौजूदा PAN कार्ड / PAN आवंटन पत्र", "PAN CR-01 supporting PAN copy.", "PAN CR-01 के अनुसार PAN की कॉपी।", true),
@@ -223,8 +235,43 @@ export const SERVICE_DOCUMENTS: Record<string, ServiceDocumentOption[]> = {
   "colour-print": [doc("print-file", "PDF / image to print", "प्रिंट करने की PDF / फोटो", "Confirm page range, copies and paper type.", "पेज रेंज, कॉपी और पेपर की पुष्टि करें।", true)]
 };
 
-export function getServiceDocumentOptions(serviceId: string): ServiceDocumentOption[] {
-  return SERVICE_DOCUMENTS[serviceId] || [
+export function getServiceDocumentOptions(serviceId: string, selectedCorrections: string[] = []): ServiceDocumentOption[] {
+  const all = SERVICE_DOCUMENTS[serviceId] || [
     doc("service-instructions", "Service-specific instructions / supporting documents", "सेवा के निर्देश / सहायक दस्तावेज़", "The exact checklist must be confirmed against the selected official route.", "सटीक सूची चुने गए आधिकारिक माध्यम से सत्यापित होगी।")
   ];
+  if (!selectedCorrections.length) return all;
+  const selected = new Set(selectedCorrections);
+  if (serviceId === "pan-photo-signature") {
+    return all.filter((item) => ["existing-pan", "aadhaar", "change-proof"].includes(item.id) ||
+      (selected.has("photo") && item.id === "photo") || (selected.has("signature") && item.id === "signature"));
+  }
+  if (serviceId === "pan-correction") {
+    const always = new Set(["existing-pan", "aadhaar"]);
+    const relevant = new Set<string>();
+    if (selected.has("name")) ["gazette", "passport", "voter-id", "driving-licence", "government-id", "other-proof"].forEach((x) => relevant.add(x));
+    if (selected.has("father-name") || selected.has("mother-name")) ["father-proof", "birth-certificate", "school-certificate", "other-proof"].forEach((x) => relevant.add(x));
+    if (selected.has("date-of-birth")) ["birth-certificate", "school-certificate", "passport", "driving-licence", "pension-order", "marriage-certificate", "magistrate-affidavit", "other-proof"].forEach((x) => relevant.add(x));
+    if (selected.has("address")) ["passport", "voter-id", "driving-licence", "residence-certificate", "electricity", "water-bill", "phone-bill", "gas-bill", "bank-statement", "post-office", "property-record", "accommodation-letter", "other-proof"].forEach((x) => relevant.add(x));
+    if (selected.has("gender") || selected.has("other")) ["government-id", "other-proof"].forEach((x) => relevant.add(x));
+    return all.filter((item) => always.has(item.id) || relevant.has(item.id));
+  }
+  if (serviceId === "voter-correction") {
+    const relevant = new Set(["epic"]);
+    if (selected.has("address")) relevant.add("address-proof");
+    if (selected.has("photo")) relevant.add("photo");
+    if (selected.some((x) => x !== "address" && x !== "photo")) relevant.add("correction-proof");
+    return all.filter((item) => relevant.has(item.id));
+  }
+  if (serviceId === "ration-update") {
+    const relevant = new Set(["existing-ration"]);
+    if (selected.has("add-member") || selected.has("member-correction")) ["member-id", "relationship"].forEach((x) => relevant.add(x));
+    if (selected.has("remove-member")) ["relationship", "death-certificate"].forEach((x) => relevant.add(x));
+    if (selected.has("address")) relevant.add("address-proof");
+    if (selected.has("other")) ["member-id", "relationship", "address-proof"].forEach((x) => relevant.add(x));
+    return all.filter((item) => relevant.has(item.id));
+  }
+  if (serviceId === "certificate-correction") {
+    return all;
+  }
+  return all;
 }
