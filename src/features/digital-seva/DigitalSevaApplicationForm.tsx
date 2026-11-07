@@ -142,7 +142,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     const shouldFormat = /(name|address|house|area|landmark|district|subdivision|block|village|town|city|postoffice|policestation|localbody|ward|occupation|profession|purpose|scheme)/.test(normalizedKey);
     if (!shouldFormat) return value;
     return normalizedKey === 'familymembernames'
-      ? value.split(/\r?\n/).map((line) => formatEnglishTitleCase(line)).join('\n')
+      ? value.split(/\r?
+/).map((line) => formatEnglishTitleCase(line)).join('
+')
       : formatEnglishTitleCase(value);
   };
   const startNewApplication = async () => {
@@ -303,7 +305,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
 
   const renderServiceFields = () => (
     <>
-      {service.id === 'pan-new' && <div className="ds-application-field-grid">\n        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
+      {service.id === 'pan-new' && <div className="ds-application-field-grid">
+        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
         {textInput('panApplicantName', 'Full name exactly as per Aadhaar', 'आधार के अनुसार पूरा नाम')}
         {textInput('panFatherName', "Father's full name", 'पिता का पूरा नाम')}
         {textInput('panMotherName', "Mother's full name", 'माता का पूरा नाम')}
@@ -313,7 +316,12 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         ])}
         {textInput('panAddress', 'Communication address', 'पत्राचार का पता')}
       </div>}
-      {['pan-correction', 'pan-photo-signature'].includes(service.id) && <div className="ds-application-field-grid">\n        {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}\n        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}\n      </div>}\n      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}\n      {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
+      {['pan-correction', 'pan-photo-signature'].includes(service.id) && <div className="ds-application-field-grid">
+        {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}
+        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
+      </div>}
+      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
+      {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
         {textInput('incomeFatherName', "Father's full name", 'पिता का पूरा नाम')}
