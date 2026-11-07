@@ -36,7 +36,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [error, setError] = useState('');
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
-  const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections), [service.id, corrections]);
+  const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections)
+    .filter((item) => item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(serviceOptions.level)),
+    [service.id, corrections, serviceOptions.level]);
   const intermediary = requesterType !== '' && requesterType !== 'DIRECT_CUSTOMER';
   const isOwnWork = !intermediary || applicationFor === 'SELF';
   const requesterOptions = [
@@ -156,10 +158,20 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
         {textInput('incomeApplicantOccupation', 'Applicant occupation / income source', 'आवेदक का पेशा / आय का स्रोत')}
-        {textInput('incomeAmount', 'Approximate annual family income', 'परिवार की अनुमानित वार्षिक आय')}
+        {textInput('incomeGovernment', 'Income from government service', 'सरकारी सेवा से आय')}
+        {textInput('incomeAgriculture', 'Income from agriculture', 'कृषि से आय')}
+        {textInput('incomeBusiness', 'Income from business', 'व्यवसाय से आय')}
+        {textInput('incomeOther', 'Income from other sources', 'अन्य स्रोतों से आय')}
+        {textInput('incomeAmount', 'Total annual income', 'कुल वार्षिक आय')}
+        {textInput('incomePurpose', 'Purpose of certificate', 'प्रमाणपत्र का उद्देश्य')}
       </div>}
       {service.id === 'certificate-caste' && <div className="ds-application-field-grid">
+        {textInput('casteFatherName', "Father's full name", 'पिता का पूरा नाम')}
+        {textInput('casteMotherName', "Mother's full name", 'माता का पूरा नाम')}
+        {textInput('casteProfession', 'Applicant profession', 'आवेदक का पेशा')}
         {textInput('casteCategory', 'Category / caste', 'श्रेणी / जाति')}
+        {textInput('casteName', 'Caste name', 'जाति का नाम')}
+        {textInput('casteSubcategory', 'Sub-caste (if applicable)', 'उपजाति (यदि लागू हो)')}
         {textInput('ancestorName', "Father's / ancestor's name in revenue record", 'राजस्व रिकॉर्ड में पिता / पूर्वज का नाम')}
       </div>}
       {service.id === 'certificate-residence' && <div className="ds-application-field-grid">
@@ -167,6 +179,13 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           { value: 'PERMANENT', label: 'Permanent', hi: 'स्थायी' }, { value: 'TEMPORARY', label: 'Temporary', hi: 'अस्थायी' }
         ])}
         {textInput('certificatePurpose', 'Purpose of certificate', 'प्रमाणपत्र का उद्देश्य')}
+        {textInput('residenceDistrict', 'District', 'जिला')}
+        {textInput('residenceSubdivision', 'Sub-division', 'अनुमंडल')}
+        {textInput('residenceBlock', 'Block', 'प्रखंड')}
+        {textInput('residenceVillageWard', 'Village / Mohalla / Ward', 'गाँव / मोहल्ला / वार्ड')}
+        {textInput('residencePostOffice', 'Post office', 'डाकघर')}
+        {textInput('residencePoliceStation', 'Police station', 'थाना')}
+        {textInput('residencePin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'voter-new' && <div className="ds-application-field-grid">
         {textInput('voterDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
