@@ -118,7 +118,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       if (attachedFiles.length > 8) return reject('documentFiles', 'एक बार में अधिकतम 8 दस्तावेज़ अपलोड करें।');
       if (attachedFiles.some((file) => file.size > 5 * 1024 * 1024)) return reject('documentFiles', 'हर दस्तावेज़ 5 MB या उससे कम होना चाहिए।');
       if (attachedFiles.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024) return reject('documentFiles', 'सभी दस्तावेज़ों का कुल आकार 20 MB से अधिक नहीं होना चाहिए।');
-      if (attachedFiles.some((file) => !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type))) return reject('documentFiles', 'केवल PDF, JPG और PNG फ़ाइल अपलोड करें।');
+      if (attachedFiles.some((file) => file.type && !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type))) return reject('documentFiles', 'केवल PDF, JPG और PNG फ़ाइल अपलोड करें।');
 
       for (const key of getRequiredServiceFieldKeys(service.id, serviceOptions)) {
         if (!String(valueOf(key)).trim()) return reject(key, requiredMessages[key] || 'यह जानकारी भरना अनिवार्य है।');
