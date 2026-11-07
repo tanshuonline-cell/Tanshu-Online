@@ -470,10 +470,10 @@ export default function App() {
         {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
         <SocialStrip />
 
-        {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
+        {/* 1. Browse by Government Category: 6 Premium Coordinated Category Cards */}
         <CategoryNavigationSection
-          onOpenAllTools={() => {
-            setDirectoryCategory('all');
+          onOpenAllTools={(category) => {
+            setDirectoryCategory(category || 'all');
             setSearchQuery('');
             scrollToSection('all-tools');
           }}
