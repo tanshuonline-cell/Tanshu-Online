@@ -1,7 +1,11 @@
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-order-webhook
-// Cashfree Sandbox order webhook. Verify signature, then independently fetch the order before marking it paid.
-interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; }
-const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
+// Cashfree order webhook. Verify signature, then independently fetch the order before marking it paid.
+interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_WEBHOOK_SECRET?: string; CASHFREE_ENVIRONMENT?: string; }
+function getCashfreeApiBase(environment?: string): string | null {
+  if (environment === 'SANDBOX') return 'https://sandbox.cashfree.com/pg';
+  if (environment === 'PRODUCTION') return 'https://api.cashfree.com/pg';
+  return null;
+}
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
@@ -22,7 +26,8 @@ function toPaise(value: unknown): number {
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
-  if (!env.DIGITAL_SEVA_DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false }, 503);
+  const cashfreeApiBase = getCashfreeApiBase(env.CASHFREE_ENVIRONMENT);
+  if (!env.DIGITAL_SEVA_DB || !cashfreeApiBase || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false }, 503);
   const signature = request.headers.get('x-webhook-signature') || '';
   const timestamp = request.headers.get('x-webhook-timestamp') || '';
   if (!signature || !timestamp || timestamp.length > 40) return json({ success: false, error: 'Missing webhook signature.' }, 400);
@@ -30,7 +35,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (rawBody.length > 65536) return json({ success: false }, 413);
 
   try {
-    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.CASHFREE_SECRET_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const webhookSecret = env.CASHFREE_WEBHOOK_SECRET || env.CASHFREE_SECRET_KEY;
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(webhookSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const signed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(timestamp + rawBody));
     if (!constantTimeEqual(signature, toBase64(new Uint8Array(signed)))) return json({ success: false, error: 'Invalid webhook signature.' }, 401);
 
@@ -44,7 +50,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!local) return json({ success: true, ignored: true });
     if (local.status === 'CLAIMED' || local.status === 'PAID') return json({ success: true, duplicate: true });
 
-    const response = await fetch(`${CASHFREE_API}/orders/${encodeURIComponent(orderId)}`, {
+    const response = await fetch(`${cashfreeApiBase}/orders/${encodeURIComponent(orderId)}`, {
       headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
     });
     const verified = await response.json().catch(() => ({})) as any;
