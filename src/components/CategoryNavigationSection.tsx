@@ -159,6 +159,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
       .category-card-grid > div:nth-child(3) { --card-light-a: rgba(52,211,153,.98); --card-light-b: rgba(167,243,208,.98); --card-light-c: rgba(5,150,105,.95); box-shadow: 0 0 0 1px rgba(52,211,153,.16), 0 0 22px rgba(5,150,105,.16), 0 0 34px rgba(167,243,208,.10); }
       .category-card-grid > div:nth-child(4) { --card-light-a: rgba(251,191,36,.98); --card-light-b: rgba(253,230,138,.98); --card-light-c: rgba(217,119,6,.95); box-shadow: 0 0 0 1px rgba(251,191,36,.16), 0 0 22px rgba(217,119,6,.16), 0 0 34px rgba(253,230,138,.10); }
       .category-card-grid > div:nth-child(5) { --card-light-a: rgba(244,114,182,.98); --card-light-b: rgba(196,181,253,.98); --card-light-c: rgba(219,39,119,.95); box-shadow: 0 0 0 1px rgba(244,114,182,.16), 0 0 22px rgba(219,39,119,.16), 0 0 34px rgba(196,181,253,.10); }
+      .category-card-grid > div:nth-child(6) { --card-light-a: rgba(56,189,248,.98); --card-light-b: rgba(125,211,252,.98); --card-light-c: rgba(37,99,235,.95); box-shadow: 0 0 0 1px rgba(56,189,248,.16), 0 0 22px rgba(37,99,235,.16), 0 0 34px rgba(125,211,252,.10); }
       @media (prefers-reduced-motion: reduce) { .category-card-grid > div::before, .category-card-grid > div::after { animation: none; } }
     `}</style>
     
