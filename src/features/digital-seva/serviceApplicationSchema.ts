@@ -30,8 +30,7 @@ export const CORRECTION_OPTIONS: Record<string, ApplicantCorrection[]> = {
     { id: "signature", label: "Signature", hindi: "हस्ताक्षर" }
   ],
   "aadhaar-address-doc": [
-    { id: "address", label: "Address", hindi: "पता" },
-    { id: "care-of", label: "C/O in address", hindi: "पते में C/O नाम" }
+    { id: "address", label: "Address", hindi: "पता" }
   ],
   "aadhaar-address-hof": [
     { id: "address", label: "Address through Head of Family", hindi: "परिवार के मुखिया के माध्यम से पता" }
