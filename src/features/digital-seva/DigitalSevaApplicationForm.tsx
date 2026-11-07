@@ -306,7 +306,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const renderServiceFields = () => (
     <>
       {service.id === 'pan-new' && <div className="ds-application-field-grid">
-        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
+        {textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
         {textInput('panApplicantName', 'Full name exactly as per Aadhaar', 'आधार के अनुसार पूरा नाम')}
         {textInput('panFatherName', "Father's full name", 'पिता का पूरा नाम')}
         {textInput('panMotherName', "Mother's full name", 'माता का पूरा नाम')}
