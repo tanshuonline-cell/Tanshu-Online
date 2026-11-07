@@ -137,7 +137,7 @@ export default function DigitalSevaPage() {
     if (!bookingReference || !selected || !bookingReceipt) return;
     const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
     const mask = (key: string, value: string) => {
-      const digits = value.replace(/\\D/g, '');
+      const digits = value.replace(/\D/g, '');
       if (/aadhaar|uid/i.test(key)) return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : 'Protected';
       if (/pan(number|no)?$/i.test(key)) return digits.length >= 4 ? `XXXXXX${digits.slice(-4)}` : 'Protected';
       return value;
