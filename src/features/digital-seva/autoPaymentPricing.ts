@@ -10,7 +10,7 @@ export interface AutoPaymentQuote {
   note: string;
 }
 
-// Initial automatic-checkout scope approved for Preview only.
+// Initial direct-checkout scope: New PAN, PAN correction, PAN photo/signature, and Aadhaar document-based address update only.
 // PAN figures assume an Indian physical-card application route.
 // UIDAI figures assume a separate demographic address update, not a document-only refresh.
 export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
@@ -34,16 +34,6 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     routeLabel: 'Separate demographic address update with document verification',
     note: 'This is an actual address change. The free online PoI/PoA document-only update is a different service.'
   },
-  'aadhaar-address-hof': {
-    serviceId: 'aadhaar-address-hof', totalAmount: 175, governmentFee: 75, tanshuFee: 100, currency: 'INR',
-    routeLabel: 'HoF-based demographic address update',
-    note: 'HoF eligibility, relationship proof and HoF consent are required; confirm the selected UIDAI route before any live payment.'
-  },
-  'aadhaar-co': {
-    serviceId: 'aadhaar-co', totalAmount: 275, governmentFee: 75, tanshuFee: 200, currency: 'INR',
-    routeLabel: 'C/O address-detail update',
-    note: 'C/O is part of the address, not a separate father-name update.'
-  }
 };
 
 export function getAutoPaymentQuote(service: SevaService | string): AutoPaymentQuote | null {
