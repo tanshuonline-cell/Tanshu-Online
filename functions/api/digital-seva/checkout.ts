@@ -1,5 +1,5 @@
 // Cloudflare Pages Function: POST /api/digital-seva/checkout
-// Creates a Cashfree Sandbox order for the approved fixed-price Digital Seva services.
+// Creates a Cashfree order for the approved fixed-price Digital Seva services.
 // A booking is NOT written until the customer has paid and /bookings verifies this order.
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
 
@@ -7,8 +7,13 @@ interface Env {
   DIGITAL_SEVA_DB?: any;
   CASHFREE_APP_ID?: string;
   CASHFREE_SECRET_KEY?: string;
+  CASHFREE_ENVIRONMENT?: string;
 }
-const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
+function getCashfreeApiBase(environment?: string): string | null {
+  if (environment === 'SANDBOX') return 'https://sandbox.cashfree.com/pg';
+  if (environment === 'PRODUCTION') return 'https://api.cashfree.com/pg';
+  return null;
+}
 const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
 const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -31,7 +36,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ success: false, error: 'A JSON checkout request is required.' }, 415);
   }
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
-  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree Sandbox credentials are not configured in this Preview.' }, 503);
+  const cashfreeApiBase = getCashfreeApiBase(env.CASHFREE_ENVIRONMENT);
+  if (!cashfreeApiBase) return json({ success: false, error: 'Cashfree environment must be explicitly set to SANDBOX or PRODUCTION.' }, 503);
+  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured for this environment.' }, 503);
 
   let body: any;
   try {
@@ -48,7 +55,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const customerPhone = normalizePhone(body?.customerPhone);
   const customerEmail = String(body?.customerEmail || '').trim();
   const idempotencyKey = String(body?.idempotencyKey || '');
-  if (!quote) return json({ success: false, error: 'Automatic payment is not enabled for this service yet. Please use the payment-link request option.' }, 400);
+  if (!quote) return json({ success: false, error: 'Online payment is currently available only for the four enabled PAN and Aadhaar services.' }, 400);
   if (customerName.length < 2 || customerName.length > 100 || !/^[\p{L}\p{M} .'-]+$/u.test(customerName)) return json({ success: false, error: 'Enter a valid customer name.' }, 400);
   if (!/^\d{10}$/.test(customerPhone)) return json({ success: false, error: 'Enter a valid 10-digit Indian mobile number.' }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) || customerEmail.length > 120) return json({ success: false, error: 'Enter a valid email address.' }, 400);
@@ -64,14 +71,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     ).bind(idempotencyKey).first();
     if (prior) {
       if (prior.status === 'PENDING' || prior.status === 'PAID') {
-        return json({ success: true, orderId: prior.order_id, paymentSessionId: prior.payment_session_id, amount: prior.amount, status: prior.status, reused: true });
+        return json({ success: true, orderId: prior.order_id, paymentSessionId: prior.payment_session_id, amount: prior.amount, status: prior.status, environment: env.CASHFREE_ENVIRONMENT, reused: true });
       }
       return json({ success: false, error: 'This checkout attempt has already been used. Please start a fresh payment attempt.' }, 409);
     }
 
     const orderId = `ds_${idempotencyKey.replace(/-/g, '')}`;
     const origin = new URL(request.url).origin;
-    const cashfreeResponse = await fetch(`${CASHFREE_API}/orders`, {
+    const cashfreeResponse = await fetch(`${cashfreeApiBase}/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,7 +107,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     });
     const result = await cashfreeResponse.json().catch(() => ({})) as any;
     if (!cashfreeResponse.ok || !result.payment_session_id || String(result.order_id || '') !== orderId) {
-      console.error('Cashfree Sandbox order creation failed:', cashfreeResponse.status, result);
+      console.error('Cashfree order creation failed:', cashfreeResponse.status, result);
       return json({ success: false, error: 'Cashfree could not start the secure checkout. Please try again later.' }, 502);
     }
 
@@ -117,6 +124,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       amount: quote.totalAmount,
       currency: 'INR',
       status: 'PENDING',
+      environment: env.CASHFREE_ENVIRONMENT,
       quote: { governmentFee: quote.governmentFee, tanshuFee: quote.tanshuFee, routeLabel: quote.routeLabel, note: quote.note }
     }, 201);
   } catch (error) {
