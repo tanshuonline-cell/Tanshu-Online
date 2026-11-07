@@ -117,7 +117,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
          FROM digital_seva_bookings b ORDER BY b.created_at DESC LIMIT 200`
       ).all();
     } catch {
-      // Keep the existing Admin Panel usable until migration 0008 is applied to Preview D1.
+      // Keep the existing Admin Panel usable when optional payment-history migrations are not yet applied.
       result = await env.DIGITAL_SEVA_DB.prepare(
         `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, estimated_completion_at, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
          FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
@@ -141,7 +141,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     return json({ success: true, bookings });
   } catch (error) {
     console.error('Digital Seva admin list failed:', error);
-    return json({ success: false, error: 'Could not load booking records. Confirm the Preview migration has been applied.' }, 503);
+    return json({ success: false, error: 'Could not load booking records. Confirm the required Digital Seva database migrations have been applied.' }, 503);
   }
 }
 
