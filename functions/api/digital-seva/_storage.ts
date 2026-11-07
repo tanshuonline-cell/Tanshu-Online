@@ -63,14 +63,15 @@ export async function deletePrivateDocument(
 export async function createPrivateDocumentUrl(
   env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
   objectKey: string,
-  expiresIn = 60
+  expiresIn = 60,
+  downloadName?: string
 ): Promise<string> {
   const { base, key } = storageConfig(env);
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
   const response = await fetch(`${base}/storage/v1/object/sign/${BUCKET}/${path}`, {
     method: 'POST',
     headers: { apikey: key, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-    body: JSON.stringify({ expiresIn })
+    body: JSON.stringify({ expiresIn, ...(downloadName ? { download: downloadName } : {}) })
   });
   if (!response.ok) {
     console.error('Supabase signed URL creation failed with status:', response.status);
