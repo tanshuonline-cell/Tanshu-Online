@@ -2,7 +2,7 @@
 // Stores only a minimal booking request. Customer documents and payments are deliberately out of scope.
 interface Env { DIGITAL_SEVA_DB?: any; }
 
-const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format"]);
+const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
