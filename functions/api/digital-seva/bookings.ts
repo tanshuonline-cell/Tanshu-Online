@@ -2,7 +2,7 @@ import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getR
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
-interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; }
+interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; }
 
 const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -28,7 +28,7 @@ function toBase64(bytes: Uint8Array): string {
 
 async function encryptIdentifier(value: string, secret: string): Promise<string> {
   if (secret.length < 32) throw new Error('Digital Seva PII encryption secret must be at least 32 characters.');
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`TANSHU-ONLINE-DIGITAL-SEVA-PII-v1:${secret}`));
   const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(value));
@@ -132,7 +132,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (totalUploadBytes > 20 * 1024 * 1024) return json({ success: false, error: 'The combined document upload limit is 20 MB.' }, 413);
   let applicationDetails = '';
   try {
-    applicationDetails = await protectApplicationDetails({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails }, env.DIGITAL_SEVA_PII_SECRET || '');
+    applicationDetails = await protectApplicationDetails({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails }, env.DIGITAL_SEVA_PII_SECRET || env.ADMIN_SECRET_TOKEN || '');
   } catch (error) {
     console.error('Digital Seva identifier encryption is not configured:', error);
     return json({ success: false, error: 'Secure Aadhaar/PAN storage is not configured yet. Please contact the administrator before submitting this request.' }, 503);
