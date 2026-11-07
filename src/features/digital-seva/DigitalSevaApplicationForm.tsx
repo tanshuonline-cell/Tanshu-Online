@@ -219,7 +219,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       if (correctionsForService.length && corrections.length === 0) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
       if (service.id === 'voter-correction' && corrections.length > 4) return reject('corrections', 'Form 8 में अधिकतम चार सुधार चुनें।');
       if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(service.id) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return reject('taskDetails', 'यह निर्देशात्मक वाक्य एड्रेस या आवेदन विवरण में स्वीकार नहीं है। कृपया केवल वास्तविक और सही जानकारी लिखें।');
-      for (const key of getRequiredCorrectionFieldKeys(corrections)) {
+      const correctionKeys = getRequiredCorrectionFieldKeys(corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')));
+      for (const key of correctionKeys) {
         if (!String(fieldValues[key] || '').trim()) return reject(key, key.endsWith('-current') ? 'मौजूदा विवरण भरें।' : 'सही नया विवरण भरें।');
       }
       if (!isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
@@ -374,7 +375,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       </div>}
       {service.id === 'aadhaar-lost' && textInput('aadhaarRecordedName', 'Name as recorded in Aadhaar (no Aadhaar number)', 'आधार में दर्ज नाम (आधार नंबर नहीं)')}
       {correctionsForService.length > 0 && <div className="ds-application-field-grid">
-        {corrections.map((id) => {
+        {corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')).map((id) => {
           const item = correctionsForService.find((x) => x.id === id);
           if (!item) return null;
           return <div className="ds-application-correction-fields" key={id}>
@@ -413,8 +414,27 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         ])}
         {textInput('hofName', 'Head of Family full name', 'परिवार के मुखिया का पूरा नाम')}
       </div>}
-      {['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && <div className="ds-application-profile">
-        <h4>{hi ? 'पूरा पता और PIN कोड' : 'Complete address and PIN code'}</h4>
+      {service.id === 'aadhaar-address-doc' && <div className="ds-address-choice-panel">
+        <h4>{hi ? 'कौन-सा पता रखना चाहते हैं?' : 'Which address would you like to keep?'}</h4>
+        <div className="ds-address-choice-options" role="radiogroup" aria-label={hi ? 'पता चुनें' : 'Choose address'}>
+          <label className={serviceOptions.addressChoice === 'NEW' ? 'ds-address-choice-card is-selected' : 'ds-address-choice-card'}>
+            <input type="radio" name="addressChoice" value="NEW" checked={serviceOptions.addressChoice === 'NEW'} onChange={() => setOption('addressChoice', 'NEW')} />
+            <span><strong>{hi ? 'New Address जोड़ें' : 'Add New Address'}</strong><small>{hi ? 'पते में थोड़ा-सा भी बदलाव करना है तो इसे चुनें।' : 'Choose this if even one small part of the address needs to change.'}</small></span>
+          </label>
+          <label className={serviceOptions.addressChoice === 'OLD' ? 'ds-address-choice-card is-selected' : 'ds-address-choice-card'}>
+            <input type="radio" name="addressChoice" value="OLD" checked={serviceOptions.addressChoice === 'OLD'} onChange={() => setOption('addressChoice', 'OLD')} />
+            <span><strong>{hi ? 'Old Address रखें' : 'Keep Old Address'}</strong><small>{hi ? 'ऑनलाइन दिख रहा पता जैसा है वैसा ही रखना है तो इसे चुनें।' : 'Choose this to keep the address currently shown online, without changes.'}</small></span>
+          </label>
+          <details className="ds-address-choice-info">
+            <summary aria-label={hi ? 'पते के विकल्प की जानकारी' : 'Address choice information'}>i</summary>
+            <p>{hi
+              ? 'ध्यान दें: गाँव/शहर, एरिया, PIN कोड, मकान नंबर, लैंडमार्क या पते की किसी भी एक जानकारी में बदलाव करना हो, तो New Address चुनना और नया पता भरना ज़रूरी है। यदि पुराना ऑनलाइन पता ही रखना है और कोई बदलाव नहीं चाहिए, तो Old Address चुनें।'
+              : 'Important: If you want to change even one detail—Village/City, Area, PIN Code, house details, landmark or any other part of the address—you must select New Address and fill in the new address. Select Old Address only when you want to keep the address exactly as currently shown online.'}</p>
+          </details>
+        </div>
+      </div>}
+      {(['aadhaar-address-hof'].includes(service.id) || (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'NEW')) && <div className="ds-application-profile ds-address-profile">
+        <h4>{hi ? 'जिस नए पते को अपडेट करवाना है, उसकी जानकारी भरें' : 'Enter the details of the new address you want updated'}</h4>
         <div className="ds-address-form-grid">
           {textInput('aadhaarHouse', 'House / Building / Apartment', 'मकान / बिल्डिंग / अपार्टमेंट')}
           {textInput('aadhaarVillage', 'Village / Town / City', 'गाँव / कस्बा / शहर')}
