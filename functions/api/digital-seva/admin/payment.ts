@@ -5,7 +5,6 @@ interface Env {
   ADMIN_SECRET_TOKEN?: string;
   CASHFREE_APP_ID?: string;
   CASHFREE_SECRET_KEY?: string;
-  CASHFREE_ENV?: string;
 }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 function json(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status, headers }); }
