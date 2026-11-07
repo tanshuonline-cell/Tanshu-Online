@@ -22,7 +22,7 @@
 .ds-modal-book{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--ds-red);color:#fff;border:0;border-radius:10px;padding:13px 17px;font:700 12px 'DM Sans';cursor:pointer}
 .ds-modal-book:hover{background:var(--ds-red-dark)}
 .ds-modal-book:disabled{opacity:.6;cursor:not-allowed}
-.ds-booking-modal{width:min(980px,calc(100vw - 36px));max-width:980px;max-height:94vh}
+.ds-booking-modal{width:min(1080px,calc(100vw - 36px));max-width:1080px;max-height:94vh}
 .ds-booking-form{display:grid;gap:14px;margin-top:20px}
 .ds-booking-form>label:not(.ds-booking-consent){display:grid;gap:7px;font-size:12px;font-weight:700;color:#41454c}
 .ds-booking-form label span{font-weight:500;color:#777d86}
