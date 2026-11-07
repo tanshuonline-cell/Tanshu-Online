@@ -200,7 +200,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setFieldErrors({});
     const reject = (key: string, message: string) => { setFieldErrors({ [key]: message }); setError(message); return message; };
     const requiredMessages: Record<string, string> = {
-      existingPanNumber: 'मौजूदा PAN नंबर भरें।', aadhaarNumber: '12 अंकों का Aadhaar नंबर भरें।', panApplicantName: 'आवेदक का सही नाम भरें।', panDob: 'जन्मतिथि भरें।', panAddress: 'पत्राचार का पूरा पता भरें।',
+      existingPanNumber: 'मौजूदा PAN नंबर भरें।', aadhaarNumber: '12 अंकों का Aadhaar नंबर भरें।', hofAadhaarNumber: 'परिवार के मुखिया का 12 अंकों का Aadhaar नंबर भरें।', panApplicantName: 'आवेदक का सही नाम भरें।', panDob: 'जन्मतिथि भरें।', panAddress: 'पत्राचार का पूरा पता भरें।',
       newMobile: 'नया मोबाइल नंबर भरें।', newEmail: 'नई ईमेल आईडी भरें।', incomeFatherName: 'पिता का नाम भरें।',
       casteFatherName: 'पिता का नाम भरें।', casteCategory: 'श्रेणी / जाति भरें।', casteName: 'जाति का नाम भरें।',
       certificateDistrict: 'जिला भरें।', certificateSubdivision: 'अनुमंडल भरें।', certificateBlock: 'प्रखंड भरें।', certificateVillage: 'गाँव / मोहल्ला भरें।', certificatePin: '6 अंकों का PIN कोड भरें।',
