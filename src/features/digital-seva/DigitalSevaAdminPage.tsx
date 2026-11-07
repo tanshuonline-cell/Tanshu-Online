@@ -126,7 +126,7 @@ function formatSlipTime(value?: string | null): string {
 }
 
 function printBookingSlip(booking: Booking, serviceName: string) {
-  const popup = window.open('', '_blank', 'noopener,noreferrer');
+  const popup = window.open('', '_blank');
   if (!popup) return false;
   const details = parseApplicationDetails(booking.application_details_json);
   const values = { ...(details.fieldValues || {}), ...(details.serviceOptions || {}) };
