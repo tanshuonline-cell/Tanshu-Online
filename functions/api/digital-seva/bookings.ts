@@ -1,4 +1,4 @@
-import { normalizeIndianMobile, getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
+import { normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores only a minimal booking request. Customer documents and payments are deliberately out of scope.
 interface Env { DIGITAL_SEVA_DB?: any; }
@@ -76,6 +76,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const key = String(body.idempotencyKey || '');
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
   if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
+  for (const field of getRequiredCorrectionFieldKeys(corrections)) {
+    if (!String(fieldValues[field] || '').trim()) return json({ success: false, error: `Required correction detail is missing: ${field}.` }, 400);
+  }
   if (!['DIRECT_CUSTOMER', 'CYBER_CAFE', 'CSC_CENTER', 'INDEPENDENT_AGENT'].includes(requesterType)) return json({ success: false, error: 'Please select a valid submitting-party type.' }, 400);
   if (!['SELF', 'CUSTOMER'].includes(applicationFor) || (requesterType === 'DIRECT_CUSTOMER' && applicationFor !== 'SELF')) return json({ success: false, error: 'Please select whose work is being requested.' }, 400);
   if (!isValidName(name)) return json({ success: false, error: 'Please enter a valid applicant name using Hindi or English letters.' }, 400);
