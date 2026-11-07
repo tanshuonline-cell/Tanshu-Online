@@ -1,4 +1,4 @@
-import { normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
+import { normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores only a minimal booking request. Customer documents and payments are deliberately out of scope.
 interface Env { DIGITAL_SEVA_DB?: any; }
@@ -93,7 +93,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   } else if (operator) {
     return json({ success: false, error: 'Direct customer requests must not include an operator profile.' }, 400);
   }
-  if (taskDetails.length < 10 || taskDetails.length > 4000 || !/[\\p{L}]{3,}/u.test(taskDetails) || applicationDetails.length > 16000 || otherDocumentName.length > 160) return json({ success: false, error: 'Please provide a clear description of the requested service and valid document selections.' }, 400);
+  if (taskDetails.length > 4000 || !isMeaningfulDescription(taskDetails) || applicationDetails.length > 16000 || otherDocumentName.length > 160) return json({ success: false, error: 'Please provide a clear description of the requested service and valid document selections.' }, 400);
   const requiredServiceFields = getRequiredServiceFieldKeys(serviceId, serviceOptions);
   for (const field of requiredServiceFields) {
     const value = fieldValues[field] ?? serviceOptions[field];
