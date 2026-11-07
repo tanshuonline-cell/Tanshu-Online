@@ -72,6 +72,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
   const applicationDetails = JSON.stringify({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails });
+  const consent = body.consent === true;
   const termsAccepted = body.termsAccepted === true;
   const termsPolicyVersion = String(body.termsPolicyVersion || '');
   const refundPolicyAccepted = body.refundPolicyAccepted === true;
@@ -88,12 +89,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && (!centerName || centerName.length > 120 || !centerAddress || centerAddress.length > 500)) return json({ success: false, error: 'Centre name and full address are required.' }, 400);
     if (requesterType === 'INDEPENDENT_AGENT' && (!agencyName || agencyName.length > 120)) return json({ success: false, error: 'Agent/business name is required.' }, 400);
     if (centerName.length > 120 || centerAddress.length > 500 || agencyName.length > 120 || agencyAddress.length > 500) return json({ success: false, error: 'Operator or centre details are too long.' }, 400);
+    if (applicationFor === 'SELF' && (name !== operatorName || phone !== operatorPhone || email.toLowerCase() !== operatorEmail.toLowerCase())) return json({ success: false, error: 'For own work, applicant contact details must match the operator profile.' }, 400);
   } else if (operator) {
     return json({ success: false, error: 'Direct customer requests must not include an operator profile.' }, 400);
   }
   if (taskDetails.length < 5 || taskDetails.length > 4000 || applicationDetails.length > 16000 || otherDocumentName.length > 160) return json({ success: false, error: 'Please provide valid service details and document selections.' }, 400);
+  if (!consent) return json({ success: false, error: 'Please confirm that TANSHU ONLINE may contact you about this request.' }, 400);
   if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
-  if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
+  if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v2') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
   if (!/^[0-9a-f-]{36}$/i.test(key)) return json({ success: false, error: 'The booking session expired. Please reopen the form.' }, 400);
 
   try {
