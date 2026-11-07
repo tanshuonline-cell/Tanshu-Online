@@ -1,7 +1,7 @@
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-webhook
-// Public Cashfree callback. Verifies the signed raw payload and then confirms the link
-// independently with Cashfree before marking a Digital Seva request as paid.
-interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENV?: string; }
+// Public Cashfree callback. Verifies the signed raw payload, fetches the link from Cashfree,
+// and updates only the matching, current PENDING payment for the exact INR amount.
+interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; }
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
@@ -15,6 +15,10 @@ function constantTimeEqual(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+function toPaise(value: unknown): number {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : -1;
 }
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!env.DIGITAL_SEVA_DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false }, 503);
@@ -31,6 +35,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const event = JSON.parse(rawBody) as any;
     const linkId = String(event?.data?.link_id || event?.data?.link?.link_id || event?.data?.payment_link?.link_id || '');
     if (!linkId || linkId.length > 100) return json({ success: true, ignored: true });
+
+    const payment = await env.DIGITAL_SEVA_DB.prepare(
+      'SELECT id, amount, status FROM digital_seva_payments WHERE cashfree_link_id = ?'
+    ).bind(linkId).first();
+    if (!payment) return json({ success: true, ignored: true });
+    if (payment.status === 'PAID') return json({ success: true, duplicate: true });
+    if (payment.status !== 'PENDING') {
+      console.error('Cashfree payment event received for a non-current payment link:', linkId, payment.status);
+      return json({ success: true, ignored: true });
+    }
+
     // This Preview branch is deliberately pinned to Cashfree Sandbox; it cannot charge real money.
     const apiBase = 'https://sandbox.cashfree.com/pg';
     const verifyResponse = await fetch(`${apiBase}/links/${encodeURIComponent(linkId)}`, {
@@ -38,23 +53,41 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     });
     const verified = await verifyResponse.json().catch(() => ({})) as any;
     if (!verifyResponse.ok) return json({ success: false, error: 'Could not verify the payment link with Cashfree.' }, 502);
+    if (String(verified.link_id || '') !== linkId) return json({ success: false, error: 'Cashfree returned a different payment link.' }, 502);
+
+    const linkStatus = String(verified.link_status || '').toUpperCase();
     const paidAmount = Number(verified.link_amount_paid || 0);
-    const totalAmount = Number(verified.link_amount || 0);
-    const isPaid = String(verified.link_status || '').toUpperCase() === 'PAID' || (totalAmount > 0 && paidAmount >= totalAmount);
-    const isFailed = ['EXPIRED', 'CANCELLED'].includes(String(verified.link_status || '').toUpperCase());
-    if (isPaid || isFailed) {
+    const expectedPaise = toPaise(payment.amount);
+    const linkPaise = toPaise(verified.link_amount);
+    const paidPaise = toPaise(paidAmount);
+    const currency = String(verified.link_currency || '').toUpperCase();
+
+    if (linkStatus === 'PAID') {
+      if (currency !== 'INR' || expectedPaise <= 0 || linkPaise !== expectedPaise || paidPaise !== expectedPaise) {
+        console.error('Cashfree payment amount/currency mismatch; payment was not marked PAID:', {
+          linkId, currency, expectedPaise, linkPaise, paidPaise
+        });
+        return json({ success: true, ignored: true, reason: 'amount_or_currency_mismatch' });
+      }
       await env.DIGITAL_SEVA_DB.prepare(
         `UPDATE digital_seva_payments
-         SET status = CASE WHEN ? = 1 THEN 'PAID' ELSE 'CANCELLED' END,
-             cashfree_link_status = ?, cashfree_link_paid_amount = ?,
-             paid_at = CASE WHEN ? = 1 THEN COALESCE(paid_at, CURRENT_TIMESTAMP) ELSE paid_at END,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE cashfree_link_id = ? AND status != 'PAID'`
-      ).bind(isPaid ? 1 : 0, String(verified.link_status || ''), paidAmount, isPaid ? 1 : 0, linkId).run();
+         SET status = 'PAID', cashfree_link_status = ?, cashfree_link_paid_amount = ?,
+             paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND status = 'PENDING'`
+      ).bind(linkStatus, paidAmount, payment.id).run();
+      return json({ success: true });
+    }
+
+    if (['EXPIRED', 'CANCELLED'].includes(linkStatus)) {
+      await env.DIGITAL_SEVA_DB.prepare(
+        `UPDATE digital_seva_payments
+         SET status = 'CANCELLED', cashfree_link_status = ?, cashfree_link_paid_amount = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND status = 'PENDING'`
+      ).bind(linkStatus, paidAmount, payment.id).run();
     } else {
       await env.DIGITAL_SEVA_DB.prepare(
-        'UPDATE digital_seva_payments SET cashfree_link_status = ?, cashfree_link_paid_amount = ?, updated_at = CURRENT_TIMESTAMP WHERE cashfree_link_id = ?'
-      ).bind(String(verified.link_status || ''), paidAmount, linkId).run();
+        'UPDATE digital_seva_payments SET cashfree_link_status = ?, cashfree_link_paid_amount = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?'
+      ).bind(linkStatus, paidAmount, payment.id, 'PENDING').run();
     }
     return json({ success: true });
   } catch (error) {
