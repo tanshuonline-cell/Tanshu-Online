@@ -395,16 +395,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         ])}
       </div>}
       {service.id === 'aadhaar-address-doc' && <div className="ds-application-field-grid">
-        {selectInput('docRelation', 'Whose name should be included in the address?', 'पते में किसका नाम जोड़ना है?', [
-          { value: 'FATHER', label: 'Father', hi: 'पिता' }, { value: 'MOTHER', label: 'Mother', hi: 'माता' },
-          { value: 'HUSBAND', label: 'Husband', hi: 'पति' }, { value: 'WIFE', label: 'Wife', hi: 'पत्नी' },
-          { value: 'UNCLE', label: 'Uncle (Chacha)', hi: 'चाचा' }, { value: 'MATERNAL_UNCLE', label: 'Maternal uncle (Mama)', hi: 'मामा' },
-          { value: 'MAUSA', label: 'Mausa', hi: 'मौसा' }, { value: 'OTHER', label: 'Other relation', hi: 'अन्य रिश्ता' }
-        ])}
-        {serviceOptions.docRelation && textInput('docRelationName',
-          ({ FATHER: "Father's name", MOTHER: "Mother's name", HUSBAND: "Husband's name", WIFE: "Wife's name", UNCLE: "Uncle's name", MATERNAL_UNCLE: "Maternal uncle's name", MAUSA: "Mausa's name", OTHER: "Relative's name" } as Record<string, string>)[serviceOptions.docRelation],
-          ({ FATHER: 'पिता का नाम', MOTHER: 'माता का नाम', HUSBAND: 'पति का नाम', WIFE: 'पत्नी का नाम', UNCLE: 'चाचा का नाम', MATERNAL_UNCLE: 'मामा का नाम', MAUSA: 'मौसा का नाम', OTHER: 'रिश्तेदार का नाम' } as Record<string, string>)[serviceOptions.docRelation])}
-        <small>{hi ? 'केवल वही सही नया नाम लिखें जिसे पते में जोड़ना है।' : 'Enter only the correct new name to be included in the address.'}</small>
+        {textInput('docRelationName', "Father's name", 'पिता का नाम')}
+        <small>{hi ? 'इस सेवा में केवल पिता का नाम लिया जाएगा। C/O, S/O या D/O जैसे विकल्प शामिल नहीं हैं।' : "This service collects the father's name only. C/O, S/O and D/O options are not used here."}</small>
       </div>}
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-field-grid">
         {selectInput('hofRelation', 'Eligible relation to Head of Family', 'परिवार के मुखिया से संबंध चुनें', [
