@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
 import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } from './BookingPolicyConsent';
+import { deleteDigitalSevaDraft, loadDigitalSevaDraft, saveDigitalSevaDraft } from './digitalSevaDraftStore';
 
 type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPENDENT_AGENT';
 type ApplicationFor = 'SELF' | 'CUSTOMER';
@@ -37,8 +38,79 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const draftStateRef = useRef<Record<string, unknown>>({});
+  const completedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
+
+  useEffect(() => {
+    let active = true;
+    completedRef.current = false;
+    setDraftReady(false);
+    setDraftRestored(false);
+    loadDigitalSevaDraft(service.id).then((saved) => {
+      if (!active) return;
+      if (saved?.data) {
+        const d = saved.data as any;
+        setStep(Number.isInteger(d.step) ? d.step : 0);
+        setRequesterType(d.requesterType || '');
+        setApplicationFor(d.applicationFor || 'SELF');
+        setOperator(d.operator || emptyContact());
+        setCenterName(d.centerName || '');
+        setCenterAddress(d.centerAddress || '');
+        setAgencyName(d.agencyName || '');
+        setAgencyAddress(d.agencyAddress || '');
+        setApplicant(d.applicant || emptyContact());
+        setCorrections(Array.isArray(d.corrections) ? d.corrections : []);
+        setSelectedDocuments(Array.isArray(d.selectedDocuments) ? d.selectedDocuments : []);
+        setDocumentFiles(d.documentFiles || {});
+        setOtherDocumentName(d.otherDocumentName || '');
+        setTaskDetails(d.taskDetails || '');
+        setFieldValues(d.fieldValues || {});
+        setServiceOptions(d.serviceOptions || {});
+        setBookingConsent(Boolean(d.bookingConsent));
+        setTermsAccepted(Boolean(d.termsAccepted));
+        setRefundAccepted(Boolean(d.refundAccepted));
+        setDraftRestored(true);
+      }
+      setDraftReady(true);
+    }).catch(() => {
+      if (active) setDraftReady(true);
+    });
+    return () => { active = false; };
+  }, [service.id]);
+
+  useEffect(() => {
+    if (!draftReady || completedRef.current) return;
+    const data = {
+      step, requesterType, applicationFor, operator, centerName, centerAddress,
+      agencyName, agencyAddress, applicant, corrections, selectedDocuments,
+      documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions,
+      bookingConsent, termsAccepted, refundAccepted
+    };
+    draftStateRef.current = data;
+    const persist = () => {
+      if (!completedRef.current) void saveDigitalSevaDraft(service.id, draftStateRef.current).catch(() => {});
+    };
+    const timer = window.setTimeout(persist, 300);
+    const onPageHide = () => persist();
+    const onVisibilityChange = () => { if (document.visibilityState === 'hidden') persist(); };
+    window.addEventListener('pagehide', onPageHide);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, refundAccepted]);
+
+  useEffect(() => () => {
+    if (!completedRef.current && Object.keys(draftStateRef.current).length) {
+      void saveDigitalSevaDraft(service.id, draftStateRef.current).catch(() => {});
+    }
+  }, [service.id]);
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
   const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections)
@@ -65,6 +137,35 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const clearFieldError = (key: string) => { setError(''); setFieldErrors((old) => { if (!old[key]) return old; const next = { ...old }; delete next[key]; return next; }); };
   const setField = (key: string, value: string) => { setFieldValues((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const setOption = (key: string, value: string) => { setServiceOptions((old) => ({ ...old, [key]: value })); clearFieldError(key); };
+  const startNewApplication = async () => {
+    completedRef.current = true;
+    try { await deleteDigitalSevaDraft(service.id); } catch { /* continue with a fresh in-memory form */ }
+    setStep(0);
+    setRequesterType('');
+    setApplicationFor('SELF');
+    setOperator(emptyContact());
+    setCenterName('');
+    setCenterAddress('');
+    setAgencyName('');
+    setAgencyAddress('');
+    setApplicant(emptyContact());
+    setCorrections([]);
+    setSelectedDocuments([]);
+    setDocumentFiles({});
+    setOtherDocumentName('');
+    setTaskDetails('');
+    setFieldValues({});
+    setServiceOptions({});
+    setBookingConsent(false);
+    setTermsAccepted(false);
+    setRefundAccepted(false);
+    setError('');
+    setFieldErrors({});
+    setDraftRestored(false);
+    draftStateRef.current = {};
+    completedRef.current = false;
+  };
+
   const changeCorrection = (id: string, checked: boolean) => {
     const next = checked ? [...corrections, id] : corrections.filter((value) => value !== id);
     setCorrections(next);
@@ -170,6 +271,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success || !data.bookingReference) throw new Error(data.error || 'Booking could not be saved. Please try again later.');
+      completedRef.current = true;
+      await deleteDigitalSevaDraft(service.id);
       onSubmitted(String(data.bookingReference));
     } catch (e: any) {
       setError(e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.'));
@@ -374,7 +477,13 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     </>
   );
 
+  if (!draftReady) return <div className="ds-application-upload-notice" role="status">{hi ? 'आपका सुरक्षित किया गया फॉर्म खोला जा रहा है…' : 'Restoring your saved application…'}</div>;
+
   return <form ref={formRef} className="ds-booking-form ds-application-form" onSubmit={submit} noValidate>
+    {draftRestored && <div className="ds-application-upload-notice" role="status">
+      <span>{hi ? 'आपका पिछला अधूरा फॉर्म इसी डिवाइस से वापस खोल दिया गया है। आप जानकारी बदल सकते हैं।' : 'Your previous unfinished application has been restored on this device. You can edit any details.'}</span>
+      <button type="button" className="ds-application-copy" onClick={startNewApplication}>{hi ? 'नया आवेदन शुरू करें' : 'Start a new application'}</button>
+    </div>}
     <div className="ds-application-progress">
       {['Submitting party', 'Contacts', 'Work & documents', 'Review & consent'].map((label, i) =>
         <div key={label} className={step === i ? 'active' : step > i ? 'complete' : ''}>
