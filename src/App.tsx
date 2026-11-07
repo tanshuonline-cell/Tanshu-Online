@@ -68,7 +68,8 @@ export default function App() {
     const pathname = window.location.pathname;
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
-    const isDigitalSeva = pathname.startsWith('/digital-seva');
+    const isDigitalSevaAdmin = pathname === '/digital-seva-admin';
+    const isDigitalSeva = pathname === '/digital-seva' || isDigitalSevaAdmin;
     const video = isVideoDetail
       ? (catalogVideos.find((item) => item.id === pathname.replace('/video/', '')) ||
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
@@ -101,6 +102,7 @@ export default function App() {
       element.content = value;
     };
     setMeta('meta[name="description"]', 'name', 'description', description);
+    setMeta('meta[name="robots"]', 'name', 'robots', isDigitalSevaAdmin ? 'noindex, nofollow' : 'index, follow');
     setMeta('meta[property="og:title"]', 'property', 'og:title', title);
     setMeta('meta[property="og:description"]', 'property', 'og:description', description);
     setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
