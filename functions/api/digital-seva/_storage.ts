@@ -78,7 +78,7 @@ export async function createPrivateDocumentUrl(
   }
   const data = await response.json() as { signedURL?: string };
   if (!data.signedURL) throw new Error('Supabase did not return a secure document link.');
-  return new URL(data.signedURL, `${base}/storage/v1`).toString();
+  return data.signedURL.startsWith('http') ? data.signedURL : `${base}/storage/v1${data.signedURL.startsWith('/') ? data.signedURL : `/${data.signedURL}`}`;
 }
 
 export const DOCUMENT_BUCKET_NAME = BUCKET;
