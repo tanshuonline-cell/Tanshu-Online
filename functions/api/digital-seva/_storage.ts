@@ -19,7 +19,7 @@ type StorageEnv = {
 };
 
 function storageConfig(env: StorageEnv) {
-  const base = String(env.SUPABASE_URL || '').replace(/\\/+$/, '');
+  const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = String(env.SUPABASE_SECRET_KEY || '');
   // Preserve the already-working Preview bucket, but never let Production fall back to it.
   const bucket = String(env.DIGITAL_SEVA_STORAGE_BUCKET ||
