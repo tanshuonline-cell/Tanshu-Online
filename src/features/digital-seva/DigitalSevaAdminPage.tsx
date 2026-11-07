@@ -23,7 +23,8 @@ interface Booking {
   agency_name?: string | null;
   agency_address?: string | null;
   application_details_json?: string | null;
-  consent_at?: string | null;\n  terms_accepted_at?: string | null;
+  consent_at?: string | null;
+  terms_accepted_at?: string | null;
   terms_policy_version?: string | null;
   refund_policy_accepted_at?: string | null;
   refund_policy_version?: string | null;
