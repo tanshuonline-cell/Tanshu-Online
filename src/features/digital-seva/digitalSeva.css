@@ -788,3 +788,20 @@
   .ds-premium-sample-cta,.ds-premium-sample-icon,.ds-premium-sample-arrow{transition:none}
   .ds-premium-sample-cta:hover::before,.ds-premium-sample-cta:focus-visible::before,.ds-premium-sample-cta:active::before{animation:none;opacity:.35;transform:scale(1)}
 }
+
+
+/* Keep the new sample link directly beside View details, only on its service card */
+.ds-service-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ds-service-actions-website{gap:10px;margin-top:13px}
+.ds-service-actions-website .ds-premium-sample-cta{
+  flex:1 1 250px;width:auto;min-width:0;margin:0;padding:10px 12px;gap:10px;
+}
+.ds-service-actions-website .ds-premium-sample-icon{width:38px;height:38px}
+.ds-service-actions-website .ds-premium-sample-copy strong{font-size:11px}
+.ds-service-actions-website .ds-premium-sample-copy small{font-size:8px}
+.ds-service-actions-website .ds-text-button{flex:0 0 auto;white-space:nowrap;margin:0}
+@media(max-width:520px){
+  .ds-service-actions-website{align-items:stretch;gap:8px}
+  .ds-service-actions-website .ds-premium-sample-cta{flex-basis:100%}
+  .ds-service-actions-website .ds-text-button{margin-left:auto}
+}
