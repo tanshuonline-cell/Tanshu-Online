@@ -73,6 +73,45 @@ export const SEVA_SERVICES: SevaService[] = [
   { id: 'colour-print', name: 'Colour Document Print', hindi: 'कलर प्रिंट', category: 'documents', description: 'Print customer-provided documents or images in colour, charged per printed page.', keywords: ['colour print', 'color print', 'रंगीन प्रिंट', 'कलर प्रिंट'], documents: ['Customer-owned PDF or image file', 'Page count and print instructions'], serviceFee: '₹10 per printed page.', governmentFee: 'Not applicable for private printing', availability: 'Subject to print-shop availability', assistance: 'Colour document printing', note: 'Final page count is confirmed before printing; photo-paper or special-paper charges, if requested, must be quoted separately.' }
 ];
 
+
+const SEVA_SEARCH_ALIASES: Record<string, string[]> = {
+  'pan-new': ['pan card new', 'new pancard', 'pan banana', 'pancard banwana', 'naya pan', 'नया पैन', 'पैन बनवाना', 'पैन कार्ड बनाना'],
+  'pan-correction': ['pan correction', 'pan card correction', 'pan sudhar', 'pancard sudhar', 'pan name change', 'pan dob correction', 'pan me correction', 'पैन करेक्शन', 'पैन कार्ड करेक्शन', 'पैन में सुधार', 'पैन नाम सुधार', 'पैन जन्मतिथि सुधार'],
+  'pan-photo-signature': ['pan photo change', 'pan photo update', 'pan signature change', 'pan sign update', 'pan image update', 'पैन फोटो बदलना', 'पैन सिग्नेचर बदलना', 'पैन हस्ताक्षर सुधार'],
+  'aadhaar-address-doc': ['aadhaar address', 'aadhar address', 'aadhaar address change', 'aadhar pata badalna', 'address proof aadhaar', 'आधार पता बदलना', 'आधार एड्रेस चेंज', 'आधार में पता सुधार'],
+  'aadhaar-address-hof': ['hof aadhaar', 'head of family address', 'family member address aadhaar', 'father address aadhaar', 'परिवार के मुखिया से पता', 'परिवार के आधार से पता', 'होफ आधार पता'],
+  'aadhaar-co': ['aadhaar c o', 'aadhaar care of', 'aadhaar father name', 'aadhar father name', 'aadhaar me pita ka naam', 'aadhar me papa ka naam', 'आधार में पिता का नाम', 'आधार में पापा का नाम', 'आधार सी ओ नाम'],
+  'aadhaar-mobile': ['aadhaar mobile change', 'aadhar phone change', 'aadhaar phone number update', 'aadhaar me mobile badalna', 'आधार मोबाइल बदलना', 'आधार फोन नंबर अपडेट'],
+  'aadhaar-email': ['aadhaar email change', 'aadhar mail update', 'aadhaar email id update', 'आधार ईमेल बदलना', 'आधार में ईमेल जोड़ना'],
+  'aadhaar-lost': ['aadhaar lost', 'aadhar gum', 'aadhar kho gaya', 'aadhaar number bhool gaye', 'uid number find', 'खोया आधार', 'आधार नंबर भूल गए', 'आधार गुम हो गया'],
+  'aadhaar-download': ['aadhaar download', 'aadhar pdf download', 'e aadhaar download', 'aadhaar print', 'आधार डाउनलोड करना', 'ई आधार निकालना', 'आधार पीडीएफ'],
+  'certificate-income': ['income certificate', 'aay certificate', 'income proof', 'aay praman patra', 'आय प्रमाण पत्र', 'इनकम सर्टिफिकेट', 'आमदनी प्रमाण पत्र'],
+  'certificate-caste': ['caste certificate', 'jati certificate', 'jaati praman patra', 'जाति प्रमाण पत्र', 'कास्ट सर्टिफिकेट'],
+  'certificate-residence': ['residence certificate', 'residential certificate', 'niwas certificate', 'awas praman patra', 'निवास प्रमाण पत्र', 'आवासीय प्रमाण पत्र', 'रेजिडेंस सर्टिफिकेट'],
+  'certificate-correction': ['certificate correction', 'certificate name correction', 'certificate dob correction', 'certificate me sudhar', 'प्रमाण पत्र सुधार', 'सर्टिफिकेट में नाम सुधार', 'जन्मतिथि सुधार प्रमाण पत्र'],
+  'voter-new': ['voter id', 'voter card new', 'new voter card', 'voter registration', 'epic new', 'voter id banana', 'voter card banwana', 'वोटर आईडी', 'वोटर कार्ड बनाना', 'नया मतदाता पहचान पत्र', 'मतदाता पंजीकरण'],
+  'voter-correction': ['voter id correction', 'voter card correction', 'voter name correction', 'epic correction', 'voter id sudhar', 'voter card me sudhar', 'वोटर आईडी सुधार', 'वोटर कार्ड करेक्शन', 'वोटर कार्ड में नाम सुधार', 'मतदाता पहचान पत्र सुधार'],
+  'ration-new': ['new ration card', 'ration card apply', 'ration card banana', 'ration card banwana', 'naya ration card', 'नया राशन कार्ड', 'राशन कार्ड बनवाना', 'राशन कार्ड आवेदन'],
+  'ration-update': ['ration card correction', 'ration member add', 'ration card name add', 'ration card update', 'ration card me naam jodna', 'राशन कार्ड सुधार', 'राशन कार्ड में नाम जोड़ना', 'राशन कार्ड सदस्य जोड़ना'],
+  'scheme-check': ['scheme eligibility', 'sarkari yojana', 'yojana check', 'scheme apply', 'government scheme', 'सरकारी योजना', 'योजना की पात्रता', 'योजना में आवेदन'],
+  'online-form': ['online form', 'form filling', 'form bharna', 'application bharna', 'online aavedan', 'ऑनलाइन फॉर्म', 'फॉर्म भरना', 'आवेदन भरना'],
+  'website-services': ['website design', 'website banana', 'website banwana', 'website setup', 'website live', 'web design', 'वेबसाइट बनाना', 'वेबसाइट बनवाना', 'वेबसाइट डिजाइन', 'वेबसाइट लाइव करना'],
+  'pdf-text-edit': ['pdf text edit', 'pdf text change', 'pdf me likha badalna', 'pdf editing hindi', 'pdf editing english', 'पीडीएफ टेक्स्ट बदलना', 'पीडीएफ में लिखावट सुधार', 'पीडीएफ एडिटिंग'],
+  'pdf-compress': ['pdf compress', 'pdf size reduce', 'pdf size kam', 'pdf chhota', 'pdf mb to kb', 'पीडीएफ छोटा करना', 'पीडीएफ का साइज कम', 'पीडीएफ कम्प्रेस'],
+  'pdf-merge': ['pdf merge', 'pdf join', 'pdf combine', 'pdf jodna', 'do pdf jodna', 'पीडीएफ जोड़ना', 'पीडीएफ मिलाना', 'दो पीडीएफ एक करना'],
+  'pdf-split': ['pdf split', 'pdf separate pages', 'pdf page alag', 'pdf todna', 'पीडीएफ पेज अलग करना', 'पीडीएफ तोड़ना', 'पीडीएफ अलग करना'],
+  'pdf-jpg': ['photo to pdf', 'jpg to pdf', 'image to pdf', 'photo pdf banana', 'फोटो से पीडीएफ', 'फोटो को पीडीएफ बनाना', 'इमेज से पीडीएफ'],
+  'pdf-word': ['pdf to word', 'pdf convert word', 'pdf ko word me badle', 'पीडीएफ से वर्ड', 'पीडीएफ को वर्ड बनाना', 'पीडीएफ कन्वर्ट'],
+  'pdf-edit': ['pdf edit', 'pdf page reorder', 'pdf rotate', 'pdf page delete', 'pdf pages arrange', 'पीडीएफ एडिट', 'पीडीएफ पेज क्रम बदलना', 'पीडीएफ पेज घुमाना', 'पीडीएफ पेज हटाना'],
+  'image-compress': ['photo kb kam', 'photo size reduce', 'photo compress', 'image compress', 'photo 20kb', 'photo 50kb', 'फोटो का साइज कम', 'फोटो केबी कम', 'फोटो छोटा करना', 'इमेज कम्प्रेस'],
+  'signature-resize': ['signature resize', 'sign kb kam', 'signature size reduce', 'signature 20kb', 'sign 10kb', 'हस्ताक्षर का साइज', 'सिग्नेचर केबी कम', 'हस्ताक्षर छोटा करना'],
+  'scan-clean': ['document scan', 'scan clean', 'scan saaf', 'document clear', 'scan improve', 'दस्तावेज स्कैन', 'स्कैन साफ करना', 'कागज स्कैन', 'डॉक्यूमेंट साफ करना'],
+  'typing-format': ['hindi typing', 'english typing', 'application typing', 'letter typing', 'typing work', 'hindi type', 'हिंदी टाइपिंग', 'अंग्रेजी टाइपिंग', 'आवेदन लिखना', 'पत्र टाइप करना'],
+  'aadhaar-pvc-assistance': ['aadhaar pvc', 'aadhar pvc card', 'aadhaar plastic card', 'pvc aadhaar order', 'आधार पीवीसी कार्ड', 'आधार प्लास्टिक कार्ड', 'पीवीसी आधार ऑर्डर'],
+  'bw-print': ['black white print', 'black and white print', 'bw print', 'document photocopy black', 'ब्लैक एंड व्हाइट प्रिंट', 'काला सफेद प्रिंट', 'ब्लैक व्हाइट प्रिंट'],
+  'colour-print': ['colour print', 'color print', 'colour document print', 'रंगीन प्रिंट', 'कलर प्रिंट', 'कलर दस्तावेज प्रिंट'],
+};
+
 export const normalizeSevaQuery = (value: string) =>
   value.toLocaleLowerCase('hi-IN').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
 
@@ -81,9 +120,13 @@ export function searchSevaServices(query: string): SevaService[] {
   if (!q) return [];
   const terms = q.split(' ').filter(Boolean);
   return SEVA_SERVICES.map((service) => {
-    const haystack = normalizeSevaQuery([service.name, service.hindi, service.description, ...service.keywords].join(' '));
-    const exact = haystack.includes(q) ? 8 : 0;
-    const matches = terms.reduce((score, term) => score + (haystack.includes(term) ? (term.length > 3 ? 3 : 1) : 0), 0);
-    return { service, score: exact + matches };
+    const aliases = (SEVA_SEARCH_ALIASES[service.id] || []).map(normalizeSevaQuery);
+    const haystack = normalizeSevaQuery([service.name, service.hindi, service.description, ...service.keywords, ...aliases].join(' '));
+    const exactPhrase = haystack.includes(q);
+    const allTermsMatch = terms.every((term) => haystack.includes(term));
+    const matchedTerms = terms.filter((term) => haystack.includes(term)).length;
+    const aliasExact = aliases.some((alias) => alias === q || alias.includes(q));
+    const score = (aliasExact ? 120 : 0) + (exactPhrase ? 80 : 0) + (allTermsMatch ? 35 : 0) + matchedTerms * 4;
+    return { service, score };
   }).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score).map((entry) => entry.service);
 }
