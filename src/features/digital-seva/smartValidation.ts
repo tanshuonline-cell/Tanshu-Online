@@ -135,14 +135,14 @@ export function validateFieldByKey(key: string, value: unknown): string | null {
   const text = String(value ?? '').trim();
   if (!text) return null;
   const field = key.toLowerCase();
-  if (field === 'pagerange') return /^\\d+(?:\\s*[-,]\\s*\\d+)*$/.test(text) ? null : 'पेज नंबर / रेंज सही लिखें, जैसे 1-3 या 1,3,5।';
-  if (field === 'targetsize') return /^\\d+(?:\\.\\d+)?\\s*(?:kb|mb|px|cm|mm|in|inch)?(?:\\s*[x×]\\s*\\d+(?:\\.\\d+)?\\s*(?:px|cm|mm|in|inch)?)?$/i.test(text) ? null : 'लक्ष्य साइज सही लिखें, जैसे 50 KB या 3x4 inch।';
+  if (field === 'pagerange') return /^\d+(?:\s*[-,]\s*\d+)*$/.test(text) ? null : 'पेज नंबर / रेंज सही लिखें, जैसे 1-3 या 1,3,5।';
+  if (field === 'targetsize') return /^\d+(?:\.\d+)?\s*(?:kb|mb|px|cm|mm|in|inch)?(?:\s*[x×]\s*\d+(?:\.\d+)?\s*(?:px|cm|mm|in|inch)?)?$/i.test(text) ? null : 'लक्ष्य साइज सही लिखें, जैसे 50 KB या 3x4 inch।';
   if (field === 'familymembernames') {
-    const names = text.split(/\\r?\\n/).map((name) => name.trim()).filter(Boolean);
+    const names = text.split(/\r?\n/).map((name) => name.trim()).filter(Boolean);
     return names.length && names.every(isValidName) ? null : 'हर परिवार सदस्य का सही नाम अलग-अलग पंक्ति में लिखें।';
   }
   if (/^income(government|agriculture|business|other|amount)$/.test(field)) {
-    return /^(?:₹\\s*)?\\d[\\d,]*(?:\\.\\d{1,2})?$|^(?:nil|none|n\\/a)$/i.test(text) ? null : 'आय की राशि सही अंकों में लिखें।';
+    return /^(?:₹\s*)?\d[\d,]*(?:\.\d{1,2})?$|^(?:nil|none|n\/a)$/i.test(text) ? null : 'आय की राशि सही अंकों में लिखें।';
   }
   return validateByKind(validationKindForField(key), text);
 }
