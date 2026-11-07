@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TANSHU_PROFILE_PHOTO } from '../../components/Header';
-import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X, Globe } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X, Globe }, Droplets } from 'lucide-react';
 import { SEVA_CATEGORIES, SEVA_SERVICES, searchSevaServices, type SevaCategory, type SevaService } from './serviceCatalog';
 import { SEVA_SERVICE_HINDI } from './serviceCatalogHindi';
 import RefundPolicyNotice from './RefundPolicyNotice';
@@ -25,6 +25,7 @@ function ServiceCard({ service, onSelect, hindi, highlighted }: { service: SevaS
       <p className="ds-service-hindi">{hindi ? service.name : service.hindi}</p>
       <p className="ds-service-description">{hindi ? (SEVA_SERVICE_HINDI[service.id]?.descriptionHindi || service.description) : service.description}</p>
       <div className="ds-service-meta"><span><WalletCards size={14} /> {hindi ? 'विवरण में शुल्क देखें' : 'Fees shown in details'}</span><span><Clock3 size={14} /> {hindi ? 'उपलब्धता और पात्रता लागू' : service.availability}</span></div>
+      {service.id === 'website-services' && <button type="button" className="ds-premium-sample-cta" onClick={() => onSelect(service)} aria-label={hindi ? 'प्रीमियम वेबसाइट डिज़ाइन के नमूने देखें' : 'Click here to explore premium website design samples'}><span className="ds-premium-sample-icon" aria-hidden="true"><Droplets size={22} strokeWidth={1.8} /></span><span className="ds-premium-sample-copy"><strong>{hindi ? 'प्रीमियम वेबसाइट डिज़ाइन देखने के लिए यहाँ क्लिक करें' : 'Click here to explore premium website designs'}</strong><small>{hindi ? '19 शानदार वेबसाइट सैंपल देखें' : 'Explore 19 beautifully crafted website samples'}</small></span><ArrowRight className="ds-premium-sample-arrow" size={19} /></button>}
       <button className="ds-text-button" onClick={() => onSelect(service)}>{hindi ? 'विवरण देखें' : 'View details'} <ArrowRight size={15} /></button>
     </article>
   );
