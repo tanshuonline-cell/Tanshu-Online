@@ -3,6 +3,7 @@ import { ShieldCheck, Cpu, Lock, CheckCircle, Users, Award, FileSpreadsheet } fr
 import cscImg from '../assets/images/cyber_services_center_1793209558824.jpg';
 import cardImg from '../assets/images/card_print_utilities_1793209558484.jpg';
 import { useLanguage } from '../context/LanguageContext';
+import { CONFIRMED_TOOLS } from '../data/toolsData';
 
 export const AboutSection: React.FC = () => {
   const { t } = useLanguage();
@@ -30,7 +31,7 @@ export const AboutSection: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                <span className="text-xl font-bold font-mono text-blue-700 block">18</span>
+                <span className="text-xl font-bold font-mono text-blue-700 block">{CONFIRMED_TOOLS.length}</span>
                 <span className="text-xs font-semibold text-slate-800 block mt-0.5">{t('about.utilities', 'Available Utilities')}</span>
                 <span className="text-[11px] text-slate-500">{t('about.release', 'Current Release')}</span>
               </div>
