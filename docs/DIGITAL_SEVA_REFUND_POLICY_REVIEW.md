@@ -59,7 +59,7 @@ Official RBI circular: https://rbi.org.in/commonman/Upload/English/Notification/
 - Show the exact Government Fee, TANSHU ONLINE Service Fee, any taxes/provider charges, and total separately before payment.
 - Beside a Government Fee, show one of: "Non-refundable under the official department/provider rule" (only with a verified source for that exact route); "Refund subject to official department/provider rule"; or "Not applicable".
 - Beside the TANSHU Service Fee, explain what work it covers. Do not state it is automatically forfeited merely because processing started. Assess the completed portion, service failure, cancellation timing and applicable law.
-- Define the 7-day target and 15-day maximum as TANSHU's own service-resolution commitment. Explain when the clock starts, how customer-caused pauses are handled, and what happens if the service is not completed due to TANSHU's own failure.
+- Define the same-day start/completion tracking, how customer-caused pauses are handled, and the 15-day escalation/refund workflow for serious technical failure of TANSHU ONLINE’s own website/server/system.
 - Distinguish successful submission/acknowledgement from the government's later approval, rejection or issuance decision. Do not promise approval or government turnaround.
 - Make both policy links readable before payment and require separate affirmative checkboxes. Store the policy version and acceptance timestamp.
 - Provide a complaint/reference number and a visible support/grievance contact process.
