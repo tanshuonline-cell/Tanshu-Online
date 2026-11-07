@@ -39,7 +39,7 @@ const routeQuote = (sourceLabel: string, sourceUrl: string, note: string): Servi
 });
 
 const disclosures: Record<string, ServiceFeeDisclosure> = {
-  'pan-new': routeQuote('Income Tax Department / authorised PAN provider', PAN, 'PAN fees differ by route, paperless/physical mode, physical card and dispatch. Instant e-PAN is free only for eligible applicants. Obtain the live provider quote before accepting payment.'),
+  'pan-new': routeQuote('Income Tax Department / authorised PAN provider', PAN, 'The Income Tax Department describes ₹107 including GST (₹91 + GST) for the Indian-address route on its page; Protean/other routes vary by paperless or physical-document mode, physical card and dispatch. Instant e-PAN is free only for eligible applicants. Display the selected provider’s live quote, not one universal PAN price.'),
   'pan-correction': routeQuote('Protean PAN correction service', PROTEAN, 'Correction/reprint charges depend on the selected provider, paperless or physical-document mode, physical card and dispatch. Show the live quote and provider cancellation rule.'),
   'aadhaar-address-doc': {
     ...DEFAULT_DISCLOSURE,
