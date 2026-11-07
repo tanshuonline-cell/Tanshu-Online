@@ -5,6 +5,7 @@ import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
 import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } from './BookingPolicyConsent';
 import { deleteDigitalSevaDraft, loadDigitalSevaDraft, saveDigitalSevaDraft } from './digitalSevaDraftStore';
+import { getAutoPaymentQuote } from './autoPaymentPricing';
 
 type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPENDENT_AGENT';
 type ApplicationFor = 'SELF' | 'CUSTOMER';
@@ -14,6 +15,29 @@ interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (ref
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+declare global {
+  interface Window {
+    Cashfree?: (options: { mode: 'sandbox' }) => {
+      checkout: (options: { paymentSessionId: string; redirectTarget: '_modal' }) => Promise<any>;
+    };
+  }
+}
+
+async function loadCashfreeSdk(): Promise<void> {
+  if (window.Cashfree) return;
+  await new Promise<void>((resolve, reject) => {
+    const source = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    let script = document.querySelector<HTMLScriptElement>(`script[src="${source}"]`);
+    const created = !script;
+    if (!script) script = document.createElement('script');
+    script.addEventListener('load', () => resolve(), { once: true });
+    script.addEventListener('error', () => reject(new Error('Secure Cashfree Checkout could not be loaded. Check your internet connection and retry.')), { once: true });
+    if (created) { script.src = source; script.async = true; document.head.appendChild(script); }
+  });
+  if (!window.Cashfree) throw new Error('Cashfree Checkout did not initialise. Please retry.');
+}
+
 const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
 
 
@@ -41,6 +65,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [refundAccepted, setRefundAccepted] = useState(false);
   const [refundAcceptedAt, setRefundAcceptedAt] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<'AUTO_PAY' | 'SHARE_LINK'>(getAutoPaymentQuote(service) ? 'AUTO_PAY' : 'SHARE_LINK');
+  const [pendingCheckoutOrderId, setPendingCheckoutOrderId] = useState('');
+  const [pendingPaymentSessionId, setPendingPaymentSessionId] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draftReady, setDraftReady] = useState(false);
@@ -82,6 +109,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setTermsAcceptedAt(typeof d.termsAcceptedAt === 'string' ? d.termsAcceptedAt : null);
         setRefundAccepted(Boolean(d.refundAccepted));
         setRefundAcceptedAt(typeof d.refundAcceptedAt === 'string' ? d.refundAcceptedAt : null);
+        setPaymentMode(d.paymentMode === 'SHARE_LINK' ? 'SHARE_LINK' : (getAutoPaymentQuote(service.id) ? 'AUTO_PAY' : 'SHARE_LINK'));
+        setPendingCheckoutOrderId(typeof d.pendingCheckoutOrderId === 'string' ? d.pendingCheckoutOrderId : '');
+        setPendingPaymentSessionId(typeof d.pendingPaymentSessionId === 'string' ? d.pendingPaymentSessionId : '');
         setDraftRestored(true);
       }
       setDraftReady(true);
@@ -97,7 +127,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       step, requesterType, applicationFor, operator, centerName, centerAddress,
       agencyName, agencyAddress, applicant, corrections, selectedDocuments,
       documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions,
-      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt
+      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt,
+      paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId
     };
     draftStateRef.current = data;
     const persist = () => {
@@ -113,7 +144,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       window.removeEventListener('pagehide', onPageHide);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt]);
+  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt, paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId]);
 
   useEffect(() => () => {
     if (!completedRef.current && Object.keys(draftStateRef.current).length) {
@@ -188,6 +219,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setTermsAcceptedAt(null);
     setRefundAccepted(false);
     setRefundAcceptedAt(null);
+    setPaymentMode(getAutoPaymentQuote(service) ? 'AUTO_PAY' : 'SHARE_LINK');
+    setPendingCheckoutOrderId('');
+    setPendingPaymentSessionId('');
     setError('');
     setFieldErrors({});
     setDraftRestored(false);
@@ -276,7 +310,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setSubmitting(true);
     setError('');
     try {
-      const payload = {
+      const payload: any = {
         serviceId: service.id, requesterType, applicationFor: isOwnWork ? 'SELF' : 'CUSTOMER',
         operator: intermediary ? {
           ...operator,
@@ -285,23 +319,84 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           agencyName: requesterType === 'INDEPENDENT_AGENT' ? agencyName.trim() : null,
           agencyAddress: requesterType === 'INDEPENDENT_AGENT' ? agencyAddress.trim() : null
         } : null,
-        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
+        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''),
         customerEmail: applicant.email.trim(), corrections, fieldValues, serviceOptions,
         selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(),
         consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
         refundPolicyAccepted: refundAccepted, refundAcceptedAt, refundPolicyVersion: REFUND_POLICY_VERSION,
-        idempotencyKey: window.crypto.randomUUID()
+        idempotencyKey: window.crypto.randomUUID(),
+        paymentMode
       };
-      const formData = new FormData();
-      formData.append('payload', JSON.stringify(payload));
-      const filesToUpload = Object.entries(documentFiles).filter(([documentType, file]) => selectedDocuments.includes(documentType) && file);
-      formData.append('documentTypes', JSON.stringify(filesToUpload.map(([documentType]) => documentType)));
-      filesToUpload.forEach(([, file]) => formData.append('documentFile', file, file.name));
-      const response = await fetch('/api/digital-seva/bookings', {
-        method: 'POST', credentials: 'same-origin', body: formData
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.success || !data.bookingReference) throw new Error(data.error || 'Booking could not be saved. Please try again later.');
+
+      const sendBooking = async (bookingPayload: any) => {
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(bookingPayload));
+        const filesToUpload = Object.entries(documentFiles).filter(([documentType, file]) => selectedDocuments.includes(documentType) && file);
+        formData.append('documentTypes', JSON.stringify(filesToUpload.map(([documentType]) => documentType)));
+        filesToUpload.forEach(([, file]) => formData.append('documentFile', file as File, (file as File).name));
+        const response = await fetch('/api/digital-seva/bookings', { method: 'POST', credentials: 'same-origin', body: formData });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success || !data.bookingReference) {
+          const failure: any = new Error(data.error || 'Booking could not be saved. Please try again later.');
+          failure.status = response.status;
+          throw failure;
+        }
+        return data;
+      };
+
+      let data: any;
+      if (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service)) {
+        let orderId = pendingCheckoutOrderId;
+        let paymentSessionId = pendingPaymentSessionId;
+        payload.paymentMode = 'AUTO_PAY';
+
+        // If an earlier attempt was paid but the booking response was interrupted,
+        // the server can complete the booking from that same verified order.
+        if (orderId) {
+          try {
+            data = await sendBooking({ ...payload, paymentOrderId: orderId });
+          } catch (error: any) {
+            if (error?.status !== 402) throw error;
+          }
+        }
+
+        if (!data) {
+          if (!orderId || !paymentSessionId) {
+            const checkoutKey = window.crypto.randomUUID();
+            const orderResponse = await fetch('/api/digital-seva/checkout', {
+              method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                serviceId: service.id, customerName: applicant.name.trim(),
+                customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(),
+                idempotencyKey: checkoutKey, consent: bookingConsent, termsAccepted,
+                termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyAccepted: refundAccepted,
+                refundPolicyVersion: REFUND_POLICY_VERSION
+              })
+            });
+            const orderData = await orderResponse.json().catch(() => ({}));
+            if (!orderResponse.ok || !orderData.success || !orderData.orderId || !orderData.paymentSessionId) {
+              throw new Error(orderData.error || 'Could not prepare secure payment. Your booking has not been submitted.');
+            }
+            orderId = String(orderData.orderId);
+            paymentSessionId = String(orderData.paymentSessionId);
+            setPendingCheckoutOrderId(orderId);
+            setPendingPaymentSessionId(paymentSessionId);
+            const savedDraft = { ...draftStateRef.current, paymentMode: 'AUTO_PAY', pendingCheckoutOrderId: orderId, pendingPaymentSessionId: paymentSessionId };
+            draftStateRef.current = savedDraft;
+            await saveDigitalSevaDraft(service.id, savedDraft).catch(() => {});
+          }
+
+          await loadCashfreeSdk();
+          const cashfree = window.Cashfree!({ mode: 'sandbox' });
+          const checkoutResult = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
+          if (checkoutResult?.error) throw new Error(checkoutResult.error.message || 'Payment was not completed. Your booking has not been submitted.');
+          data = await sendBooking({ ...payload, paymentOrderId: orderId });
+        }
+      } else {
+        payload.paymentMode = 'SHARE_LINK';
+        data = await sendBooking(payload);
+      }
+
       completedRef.current = true;
       await deleteDigitalSevaDraft(service.id);
       onSubmitted(String(data.bookingReference), { customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(), fieldValues: { ...fieldValues }, serviceOptions: { ...serviceOptions }, corrections: [...corrections], selectedDocuments: [...selectedDocuments], otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(), submittedAt: new Date().toISOString(), termsAccepted, termsAcceptedAt: termsAccepted ? (termsAcceptedAt || new Date().toISOString()) : null, termsPolicyVersion: TERMS_POLICY_VERSION, refundAccepted, refundAcceptedAt: refundAccepted ? (refundAcceptedAt || new Date().toISOString()) : null, refundPolicyVersion: REFUND_POLICY_VERSION });
@@ -677,7 +772,15 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <div><small>{hi ? 'उपलब्ध दस्तावेज़' : 'Available documents'}</small><strong>{selectedDocuments.map((id) => documents.find((x) => x.id === id)?.[hi ? 'hindi' : 'label'] || (id === 'other' ? otherDocumentName : id)).join(', ') || (hi ? 'कोई दस्तावेज़ नहीं चुना' : 'None selected')}</strong></div>
         <div><small>{hi ? 'काम के निर्देश' : 'Work instructions'}</small><strong>{taskDetails}</strong></div>
       </div>
-      <div className="ds-booking-privacy"><ShieldCheck size={18} /><span>{hi ? 'नाम, मोबाइल और ईमेल अनिवार्य हैं। यह सहायता अनुरोध है, सरकारी आवेदन जमा होने का प्रमाण नहीं।' : 'Name, mobile and email are required. This is an assistance request, not proof that a government application has been filed.'}</span></div>
+      <div className="ds-booking-privacy"><ShieldCheck size={18} /><span>{hi ? 'नाम, मोबाइल और ईमेल अनिवार्य हैं। Pay & Submit चुनने पर भुगतान की पुष्टि के बाद ही बुकिंग Admin Panel में जाएगी।' : 'Name, mobile and email are required. With Pay & Submit, the booking reaches the Admin Panel only after payment is verified.'}</span></div>
+      {getAutoPaymentQuote(service) && <div className="ds-application-profile">
+        <h4>{hi ? 'भुगतान का तरीका चुनें' : 'Choose how to pay'}</h4>
+        <div className="ds-application-choice">
+          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'AUTO_PAY'} onChange={() => setPaymentMode('AUTO_PAY')} /> <strong>{hi ? 'अभी भुगतान करें और बुकिंग जमा करें' : 'Pay now & submit booking'}</strong></label>
+          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'SHARE_LINK'} onChange={() => setPaymentMode('SHARE_LINK')} /> <strong>{hi ? 'बुकिंग जमा करें, बाद में पेमेंट लिंक लें' : 'Submit request and pay using a shared link later'}</strong></label>
+        </div>
+        <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? `सरकारी / प्रदाता शुल्क ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE शुल्क ₹${getAutoPaymentQuote(service)!.tanshuFee} = कुल ₹${getAutoPaymentQuote(service)!.totalAmount}। ${getAutoPaymentQuote(service)!.note} Preview में केवल Sandbox टेस्ट होगा; असली पैसा नहीं कटेगा।` : `Official/provider fee ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE fee ₹${getAutoPaymentQuote(service)!.tanshuFee} = total ₹${getAutoPaymentQuote(service)!.totalAmount}. ${getAutoPaymentQuote(service)!.note} Preview uses Sandbox only; no real money is collected.`}</span></div>
+      </div>}
       <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); setTermsAcceptedAt(value ? new Date().toISOString() : null); clearFieldError("termsAccepted"); }} onRefundChange={(value) => { setRefundAccepted(value); setRefundAcceptedAt(value ? new Date().toISOString() : null); clearFieldError("refundAccepted"); }} termsError={fieldErrors.termsAccepted} refundError={fieldErrors.refundAccepted} />
       <label className={fieldErrors.bookingConsent ? "ds-booking-consent ds-field-invalid" : "ds-booking-consent"}><input data-validation-key="bookingConsent" aria-invalid={Boolean(fieldErrors.bookingConsent)} type="checkbox" checked={bookingConsent} onChange={(e) => { setBookingConsent(e.target.checked); clearFieldError("bookingConsent"); }} required /><span>{hi ? 'मैं सहमत हूँ कि TANSHU ONLINE इस सेवा अनुरोध के बारे में मुझसे संपर्क कर सकता है। मैं समझता/समझती हूँ कि यह स्वतंत्र सहायता सेवा है, सरकारी विभाग नहीं।' : 'I agree that TANSHU ONLINE may contact me about this service request. I understand this is an independent assistance service, not a government department.'}</span></label>
     </section>}
@@ -687,7 +790,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {step > 0 && <button type="button" className="ds-application-back" onClick={() => { setError(''); setStep((n) => n - 1); }} disabled={submitting}><ArrowLeft size={15} /> {hi ? 'पीछे' : 'Back'}</button>}
       <span>{hi ? 'चरण ' + (step + 1) + ' / 4' : 'Step ' + (step + 1) + ' of 4'}</span>
       {step < 3 ? <button type="button" className="ds-modal-book" onClick={next}>{hi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={16} /></button> :
-        <button className="ds-modal-book" type="submit" disabled={submitting}>{submitting ? (hi ? 'जमा हो रहा है…' : 'Submitting…') : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request')} <ArrowRight size={16} /></button>}
+        <button className="ds-modal-book" type="submit" disabled={submitting}>{submitting ? (hi ? (paymentMode === 'AUTO_PAY' ? 'सुरक्षित पेमेंट खोल रहे हैं…' : 'जमा हो रहा है…') : (paymentMode === 'AUTO_PAY' ? 'Opening secure checkout…' : 'Submitting…')) : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`) : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request'))} <ArrowRight size={16} /></button>}
     </div>
   </form>;
 }
