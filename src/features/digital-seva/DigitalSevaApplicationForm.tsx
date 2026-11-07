@@ -789,7 +789,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <h4>{hi ? 'भुगतान का तरीका चुनें' : 'Choose how to pay'}</h4>
         <div className="ds-application-choice">
           <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'AUTO_PAY'} onChange={() => setPaymentMode('AUTO_PAY')} /> <strong>{hi ? 'अभी भुगतान करें और बुकिंग जमा करें' : 'Pay now & submit booking'}</strong></label>
-          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'SHARE_LINK'} onChange={() => setPaymentMode('SHARE_LINK')} /> <strong>{hi ? 'बुकिंग जमा करें, बाद में पेमेंट लिंक लें' : 'Submit request and pay using a shared link later'}</strong></label>
+          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'SHARE_LINK'} onChange={() => setPaymentMode('SHARE_LINK')} disabled={Boolean(pendingCheckoutOrderId)} /> <strong>{hi ? 'बुकिंग जमा करें, बाद में पेमेंट लिंक लें' : 'Submit request and pay using a shared link later'}</strong></label>
         </div>
         <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? `सरकारी / प्रदाता शुल्क ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE शुल्क ₹${getAutoPaymentQuote(service)!.tanshuFee} = कुल ₹${getAutoPaymentQuote(service)!.totalAmount}। ${getAutoPaymentQuote(service)!.note} Preview में केवल Sandbox टेस्ट होगा; असली पैसा नहीं कटेगा।` : `Official/provider fee ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE fee ₹${getAutoPaymentQuote(service)!.tanshuFee} = total ₹${getAutoPaymentQuote(service)!.totalAmount}. ${getAutoPaymentQuote(service)!.note} Preview uses Sandbox only; no real money is collected.`}</span></div>
       </div>}
