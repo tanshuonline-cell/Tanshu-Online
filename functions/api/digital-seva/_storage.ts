@@ -40,8 +40,7 @@ export async function uploadPrivateDocument(
     body: bytes
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('Supabase document upload failed with status:', response.status, detail.slice(0, 300));
+    console.error('Supabase document upload failed with status:', response.status);
     throw new Error('A document could not be stored securely.');
   }
 }
@@ -56,8 +55,7 @@ export async function deletePrivateDocument(
     headers: { apikey: key, 'Cache-Control': 'no-store' }
   });
   if (!response.ok && response.status !== 404) {
-    const detail = await response.text().catch(() => '');
-    console.error('Supabase document deletion failed with status:', response.status, detail.slice(0, 300));
+    console.error('Supabase document deletion failed with status:', response.status);
     throw new Error('The stored document could not be deleted.');
   }
 }
@@ -68,14 +66,14 @@ export async function createPrivateDocumentUrl(
   expiresIn = 60
 ): Promise<string> {
   const { base, key } = storageConfig(env);
-  const response = await fetch(objectUrl(base, objectKey) + '/sign', {
+  const path = objectKey.split('/').map(encodeURIComponent).join('/');
+  const response = await fetch(`${base}/storage/v1/object/sign/${BUCKET}/${path}`, {
     method: 'POST',
     headers: { apikey: key, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     body: JSON.stringify({ expiresIn })
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('Supabase signed URL creation failed with status:', response.status, detail.slice(0, 300));
+    console.error('Supabase signed URL creation failed with status:', response.status);
     throw new Error('A secure document link could not be created.');
   }
   const data = await response.json() as { signedURL?: string };
