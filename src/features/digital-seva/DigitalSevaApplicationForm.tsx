@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from './smartValidation';
+import { getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from './smartValidation';
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
@@ -110,7 +110,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       for (const key of getRequiredCorrectionFieldKeys(corrections)) {
         if (!String(fieldValues[key] || '').trim()) return reject(key, key.endsWith('-current') ? 'मौजूदा विवरण भरें।' : 'सही नया विवरण भरें।');
       }
-      if (taskDetails.trim().length < 10 || !/[\\p{L}]{3,}/u.test(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में लिखें।');
+      if (!isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
       for (const key of getRequiredServiceFieldKeys(service.id, serviceOptions)) {
         if (!String(valueOf(key)).trim()) return reject(key, requiredMessages[key] || 'यह जानकारी भरना अनिवार्य है।');
