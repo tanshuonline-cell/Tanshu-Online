@@ -1,6 +1,7 @@
 // Cloudflare Pages Function: /api/digital-seva/admin
-// Admin-only booking list and status updates. Uses the existing signed superadmin session cookie.
-interface Env { DIGITAL_SEVA_DB?: any; ADMIN_SECRET_TOKEN?: string; }
+// Admin-only booking and private document operations. Uses the existing signed superadmin session cookie.
+import { createPrivateDocumentUrl, deletePrivateDocument } from './_storage';
+interface Env { DIGITAL_SEVA_DB?: any; ADMIN_SECRET_TOKEN?: string; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const ALLOWED_STATUSES = new Set(['RECEIVED', 'IN_REVIEW', 'WAITING_FOR_CUSTOMER', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
 
@@ -49,7 +50,18 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       `SELECT id, booking_reference, service_id, customer_name, customer_phone, customer_email, requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address, agency_name, agency_address, application_details_json, status, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version, created_at, updated_at
        FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
     ).all();
-    return json({ success: true, bookings: result.results || [] });
+    const documentResult = await env.DIGITAL_SEVA_DB.prepare(
+      `SELECT id, booking_id, document_type, original_file_name, content_type, size_bytes, created_at
+       FROM digital_seva_documents ORDER BY created_at DESC`
+    ).all();
+    const grouped = new Map<string, any[]>();
+    for (const doc of documentResult.results || []) {
+      const list = grouped.get(doc.booking_id) || [];
+      list.push({ id: doc.id, documentType: doc.document_type, fileName: doc.original_file_name, contentType: doc.content_type, sizeBytes: doc.size_bytes, createdAt: doc.created_at });
+      grouped.set(doc.booking_id, list);
+    }
+    const bookings = (result.results || []).map((booking: any) => ({ ...booking, documents: grouped.get(booking.id) || [] }));
+    return json({ success: true, bookings });
   } catch (error) {
     console.error('Digital Seva admin list failed:', error);
     return json({ success: false, error: 'Could not load booking records. Confirm the Preview migration has been applied.' }, 503);
@@ -86,6 +98,51 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   }
 }
 
+export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
+  if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
+  if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
+  const actor = await adminUser(request, env);
+  if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  const rawBody = await request.text();
+  if (rawBody.length > 2048) return json({ success: false, error: 'The document request is too large.' }, 413);
+  const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
+  const documentId = String(body?.documentId || '');
+  if (!documentId || documentId.length > 64) return json({ success: false, error: 'Invalid document.' }, 400);
+  try {
+    const doc = await env.DIGITAL_SEVA_DB.prepare('SELECT object_key FROM digital_seva_documents WHERE id = ?').bind(documentId).first();
+    if (!doc?.object_key) return json({ success: false, error: 'Document not found.' }, 404);
+    const url = await createPrivateDocumentUrl(env, String(doc.object_key), 60);
+    return json({ success: true, url, expiresIn: 60 });
+  } catch (error) {
+    console.error('Digital Seva secure document link failed:', error);
+    return json({ success: false, error: 'Could not create a secure document link.' }, 503);
+  }
+}
+
+export async function onRequestDelete({ request, env }: { request: Request; env: Env }): Promise<Response> {
+  if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
+  if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
+  const actor = await adminUser(request, env);
+  if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  const rawBody = await request.text();
+  if (rawBody.length > 2048) return json({ success: false, error: 'The document request is too large.' }, 413);
+  const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
+  const documentId = String(body?.documentId || '');
+  if (!documentId || documentId.length > 64) return json({ success: false, error: 'Invalid document.' }, 400);
+  try {
+    const doc = await env.DIGITAL_SEVA_DB.prepare('SELECT object_key FROM digital_seva_documents WHERE id = ?').bind(documentId).first();
+    if (!doc?.object_key) return json({ success: false, error: 'Document not found.' }, 404);
+    await deletePrivateDocument(env, String(doc.object_key));
+    await env.DIGITAL_SEVA_DB.prepare('DELETE FROM digital_seva_documents WHERE id = ?').bind(documentId).run();
+    return json({ success: true, documentId });
+  } catch (error) {
+    console.error('Digital Seva document deletion failed:', error);
+    return json({ success: false, error: 'Could not delete this document. Please retry.' }, 503);
+  }
+}
+
 export async function onRequestOptions(): Promise<Response> {
-  return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
+  return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Methods': 'GET, PATCH, POST, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
 }
