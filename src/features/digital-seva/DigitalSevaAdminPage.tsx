@@ -108,7 +108,7 @@ function displayAdminFieldValue(key: string, value: unknown): string {
   const text = String(value ?? '').trim();
   const normalized = key.toLowerCase();
   if (/aadhaar|uid/.test(normalized)) {
-    const digits = text.replace(/\\D/g, '');
+    const digits = text.replace(/\D/g, '');
     return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : text.startsWith('enc:v1:') ? 'Encrypted / protected' : text;
   }
   if (/pan(number|no)?$|existingpan/.test(normalized)) return text.length >= 4 ? `XXXXXX${text.slice(-4)}` : text;
