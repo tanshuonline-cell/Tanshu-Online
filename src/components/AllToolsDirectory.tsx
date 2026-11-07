@@ -34,6 +34,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   onOpenTool: (tool: ToolItem) => void;
+  onOpenToolFromDirectory?: (tool: ToolItem) => void;
   initialSearchQuery?: string;
   initialCategory?: ToolCategory;
   openRequestKey?: number;
@@ -41,6 +42,7 @@ interface Props {
 
 export const AllToolsDirectory: React.FC<Props> = ({
   onOpenTool,
+  onOpenToolFromDirectory,
   initialSearchQuery = '',
   initialCategory = 'all',
   openRequestKey = 0
@@ -61,7 +63,10 @@ export const AllToolsDirectory: React.FC<Props> = ({
   }, [initialSearchQuery]);
 
   useEffect(() => {
-    if (initialCategory && initialCategory !== 'all') {
+    if (openRequestKey > 0) {
+      setSelectedCategory(initialCategory);
+      setIsModalOpen(true);
+    } else if (initialCategory && initialCategory !== 'all') {
       setSelectedCategory(initialCategory);
       setIsModalOpen(true);
     }
@@ -187,7 +192,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
 
   const handleToolClick = (tool: ToolItem) => {
     setIsModalOpen(false);
-    onOpenTool(tool);
+    (onOpenToolFromDirectory || onOpenTool)(tool);
   };
 
   // Helper renderer for standard tool card
