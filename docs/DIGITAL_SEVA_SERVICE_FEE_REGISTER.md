@@ -24,8 +24,8 @@
 | aadhaar-co | Aadhaar C/O address detail | ₹75 demographic address update when separate; free with biometric update; exact route check | Exact transaction/appointment rule | Not configured |
 | aadhaar-mobile | Aadhaar mobile update | ₹75 demographic update when separate; free with biometric update; confirm app/centre route | Exact transaction/appointment rule | Not configured |
 | aadhaar-email | Aadhaar email update | ₹75 demographic update when separate; free with biometric update. UIDAI app waiver from 1 July–31 December 2026 must be checked for availability. | Exact transaction/appointment rule | Not configured |
-| aadhaar-lost | Lost Aadhaar / UID retrieval | Online retrieval: check official flow; optional centre search/print quoted separately | No government fee refund if free; separate centre charge follows its rule | Not configured |
-| aadhaar-download | e-Aadhaar download | Official online e-Aadhaar download is free; optional centre search/colour print is separate (UIDAI schedule lists ₹40) | No refund on free download; separate print/service follows its rule | Not configured |
+| aadhaar-lost | Lost Aadhaar / UID retrieval | Online retrieval: no fee shown; optional centre Find Aadhaar/search and A4 colour print ₹40 if requested | No government fee refund if free; separate centre charge follows its rule | Not configured |
+| aadhaar-download | e-Aadhaar download | Official online e-Aadhaar download is free; optional centre Find Aadhaar/search and A4 colour print is ₹40 | No refund on free download; separate print/service follows its rule | Not configured |
 | certificate-income | Income certificate | Bihar ServicePlus / OGRAS live quote; service and CO/SDO/DM level dependent | Department/transaction rule not yet verified | Not configured |
 | certificate-caste | Caste certificate | Bihar ServicePlus / OGRAS live quote; service and CO/SDO/DM level dependent | Department/transaction rule not yet verified | Not configured |
 | certificate-residence | Residence certificate | Bihar ServicePlus / OGRAS live quote; service and CO/SDO/DM level dependent | Department/transaction rule not yet verified | Not configured |
