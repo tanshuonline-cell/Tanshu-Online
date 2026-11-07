@@ -46,6 +46,7 @@ export default function DigitalSevaPage() {
 
   return (
     <div className="ds-page">
+      <div className="ds-back-row"><a className="ds-back-home" href="/" aria-label="Back to TANSHU ONLINE homepage">← Back to Home</a></div>
       <div className="ds-topline"><span>INDEPENDENT DIGITAL ASSISTANCE</span><span><ShieldCheck size={14} /> Privacy-first • Clear fees • Transparent process</span></div>
       <header className="ds-header">
         <a href="/" className="ds-brand" aria-label="TANSHU ONLINE home"><span className="ds-brand-mark">T</span><span><strong>TANSHU ONLINE</strong><small>Digital Seva Center</small></span></a>
