@@ -101,3 +101,7 @@
 .ds-booking-fee-summary p{margin:0;color:#5f6670;font-size:10px;line-height:1.6}
 .ds-booking-fee-summary p b{color:#333840}
 .ds-booking-fee-summary small{color:#8a6a35;font-size:9px;line-height:1.55}
+
+
+/* Compact language switch — Digital Seva page only */
+.ds-back-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.ds-language-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid #e5dcd5;border-radius:999px;background:#fff;box-shadow:0 3px 12px #24181808}.ds-language-switch button{border:0;border-radius:999px;background:transparent;color:#686b72;padding:7px 12px;font:700 10px 'DM Sans','Noto Sans Devanagari',sans-serif;cursor:pointer;transition:background .18s,color .18s}.ds-language-switch button.active{background:var(--ds-red);color:#fff}.ds-language-switch button:focus-visible{outline:2px solid #c7a15a;outline-offset:2px}@media(max-width:600px){.ds-back-row{align-items:center}.ds-language-switch button{padding:7px 10px}}
