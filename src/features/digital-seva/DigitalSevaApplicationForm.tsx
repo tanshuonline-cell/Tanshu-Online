@@ -328,6 +328,18 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         paymentMode
       };
 
+      if (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service)) {
+        const preflight = await fetch('/api/digital-seva/bookings', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, paymentMode: 'AUTO_PAY', validateOnly: true })
+        });
+        const preflightData = await preflight.json().catch(() => ({}));
+        if (!preflight.ok || !preflightData.success || !preflightData.validated) {
+          throw new Error(preflightData.error || 'Please review the form details before starting payment. No payment has been taken.');
+        }
+      }
+
       const sendBooking = async (bookingPayload: any) => {
         const formData = new FormData();
         formData.append('payload', JSON.stringify(bookingPayload));
