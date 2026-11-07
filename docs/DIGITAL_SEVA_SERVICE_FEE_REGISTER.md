@@ -23,8 +23,8 @@
 | aadhaar-address-hof | Aadhaar HoF address update | ₹75 demographic update when separate; free with biometric update; confirm exact HoF online flow | Exact transaction/appointment rule | Not configured |
 | aadhaar-co | Aadhaar C/O address detail | ₹75 demographic address update when separate; free with biometric update; exact route check | Exact transaction/appointment rule | Not configured |
 | aadhaar-mobile | Aadhaar mobile update | ₹75 demographic update when separate; free with biometric update; confirm app/centre route | Exact transaction/appointment rule | Not configured |
-| aadhaar-email | Aadhaar email update | ₹75 demographic update when separate; free with biometric update. UIDAI app waiver from 1 July–31 December 2026 must be checked for availability. | Exact transaction/appointment rule | Not configured |
-| aadhaar-lost | Lost Aadhaar / UID retrieval | Online retrieval: no fee shown; optional centre Find Aadhaar/search and A4 colour print ₹40 if requested | No government fee refund if free; separate centre charge follows its rule | Not configured |
+| aadhaar-email | Aadhaar email update | ₹75 demographic update when separate; free with biometric update. UIDAI app waiver from 1 July–31 December 2026 must be checked for availability. | Exact transaction/appointment rule | ₹100 assistance fee |
+| aadhaar-lost | Lost Aadhaar / UID retrieval | Online retrieval: no fee shown; optional centre Find Aadhaar/search and A4 colour print ₹40 if requested | No government fee refund if free; separate centre charge follows its rule | ₹50 basic UID retrieval guidance |
 | aadhaar-download | e-Aadhaar download | Official online download free; optional centre Find Aadhaar/search and A4 colour print ₹40 | No refund on free download; separate print/service follows its rule | ₹30 download; B/W print ₹30; colour print ₹50; download+B/W ₹50; download+colour ₹70 |
 | aadhaar-pvc-assistance | Aadhaar PVC order assistance | UIDAI PVC order charge ₹75 including taxes and Speed Post | Exact UIDAI order/cancellation rule required | ₹100 assistance fee |
 | bw-print | Black & white document print | Not applicable for private printing | No government fee; reprint/cancellation considers pages already printed | ₹5 per page |
@@ -32,23 +32,25 @@
 | certificate-income | Income certificate | Bihar ServicePlus / OGRAS live quote for the exact selected level; do not assume zero or a fixed fee | Department/transaction rule not yet verified | CO ₹50 / SDO ₹100 / DM ₹150 assistance fee |
 | certificate-caste | Caste certificate | Bihar ServicePlus / OGRAS live quote for the exact selected level; do not assume zero or a fixed fee | Department/transaction rule not yet verified | CO ₹50 / SDO ₹100 / DM ₹150 assistance fee |
 | certificate-residence | Residence certificate | Bihar ServicePlus / OGRAS live quote for the exact selected level; do not assume zero or a fixed fee | Department/transaction rule not yet verified | CO ₹50 / SDO ₹100 / DM ₹150 assistance fee |
-| certificate-correction | Certificate correction | Issuing-authority live quote; certificate type dependent | Issuing-authority rule not yet verified | Not configured |
+| certificate-correction | Certificate correction | Issuing-authority live quote; certificate type dependent | Issuing-authority rule not yet verified | ₹150 standard correction assistance; complex cases quoted |
 | voter-new | New Voter registration | ₹0 for ECI Form 6 new registration | No official fee collected on this route | ₹100 assistance fee |
 | voter-correction | Voter correction / replacement | Form 8 request type must be checked. Lost EPIC replacement: ECI FAQ lists ₹25 with police complaint; fee waived for loss beyond elector control (e.g. flood/fire/natural disaster). Do not apply ₹25 to every correction. | Exact Form 8 route required | ₹100 assistance fee |
 | ration-new | New ration card | Bihar EPDS / department live quote; verify current route | Department rule not yet verified | ₹150 assistance fee |
 | ration-update | Ration member/detail update | Bihar EPDS / department live quote; verify exact change type | Department rule not yet verified | ₹100 assistance fee |
-| scheme-check | Scheme eligibility | Identify exact scheme; many may be free, but do not assume | Scheme-specific rule required | Not configured |
-| online-form | Online form filling | Exact department/portal live quote | Exact portal rule required | ₹100–₹150 based on form and complexity |
+| scheme-check | Scheme eligibility | Identify exact scheme; many may be free, but do not assume | Scheme-specific rule required | ₹50 for one scheme eligibility checklist and route |
+| online-form | Online form filling | Exact department/portal live quote | Exact portal rule required | ₹100–₹200 based on form length, steps and complexity |
 | pdf-compress | PDF compress | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | pdf-merge | PDF merge | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | pdf-split | PDF split | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | pdf-jpg | Photo/JPG to PDF | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | pdf-word | PDF to Word | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task; extensive formatting separately quoted |
-| pdf-edit | PDF edit/page organiser | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task; extensive editing separately quoted |
+| pdf-edit | PDF edit/page organiser | Not applicable for private file processing | No government fee for the file work itself | ₹30 per page-organising task; extensive editing separately quoted |
+| pdf-text-edit | Hindi / English PDF text editing | Not applicable for private PDF editing | No government fee for private file editing | One page: English ₹100 / Hindi ₹200; extra pages or edits quoted after review |
 | image-compress | Image/photo compress | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | signature-resize | Signature resize | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | scan-clean | Document scan/cleanup | Not applicable for private file processing | No government fee for the file work itself | ₹10 per page |
-| typing-format | Hindi/English typing & formatting | Not applicable for private typing work | No government fee for the typing work itself | Not configured; quote required |
+| website-services | Website design / complete setup | No government fee; domain/hosting provider charges are separate | Provider cancellation/refund rules apply to domain/hosting; TANSHU terms in written quote | Quote after scope review; design-only and complete setup priced separately |
+| typing-format | Hindi/English typing & formatting | Not applicable for private typing work | No government fee for the typing work itself | ₹50 short one-page work; ₹100–₹200 for longer/multi-page work |
 
 ## Bihar certificate level-wise TANSHU ONLINE fee schedule
 
@@ -87,7 +89,7 @@ Terms and Refund checkboxes are unticked by default. The API validates both bool
 
 ## Launch blockers
 
-- [ ] Confirm the remaining unpriced catalogue services (Aadhaar address/HoF/C/O/mobile/email/lost-Aadhaar, certificate correction, scheme eligibility and typing/formatting), and define exact deliverables.
+- [x] Configure TANSHU assistance fees for all current catalogue services, including Aadhaar email/lost-UID guidance, certificate correction, scheme eligibility and typing/formatting. Website design/setup and expanded PDF text edits remain scope-quoted as disclosed.
 - [ ] Verify official fee and refund/cancellation rule for every exact government route, including state, service level, provider, applicant eligibility and payment mode.
 - [ ] Add a source URL and last-verified date to any live fee quote; expire/recheck stale quotes.
 - [ ] Publish verified legal business name, address, customer-care contact and grievance officer details.
