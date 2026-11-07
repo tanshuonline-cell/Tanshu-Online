@@ -39,7 +39,15 @@ const routeQuote = (sourceLabel: string, sourceUrl: string, note: string): Servi
 });
 
 const disclosures: Record<string, ServiceFeeDisclosure> = {
-  'pan-new': routeQuote('Income Tax Department / authorised PAN provider', PAN, 'The Income Tax Department describes ₹107 including GST (₹91 + GST) for the Indian-address route on its page; Protean/other routes vary by paperless or physical-document mode, physical card and dispatch. Instant e-PAN is free only for eligible applicants. Display the selected provider’s live quote, not one universal PAN price.'),
+  'pan-new': {
+    ...DEFAULT_DISCLOSURE,
+    governmentFee: 'The Income Tax Department lists ₹107 including GST (₹91 + GST) for its described Indian-address PAN application route. Eligible Instant e-PAN through the Income Tax e-filing portal is free. Protean/other routes differ by paperless or physical-document mode, physical card and dispatch; show the exact live provider quote.',
+    governmentRefund: 'Cancellation/refund follows the selected authorised provider and application route. Check the live provider terms before payment; do not assume all PAN fees are non-refundable.',
+    governmentStatus: 'verify-before-payment',
+    officialSourceLabel: 'Income Tax Department PAN fee and authorised provider',
+    officialSourceUrl: PAN,
+    note: '₹107 is a route-specific published amount, not a universal PAN fee. Confirm the exact provider, mode, card and dispatch before accepting payment.',
+  },
   'pan-correction': routeQuote('Protean PAN correction service', PROTEAN, 'Correction/reprint charges depend on the selected provider, paperless or physical-document mode, physical card and dispatch. Show the live quote and provider cancellation rule.'),
   'aadhaar-address-doc': {
     ...DEFAULT_DISCLOSURE,
@@ -88,7 +96,7 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
   },
   'aadhaar-lost': {
     ...DEFAULT_DISCLOSURE,
-    governmentFee: 'Online UID retrieval through UIDAI: check the live official flow; no fee is to be assumed. Any optional centre search/print charge must be quoted separately.',
+    governmentFee: 'Online UID retrieval through UIDAI: no fee is shown for the online retrieval flow. UIDAI lists ₹40 for Aadhaar search/Find Aadhaar and colour print on A4 at a centre; show it only if that optional centre service is actually requested.',
     governmentRefund: 'If no government amount was collected, there is no government fee refund. Any centre/provider charge follows its current receipt and refund rule.',
     governmentStatus: 'verify-before-payment',
     officialSourceLabel: 'UIDAI official services',
@@ -97,7 +105,7 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
   },
   'aadhaar-download': {
     ...DEFAULT_DISCLOSURE,
-    governmentFee: 'e-Aadhaar download from the official UIDAI route is free. Any optional centre print/search service must be itemised separately and confirmed before proceeding.',
+    governmentFee: 'e-Aadhaar download from the official UIDAI route is free. UIDAI lists ₹40 for Aadhaar search/Find Aadhaar and colour print on A4 at a centre; show it only if that optional centre service is actually requested.',
     governmentRefund: 'No government refund applies to a free e-Aadhaar download. Any separately charged centre/provider service follows its own current rule.',
     governmentStatus: 'official-fixed',
     officialSourceLabel: 'UIDAI official services',
