@@ -213,3 +213,11 @@
 .ds-application-form p:hover,
 .ds-application-form small:hover,
 .ds-application-form label:hover { color: #41454c; }
+
+
+/* Structured Aadhaar address rows; keep PIN inputs compact. */
+.ds-address-form-grid{display:grid;gap:9px}
+.ds-address-form-grid>label{display:grid;grid-template-columns:minmax(150px,0.8fr) minmax(0,1.6fr);align-items:center;gap:12px}
+.ds-address-form-grid .ds-pin-input{width:140px;max-width:100%}
+.ds-application-field-grid .ds-pin-input{width:140px;max-width:100%}
+@media(max-width:560px){.ds-address-form-grid>label{grid-template-columns:1fr;gap:5px}.ds-address-form-grid .ds-pin-input{width:140px}}
