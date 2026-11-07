@@ -9,7 +9,8 @@ import { deleteDigitalSevaDraft, loadDigitalSevaDraft, saveDigitalSevaDraft } fr
 type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPENDENT_AGENT';
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
-interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (reference: string) => void; }
+export interface DigitalSevaReceiptData { customerName: string; customerPhone: string; customerEmail: string; fieldValues: Record<string, string>; serviceOptions: Record<string, string>; corrections: string[]; selectedDocuments: string[]; otherDocumentName: string; taskDetails: string; submittedAt: string; }
+interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -303,7 +304,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       if (!response.ok || !data.success || !data.bookingReference) throw new Error(data.error || 'Booking could not be saved. Please try again later.');
       completedRef.current = true;
       await deleteDigitalSevaDraft(service.id);
-      onSubmitted(String(data.bookingReference));
+      onSubmitted(String(data.bookingReference), { customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(), fieldValues: { ...fieldValues }, serviceOptions: { ...serviceOptions }, corrections: [...corrections], selectedDocuments: [...selectedDocuments], otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(), submittedAt: new Date().toISOString() });
     } catch (e: any) {
       setError(e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.'));
     } finally { setSubmitting(false); }
