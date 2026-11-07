@@ -93,7 +93,10 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 function humanizeKey(key: string): string {
-  return FIELD_LABELS[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]/g, ' ').replace(/^./, (letter) => letter.toUpperCase());
+  const hindi = key.endsWith('Hindi');
+  const baseKey = hindi ? key.slice(0, -5) : key;
+  const label = FIELD_LABELS[baseKey] || baseKey.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]/g, ' ').replace(/^./, (letter) => letter.toUpperCase());
+  return hindi ? `${label} — हिंदी` : label;
 }
 
 function displayOptionValue(key: string, value: unknown): string {
@@ -133,7 +136,7 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   if (!popup) return false;
   const details = parseApplicationDetails(booking.application_details_json);
   const values = { ...(details.fieldValues || {}), ...(details.serviceOptions || {}) };
-  const addressOrder = ['aadhaarHouse', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarState', 'aadhaarPin', 'aadhaarArea', 'aadhaarLandmark', 'aadhaarPostOffice'];
+  const addressOrder = ['aadhaarHouse', 'aadhaarHouseHindi', 'aadhaarVillage', 'aadhaarVillageHindi', 'aadhaarDistrict', 'aadhaarDistrictHindi', 'aadhaarState', 'aadhaarStateHindi', 'aadhaarPin', 'aadhaarArea', 'aadhaarAreaHindi', 'aadhaarLandmark', 'aadhaarLandmarkHindi', 'aadhaarPostOffice', 'aadhaarPostOfficeHindi'];
   const orderedKeys = [...addressOrder.filter((key) => String(values[key] ?? '').trim()), ...Object.keys(values).filter((key) => !addressOrder.includes(key) && String(values[key] ?? '').trim())];
   const correctionOptions = CORRECTION_OPTIONS[booking.service_id] || [];
   const correctionLabels = (details.corrections || []).map((id) => correctionOptions.find((item) => item.id === id)?.label || id);
