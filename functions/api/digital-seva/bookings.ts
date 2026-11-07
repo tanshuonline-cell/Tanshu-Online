@@ -1,4 +1,4 @@
-import { normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from '../../../src/features/digital-seva/smartValidation';
+import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from '../../../src/features/digital-seva/smartValidation';
 // Cloudflare Pages Function: POST /api/digital-seva/bookings
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
@@ -111,6 +111,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const refundPolicyVersion = String(body.refundPolicyVersion || '');
   const key = String(body.idempotencyKey || '');
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
+  if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(serviceId) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return json({ success: false, error: 'Please remove instructional or placeholder text and enter only the actual Aadhaar address details.' }, 400);
   if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
   for (const field of getRequiredCorrectionFieldKeys(corrections)) {
     if (!String(fieldValues[field] || '').trim()) return json({ success: false, error: `Required correction detail is missing: ${field}.` }, 400);

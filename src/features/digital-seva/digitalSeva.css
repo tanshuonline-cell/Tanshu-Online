@@ -202,3 +202,14 @@
   .dsa-document-row { align-items: flex-start; flex-direction: column; }
   .dsa-document-row > div:last-child { width: 100%; }
 }
+
+
+/* Digital Seva form hover emphasis — headings and bold text red; supporting copy only darkens. */
+.ds-booking-modal h2:hover,
+.ds-application-form h3:hover,
+.ds-application-form h4:hover,
+.ds-application-form strong:hover,
+.ds-application-form b:hover { color: var(--ds-red, #8f1725) !important; }
+.ds-application-form p:hover,
+.ds-application-form small:hover,
+.ds-application-form label:hover { color: #41454c; }

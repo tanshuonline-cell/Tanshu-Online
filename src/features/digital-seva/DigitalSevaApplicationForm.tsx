@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from './smartValidation';
+import { containsForbiddenAadhaarAddressInstruction, formatEnglishTitleCase, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, validateFieldByKey } from './smartValidation';
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
@@ -137,6 +137,14 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const clearFieldError = (key: string) => { setError(''); setFieldErrors((old) => { if (!old[key]) return old; const next = { ...old }; delete next[key]; return next; }); };
   const setField = (key: string, value: string) => { setFieldValues((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const setOption = (key: string, value: string) => { setServiceOptions((old) => ({ ...old, [key]: value })); clearFieldError(key); };
+  const formatFieldOnBlur = (key: string, value: string) => {
+    const normalizedKey = key.toLowerCase();
+    const shouldFormat = /(name|address|district|subdivision|block|village|town|city|postoffice|policestation|localbody|ward|occupation|profession|purpose|scheme)/.test(normalizedKey);
+    if (!shouldFormat) return value;
+    return normalizedKey === 'familymembernames'
+      ? value.split(/\\r?\\n/).map((line) => formatEnglishTitleCase(line)).join('\\n')
+      : formatEnglishTitleCase(value);
+  };
   const startNewApplication = async () => {
     completedRef.current = true;
     try { await deleteDigitalSevaDraft(service.id); } catch { /* continue with a fresh in-memory form */ }
@@ -210,6 +218,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     if (step === 2) {
       if (correctionsForService.length && corrections.length === 0) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
       if (service.id === 'voter-correction' && corrections.length > 4) return reject('corrections', 'Form 8 में अधिकतम चार सुधार चुनें।');
+      if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(service.id) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return reject('taskDetails', 'यह निर्देशात्मक वाक्य एड्रेस या आवेदन विवरण में स्वीकार नहीं है। कृपया केवल वास्तविक और सही जानकारी लिखें।');
       for (const key of getRequiredCorrectionFieldKeys(corrections)) {
         if (!String(fieldValues[key] || '').trim()) return reject(key, key.endsWith('-current') ? 'मौजूदा विवरण भरें।' : 'सही नया विवरण भरें।');
       }
@@ -281,9 +290,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
 
   const textInput = (key: string, label: string, labelHi: string) => (
     <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}
-      {key === 'familyMemberNames'
-        ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} rows={3} />
-        : <input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} />}
+      {key === 'familyMemberNames' || key === 'aadhaarAddress'
+        ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={key === 'aadhaarAddress' ? 3 : 3} />
+        : <input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={/pin$/i.test(key) ? 'numeric' : undefined} maxLength={/pin$/i.test(key) ? 6 : undefined} value={fieldValues[key] || ''} onChange={(e) => setField(key, /pin$/i.test(key) ? e.target.value.replace(/\\D/g, '').slice(0, 6) : e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} />}
       {fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}
     </label>
   );
@@ -405,6 +414,16 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         {textInput('hofName', 'Head of Family full name', 'परिवार के मुखिया का पूरा नाम')}
         <small>{hi ? 'आवेदक और परिवार के मुखिया के आधार नंबर / कार्ड की जानकारी आधिकारिक UIDAI प्रक्रिया में सुरक्षित रूप से देनी होगी। इस फॉर्म में पूरा आधार नंबर या कार्ड फोटो जमा न करें।' : 'Applicant and Head of Family Aadhaar details must be provided securely through the official UIDAI process. Do not submit full Aadhaar numbers or card photos in this form.'}</small>
       </div>}
+      {['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && <div className="ds-application-profile">
+        <h4>{hi ? 'पूरा पता और PIN कोड' : 'Complete address and PIN code'}</h4>
+        {textInput('aadhaarAddress', 'Complete address to be updated', 'जो पूरा पता अपडेट करवाना है')}
+        {textInput('aadhaarAddressPin', '6-digit PIN code', '6 अंकों का PIN कोड')}
+        <div className="ds-application-upload-notice" role="note">
+          <span>{hi
+            ? 'अपना पूरा और सही पता लिखें तथा PIN कोड बिल्कुल सही भरें। आवेदन करते समय UIDAI पोर्टल पर इसी PIN के अनुसार District और State आएँगे। Village / Town / City और Post Office के लिए पोर्टल पर उपलब्ध सही विकल्प चुनना होगा; इन आधिकारिक विकल्पों को मनमाने ढंग से बदल नहीं सकते। घर नंबर, गली, मोहल्ला और लैंडमार्क जैसी बाकी जानकारी पूरी लिखें।'
+            : 'Enter your complete, accurate address and the correct 6-digit PIN code. During application, the UIDAI portal will show the District and State based on that PIN. The Village / Town / City and Post Office must be selected from the options available on the UIDAI portal; these official options cannot be manually changed. Include the house number, street, locality and landmark in the remaining address details.'}</span>
+        </div>
+      </div>}
       {service.id === 'aadhaar-co' && <div className="ds-application-field-grid">
         {selectInput('coRelation', 'Relation of the person named in C/O', 'C/O में नामित व्यक्ति से संबंध', [
           { value: 'FATHER', label: 'Father', hi: 'पिता' }, { value: 'MOTHER', label: 'Mother', hi: 'माता' },
@@ -511,16 +530,16 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {intermediary && <div className="ds-application-profile">
         <h4>{hi ? 'संचालक / एजेंट की जानकारी' : 'Operator / agent details'}</h4>
         <div className="ds-application-field-grid">
-          <label className={fieldErrors['operator.name'] ? 'ds-field-invalid' : ''}>{hi ? 'पूरा नाम *' : 'Full name *'}<input data-validation-key="operator.name" aria-invalid={Boolean(fieldErrors['operator.name'])} value={operator.name} onChange={(e) => { updateOperator('name', e.target.value); clearFieldError('operator.name'); }} required />{fieldErrors['operator.name'] && <small className="ds-field-error">{fieldErrors['operator.name']}</small>}</label>
+          <label className={fieldErrors['operator.name'] ? 'ds-field-invalid' : ''}>{hi ? 'पूरा नाम *' : 'Full name *'}<input data-validation-key="operator.name" aria-invalid={Boolean(fieldErrors['operator.name'])} value={operator.name} onChange={(e) => { updateOperator('name', e.target.value); clearFieldError('operator.name'); }} onBlur={(e) => updateOperator('name', formatEnglishTitleCase(e.target.value))} required />{fieldErrors['operator.name'] && <small className="ds-field-error">{fieldErrors['operator.name']}</small>}</label>
           <label className={fieldErrors['operator.phone'] ? 'ds-field-invalid' : ''}>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input data-validation-key="operator.phone" aria-invalid={Boolean(fieldErrors['operator.phone'])} inputMode="numeric" value={operator.phone} onChange={(e) => { updateOperator('phone', e.target.value); clearFieldError('operator.phone'); }} required />{fieldErrors['operator.phone'] && <small className="ds-field-error">{fieldErrors['operator.phone']}</small>}</label>
           <label className={fieldErrors['operator.email'] ? 'ds-field-invalid' : ''}>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input data-validation-key="operator.email" aria-invalid={Boolean(fieldErrors['operator.email'])} type="email" value={operator.email} onChange={(e) => { updateOperator('email', e.target.value); clearFieldError('operator.email'); }} required />{fieldErrors['operator.email'] && <small className="ds-field-error">{fieldErrors['operator.email']}</small>}</label>
           {['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && <>
-            <label className={fieldErrors.centerName ? 'ds-field-invalid' : ''}>{hi ? 'सेंटर का नाम *' : 'Centre name *'}<input data-validation-key="centerName" value={centerName} onChange={(e) => { setCenterName(e.target.value); clearFieldError('centerName'); }} required />{fieldErrors.centerName && <small className="ds-field-error">{fieldErrors.centerName}</small>}</label>
-            <label className={`ds-application-wide ${fieldErrors.centerAddress ? 'ds-field-invalid' : ''}`}>{hi ? 'सेंटर का पूरा पता *' : 'Full centre address *'}<textarea data-validation-key="centerAddress" value={centerAddress} onChange={(e) => { setCenterAddress(e.target.value); clearFieldError('centerAddress'); }} rows={2} required />{fieldErrors.centerAddress && <small className="ds-field-error">{fieldErrors.centerAddress}</small>}</label>
+            <label className={fieldErrors.centerName ? 'ds-field-invalid' : ''}>{hi ? 'सेंटर का नाम *' : 'Centre name *'}<input data-validation-key="centerName" value={centerName} onChange={(e) => { setCenterName(e.target.value); clearFieldError('centerName'); }} onBlur={(e) => setCenterName(formatEnglishTitleCase(e.target.value))} required />{fieldErrors.centerName && <small className="ds-field-error">{fieldErrors.centerName}</small>}</label>
+            <label className={`ds-application-wide ${fieldErrors.centerAddress ? 'ds-field-invalid' : ''}`}>{hi ? 'सेंटर का पूरा पता *' : 'Full centre address *'}<textarea data-validation-key="centerAddress" value={centerAddress} onChange={(e) => { setCenterAddress(e.target.value); clearFieldError('centerAddress'); }} onBlur={(e) => setCenterAddress(formatEnglishTitleCase(e.target.value))} rows={2} required />{fieldErrors.centerAddress && <small className="ds-field-error">{fieldErrors.centerAddress}</small>}</label>
           </>}
           {requesterType === 'INDEPENDENT_AGENT' && <>
-            <label className={fieldErrors.agencyName ? 'ds-field-invalid' : ''}>{hi ? 'एजेंसी / व्यवसाय का नाम *' : 'Agency / business name *'}<input data-validation-key="agencyName" value={agencyName} onChange={(e) => { setAgencyName(e.target.value); clearFieldError('agencyName'); }} required />{fieldErrors.agencyName && <small className="ds-field-error">{fieldErrors.agencyName}</small>}</label>
-            <label className={`ds-application-wide ${fieldErrors.agencyAddress ? 'ds-field-invalid' : ''}`}>{hi ? 'व्यवसाय का पता (वैकल्पिक)' : 'Business address (optional)'}<textarea data-validation-key="agencyAddress" value={agencyAddress} onChange={(e) => { setAgencyAddress(e.target.value); clearFieldError('agencyAddress'); }} rows={2} />{fieldErrors.agencyAddress && <small className="ds-field-error">{fieldErrors.agencyAddress}</small>}</label>
+            <label className={fieldErrors.agencyName ? 'ds-field-invalid' : ''}>{hi ? 'एजेंसी / व्यवसाय का नाम *' : 'Agency / business name *'}<input data-validation-key="agencyName" value={agencyName} onChange={(e) => { setAgencyName(e.target.value); clearFieldError('agencyName'); }} onBlur={(e) => setAgencyName(formatEnglishTitleCase(e.target.value))} required />{fieldErrors.agencyName && <small className="ds-field-error">{fieldErrors.agencyName}</small>}</label>
+            <label className={`ds-application-wide ${fieldErrors.agencyAddress ? 'ds-field-invalid' : ''}`}>{hi ? 'व्यवसाय का पता (वैकल्पिक)' : 'Business address (optional)'}<textarea data-validation-key="agencyAddress" value={agencyAddress} onChange={(e) => { setAgencyAddress(e.target.value); clearFieldError('agencyAddress'); }} onBlur={(e) => setAgencyAddress(formatEnglishTitleCase(e.target.value))} rows={2} />{fieldErrors.agencyAddress && <small className="ds-field-error">{fieldErrors.agencyAddress}</small>}</label>
           </>}
         </div>
       </div>}
@@ -529,7 +548,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           {intermediary && <button type="button" className="ds-application-copy" onClick={() => setApplicant({ ...operator })} disabled={!isOwnWork}>{hi ? 'संचालक की जानकारी कॉपी करें' : 'Copy operator details'}</button>}
         </div>
         <div className="ds-application-field-grid">
-          <label className={fieldErrors['applicant.name'] ? 'ds-field-invalid' : ''}>{hi ? 'पूरा नाम *' : 'Full name *'}<input data-validation-key="applicant.name" aria-invalid={Boolean(fieldErrors['applicant.name'])} value={applicant.name} onChange={(e) => { updateContact(setApplicant, 'name', e.target.value); clearFieldError('applicant.name'); }} required />{fieldErrors['applicant.name'] && <small className="ds-field-error">{fieldErrors['applicant.name']}</small>}</label>
+          <label className={fieldErrors['applicant.name'] ? 'ds-field-invalid' : ''}>{hi ? 'पूरा नाम *' : 'Full name *'}<input data-validation-key="applicant.name" aria-invalid={Boolean(fieldErrors['applicant.name'])} value={applicant.name} onChange={(e) => { updateContact(setApplicant, 'name', e.target.value); clearFieldError('applicant.name'); }} onBlur={(e) => updateContact(setApplicant, 'name', formatEnglishTitleCase(e.target.value))} required />{fieldErrors['applicant.name'] && <small className="ds-field-error">{fieldErrors['applicant.name']}</small>}</label>
           <label className={fieldErrors['applicant.phone'] ? 'ds-field-invalid' : ''}>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input data-validation-key="applicant.phone" aria-invalid={Boolean(fieldErrors['applicant.phone'])} inputMode="numeric" value={applicant.phone} onChange={(e) => { updateContact(setApplicant, 'phone', e.target.value); clearFieldError('applicant.phone'); }} required />{fieldErrors['applicant.phone'] && <small className="ds-field-error">{fieldErrors['applicant.phone']}</small>}</label>
           <label className={fieldErrors['applicant.email'] ? 'ds-field-invalid' : ''}>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input data-validation-key="applicant.email" aria-invalid={Boolean(fieldErrors['applicant.email'])} type="email" value={applicant.email} onChange={(e) => { updateContact(setApplicant, 'email', e.target.value); clearFieldError('applicant.email'); }} required />{fieldErrors['applicant.email'] && <small className="ds-field-error">{fieldErrors['applicant.email']}</small>}</label>
         </div>

@@ -100,8 +100,8 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'certificate-residence': ['certificatePurpose', 'residenceDistrict', 'residenceSubdivision', 'residenceBlock', 'residenceVillageWard', 'residencePin', 'level', 'residenceType'],
     'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
     'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
-    'aadhaar-address-doc': ['docRelation', 'docRelationName'],
-    'aadhaar-address-hof': ['hofRelation', 'hofName'],
+    'aadhaar-address-doc': ['docRelation', 'docRelationName', 'aadhaarAddress', 'aadhaarAddressPin'],
+    'aadhaar-address-hof': ['hofRelation', 'hofName', 'aadhaarAddress', 'aadhaarAddressPin'],
     'aadhaar-co': ['coRelation', 'requestedCo'],
     'certificate-correction': ['certificateNumber', 'issuingOffice', 'issueDate'],
     'scheme-check': ['schemeName'],
@@ -130,6 +130,28 @@ export function isMeaningfulDescription(value: unknown): boolean {
   if (/(.)\1{4,}/u.test(text.replace(/\s/g, ''))) return false;
   const words = text.split(' ').filter((word) => word.length >= 2);
   return words.length >= 2 || /\d/.test(text);
+}
+
+
+
+/** Convert English words in names/addresses to readable Title Case; preserve Indian scripts and known acronyms. */
+export function formatEnglishTitleCase(value: unknown): string {
+  const acronyms = new Set(['PIN', 'PAN', 'UIDAI', 'CSC', 'PSU', 'SDO', 'DM', 'CO', 'C/O', 'PO']);
+  return String(value ?? '').replace(/[\\p{L}\\p{M}]+(?:['’][\\p{L}\\p{M}]+)?/gu, (word) => {
+    if (!/[A-Za-z]/.test(word) || acronyms.has(word.toUpperCase())) return word;
+    const lower = word.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  });
+}
+
+export function containsForbiddenAadhaarAddressInstruction(value: unknown): boolean {
+  const normalized = String(value ?? '').toLowerCase().normalize('NFKC').replace(/[^\\p{L}\\p{N}]/gu, '');
+  return [
+    'yeaddnahihonachahiyekahibhii',
+    'yeaddnahihonachahiyekahibhi',
+    'addnahihonachahiye',
+    'addnow'
+  ].some((phrase) => normalized.includes(phrase));
 }
 
 export function validateFieldByKey(key: string, value: unknown): string | null {
