@@ -14,7 +14,7 @@ export interface StoredDocument {
 function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string }) {
   const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = String(env.SUPABASE_SECRET_KEY || '');
-  if (!base || !key) throw new Error('Preview document storage is not configured.');
+  if (!base || !key) throw new Error('Private document storage is not configured.');
   const parsed = new URL(base);
   if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
     throw new Error('Preview document storage URL is invalid.');
