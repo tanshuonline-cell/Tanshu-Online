@@ -181,6 +181,10 @@ for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-wor
 
 const TANSHU_SERVICE_FEES: Record<string, string> = {
   'pan-new': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
+  'aadhaar-address-doc': '₹200 TANSHU ONLINE assistance fee + ₹75 UIDAI demographic address-update fee (unless the selected eligible route is free).',
+  'aadhaar-address-hof': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the live HoF route before payment.',
+  'aadhaar-co': '₹200 TANSHU ONLINE assistance fee + applicable UIDAI address-update fee; C/O is part of the address, not a separate father-name update.',
+  'aadhaar-mobile': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the selected app/centre route before payment.',
   'pan-correction': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
   'aadhaar-download': '₹30 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹50; download + colour print ₹70.',
   'certificate-income': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
@@ -188,7 +192,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'certificate-residence': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
   'voter-new': '₹100 TANSHU ONLINE assistance fee. ECI Form 6 government fee is ₹0.',
   'voter-correction': '₹100 TANSHU ONLINE assistance fee + any applicable official replacement/provider fee.',
-  'ration-new': '₹150 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
+  'ration-new': 'TANSHU ONLINE fee: minimum ₹200; exact amount to be confirmed and shown before the request. Add any applicable Bihar department fee separately after checking the official route.',
   'ration-update': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
   'online-form': '₹100–₹150 depending on the form and work complexity; quote before starting + any applicable portal fee.',
   'pdf-compress': '₹30 per PDF task.',
