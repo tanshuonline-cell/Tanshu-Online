@@ -286,7 +286,7 @@ export function getServiceDocumentOptions(serviceId: string, selectedCorrections
     const relevant = new Set(["epic"]);
     if (selected.has("address")) relevant.add("address-proof");
     if (selected.has("photo")) relevant.add("photo");
-    if (selected.some((x) => x !== "address" && x !== "photo")) relevant.add("correction-proof");
+    if (Array.from(selected).some((x) => x !== "address" && x !== "photo")) relevant.add("correction-proof");
     return all.filter((item) => relevant.has(item.id));
   }
   if (serviceId === "ration-update") {
