@@ -73,3 +73,25 @@
 .ds-refund-timeline{margin-top:9px;padding:12px;border-radius:9px;background:#f1f5f3}
 .ds-refund-preview-note{font-size:10px;line-height:1.55;color:#8a6a35;margin:11px 0 0}
 @media(max-width:600px){.ds-refund-notice{padding:14px}.ds-refund-notice-heading{align-items:flex-start;flex-direction:column;gap:7px}}
+
+
+/* Service-specific fee disclosure and separate, affirmative policy consent */
+.ds-fee-refund{margin-top:7px!important}
+.ds-fee-refund strong{color:#3d4148}
+.ds-fee-source{display:inline-block;margin-top:7px;color:#8f1725;font-size:10px;font-weight:800;text-decoration:underline;text-underline-offset:2px}
+.ds-fee-checked{display:block;margin-top:8px;color:#7b8088;font-size:9px;line-height:1.5}
+.ds-policy-consents{display:grid;gap:11px;margin:14px 0}
+.ds-policy-consent-card{padding:13px;border:1px solid #e7dfd8;border-radius:11px;background:#fff}
+.ds-policy-checkbox{display:flex;align-items:flex-start;gap:10px;color:#353941;font-size:12px;line-height:1.5;cursor:pointer}
+.ds-policy-checkbox input{margin:3px 0 0;flex-shrink:0;accent-color:#8f1725}
+.ds-policy-checkbox span{display:grid;gap:3px}
+.ds-policy-checkbox strong{font-size:12px}
+.ds-policy-checkbox small{color:#737982;font-size:10px}
+.ds-policy-details{margin:10px 0 0 25px;border-top:1px solid #eee9e4;padding-top:9px}
+.ds-policy-details summary{color:#8f1725;font-size:11px;font-weight:800;cursor:pointer}
+.ds-policy-details ol{padding-left:18px;margin:10px 0;color:#565d66;font-size:10px;line-height:1.65}
+.ds-policy-details li{padding-left:3px;margin:0 0 7px}
+.ds-policy-version,.ds-policy-launch-note{font-size:9px!important;color:#777d86!important;line-height:1.5!important}
+.ds-policy-audit{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:13px;padding:10px 12px;border-radius:8px;background:#f5f3ef;color:#60666e;font-size:10px}
+.ds-policy-audit b{color:#343940}
+@media(max-width:600px){.ds-policy-consent-card{padding:11px}.ds-policy-details{margin-left:0}.ds-policy-details ol{padding-left:17px}}
