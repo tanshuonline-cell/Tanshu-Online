@@ -49,6 +49,7 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
     note: 'PAN application forms changed for applications filed on or after 1 April 2026. Confirm the current form and exact provider quote at the time of request; no old fee example is treated as a universal price.',
   },
   'pan-correction': routeQuote('Protean PAN correction service', PROTEAN, 'Correction/reprint charges depend on the selected provider, paperless or physical-document mode, physical card and dispatch. Show the live quote and provider cancellation rule.'),
+  'pan-photo-signature': routeQuote('Authorised PAN provider — photo/signature correction', PROTEAN, 'TANSHU ONLINE assistance fee is ₹250. Government/provider fee varies by selected provider, physical/e-PAN mode and dispatch; verify and show the live quote before payment.'),
   'aadhaar-address-doc': {
     ...DEFAULT_DISCLOSURE,
     governmentFee: 'UIDAI lists a separate demographic update (including address) at ₹75. It is free when performed together with a biometric update. Do not confuse this with the separate PoI/PoA document-only update concession (free online until 14 June 2027).',
@@ -186,6 +187,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'aadhaar-co': '₹200 TANSHU ONLINE assistance fee + applicable UIDAI address-update fee; C/O is part of the address, not a separate father-name update.',
   'aadhaar-mobile': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the selected app/centre route before payment.',
   'pan-correction': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
+  'pan-photo-signature': '₹250 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
   'aadhaar-download': '₹30 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹50; download + colour print ₹70.',
   'certificate-income': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
   'certificate-caste': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
