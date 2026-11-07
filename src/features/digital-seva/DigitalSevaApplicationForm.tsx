@@ -346,7 +346,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       <span className="ds-kicker">{hi ? 'चरण 1' : 'STEP 1'}</span>
       <h3>{hi ? 'आप किस रूप में आवेदन कर रहे हैं?' : 'Who is submitting this request?'}</h3>
       <div className="ds-application-role-grid">
-        {requesterOptions.map((o) => <button type="button" key={o.value} className={requesterType === o.value ? 'selected' : ''} onClick={() => { setRequesterType(o.value as RequesterType); setApplicationFor('SELF'); setError(''); }}>
+        {requesterOptions.map((o) => <button type="button" data-validation-key="requesterType" key={o.value} className={requesterType === o.value ? 'selected' : ''} onClick={() => { setRequesterType(o.value as RequesterType); setApplicationFor('SELF'); setError(''); }}>
           <strong>{hi ? o.hi : o.label}</strong><small>{o.value === 'DIRECT_CUSTOMER' ? (hi ? 'अपना काम सीधे करवाएँ' : 'Request your own service directly') : (hi ? 'अपना या किसी ग्राहक का काम' : 'Submit for yourself or a customer')}</small>
         </button>)}
       </div>
@@ -362,16 +362,16 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {intermediary && <div className="ds-application-profile">
         <h4>{hi ? 'संचालक / एजेंट की जानकारी' : 'Operator / agent details'}</h4>
         <div className="ds-application-field-grid">
-          <label>{hi ? 'पूरा नाम *' : 'Full name *'}<input value={operator.name} onChange={(e) => updateOperator('name', e.target.value)} required /></label>
-          <label>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input inputMode="numeric" value={operator.phone} onChange={(e) => updateOperator('phone', e.target.value)} required /></label>
-          <label>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input type="email" value={operator.email} onChange={(e) => updateOperator('email', e.target.value)} required /></label>
+          <label className={fieldErrors['operator.name'] ? 'ds-field-invalid' : ''}>{hi ? 'पूरा नाम *' : 'Full name *'}<input data-validation-key="operator.name" aria-invalid={Boolean(fieldErrors['operator.name'])} value={operator.name} onChange={(e) => { updateOperator('name', e.target.value); clearFieldError('operator.name'); }} required />{fieldErrors['operator.name'] && <small className="ds-field-error">{fieldErrors['operator.name']}</small>}</label>
+          <label className={fieldErrors['operator.phone'] ? 'ds-field-invalid' : ''}>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input data-validation-key="operator.phone" aria-invalid={Boolean(fieldErrors['operator.phone'])} inputMode="numeric" value={operator.phone} onChange={(e) => { updateOperator('phone', e.target.value); clearFieldError('operator.phone'); }} required />{fieldErrors['operator.phone'] && <small className="ds-field-error">{fieldErrors['operator.phone']}</small>}</label>
+          <label className={fieldErrors['operator.email'] ? 'ds-field-invalid' : ''}>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input data-validation-key="operator.email" aria-invalid={Boolean(fieldErrors['operator.email'])} type="email" value={operator.email} onChange={(e) => { updateOperator('email', e.target.value); clearFieldError('operator.email'); }} required />{fieldErrors['operator.email'] && <small className="ds-field-error">{fieldErrors['operator.email']}</small>}</label>
           {['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && <>
-            <label>{hi ? 'सेंटर का नाम *' : 'Centre name *'}<input value={centerName} onChange={(e) => setCenterName(e.target.value)} required /></label>
-            <label className="ds-application-wide">{hi ? 'सेंटर का पूरा पता *' : 'Full centre address *'}<textarea value={centerAddress} onChange={(e) => setCenterAddress(e.target.value)} rows={2} required /></label>
+            <label className={fieldErrors.centerName ? 'ds-field-invalid' : ''}>{hi ? 'सेंटर का नाम *' : 'Centre name *'}<input data-validation-key="centerName" value={centerName} onChange={(e) => { setCenterName(e.target.value); clearFieldError('centerName'); }} required />{fieldErrors.centerName && <small className="ds-field-error">{fieldErrors.centerName}</small>}</label>
+            <label className={`ds-application-wide ${fieldErrors.centerAddress ? 'ds-field-invalid' : ''}`}>{hi ? 'सेंटर का पूरा पता *' : 'Full centre address *'}<textarea data-validation-key="centerAddress" value={centerAddress} onChange={(e) => { setCenterAddress(e.target.value); clearFieldError('centerAddress'); }} rows={2} required />{fieldErrors.centerAddress && <small className="ds-field-error">{fieldErrors.centerAddress}</small>}</label>
           </>}
           {requesterType === 'INDEPENDENT_AGENT' && <>
-            <label>{hi ? 'एजेंसी / व्यवसाय का नाम *' : 'Agency / business name *'}<input value={agencyName} onChange={(e) => setAgencyName(e.target.value)} required /></label>
-            <label className="ds-application-wide">{hi ? 'व्यवसाय का पता (वैकल्पिक)' : 'Business address (optional)'}<textarea value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} rows={2} /></label>
+            <label className={fieldErrors.agencyName ? 'ds-field-invalid' : ''}>{hi ? 'एजेंसी / व्यवसाय का नाम *' : 'Agency / business name *'}<input data-validation-key="agencyName" value={agencyName} onChange={(e) => { setAgencyName(e.target.value); clearFieldError('agencyName'); }} required />{fieldErrors.agencyName && <small className="ds-field-error">{fieldErrors.agencyName}</small>}</label>
+            <label className={`ds-application-wide ${fieldErrors.agencyAddress ? 'ds-field-invalid' : ''}`}>{hi ? 'व्यवसाय का पता (वैकल्पिक)' : 'Business address (optional)'}<textarea data-validation-key="agencyAddress" value={agencyAddress} onChange={(e) => { setAgencyAddress(e.target.value); clearFieldError('agencyAddress'); }} rows={2} />{fieldErrors.agencyAddress && <small className="ds-field-error">{fieldErrors.agencyAddress}</small>}</label>
           </>}
         </div>
       </div>}
@@ -380,9 +380,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           {intermediary && <button type="button" className="ds-application-copy" onClick={() => setApplicant({ ...operator })} disabled={!isOwnWork}>{hi ? 'संचालक की जानकारी कॉपी करें' : 'Copy operator details'}</button>}
         </div>
         <div className="ds-application-field-grid">
-          <label>{hi ? 'पूरा नाम *' : 'Full name *'}<input value={applicant.name} onChange={(e) => updateContact(setApplicant, 'name', e.target.value)} required /></label>
-          <label>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input inputMode="numeric" value={applicant.phone} onChange={(e) => updateContact(setApplicant, 'phone', e.target.value)} required /></label>
-          <label>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input type="email" value={applicant.email} onChange={(e) => updateContact(setApplicant, 'email', e.target.value)} required /></label>
+          <label className={fieldErrors['applicant.name'] ? 'ds-field-invalid' : ''}>{hi ? 'पूरा नाम *' : 'Full name *'}<input data-validation-key="applicant.name" aria-invalid={Boolean(fieldErrors['applicant.name'])} value={applicant.name} onChange={(e) => { updateContact(setApplicant, 'name', e.target.value); clearFieldError('applicant.name'); }} required />{fieldErrors['applicant.name'] && <small className="ds-field-error">{fieldErrors['applicant.name']}</small>}</label>
+          <label className={fieldErrors['applicant.phone'] ? 'ds-field-invalid' : ''}>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input data-validation-key="applicant.phone" aria-invalid={Boolean(fieldErrors['applicant.phone'])} inputMode="numeric" value={applicant.phone} onChange={(e) => { updateContact(setApplicant, 'phone', e.target.value); clearFieldError('applicant.phone'); }} required />{fieldErrors['applicant.phone'] && <small className="ds-field-error">{fieldErrors['applicant.phone']}</small>}</label>
+          <label className={fieldErrors['applicant.email'] ? 'ds-field-invalid' : ''}>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input data-validation-key="applicant.email" aria-invalid={Boolean(fieldErrors['applicant.email'])} type="email" value={applicant.email} onChange={(e) => { updateContact(setApplicant, 'email', e.target.value); clearFieldError('applicant.email'); }} required />{fieldErrors['applicant.email'] && <small className="ds-field-error">{fieldErrors['applicant.email']}</small>}</label>
         </div>
         {isOwnWork && intermediary && <p className="ds-application-note">{hi ? 'अपना काम चुनने पर संचालक की जानकारी कॉपी करें, ताकि दोनों रिकॉर्ड सही रहें।' : 'For your own work, copy the operator details so both records are retained separately.'}</p>}
       </div>
