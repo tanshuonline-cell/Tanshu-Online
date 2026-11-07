@@ -311,3 +311,13 @@
   .ds-booking-modal .ds-application-wide input,
   .ds-booking-modal .ds-application-wide textarea{min-height:44px;font-size:14px}
 }
+
+
+/* Paired English/Hindi fields with editable offline Hindi suggestions. */
+.ds-bilingual-pair{display:grid;gap:7px;min-width:0}
+.ds-bilingual-pair>label{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,1.6fr);align-items:center;gap:12px;min-width:0;font-size:11px;font-weight:750;color:#44474e}
+.ds-bilingual-pair>label span{line-height:1.35}
+.ds-bilingual-pair>label input{width:100%;min-width:0;border:1px solid #ddd8d4;border-radius:9px;background:#fff;padding:10px 11px;font:inherit;font-size:12px;color:#292c32;outline:none}
+.ds-bilingual-pair>label input:focus{border-color:var(--ds-red);box-shadow:0 0 0 2px color-mix(in srgb,var(--ds-red) 12%,transparent)}
+.ds-address-form-grid>.ds-bilingual-pair{display:grid;gap:7px}
+@media(max-width:560px){.ds-bilingual-pair>label{grid-template-columns:1fr;gap:5px}.ds-bilingual-pair>label input{min-height:44px;font-size:14px}}
