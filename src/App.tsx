@@ -16,6 +16,7 @@ import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
 import DigitalSevaPage from './features/digital-seva/DigitalSevaPage';
+import DigitalSevaAdminPage from './features/digital-seva/DigitalSevaAdminPage';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
@@ -376,8 +377,13 @@ export default function App() {
     setActiveTool(null);
   };
 
+  // ISOLATED DIGITAL SEVA ADMIN — separate route; uses the existing signed superadmin session.
+  if (window.location.pathname === '/digital-seva-admin') {
+    return <DigitalSevaAdminPage />;
+  }
+
   // ISOLATED DIGITAL SEVA PREVIEW — does not alter existing homepage or legacy routes.
-  if (window.location.pathname.startsWith('/digital-seva')) {
+  if (window.location.pathname === '/digital-seva') {
     return <DigitalSevaPage />;
   }
 
