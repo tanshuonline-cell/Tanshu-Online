@@ -35,7 +35,7 @@ async function encryptIdentifier(value: string, secret: string): Promise<string>
   return `enc:v1:${toBase64(iv)}:${toBase64(new Uint8Array(encrypted))}`;
 }
 
-async async function protectApplicationDetails(details: Record<string, any>, secret: string): Promise<string> {
+async function protectApplicationDetails(details: Record<string, any>, secret: string): Promise<string> {
   const copy = { ...details, fieldValues: { ...(details.fieldValues || {}) }, serviceOptions: { ...(details.serviceOptions || {}) } };
   const sensitiveKey = /^(aadhaarnumber|hofaadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
   for (const collection of [copy.fieldValues, copy.serviceOptions]) {
