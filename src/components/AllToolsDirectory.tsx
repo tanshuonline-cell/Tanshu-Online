@@ -36,12 +36,14 @@ interface Props {
   onOpenTool: (tool: ToolItem) => void;
   initialSearchQuery?: string;
   initialCategory?: ToolCategory;
+  openRequestKey?: number;
 }
 
 export const AllToolsDirectory: React.FC<Props> = ({
   onOpenTool,
   initialSearchQuery = '',
-  initialCategory = 'all'
+  initialCategory = 'all',
+  openRequestKey = 0
 }) => {
   const { isHindi, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState(initialSearchQuery);
@@ -63,7 +65,7 @@ export const AllToolsDirectory: React.FC<Props> = ({
       setSelectedCategory(initialCategory);
       setIsModalOpen(true);
     }
-  }, [initialCategory]);
+  }, [initialCategory, openRequestKey]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
