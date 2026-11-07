@@ -35,7 +35,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) {
     return json({ success: false, error: 'A JSON checkout request is required.' }, 415);
   }
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva database is not connected.' }, 503);
   const cashfreeApiBase = getCashfreeApiBase(env.CASHFREE_ENVIRONMENT);
   if (!cashfreeApiBase) return json({ success: false, error: 'Cashfree environment must be explicitly set to SANDBOX or PRODUCTION.' }, 503);
   if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured for this environment.' }, 503);
