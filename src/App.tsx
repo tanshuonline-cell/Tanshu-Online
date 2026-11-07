@@ -15,6 +15,7 @@ import { UniversalToolModal } from './components/tools/UniversalToolModal';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
+import DigitalSevaPage from './features/digital-seva/DigitalSevaPage';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
@@ -369,6 +370,11 @@ export default function App() {
   const handleCloseTool = () => {
     setActiveTool(null);
   };
+
+  // ISOLATED DIGITAL SEVA PREVIEW — does not alter existing homepage or legacy routes.
+  if (window.location.pathname.startsWith('/digital-seva')) {
+    return <DigitalSevaPage />;
+  }
 
   // ROUTE 1: ADMIN PANEL
   if (currentPage === 'admin') {
