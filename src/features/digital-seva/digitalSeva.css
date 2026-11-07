@@ -271,3 +271,20 @@
 .ds-page .ds-refund-notice-heading strong,.ds-page .ds-refund-row b,
 .ds-page .ds-refund-timeline b{color:#292c32}
 @media(max-width:620px){.ds-address-form-grid>label{grid-template-columns:1fr;white-space:normal}}
+
+/* Readable application details inside the private Digital Seva admin panel */
+.dsa-application-details{margin-top:16px;border:1px solid #eee8e3;border-radius:11px;padding:12px 14px;background:#fff}
+.dsa-application-details summary{font-size:12px;font-weight:800;color:#8d2630;cursor:pointer}
+.dsa-detail-panel{display:grid;gap:15px;margin-top:13px}
+.dsa-detail-panel section{display:grid;gap:8px}
+.dsa-detail-panel h3{margin:0;color:#555b64;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.dsa-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0}
+.dsa-detail-grid>div{min-width:0;padding:10px 11px;border:1px solid #eee9e4;border-radius:8px;background:#fcfbfa}
+.dsa-detail-grid dt{margin:0 0 4px;color:#858991;font-size:10px;font-weight:700}
+.dsa-detail-grid dd{margin:0;color:#22252a;font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}
+.dsa-detail-chips{display:flex;flex-wrap:wrap;gap:7px}
+.dsa-detail-chips span{display:inline-flex;padding:7px 10px;border:1px solid #eadfda;border-radius:7px;background:#fbf6f3;color:#71313a;font-size:11px;font-weight:700}
+.dsa-task-details{margin:0;padding:12px;border-left:3px solid #c7a15a;border-radius:6px;background:#faf8f5;color:#292c31;font-size:13px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.dsa-no-details{margin:0;color:#777d86;font-size:12px}
+.dsa-document-row > div:last-child button:nth-child(2){border-color:#c9d9cf;background:#f4faf6;color:#246044}
+@media(max-width:640px){.dsa-detail-grid{grid-template-columns:1fr}.dsa-application-details{padding:11px}}
