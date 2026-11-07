@@ -115,6 +115,7 @@ export default function App() {
   const [activeTool, setActiveTool] = useState<ToolItem | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [directoryCategory, setDirectoryCategory] = useState<ToolCategory>('all');
+  const [directoryOpenRequest, setDirectoryOpenRequest] = useState(0);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedScheme, setSelectedScheme] = useState<GovernmentScheme | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoGuide | null>(null);
@@ -474,6 +475,7 @@ export default function App() {
         <CategoryNavigationSection
           onOpenAllTools={(category) => {
             setDirectoryCategory(category || 'all');
+            setDirectoryOpenRequest((request) => request + 1);
             setSearchQuery('');
             scrollToSection('all-tools');
           }}
@@ -495,6 +497,7 @@ export default function App() {
           onOpenTool={handleOpenTool}
           initialSearchQuery={searchQuery}
           initialCategory={directoryCategory}
+          openRequestKey={directoryOpenRequest}
         />
 
         {/* Government Services Directory */}
