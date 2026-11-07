@@ -8,7 +8,6 @@ type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPEND
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
 interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (reference: string) => void; }
-const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
@@ -47,6 +46,14 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   ];
   const updateContact = (setter: React.Dispatch<React.SetStateAction<Contact>>, key: keyof Contact, value: string) =>
     setter((old) => ({ ...old, [key]: value }));
+  const updateOperator = (key: keyof Contact, value: string) => {
+    updateContact(setOperator, key, value);
+    if (applicationFor === 'SELF') updateContact(setApplicant, key, value);
+  };
+  const changeApplicationFor = (value: ApplicationFor) => {
+    setApplicationFor(value);
+    setApplicant(value === 'SELF' ? { ...operator } : emptyContact());
+  };
   const setField = (key: string, value: string) => setFieldValues((old) => ({ ...old, [key]: value }));
   const setOption = (key: string, value: string) => setServiceOptions((old) => ({ ...old, [key]: value }));
 
@@ -231,7 +238,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {intermediary && <div className="ds-application-choice">
         <strong>{hi ? 'आप किसका काम करवाना चाहते हैं?' : 'Whose work are you arranging?'}</strong>
         <label><input type="radio" name="applicationFor" checked={applicationFor === 'SELF'} onChange={() => setApplicationFor('SELF')} /> {hi ? 'अपना काम' : 'My own work'}</label>
-        <label><input type="radio" name="applicationFor" checked={applicationFor === 'CUSTOMER'} onChange={() => setApplicationFor('CUSTOMER')} /> {hi ? 'किसी दूसरे ग्राहक का काम' : 'Another customer’s work'}</label>
+        <label><input type="radio" name="applicationFor" checked={applicationFor === 'CUSTOMER'} onChange={() => changeApplicationFor('CUSTOMER')} /> {hi ? 'किसी दूसरे ग्राहक का काम' : 'Another customer’s work'}</label>
       </div>}
     </section>}
 
@@ -240,9 +247,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {intermediary && <div className="ds-application-profile">
         <h4>{hi ? 'संचालक / एजेंट की जानकारी' : 'Operator / agent details'}</h4>
         <div className="ds-application-field-grid">
-          <label>{hi ? 'पूरा नाम *' : 'Full name *'}<input value={operator.name} onChange={(e) => updateContact(setOperator, 'name', e.target.value)} required /></label>
-          <label>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input inputMode="numeric" value={operator.phone} onChange={(e) => updateContact(setOperator, 'phone', e.target.value)} required /></label>
-          <label>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input type="email" value={operator.email} onChange={(e) => updateContact(setOperator, 'email', e.target.value)} required /></label>
+          <label>{hi ? 'पूरा नाम *' : 'Full name *'}<input value={operator.name} onChange={(e) => updateOperator('name', e.target.value)} required /></label>
+          <label>{hi ? 'मोबाइल नंबर *' : 'Mobile number *'}<input inputMode="numeric" value={operator.phone} onChange={(e) => updateOperator('phone', e.target.value)} required /></label>
+          <label>{hi ? 'ईमेल आईडी *' : 'Email address *'}<input type="email" value={operator.email} onChange={(e) => updateOperator('email', e.target.value)} required /></label>
           {['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && <>
             <label>{hi ? 'सेंटर का नाम *' : 'Centre name *'}<input value={centerName} onChange={(e) => setCenterName(e.target.value)} required /></label>
             <label className="ds-application-wide">{hi ? 'सेंटर का पूरा पता *' : 'Full centre address *'}<textarea value={centerAddress} onChange={(e) => setCenterAddress(e.target.value)} rows={2} required /></label>
