@@ -28,9 +28,10 @@ import { GenericInteractiveTool } from './GenericInteractiveTool';
 interface Props {
   tool: ToolItem | null;
   onClose: () => void;
+  backLabel?: string;
 }
 
-export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
+export const UniversalToolModal: React.FC<Props> = ({ tool, onClose, backLabel }) => {
   const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
   const [showPhotoSignatureStudio, setShowPhotoSignatureStudio] = useState(false);
 
@@ -113,9 +114,16 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
               {!isImmersiveTool && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
-            <X className="w-5 h-5" />
-          </button>
+          {backLabel ? (
+            <button onClick={onClose} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-blue-700 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title={backLabel}>
+              <ArrowLeft className="w-4 h-4" />
+              <span>{backLabel}</span>
+            </button>
+          ) : (
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         <div data-copy-allowed="true" className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : isPhotoSignatureResizer ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
