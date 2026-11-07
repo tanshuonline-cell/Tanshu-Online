@@ -116,6 +116,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [directoryCategory, setDirectoryCategory] = useState<ToolCategory>('all');
   const [directoryOpenRequest, setDirectoryOpenRequest] = useState(0);
+  const [returnToDirectoryAfterTool, setReturnToDirectoryAfterTool] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedScheme, setSelectedScheme] = useState<GovernmentScheme | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoGuide | null>(null);
@@ -364,11 +365,21 @@ export default function App() {
   };
 
   const handleOpenTool = (tool: ToolItem) => {
+    setReturnToDirectoryAfterTool(false);
+    setActiveTool(tool);
+  };
+
+  const handleOpenToolFromDirectory = (tool: ToolItem) => {
+    setReturnToDirectoryAfterTool(true);
     setActiveTool(tool);
   };
 
   const handleCloseTool = () => {
     setActiveTool(null);
+    if (returnToDirectoryAfterTool) {
+      setDirectoryOpenRequest((request) => request + 1);
+    }
+    setReturnToDirectoryAfterTool(false);
   };
 
   // ROUTE 1: ADMIN PANEL
@@ -495,6 +506,7 @@ export default function App() {
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
         <AllToolsDirectory
           onOpenTool={handleOpenTool}
+          onOpenToolFromDirectory={handleOpenToolFromDirectory}
           initialSearchQuery={searchQuery}
           initialCategory={directoryCategory}
           openRequestKey={directoryOpenRequest}
@@ -527,6 +539,7 @@ export default function App() {
         <UniversalToolModal
           tool={activeTool}
           onClose={handleCloseTool}
+          backLabel={returnToDirectoryAfterTool ? (directoryCategory === 'pdf' ? 'Back to Document & PDF Tools' : 'Back to All Online Tools') : undefined}
         />
       )}
 
