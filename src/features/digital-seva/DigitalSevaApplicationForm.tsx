@@ -431,6 +431,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           { value: 'CHILD', label: 'Child / ward', hi: 'बच्चा / आश्रित' }, { value: 'SIBLING', label: 'Sibling', hi: 'भाई / बहन' }
         ])}
         {textInput('hofName', 'Head of Family full name', 'परिवार के मुखिया का पूरा नाम')}
+        {textInput('hofAadhaarNumber', 'Head of Family Aadhaar number (12 digits)', 'परिवार के मुखिया का आधार नंबर (12 अंक)')}
       </div>}
       {service.id === 'aadhaar-address-doc' && <div className="ds-address-choice-panel">
         <h4>{hi ? 'पते का विकल्प चुनें' : 'Choose address option'}</h4>
