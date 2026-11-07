@@ -8,6 +8,7 @@ type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPEND
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
 interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (reference: string) => void; }
+const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
