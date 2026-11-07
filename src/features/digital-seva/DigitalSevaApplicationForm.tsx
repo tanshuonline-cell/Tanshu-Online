@@ -116,7 +116,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         if (!String(valueOf(key)).trim()) return reject(key, requiredMessages[key] || 'यह जानकारी भरना अनिवार्य है।');
       }
       for (const [key, value] of Object.entries(fieldValues)) { const issue = validateFieldByKey(key, value); if (issue) return reject(key, issue); }
-      for (const [key, value] of Object.entries(serviceOptions)) { const issue = validateByKind(validationKindForField(key), value); if (issue) return reject(key, issue); }
+      for (const [key, value] of Object.entries(serviceOptions)) { const issue = validateFieldByKey(key, value); if (issue) return reject(key, issue); }
     }
     if (step === 3 && !bookingConsent) return reject('bookingConsent', 'संपर्क की सहमति स्वीकार करें।');
     if (step === 3 && !termsAccepted) return reject('termsAccepted', 'Terms & Conditions स्वीकार करें।');
