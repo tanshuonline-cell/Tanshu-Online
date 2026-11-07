@@ -1,7 +1,7 @@
 # Digital Seva — Service-wise Fee & Refund Register
 
 **Preview branch:** `feature/digital-seva-booking-system-2026`  
-**Review date:** 7 November 2026  
+**Review date:** 8 November 2026  
 **Purpose:** Customer-facing disclosure and launch control. This is not authority to collect money.
 
 ## Rules applied to every service
@@ -17,11 +17,12 @@
 
 | Service ID | Service | Government fee shown in Preview | Official refund status | TANSHU fee |
 |---|---|---|---|---|
-| pan-new | New PAN | Live official quote required for current form/provider/mode/card/dispatch; eligible Instant e-PAN is free. | Exact provider route rule required | ₹150 assistance fee |
-| pan-correction | PAN correction | Live provider quote; depends on paperless/physical mode, card and dispatch | Exact provider rule required | ₹150 assistance fee |
-| aadhaar-address-doc | Aadhaar address update with document | UIDAI demographic update ₹75 separately; free with biometric update. Separate PoI/PoA document-only concession is free online until 14 June 2027; do not confuse these services. | Exact transaction/appointment rule; check receipt | ₹200 assistance fee |
-| aadhaar-address-hof | Aadhaar HoF address update | ₹75 demographic update when separate; free with biometric update; confirm exact HoF online flow | Exact transaction/appointment rule | ₹100 assistance fee |
-| aadhaar-co | Aadhaar C/O address detail | ₹75 demographic address update when separate; free with biometric update; exact route check | Exact transaction/appointment rule | ₹200 assistance fee |
+| pan-new | New PAN | Standard Indian physical-card route ₹107 incl. taxes; paperless physical-card route ₹101; e-PAN-only route varies and eligible Instant e-PAN may be free. | Exact provider route rule required | ₹300 customer total on standard physical-card route (₹107 official/provider + ₹193 TANSHU); recalculate within ₹300 for another selected route. |
+| pan-correction | PAN correction (name / father name / mobile) | Standard Indian physical-card route ₹107 incl. taxes; paperless physical-card route ₹101; exact provider route required | Exact provider rule required | ₹300 customer total on standard Indian physical-card route (₹107 official/provider + ₹193 TANSHU); same total for these correction types. |
+| pan-photo-signature | PAN photo/signature update | Standard Indian physical-card route ₹107 incl. taxes; paperless physical-card route ₹101; exact provider route required | Exact provider rule required | ₹250 TANSHU assistance + official/provider fee (standard physical-card example total ₹357). |
+| aadhaar-address-doc | Aadhaar address update with document | Separate demographic address update ₹75; free with biometric update. Separate online PoI/PoA document-only concession is free until 14 June 2027 and is not the same as address change. | Exact transaction/appointment rule; check receipt | ₹275 customer total (₹75 UIDAI + ₹200 TANSHU). |
+| aadhaar-address-hof | Aadhaar HoF address update | ₹75 demographic update when separate; exact HoF online flow must be checked | Exact transaction/appointment rule | ₹175 customer total (₹75 UIDAI + ₹100 TANSHU). |
+| aadhaar-co | Aadhaar C/O address detail | ₹75 demographic address update when separate; exact route must be checked | Exact transaction/appointment rule | ₹275 customer total (₹75 UIDAI + ₹200 TANSHU). |
 | aadhaar-mobile | Aadhaar mobile update | ₹75 demographic update when separate; free with biometric update; confirm app/centre route | Exact transaction/appointment rule | ₹100 assistance fee |
 | aadhaar-email | Aadhaar email update | ₹75 demographic update when separate; free with biometric update. UIDAI app waiver from 1 July–31 December 2026 must be checked for availability. | Exact transaction/appointment rule | ₹100 assistance fee |
 | aadhaar-lost | Lost Aadhaar / UID retrieval | Online retrieval: no fee shown; optional centre Find Aadhaar/search and A4 colour print ₹40 if requested | No government fee refund if free; separate centre charge follows its rule | ₹50 basic UID retrieval guidance |
@@ -65,6 +66,8 @@ These are TANSHU ONLINE assistance fees, not government fees. Any applicable gov
 ## Official source directory
 
 - UIDAI charges / service rules: https://www.uidai.gov.in/en/aadhaar-seva-kendra
+- Protean current PAN correction fees: https://tinpan.proteantech.in/services/pan/correction.html
+- Protean current New PAN fees: https://tinpan.proteantech.in/services/pan/form-form_93-form_94.html
 - UIDAI email-app waiver memorandum (1 July–31 December 2026): https://uidai.gov.in/images/OM_dated_18-06-2026.pdf
 - UIDAI e-Aadhaar, PVC card and service information: https://uidai.gov.in/hi/my-aadhaar
 - UIDAI PVC card order charge memorandum: https://uidai.gov.in/images/OM_for_revision_of_rate_of_Aadhaar_PVC_Card_service.pdf
