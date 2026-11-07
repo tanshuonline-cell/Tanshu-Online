@@ -67,19 +67,24 @@ export default function App() {
     const pathname = window.location.pathname;
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
+    const isDigitalSeva = pathname.startsWith('/digital-seva');
     const video = isVideoDetail
       ? (catalogVideos.find((item) => item.id === pathname.replace('/video/', '')) ||
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isVideoCatalog
-      ? 'Video Learning Center | TANSHU ONLINE'
-      : video
+    const title = isDigitalSeva
+      ? 'Digital Seva Center | TANSHU ONLINE'
+      : isVideoCatalog
+        ? 'Video Learning Center | TANSHU ONLINE'
+        : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isVideoCatalog
-      ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
-      : video
+    const description = isDigitalSeva
+      ? 'TANSHU ONLINE Digital Seva Center: explore government service assistance, document services and PDF tools.'
+      : isVideoCatalog
+        ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
+        : video
         ? (video.description || video.title).slice(0, 300)
         : 'TANSHU ONLINE पर उपयोगी ऑनलाइन टूल्स, सरकारी सेवाओं और योजनाओं की जानकारी, दस्तावेज़ संबंधी सुविधाएँ और वीडियो गाइड एक ही जगह पाएँ।';
     const canonicalUrl = `${siteUrl}${pathname === '/' ? '/' : pathname}`;
