@@ -104,7 +104,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (issue) return json({ success: false, error: `Invalid service field: ${field}. ${issue}` }, 400);
   }
   for (const [field, value] of Object.entries(serviceOptions)) {
-    const issue = validateByKind(validationKindForField(field), value);
+    const issue = validateFieldByKey(field, value);
     if (issue) return json({ success: false, error: `Invalid service option: ${field}. ${issue}` }, 400);
   }
   if (!consent) return json({ success: false, error: 'Please confirm that TANSHU ONLINE may contact you about this request.' }, 400);
