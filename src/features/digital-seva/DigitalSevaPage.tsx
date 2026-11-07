@@ -19,7 +19,7 @@ function ServiceCard({ service, onSelect, hindi }: { service: SevaService; onSel
       <div className="ds-service-card-top"><span className="ds-service-icon"><FileText size={19} /></span><span className="ds-service-tag">{hindi ? category?.hindi : category?.label}</span></div>
       <h3>{hindi ? service.hindi : service.name}</h3>
       <p className="ds-service-hindi">{hindi ? service.name : service.hindi}</p>
-      <p className="ds-service-description">{service.description}</p>
+      <p className="ds-service-description">{hindi ? (SEVA_SERVICE_HINDI[service.id]?.descriptionHindi || service.description) : service.description}</p>
       <div className="ds-service-meta"><span><WalletCards size={14} /> {hindi ? 'विवरण में शुल्क देखें' : 'Fees shown in details'}</span><span><Clock3 size={14} /> {hindi ? 'उपलब्धता और पात्रता लागू' : service.availability}</span></div>
       <button className="ds-text-button" onClick={() => onSelect(service)}>{hindi ? 'विवरण देखें' : 'View details'} <ArrowRight size={15} /></button>
     </article>
@@ -29,10 +29,10 @@ function ServiceCard({ service, onSelect, hindi }: { service: SevaService; onSel
 export default function DigitalSevaPage() {
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
   const hindi = language === 'hi';
-  const serviceHindi = selected ? { ...selected, ...SEVA_SERVICE_HINDI[selected.id] } : null;
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<SevaCategory | 'all'>('all');
   const [selected, setSelected] = useState<SevaService | null>(null);
+  const serviceHindi = selected ? { ...selected, ...SEVA_SERVICE_HINDI[selected.id] } : null;
   const [showAll, setShowAll] = useState(false);
   const [showTrackingInfo, setShowTrackingInfo] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
