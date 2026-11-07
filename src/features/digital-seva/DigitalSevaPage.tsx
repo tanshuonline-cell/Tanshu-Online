@@ -207,9 +207,11 @@ export default function DigitalSevaPage() {
         <section className="ds-section" id="ds-government-services">
           <div className="ds-section-heading"><div><span className="ds-kicker">{hindi ? 'सरकारी और नागरिक सेवाएँ' : 'GOVERNMENT & CITIZEN SERVICES'}</span><h2>{hindi ? 'सेवा की श्रेणी चुनें' : 'Choose a service category'}</h2><p>{hindi ? 'लोकप्रिय सेवाएँ देखें और शुरू करने से पहले ज़रूरी जानकारी जानें।' : 'Explore popular services and see what may be required before you begin.'}</p></div><button className="ds-outline-button" onClick={() => { setActiveCategory('all'); setShowAll(true); scrollToServices(); }}>{hindi ? 'सभी सेवाएँ देखें' : 'View all services'} <ArrowUpRight size={16} /></button></div>
           <div className="ds-category-grid">
-            {SEVA_CATEGORIES.slice(0, 8).map((category, index) => {
+            {(['websites', 'pan', 'aadhaar', 'voter', 'ration', 'schemes', 'forms', 'certificates'] as SevaCategory[]).map((categoryId) => {
+              const category = SEVA_CATEGORIES.find((item) => item.id === categoryId);
+              if (!category) return null;
               const Icon = categoryIcon[category.icon] || FileText;
-              return <button key={category.id} className={`ds-category-card ds-category-${index}`} onClick={() => { setActiveCategory(category.id); setQuery(''); setShowAll(true); document.getElementById('ds-service-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+              return <button key={category.id} className={`ds-category-card ds-category-card-${category.id}`} onClick={() => { setActiveCategory(category.id); setQuery(''); setShowAll(true); document.getElementById('ds-service-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
                 <span className="ds-category-icon"><Icon size={22} /></span><strong>{hindi ? category.hindi : category.label}</strong><small>{hindi ? category.label : category.hindi}</small><span className="ds-category-arrow"><ArrowUpRight size={17} /></span>
               </button>;
             })}
