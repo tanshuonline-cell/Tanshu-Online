@@ -24,7 +24,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   let body: any;
   try { body = JSON.parse(raw); } catch { return json({ success: false, error: 'Enter a valid booking reference.' }, 400); }
   const reference = String(body?.bookingReference || '').trim().toUpperCase();
-  if (!/^DS-\\d{8}-[0-9A-F]{10}$/.test(reference)) return json({ success: false, error: 'Enter the complete booking reference printed on your receipt.' }, 400);
+  if (!/^DS-\d{8}-[0-9A-F]{10}$/.test(reference)) return json({ success: false, error: 'Enter the complete booking reference printed on your receipt.' }, 400);
   try {
     const booking = await env.DIGITAL_SEVA_DB.prepare(
       'SELECT id, booking_reference, service_id, status, created_at, updated_at, estimated_completion_at FROM digital_seva_bookings WHERE booking_reference = ?'
