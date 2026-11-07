@@ -168,7 +168,7 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
   'online-form': routeQuote('Relevant application portal', 'https://serviceonline.bihar.gov.in/', 'The government fee depends on the form/department. Do not quote until the exact application and portal fee are known.'),
 };
 
-for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-word','pdf-edit','image-compress','signature-resize','scan-clean','typing-format']) {
+for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-word','pdf-edit','pdf-text-edit','image-compress','signature-resize','scan-clean','typing-format']) {
   disclosures[service] = {
     ...DEFAULT_DISCLOSURE,
     governmentFee: 'Not applicable for private file-processing / typing work performed solely by TANSHU ONLINE. If a separate official portal fee is required for a later government submission, it must be itemised separately.',
@@ -179,6 +179,26 @@ for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-wor
     note: 'The TANSHU ONLINE service price is still not configured. Do not accept payment until the amount and deliverable are disclosed.',
   };
 }
+
+
+disclosures['pdf-text-edit'] = {
+  ...DEFAULT_DISCLOSURE,
+  governmentFee: 'Not applicable for private PDF text editing. No government fee is charged for this file task.',
+  governmentRefund: 'No government fee applies to the private PDF editing task. Any later official portal fee is separate.',
+  governmentStatus: 'not-applicable',
+  officialSourceLabel: 'Private PDF text-editing service',
+  officialSourceUrl: 'https://www.consumerhelpline.gov.in/',
+  note: 'Font/layout matching depends on the source PDF and available fonts. Only lawful corrections to customer-owned documents are accepted; no misleading alteration of official identity, education, government or financial records.',
+};
+disclosures['website-services'] = {
+  ...DEFAULT_DISCLOSURE,
+  governmentFee: 'No government fee applies to private website design or development. Domain/hosting provider charges, if selected, are separate and must be disclosed before purchase.',
+  governmentRefund: 'Domain/hosting cancellation and refund follow the selected provider’s current terms. TANSHU service-fee treatment will be stated in the written project quote.',
+  governmentStatus: 'not-applicable',
+  officialSourceLabel: 'Private website design and setup service',
+  officialSourceUrl: 'https://www.consumerhelpline.gov.in/',
+  note: 'Choose design-only or complete setup. Free/paid hosting and free subdomain/paid custom domain choices will be collected in the later application form. No paid purchase without approval; Google indexing/ranking is not guaranteed.',
+};
 
 const TANSHU_SERVICE_FEES: Record<string, string> = {
   'pan-new': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
@@ -196,7 +216,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'voter-correction': '₹100 TANSHU ONLINE assistance fee + any applicable official replacement/provider fee.',
   'ration-new': '₹300 TANSHU ONLINE assistance fee + any applicable Bihar department fee, which must be checked on the exact official application route and shown separately.',
   'ration-update': '₹100 TANSHU ONLINE assistance fee + any applicable Bihar department fee.',
-  'online-form': '₹100–₹150 depending on the form and work complexity; quote before starting + any applicable portal fee.',
+  'online-form': '₹100–₹200 depending on form length, steps and registration/application complexity; quote before starting + any applicable portal fee.',
   'pdf-compress': '₹30 per PDF task.',
   'pdf-merge': '₹30 per PDF task.',
   'pdf-split': '₹30 per PDF task.',
@@ -208,7 +228,15 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'scan-clean': '₹10 per page.',
   'bw-print': '₹5 per printed page.',
   'colour-print': '₹10 per printed page.',
-  'aadhaar-pvc-assistance': '₹100 TANSHU ONLINE assistance fee + ₹75 UIDAI PVC card order fee.',
+  'aadhaar-pvc-assistance': '₹100 TANSHU ONLINE assistance fee + ₹75 UIDAI PVC card order fee.',,
+
+  'aadhaar-email': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; check the temporary app waiver before payment.',
+  'aadhaar-lost': '₹50 TANSHU ONLINE fee for basic UID retrieval guidance. Customer enters OTP directly; optional centre services are separate.',
+  'certificate-correction': '₹150 TANSHU ONLINE assistance fee for a standard correction request; complex or multi-authority work quoted before starting.',
+  'scheme-check': '₹50 TANSHU ONLINE fee for one selected scheme eligibility checklist and official application route; additional schemes/complex work quoted separately.',
+  'pdf-text-edit': 'One page: English PDF ₹100; Hindi PDF ₹200. Additional pages or extra edits are quoted after reviewing the original PDF and exact instructions.',
+  'website-services': 'Price to be decided after reviewing the selected scope. Design-only and complete setup are quoted separately; no payment is collected in this Preview.',
+  'typing-format': '₹50 for short one-page typing/formatting; longer or multi-page work ₹100–₹200 after scope review.',
 };
 
 export function getServiceFeeDisclosure(service: SevaService): ServiceFeeDisclosure {
