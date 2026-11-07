@@ -79,6 +79,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     if (step === 2) {
       if (correctionsForService.length && corrections.length === 0)
         return hi ? 'कृपया बताएं कि किस विवरण में सुधार चाहिए।' : 'Select at least one detail that needs correction.';
+      if (service.id === 'voter-correction' && corrections.length > 4)
+        return hi ? 'Form 8 में अधिकतम चार विवरणों का सुधार चुना जा सकता है।' : 'Form 8 allows a maximum of four correction entries.';
       if (taskDetails.trim().length < 5) return hi ? 'काम का पूरा विवरण लिखें।' : 'Describe the requested work.';
       if (['certificate-income', 'certificate-caste', 'certificate-residence'].includes(service.id) && !serviceOptions.level)
         return hi ? 'कृपया प्रमाणपत्र का स्तर चुनें।' : 'Select the certificate level.';
@@ -323,7 +325,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <p>{hi ? 'एक या एक से अधिक विकल्प चुनें। उसी के अनुसार दस्तावेज़ों की सूची बदलेगी।' : 'Select one or more options. The document checklist will update to match your selections.'}</p>
         <div className="ds-application-doc-list">
           {correctionsForService.map((option) => <label key={option.id} className="ds-application-doc-option">
-            <input type="checkbox" checked={corrections.includes(option.id)} onChange={(e) => changeCorrection(option.id, e.target.checked)} />
+            <input type="checkbox" checked={corrections.includes(option.id)} disabled={!corrections.includes(option.id) && service.id === 'voter-correction' && corrections.length >= 4} onChange={(e) => changeCorrection(option.id, e.target.checked)} />
             <span><strong>{hi ? option.hindi : option.label}</strong></span>
           </label>)}
         </div>
