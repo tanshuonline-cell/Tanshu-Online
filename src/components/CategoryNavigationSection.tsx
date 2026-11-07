@@ -4,7 +4,8 @@ import {
   Landmark, 
   GraduationCap, 
   ShieldCheck, 
-  Wrench, 
+  Wrench,
+  FileText,
   ArrowRight, 
   ArrowLeft, 
   ExternalLink, 
@@ -19,7 +20,7 @@ import {
 import { GOVERNMENT_SERVICES } from '../data/servicesData';
 import { GOVERNMENT_SCHEMES } from '../data/schemesData';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
-import { GovernmentScheme } from '../types';
+import { GovernmentScheme, ToolCategory } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { BilingualText, BilingualHeading, BilingualList, BilingualSteps } from './common/BilingualContent';
 
@@ -40,7 +41,7 @@ import sukanyaImg from '../assets/images/scheme_sukanya_samriddhi_1793213631693.
 type CategoryType = 'none' | 'bihar-services' | 'central-services' | 'bihar-schemes' | 'central-schemes';
 
 interface Props {
-  onOpenAllTools: () => void;
+  onOpenAllTools: (category?: ToolCategory) => void;
   onScrollToTop?: () => void;
 }
 
@@ -181,7 +182,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
 
         {/* 5 PREMIUM COLORFUL CATEGORY CARDS GRID (When no category is expanded) */}
         {activeCategory === 'none' && (
-          <div className="category-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+          <div className="category-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-5">
             
             {/* CARD A: Bihar Government Services (Refined Indigo & Royal Lavender) */}
             <div
@@ -340,6 +341,35 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
 
               <div className="pt-3 border-t border-purple-100/80 flex items-center justify-between text-xs font-bold text-purple-700 group-hover:text-purple-950">
                 <span>{isHindi ? 'सभी 89 टूल्स देखें' : 'Explore All 89 Tools'}</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
+              </div>
+            </div>
+
+            {/* CARD F: Document & PDF Tools */}
+            <div
+              onClick={() => onOpenAllTools('pdf')}
+              className="group select-none bg-gradient-to-b from-[#EFF6FF] via-[#F0F9FF]/60 to-white rounded-2xl border border-sky-200/90 p-5 shadow-xs hover:shadow-xl hover:border-sky-400 hover:-translate-y-1.5 active:scale-[0.98] transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-28 h-28 bg-sky-200/25 rounded-full -mr-8 -mt-8 group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center shadow-md shadow-sky-600/20 group-hover:scale-105 transition-transform duration-300">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-black text-sky-900 bg-sky-100/90 px-3 py-1 rounded-full border border-sky-200/80 tabular-nums shadow-2xs">
+                    {CONFIRMED_TOOLS.filter((tool) => tool.category === 'pdf').length} {isHindi ? 'टूल्स' : 'Tools'}
+                  </span>
+                </div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-sky-950 transition-colors tracking-tight leading-snug mb-1">
+                  {isHindi ? 'डॉक्यूमेंट और PDF टूल्स' : 'Document & PDF Tools'}
+                </h3>
+                <p className="text-xs font-semibold text-sky-700 mb-2">Document Correction · PDF Utilities</p>
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
+                  {isHindi ? 'PDF जोड़ें, अलग करें, कम्प्रेस करें, पेज क्रम बदलें, घुमाएँ और दस्तावेज़ तैयार करें।' : 'Merge, split, compress, reorder, rotate and prepare documents with practical PDF utilities.'}
+                </p>
+              </div>
+              <div className="pt-3 border-t border-sky-100/80 flex items-center justify-between text-xs font-bold text-sky-700 group-hover:text-sky-950">
+                <span>{isHindi ? 'डॉक्यूमेंट टूल्स खोलें' : 'Explore Document Tools'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
               </div>
             </div>
