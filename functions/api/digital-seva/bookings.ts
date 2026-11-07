@@ -55,6 +55,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const name = String(body.customerName || '').trim().replace(/\s+/g, ' ');
   const phone = normalizePhone(body.customerPhone);
   const email = body.customerEmail == null ? '' : String(body.customerEmail).trim();
+  const termsAccepted = body.termsAccepted === true;
+  const termsPolicyVersion = String(body.termsPolicyVersion || '');
+  const refundPolicyAccepted = body.refundPolicyAccepted === true;
+  const refundPolicyVersion = String(body.refundPolicyVersion || '');
   const key = String(body.idempotencyKey || '');
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
   if (name.length < 2 || name.length > 80) return json({ success: false, error: 'Please enter a name between 2 and 80 characters.' }, 400);
@@ -73,9 +77,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     await env.DIGITAL_SEVA_DB.batch([
       env.DIGITAL_SEVA_DB.prepare(
         `INSERT INTO digital_seva_bookings
-         (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email, status, consent_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP)`
-      ).bind(bookingId, bookingReference, key, serviceId, name, phone, email || null),
+         (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email, status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)`
+      ).bind(bookingId, bookingReference, key, serviceId, name, phone, email, termsPolicyVersion, refundPolicyVersion),
       env.DIGITAL_SEVA_DB.prepare(
         `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
          VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
