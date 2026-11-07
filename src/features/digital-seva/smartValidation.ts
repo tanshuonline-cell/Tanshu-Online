@@ -178,3 +178,67 @@ export function validateFieldByKey(key: string, value: unknown): string | null {
   }
   return validateByKind(validationKindForField(key), text);
 }
+
+
+/** Offline Hindi suggestion for common English/romanized Indian names and address words.
+ * The result is editable by the applicant; it is a transliteration suggestion, not an official translation.
+ */
+export function suggestHindiTransliteration(value: unknown): string {
+  const dictionary: Record<string, string> = {
+    nawada: 'नवादा', patna: 'पटना', bihar: 'बिहार', india: 'भारत',
+    vip: 'विप', colony: 'कॉलोनी', ramesh: 'रमेश', rahul: 'राहुल',
+    kumar: 'कुमार', sharma: 'शर्मा', singh: 'सिंह', verma: 'वर्मा',
+    yadav: 'यादव', prasad: 'प्रसाद', devi: 'देवी', kumari: 'कुमारी',
+    house: 'हाउस', road: 'रोड', nagar: 'नगर', bazar: 'बाजार',
+    near: 'नियर', post: 'पोस्ट', office: 'ऑफिस', village: 'विलेज',
+    town: 'टाउन', city: 'सिटी', district: 'डिस्ट्रिक्ट', state: 'स्टेट'
+  };
+  const consonants: Record<string, string> = {
+    ksh: 'क्ष', chh: 'छ', kh: 'ख', gh: 'घ', ch: 'च', jh: 'झ',
+    th: 'थ', dh: 'ध', ph: 'फ', bh: 'भ', sh: 'श', ng: 'ङ', ny: 'ञ',
+    k: 'क', g: 'ग', c: 'क', j: 'ज', t: 'त', d: 'द', n: 'न',
+    p: 'प', b: 'ब', m: 'म', y: 'य', r: 'र', l: 'ल', v: 'व',
+    w: 'व', s: 'स', h: 'ह', f: 'फ़', q: 'क़', z: 'ज़'
+  };
+  const vowels: Record<string, { independent: string; sign: string }> = {
+    aa: { independent: 'आ', sign: 'ा' }, ai: { independent: 'ऐ', sign: 'ै' },
+    au: { independent: 'औ', sign: 'ौ' }, ee: { independent: 'ई', sign: 'ी' },
+    ii: { independent: 'ई', sign: 'ी' }, oo: { independent: 'ऊ', sign: 'ू' },
+    uu: { independent: 'ऊ', sign: 'ू' }, ri: { independent: 'ऋ', sign: 'ृ' },
+    a: { independent: 'अ', sign: '' }, i: { independent: 'इ', sign: 'ि' },
+    u: { independent: 'उ', sign: 'ु' }, e: { independent: 'ए', sign: 'े' },
+    o: { independent: 'ओ', sign: 'ो' }
+  };
+  const tokens = String(value ?? '').trim().split(/(\s+|[-,./()])/);
+  return tokens.map((token) => {
+    if (!token || !/[A-Za-z]/.test(token)) return token;
+    const known = dictionary[token.toLowerCase()];
+    if (known) return known;
+    const word = token.toLowerCase();
+    let output = '';
+    let pendingConsonant = false;
+    let index = 0;
+    while (index < word.length) {
+      const vowelKey = Object.keys(vowels).sort((a, b) => b.length - a.length).find((key) => word.startsWith(key, index));
+      const consonantKey = Object.keys(consonants).sort((a, b) => b.length - a.length).find((key) => word.startsWith(key, index));
+      if (vowelKey && (!consonantKey || vowelKey.length >= consonantKey.length)) {
+        const vowel = vowels[vowelKey];
+        output += pendingConsonant ? vowel.sign : vowel.independent;
+        pendingConsonant = false;
+        index += vowelKey.length;
+        continue;
+      }
+      if (consonantKey) {
+        if (pendingConsonant) output += '्';
+        output += consonants[consonantKey];
+        pendingConsonant = true;
+        index += consonantKey.length;
+        continue;
+      }
+      output += token[index];
+      pendingConsonant = false;
+      index += 1;
+    }
+    return output;
+  }).join('');
+}
