@@ -149,6 +149,7 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   popup.document.write(html);
   popup.document.close();
   popup.focus();
+  popup.setTimeout(() => popup.print(), 450);
   return true;
 }
 
