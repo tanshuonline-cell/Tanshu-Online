@@ -29,9 +29,9 @@
 | aadhaar-pvc-assistance | Aadhaar PVC order assistance | UIDAI PVC order charge ₹75 including taxes and Speed Post | Exact UIDAI order/cancellation rule required | ₹100 assistance fee |
 | bw-print | Black & white document print | Not applicable for private printing | No government fee; reprint/cancellation considers pages already printed | ₹5 per page |
 | colour-print | Colour document print | Not applicable for private printing | No government fee; reprint/cancellation considers pages already printed | ₹10 per page |
-| certificate-income | Income certificate | Bihar ServicePlus / OGRAS live quote; service and CO/SDO/DM level dependent | Department/transaction rule not yet verified | ₹100 assistance fee |
-| certificate-caste | Caste certificate | Bihar ServicePlus / OGRAS live quote; service and CO/SDO/DM level dependent | Department/transaction rule not yet verified | ₹100 assistance fee |
-| certificate-residence | Residence certificate | Bihar ServicePlus / OGRAS live quote; service and CO/SDO/DM level dependent | Department/transaction rule not yet verified | ₹100 assistance fee |
+| certificate-income | Income certificate | Bihar ServicePlus / OGRAS live quote for the exact selected level; do not assume zero or a fixed fee | Department/transaction rule not yet verified | CO ₹50 / SDO ₹100 / DM ₹150 assistance fee |
+| certificate-caste | Caste certificate | Bihar ServicePlus / OGRAS live quote for the exact selected level; do not assume zero or a fixed fee | Department/transaction rule not yet verified | CO ₹50 / SDO ₹100 / DM ₹150 assistance fee |
+| certificate-residence | Residence certificate | Bihar ServicePlus / OGRAS live quote for the exact selected level; do not assume zero or a fixed fee | Department/transaction rule not yet verified | CO ₹50 / SDO ₹100 / DM ₹150 assistance fee |
 | certificate-correction | Certificate correction | Issuing-authority live quote; certificate type dependent | Issuing-authority rule not yet verified | Not configured |
 | voter-new | New Voter registration | ₹0 for ECI Form 6 new registration | No official fee collected on this route | ₹100 assistance fee |
 | voter-correction | Voter correction / replacement | Form 8 request type must be checked. Lost EPIC replacement: ECI FAQ lists ₹25 with police complaint; fee waived for loss beyond elector control (e.g. flood/fire/natural disaster). Do not apply ₹25 to every correction. | Exact Form 8 route required | ₹100 assistance fee |
@@ -49,6 +49,16 @@
 | signature-resize | Signature resize | Not applicable for private file processing | No government fee for the file work itself | ₹30 per task |
 | scan-clean | Document scan/cleanup | Not applicable for private file processing | No government fee for the file work itself | ₹10 per page |
 | typing-format | Hindi/English typing & formatting | Not applicable for private typing work | No government fee for the typing work itself | Not configured; quote required |
+
+## Bihar certificate level-wise TANSHU ONLINE fee schedule
+
+For each of Income, Caste and Residence certificates (Bihar only):
+
+- CO / Circle level: ₹50
+- SDO / Sub-Division level: ₹100
+- DM / District level: ₹150
+
+These are TANSHU ONLINE assistance fees, not government fees. Any applicable government/portal amount must be checked on the exact selected ServicePlus / OGRAS route and disclosed separately before payment. Do not imply that a higher-level application guarantees approval or a faster result.
 
 ## Official source directory
 
