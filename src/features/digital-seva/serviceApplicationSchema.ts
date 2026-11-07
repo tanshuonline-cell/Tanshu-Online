@@ -101,6 +101,7 @@ export const SERVICE_DOCUMENTS: Record<string, ServiceDocumentOption[]> = {
     ...COMMON_IDENTITY,
     doc("gazette", "Gazette notification / official name-change proof", "राजपत्र अधिसूचना / आधिकारिक नाम परिवर्तन प्रमाण", "May be needed for a material name change; exact proof depends on the correction and provider.", "बड़े नाम परिवर्तन में आवश्यक हो सकता है; सही प्रमाण सुधार और प्रदाता पर निर्भर है।"),
     doc("father-proof", "Document supporting the corrected father's name", "सुधारे गए पिता के नाम का समर्थन करने वाला दस्तावेज़", "Select a document that actually shows the requested correct particulars; PAN provider may request additional evidence.", "ऐसा दस्तावेज़ चुनें जिसमें सही विवरण स्पष्ट हो; PAN प्रदाता अतिरिक्त प्रमाण माँग सकता है।"),
+    doc("mother-proof", "Document supporting the corrected mother's name", "सुधारे गए माता के नाम का समर्थन करने वाला दस्तावेज़", "Select a document that actually shows the requested correct particulars; PAN provider may request additional evidence.", "ऐसा दस्तावेज़ चुनें जिसमें सही विवरण स्पष्ट हो; PAN प्रदाता अतिरिक्त प्रमाण माँग सकता है।"),
     doc("electricity", "Electricity bill (not older than 3 months)", "बिजली बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where the current PAN route accepts it.", "Rule 158 के अनुसार पता प्रमाण, जहाँ वर्तमान PAN माध्यम स्वीकार करे।"),
     doc("water-bill", "Water bill (not older than 3 months)", "पानी का बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
     doc("phone-bill", "Landline / broadband bill (not older than 3 months)", "लैंडलाइन / ब्रॉडबैंड बिल (3 महीने से पुराना नहीं)", "Proof of address under Rule 158 where accepted.", "Rule 158 के अनुसार पता प्रमाण, जहाँ स्वीकार हो।"),
@@ -249,7 +250,8 @@ export function getServiceDocumentOptions(serviceId: string, selectedCorrections
     const always = new Set(["existing-pan", "aadhaar"]);
     const relevant = new Set<string>();
     if (selected.has("name")) ["gazette", "passport", "voter-id", "driving-licence", "government-id", "other-proof"].forEach((x) => relevant.add(x));
-    if (selected.has("father-name") || selected.has("mother-name")) ["father-proof", "birth-certificate", "school-certificate", "other-proof"].forEach((x) => relevant.add(x));
+    if (selected.has("father-name")) ["father-proof", "birth-certificate", "school-certificate", "other-proof"].forEach((x) => relevant.add(x));
+    if (selected.has("mother-name")) ["mother-proof", "birth-certificate", "school-certificate", "other-proof"].forEach((x) => relevant.add(x));
     if (selected.has("date-of-birth")) ["birth-certificate", "school-certificate", "passport", "driving-licence", "pension-order", "marriage-certificate", "magistrate-affidavit", "other-proof"].forEach((x) => relevant.add(x));
     if (selected.has("address")) ["passport", "voter-id", "driving-licence", "residence-certificate", "electricity", "water-bill", "phone-bill", "gas-bill", "bank-statement", "post-office", "property-record", "accommodation-letter", "other-proof"].forEach((x) => relevant.add(x));
     if (selected.has("gender") || selected.has("other")) ["government-id", "other-proof"].forEach((x) => relevant.add(x));
