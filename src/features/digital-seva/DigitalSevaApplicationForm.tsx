@@ -139,7 +139,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const setOption = (key: string, value: string) => { setServiceOptions((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const formatFieldOnBlur = (key: string, value: string) => {
     const normalizedKey = key.toLowerCase();
-    const shouldFormat = /(name|address|district|subdivision|block|village|town|city|postoffice|policestation|localbody|ward|occupation|profession|purpose|scheme)/.test(normalizedKey);
+    const shouldFormat = /(name|address|house|area|landmark|district|subdivision|block|village|town|city|postoffice|policestation|localbody|ward|occupation|profession|purpose|scheme)/.test(normalizedKey);
     if (!shouldFormat) return value;
     return normalizedKey === 'familymembernames'
       ? value.split(/\r?\n/).map((line) => formatEnglishTitleCase(line)).join('\n')
