@@ -329,3 +329,30 @@
 .dsa-status-row select,.dsa-status-row input{width:100%;min-width:0;height:43px;border:1px solid #ded8d3;border-radius:9px;padding:0 11px;background:#fff;color:#17191d;font:500 12px 'DM Sans','Noto Sans Devanagari',sans-serif}
 .dsa-status-row button{flex:0 0 auto;min-width:110px}
 @media(max-width:640px){.dsa-status-row label{min-width:100%;flex-basis:100%}.dsa-status-row button{width:100%}}
+
+
+/* Customer booking reference tracking — compact, accessible and responsive. */
+.ds-tracking-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;margin:18px 0}
+.ds-tracking-form label{display:grid;gap:6px;color:#41454c;font-size:11px;font-weight:750}
+.ds-tracking-form input{width:100%;height:44px;border:1px solid #ded8d3;border-radius:9px;padding:0 12px;font:600 13px 'DM Sans';letter-spacing:.4px;color:#17191d}
+.ds-tracking-form input:focus{outline:2px solid #c7a15a;outline-offset:1px}
+.ds-tracking-form button{height:44px;white-space:nowrap}
+.ds-tracking-result{margin:17px 0;padding:15px;border:1px solid #e8e0dc;border-radius:12px;background:#fff}
+.ds-tracking-result-head{display:grid;gap:5px;padding-bottom:12px;border-bottom:1px solid #eee8e3}
+.ds-tracking-result-head small{font-size:9px;letter-spacing:1px;font-weight:800;color:#858991}
+.ds-tracking-result-head strong{font:800 15px Manrope;color:var(--ds-red)}
+.ds-tracking-status{justify-self:start;padding:5px 9px;border-radius:20px;background:#f7eae8;color:#8f1725;font-size:10px;font-weight:800}
+.ds-tracking-meta{display:grid;gap:6px;padding:11px 0;border-bottom:1px solid #eee8e3}
+.ds-tracking-meta p{margin:0;color:#555d66;font-size:10px;line-height:1.5}
+.ds-tracking-meta b{color:#30343a}
+.ds-tracking-result h3{margin:13px 0 8px;font:800 13px Manrope;color:#292c32}
+.ds-tracking-timeline{list-style:none;margin:0;padding:0 0 0 4px;display:grid;gap:0}
+.ds-tracking-timeline li{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);gap:9px;padding:0 0 15px}
+.ds-tracking-timeline li:not(:last-child)::after{content:"";position:absolute;left:5px;top:12px;bottom:0;width:1px;background:#e2d7d3}
+.ds-tracking-dot{width:11px;height:11px;margin-top:2px;border:2px solid #9a2834;border-radius:50%;background:#fff;z-index:1}
+.ds-tracking-timeline li>div{display:grid;gap:3px}
+.ds-tracking-timeline b{font-size:11px;color:#30343a}
+.ds-tracking-timeline small{font-size:9px;color:#858991}
+.ds-tracking-timeline p{margin:3px 0 0;padding:8px 9px;border-radius:7px;background:#f8f6f3;color:#555d66;font-size:10px;line-height:1.5;white-space:pre-wrap}
+.ds-tracking-service{margin:9px 0 0;color:#686e77;font-size:10px}
+@media(max-width:560px){.ds-tracking-form{grid-template-columns:1fr}.ds-tracking-form button{width:100%}.ds-tracking-result{padding:12px}}
