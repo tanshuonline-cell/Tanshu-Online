@@ -63,7 +63,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
   if (name.length < 2 || name.length > 80) return json({ success: false, error: 'Please enter a name between 2 and 80 characters.' }, 400);
   if (!/^\d{10}$/.test(phone)) return json({ success: false, error: 'Please enter a valid 10-digit mobile number.' }, 400);
-  if (!email || email.length > 254 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return json({ success: false, error: 'Please enter a valid email address.' }, 400);
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ success: false, error: 'Please enter a valid email address.' }, 400);
   if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
   if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
   if (!/^[0-9a-f-]{36}$/i.test(key)) return json({ success: false, error: 'The booking session expired. Please reopen the form.' }, 400);
