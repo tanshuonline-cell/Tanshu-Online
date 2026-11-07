@@ -121,7 +121,7 @@ function displayAdminFieldValue(key: string, value: unknown): string {
 
 function displayOptionValue(key: string, value: unknown): string {
   const text = String(value ?? '').trim();
-  if (key === 'addressChoice') return text === 'NEW' ? 'New Address' : text === 'OLD' ? 'Old Address — keep the current online address unchanged' : text;
+  if (key === 'addressChoice') return text === 'NEW' ? 'New Address — new address entered below' : text === 'OLD' ? 'Old Address — existing address entered below' : text;
   const options: Record<string, Record<string, string>> = {
     hofRelation: { FATHER: 'Father', MOTHER: 'Mother', GUARDIAN: 'Legal guardian', SPOUSE: 'Spouse', CHILD: 'Child / ward', SIBLING: 'Sibling' },
     panParentPrint: { FATHER: 'Father', MOTHER: 'Mother' },
