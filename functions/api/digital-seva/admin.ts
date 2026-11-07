@@ -53,7 +53,7 @@ async function revealApplicationDetails(raw: string | null, secret: string): Pro
   );
   if (!encryptedValues) return raw;
   if (secret.length < 32) throw new Error('Digital Seva PII decryption secret is missing or too short.');
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`TANSHU-ONLINE-DIGITAL-SEVA-PII-v1:${secret}`));
   const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
   for (const collection of [details.fieldValues, details.serviceOptions]) {
     if (!collection || typeof collection !== 'object') continue;
@@ -94,7 +94,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     }
     const bookings = await Promise.all((result.results || []).map(async (booking: any) => ({
       ...booking,
-      application_details_json: await revealApplicationDetails(booking.application_details_json, env.DIGITAL_SEVA_PII_SECRET || ''),
+      application_details_json: await revealApplicationDetails(booking.application_details_json, env.DIGITAL_SEVA_PII_SECRET || env.ADMIN_SECRET_TOKEN || ''),
       documents: grouped.get(booking.id) || []
     })));
     return json({ success: true, bookings });
