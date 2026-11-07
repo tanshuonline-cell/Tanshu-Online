@@ -17,7 +17,7 @@ function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: strin
   if (!base || !key) throw new Error('Private document storage is not configured.');
   const parsed = new URL(base);
   if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
-    throw new Error('Preview document storage URL is invalid.');
+    throw new Error('Private document storage URL is invalid.');
   }
   return { base, key };
 }
