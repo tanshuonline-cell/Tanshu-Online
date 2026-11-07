@@ -395,8 +395,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         ])}
       </div>}
       {service.id === 'aadhaar-address-doc' && <div className="ds-application-field-grid">
-        {textInput('docRelationName', "Father's name", 'पिता का नाम')}
-        <small>{hi ? 'यहाँ केवल पिता का सही नाम भरें।' : "Enter the father's correct name only."}</small>
+        {textInput('docRelationName', "Father's name (enter the correct name only)", 'पिता का नाम (केवल सही नाम भरें)')}
       </div>}
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-field-grid">
         {selectInput('hofRelation', 'Eligible relation to Head of Family', 'परिवार के मुखिया से संबंध चुनें', [
@@ -407,21 +406,21 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         {textInput('hofName', 'Head of Family full name', 'परिवार के मुखिया का पूरा नाम')}
       </div>}
       {service.id === 'aadhaar-address-doc' && <div className="ds-address-choice-panel">
-        <h4>{hi ? 'कौन-सा पता रखना चाहते हैं?' : 'Which address would you like to keep?'}</h4>
+        <h4>{hi ? 'पते का विकल्प चुनें' : 'Choose address option'}</h4>
         <div className="ds-address-choice-options" role="radiogroup" aria-label={hi ? 'पता चुनें' : 'Choose address'}>
-          <label className={serviceOptions.addressChoice === 'NEW' ? 'ds-address-choice-card is-selected' : 'ds-address-choice-card'}>
+          <label className="ds-address-choice-option">
             <input type="radio" name="addressChoice" value="NEW" checked={serviceOptions.addressChoice === 'NEW'} onChange={() => setOption('addressChoice', 'NEW')} />
-            <span><strong>{hi ? 'New Address जोड़ें' : 'Add New Address'}</strong><small>{hi ? 'पते में थोड़ा-सा भी बदलाव करना है तो इसे चुनें।' : 'Choose this if even one small part of the address needs to change.'}</small></span>
+            <span>{hi ? 'नया पता (New Address)' : 'New Address'}</span>
           </label>
-          <label className={serviceOptions.addressChoice === 'OLD' ? 'ds-address-choice-card is-selected' : 'ds-address-choice-card'}>
+          <label className="ds-address-choice-option">
             <input type="radio" name="addressChoice" value="OLD" checked={serviceOptions.addressChoice === 'OLD'} onChange={() => setOption('addressChoice', 'OLD')} />
-            <span><strong>{hi ? 'Old Address रखें' : 'Keep Old Address'}</strong><small>{hi ? 'ऑनलाइन दिख रहा पता जैसा है वैसा ही रखना है तो इसे चुनें।' : 'Choose this to keep the address currently shown online, without changes.'}</small></span>
+            <span>{hi ? 'पुराना पता (Old Address)' : 'Old Address'}</span>
           </label>
           <details className="ds-address-choice-info">
-            <summary aria-label={hi ? 'पते के विकल्प की जानकारी' : 'Address choice information'}>i</summary>
+            <summary aria-label={hi ? 'पते के विकल्प की जानकारी' : 'Address choice information'} title={hi ? 'जानकारी' : 'More information'}>i</summary>
             <p>{hi
-              ? 'ध्यान दें: गाँव/शहर, एरिया, PIN कोड, मकान नंबर, लैंडमार्क या पते की किसी भी एक जानकारी में बदलाव करना हो, तो New Address चुनना और नया पता भरना ज़रूरी है। यदि पुराना ऑनलाइन पता ही रखना है और कोई बदलाव नहीं चाहिए, तो Old Address चुनें।'
-              : 'Important: If you want to change even one detail—Village/City, Area, PIN Code, house details, landmark or any other part of the address—you must select New Address and fill in the new address. Select Old Address only when you want to keep the address exactly as currently shown online.'}</p>
+              ? 'पते में गाँव/शहर, PIN कोड, एरिया, मकान नंबर या कोई भी छोटा बदलाव करना हो, तो New Address चुनें। यदि ऑनलाइन दिख रहा मौजूदा पता बिना बदलाव रखना है, तो Old Address चुनें।'
+              : 'Select New Address if even a small detail—such as village/city, PIN code, area or house number—needs to change. Select Old Address to keep the address currently shown online exactly as it is.'}</p>
           </details>
         </div>
       </div>}
