@@ -112,7 +112,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   try {
     const doc = await env.DIGITAL_SEVA_DB.prepare('SELECT object_key FROM digital_seva_documents WHERE id = ?').bind(documentId).first();
     if (!doc?.object_key) return json({ success: false, error: 'Document not found.' }, 404);
-    const url = await createPrivateDocumentUrl(env, String(doc.object_key), 60);
+    const downloadName = typeof body?.download === 'string' ? body.download.slice(0, 120) : undefined;
+    const url = await createPrivateDocumentUrl(env, String(doc.object_key), 60, downloadName);
     return json({ success: true, url, expiresIn: 60 });
   } catch (error) {
     console.error('Digital Seva secure document link failed:', error);
