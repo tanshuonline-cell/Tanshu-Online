@@ -38,6 +38,7 @@ interface Props {
   initialSearchQuery?: string;
   initialCategory?: ToolCategory;
   openRequestKey?: number;
+  returnRequestKey?: number;
 }
 
 export const AllToolsDirectory: React.FC<Props> = ({
@@ -45,7 +46,8 @@ export const AllToolsDirectory: React.FC<Props> = ({
   onOpenToolFromDirectory,
   initialSearchQuery = '',
   initialCategory = 'all',
-  openRequestKey = 0
+  openRequestKey = 0,
+  returnRequestKey = 0
 }) => {
   const { isHindi, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState(initialSearchQuery);
@@ -63,14 +65,16 @@ export const AllToolsDirectory: React.FC<Props> = ({
   }, [initialSearchQuery]);
 
   useEffect(() => {
-    if (openRequestKey > 0) {
-      setSelectedCategory(initialCategory);
-      setIsModalOpen(true);
-    } else if (initialCategory && initialCategory !== 'all') {
+    if (initialCategory && initialCategory !== 'all') {
       setSelectedCategory(initialCategory);
       setIsModalOpen(true);
     }
   }, [initialCategory, openRequestKey]);
+
+  // Reopen the directory after a tool closes without resetting its active filter or search.
+  useEffect(() => {
+    if (returnRequestKey > 0) setIsModalOpen(true);
+  }, [returnRequestKey]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
