@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getRequiredServiceFieldKeys, isValidAddress, isValidEmail, isValidMobile, isValidName, validateByKind, validationKindForField } from './smartValidation';
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
@@ -34,6 +35,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [refundAccepted, setRefundAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
   const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections)
@@ -57,8 +61,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setApplicationFor(value);
     setApplicant(value === 'SELF' ? { ...operator } : emptyContact());
   };
-  const setField = (key: string, value: string) => setFieldValues((old) => ({ ...old, [key]: value }));
-  const setOption = (key: string, value: string) => setServiceOptions((old) => ({ ...old, [key]: value }));
+  const clearFieldError = (key: string) => setFieldErrors((old) => { if (!old[key]) return old; const next = { ...old }; delete next[key]; return next; });
+  const setField = (key: string, value: string) => { setFieldValues((old) => ({ ...old, [key]: value })); clearFieldError(key); };
+  const setOption = (key: string, value: string) => { setServiceOptions((old) => ({ ...old, [key]: value })); clearFieldError(key); };
   const changeCorrection = (id: string, checked: boolean) => {
     const next = checked ? [...corrections, id] : corrections.filter((value) => value !== id);
     setCorrections(next);
@@ -67,32 +72,52 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   };
 
   const validateStep = () => {
-    if (step === 0 && !requesterType) return hi ? 'कृपया आवेदन करने की श्रेणी चुनें।' : 'Please select who is submitting this request.';
+    setFieldErrors({});
+    const reject = (key: string, message: string) => { setFieldErrors({ [key]: message }); setError(message); return message; };
+    const requiredMessages: Record<string, string> = {
+      panApplicantName: 'आवेदक का सही नाम भरें।', panDob: 'जन्मतिथि भरें।', panAddress: 'पत्राचार का पूरा पता भरें।',
+      newMobile: 'नया मोबाइल नंबर भरें।', newEmail: 'नई ईमेल आईडी भरें।', incomeFatherName: 'पिता का नाम भरें।',
+      casteFatherName: 'पिता का नाम भरें।', casteCategory: 'श्रेणी / जाति भरें।', casteName: 'जाति का नाम भरें।',
+      certificateDistrict: 'जिला भरें।', certificateSubdivision: 'अनुमंडल भरें।', certificateBlock: 'प्रखंड भरें।', certificateVillage: 'गाँव / मोहल्ला भरें।', certificatePin: '6 अंकों का PIN कोड भरें।',
+      certificatePurpose: 'प्रमाणपत्र का उद्देश्य भरें।', residenceDistrict: 'जिला भरें।', residenceSubdivision: 'अनुमंडल भरें।', residenceBlock: 'प्रखंड भरें।', residenceVillageWard: 'गाँव / मोहल्ला / वार्ड भरें।', residencePin: '6 अंकों का PIN कोड भरें।',
+      voterDob: 'जन्मतिथि भरें।', voterAddress: 'निवास का पूरा पता भरें।', voterRelativeName: 'रिश्तेदार का नाम भरें।',
+      familyMemberCount: 'परिवार के सदस्यों की संख्या भरें।', familyMemberNames: 'परिवार के सदस्यों के नाम भरें।', rationDistrict: 'जिला भरें।', rationBlock: 'प्रखंड भरें।', rationVillageWard: 'गाँव / वार्ड / मोहल्ला भरें।', rationPin: '6 अंकों का PIN कोड भरें।',
+      hofRelation: 'परिवार के मुखिया से संबंध चुनें।', hofName: 'मुखिया का नाम भरें।', currentCo: 'मौजूदा C/O विवरण भरें।',
+      certificateNumber: 'प्रमाणपत्र संख्या भरें।', issuingOffice: 'जारी करने वाला कार्यालय भरें।', issueDate: 'जारी करने की तारीख भरें।',
+      schemeName: 'योजना का नाम भरें।', formName: 'फॉर्म / भर्ती का नाम भरें।', websiteScope: 'वेबसाइट सेवा का प्रकार चुनें।', rationAction: 'राशन कार्ड बदलाव का प्रकार चुनें।'
+    };
+    const valueOf = (key: string) => fieldValues[key] ?? serviceOptions[key] ?? '';
+    if (step === 0 && !requesterType) return reject('requesterType', 'कृपया आवेदन करने की श्रेणी चुनें।');
     if (step === 1) {
-      if (intermediary && (operator.name.trim().length < 2 || !phoneValid(operator.phone) || !emailValid(operator.email)))
-        return hi ? 'संचालक/एजेंट का सही नाम, 10 अंकों का मोबाइल और ईमेल भरें।' : 'Enter the operator/agent name, valid 10-digit mobile and email.';
-      if (intermediary && ['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType) && (!centerName.trim() || !centerAddress.trim()))
-        return hi ? 'सेंटर का नाम और पूरा पता भरना अनिवार्य है।' : 'Centre name and full address are required.';
-      if (requesterType === 'INDEPENDENT_AGENT' && !agencyName.trim())
-        return hi ? 'एजेंट/व्यवसाय का नाम भरें।' : 'Enter the agent/business name.';
-      if (applicant.name.trim().length < 2 || !phoneValid(applicant.phone) || !emailValid(applicant.email))
-        return hi ? 'आवेदक का सही नाम, 10 अंकों का मोबाइल और ईमेल भरें।' : 'Enter the applicant name, valid 10-digit mobile and email.';
+      if (intermediary) {
+        if (!isValidName(operator.name)) return reject('operator.name', 'संचालक / एजेंट का सही नाम लिखें। हिंदी और अंग्रेज़ी दोनों स्वीकार हैं।');
+        if (!isValidMobile(operator.phone)) return reject('operator.phone', 'संचालक का 10 अंकों का सही भारतीय मोबाइल नंबर लिखें।');
+        if (!isValidEmail(operator.email)) return reject('operator.email', 'संचालक की सही ईमेल आईडी लिखें।');
+      }
+      if (intermediary && ['CYBER_CAFE', 'CSC_CENTER'].includes(requesterType)) {
+        if (centerName.trim().length < 2) return reject('centerName', 'सेंटर का नाम भरें।');
+        if (!isValidAddress(centerAddress)) return reject('centerAddress', 'सेंटर का पूरा पता लिखें।');
+      }
+      if (requesterType === 'INDEPENDENT_AGENT' && agencyName.trim().length < 2) return reject('agencyName', 'एजेंट / व्यवसाय का नाम भरें।');
+      if (requesterType === 'INDEPENDENT_AGENT' && agencyAddress.trim() && !isValidAddress(agencyAddress)) return reject('agencyAddress', 'व्यवसाय का पूरा पता सही लिखें।');
+      if (!isValidName(applicant.name)) return reject('applicant.name', 'आवेदक का सही नाम लिखें। हिंदी और अंग्रेज़ी दोनों स्वीकार हैं।');
+      if (!isValidMobile(applicant.phone)) return reject('applicant.phone', 'आवेदक का 10 अंकों का सही भारतीय मोबाइल नंबर लिखें।');
+      if (!isValidEmail(applicant.email)) return reject('applicant.email', 'आवेदक की सही ईमेल आईडी लिखें।');
     }
     if (step === 2) {
-      if (correctionsForService.length && corrections.length === 0)
-        return hi ? 'कृपया बताएं कि किस विवरण में सुधार चाहिए।' : 'Select at least one detail that needs correction.';
-      if (service.id === 'voter-correction' && corrections.length > 4)
-        return hi ? 'Form 8 में अधिकतम चार विवरणों का सुधार चुना जा सकता है।' : 'Form 8 allows a maximum of four correction entries.';
-      if (taskDetails.trim().length < 5) return hi ? 'काम का पूरा विवरण लिखें।' : 'Describe the requested work.';
-      if (['certificate-income', 'certificate-caste', 'certificate-residence'].includes(service.id) && !serviceOptions.level)
-        return hi ? 'कृपया प्रमाणपत्र का स्तर चुनें।' : 'Select the certificate level.';
-      if (service.id === 'scheme-check' && !serviceOptions.schemeName?.trim()) return hi ? 'योजना का नाम भरें।' : 'Enter the scheme name.';
-      if (service.id === 'online-form' && !serviceOptions.formName?.trim()) return hi ? 'फॉर्म / भर्ती का नाम भरें।' : 'Enter the form / recruitment name.';
-      if (service.id === 'website-services' && !serviceOptions.websiteScope) return hi ? 'वेबसाइट सेवा का प्रकार चुनें।' : 'Choose the website service scope.';
-      if (service.id === 'ration-update' && !serviceOptions.rationAction) return hi ? 'राशन कार्ड बदलाव का प्रकार चुनें।' : 'Choose the ration-card update type.';
+      if (correctionsForService.length && corrections.length === 0) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
+      if (service.id === 'voter-correction' && corrections.length > 4) return reject('corrections', 'Form 8 में अधिकतम चार सुधार चुनें।');
+      if (taskDetails.trim().length < 10 || !/[\\p{L}]{3,}/u.test(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में लिखें।');
+      if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
+      for (const key of getRequiredServiceFieldKeys(service.id, serviceOptions)) {
+        if (!String(valueOf(key)).trim()) return reject(key, requiredMessages[key] || 'यह जानकारी भरना अनिवार्य है।');
+      }
+      for (const [key, value] of Object.entries(fieldValues)) { const issue = validateByKind(validationKindForField(key), value); if (issue) return reject(key, issue); }
+      for (const [key, value] of Object.entries(serviceOptions)) { const issue = validateByKind(validationKindForField(key), value); if (issue) return reject(key, issue); }
     }
-    if (step === 3 && (!bookingConsent || !termsAccepted || !refundAccepted))
-      return hi ? 'तीनों सहमतियाँ अलग-अलग स्वीकार करें।' : 'Please provide all three separate confirmations.';
+    if (step === 3 && !bookingConsent) return reject('bookingConsent', 'संपर्क की सहमति स्वीकार करें।');
+    if (step === 3 && !termsAccepted) return reject('termsAccepted', 'Terms & Conditions स्वीकार करें।');
+    if (step === 3 && !refundAccepted) return reject('refundAccepted', 'Refund Policy की सहमति अलग से स्वीकार करें।');
     return '';
   };
   const next = () => {
@@ -136,10 +161,10 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   };
 
   const textInput = (key: string, label: string, labelHi: string) => (
-    <label key={key}>{hi ? labelHi : label}<input value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} /></label>
+    <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}<input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} />{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>
   );
   const selectInput = (key: string, label: string, labelHi: string, opts: { value: string; label: string; hi: string }[]) => (
-    <label key={key}>{hi ? labelHi : label}<select value={serviceOptions[key] || ''} onChange={(e) => setOption(key, e.target.value)}><option value="">{hi ? 'चुनें' : 'Select'}</option>{opts.map((o) => <option key={o.value} value={o.value}>{hi ? o.hi : o.label}</option>)}</select></label>
+    <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}<select data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={serviceOptions[key] || ''} onChange={(e) => setOption(key, e.target.value)}><option value="">{hi ? 'चुनें' : 'Select'}</option>{opts.map((o) => <option key={o.value} value={o.value}>{hi ? o.hi : o.label}</option>)}</select>{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>
   );
 
   const renderServiceFields = () => (
@@ -302,13 +327,14 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           { value: 'OTHER', label: 'Other / confirm later', hi: 'अन्य / बाद में पुष्टि' }
         ])}
       </div>}
-      <label className="ds-application-wide">{hi ? 'काम का पूरा विवरण / निर्देश' : 'Exact work / instructions'}
-        <textarea value={taskDetails} onChange={(e) => setTaskDetails(e.target.value)} rows={3} required placeholder={hi ? 'क्या काम करवाना है और कौन-सा विवरण सही होना चाहिए...' : 'What work is requested and what details should be correct...'} />
+      <label className={`ds-application-wide ${fieldErrors.taskDetails ? 'ds-field-invalid' : ''}`}>{hi ? 'काम का पूरा विवरण / निर्देश' : 'Exact work / instructions'}
+        <textarea data-validation-key="taskDetails" aria-invalid={Boolean(fieldErrors.taskDetails)} value={taskDetails} onChange={(e) => { setTaskDetails(e.target.value); clearFieldError('taskDetails'); }} rows={3} required placeholder={hi ? 'क्या काम करवाना है और कौन-सा विवरण सही होना चाहिए...' : 'What work is requested and what details should be correct...'} />
+        {fieldErrors.taskDetails && <small className="ds-field-error" role="alert">{fieldErrors.taskDetails}</small>}
       </label>
     </>
   );
 
-  return <form className="ds-booking-form ds-application-form" onSubmit={submit}>
+  return <form ref={formRef} className="ds-booking-form ds-application-form" onSubmit={submit} noValidate>
     <div className="ds-application-progress">
       {['Submitting party', 'Contacts', 'Work & documents', 'Review & consent'].map((label, i) =>
         <div key={label} className={step === i ? 'active' : step > i ? 'complete' : ''}>
