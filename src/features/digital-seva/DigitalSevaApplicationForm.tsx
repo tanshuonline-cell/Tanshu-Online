@@ -14,7 +14,7 @@ interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (ref
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarVillage","aadhaarDistrict","aadhaarState","aadhaarArea","aadhaarLandmark","aadhaarPostOffice","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
+const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
 
 
 export default function DigitalSevaApplicationForm({ service, language, onSubmitted }: Props) {
@@ -211,7 +211,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       newMobile: 'नया मोबाइल नंबर भरें।', newEmail: 'नई ईमेल आईडी भरें।', incomeFatherName: 'पिता का नाम भरें।',
       casteFatherName: 'पिता का नाम भरें।', casteCategory: 'श्रेणी / जाति भरें।', casteName: 'जाति का नाम भरें।',
       certificateDistrict: 'जिला भरें।', certificateSubdivision: 'अनुमंडल भरें।', certificateBlock: 'प्रखंड भरें।', certificateVillage: 'गाँव / मोहल्ला भरें।', certificatePin: '6 अंकों का PIN कोड भरें।',
-      aadhaarHouse: 'मकान / बिल्डिंग / अपार्टमेंट का विवरण भरें।', aadhaarVillage: 'गाँव / कस्बा / शहर भरें।', aadhaarDistrict: 'जिला भरें।', aadhaarState: 'राज्य भरें।', aadhaarPin: 'सही 6 अंकों का PIN कोड भरें।', aadhaarArea: 'एरिया / लोकैलिटी / सेक्टर भरें।', certificatePurpose: 'प्रमाणपत्र का उद्देश्य भरें।', residenceDistrict: 'जिला भरें।', residenceSubdivision: 'अनुमंडल भरें।', residenceBlock: 'प्रखंड भरें।', residenceVillageWard: 'गाँव / मोहल्ला / वार्ड भरें।', residencePin: '6 अंकों का PIN कोड भरें।',
+      aadhaarHouse: 'मकान / बिल्डिंग / अपार्टमेंट का विवरण भरें।', aadhaarStreet: 'गली / सड़क / लेन भरें।', aadhaarArea: 'एरिया / मोहल्ला / लोकैलिटी भरें।', aadhaarVillage: 'गाँव / कस्बा / शहर भरें।', aadhaarBlock: 'प्रखंड / ब्लॉक भरें।', aadhaarSubdivision: 'अनुमंडल / सब-डिवीजन भरें।', aadhaarDistrict: 'जिला भरें।', aadhaarPoliceStation: 'थाना भरें।', aadhaarState: 'राज्य भरें।', aadhaarPin: 'सही 6 अंकों का PIN कोड भरें।', certificatePurpose: 'प्रमाणपत्र का उद्देश्य भरें।', residenceDistrict: 'जिला भरें।', residenceSubdivision: 'अनुमंडल भरें।', residenceBlock: 'प्रखंड भरें।', residenceVillageWard: 'गाँव / मोहल्ला / वार्ड भरें।', residencePin: '6 अंकों का PIN कोड भरें।',
       voterDob: 'जन्मतिथि भरें।', voterAddress: 'निवास का पूरा पता भरें।', voterRelativeName: 'रिश्तेदार का नाम भरें।',
       familyMemberCount: 'परिवार के सदस्यों की संख्या भरें।', familyMemberNames: 'परिवार के सदस्यों के नाम भरें।', rationDistrict: 'जिला भरें।', rationBlock: 'प्रखंड भरें।', rationVillageWard: 'गाँव / वार्ड / मोहल्ला भरें।', rationPin: '6 अंकों का PIN कोड भरें।',
       hofRelation: 'परिवार के मुखिया से संबंध चुनें।', hofName: 'मुखिया का नाम भरें।', currentCo: 'मौजूदा C/O विवरण भरें।',
@@ -459,22 +459,32 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           </details>
         </div>
       </div>}
-      {(['aadhaar-address-hof'].includes(service.id) || (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'NEW')) && <div className="ds-application-profile ds-address-profile">
-        <h4>{hi ? 'जिस नए पते को अपडेट करवाना है, उसकी जानकारी भरें' : 'Enter the details of the new address you want updated'}</h4>
+      {(['aadhaar-address-hof', 'aadhaar-address-doc'].includes(service.id)) && <div className="ds-application-profile ds-address-profile">
+        <div className="ds-address-profile-heading">
+          <span className="ds-address-step">ADDRESS DETAILS</span>
+          <h4>{hi
+            ? (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'OLD' ? 'मौजूदा / पुराना पता भरें' : 'जिस पते को अपडेट करवाना है, उसकी पूरी जानकारी भरें')
+            : (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'OLD' ? 'Enter the existing / old address' : 'Enter the complete address to be used for this request')}</h4>
+          <p>{hi ? 'OLD या NEW—दोनों विकल्पों में पता भरना आवश्यक है। हर जानकारी सही और अलग-अलग भरें।' : 'Address details are required for both OLD and NEW selections. Enter each part accurately in its own field.'}</p>
+        </div>
         <div className="ds-address-form-grid">
           {textInput('aadhaarHouse', 'House / Building / Apartment', 'मकान / बिल्डिंग / अपार्टमेंट')}
+          {textInput('aadhaarStreet', 'Street / Road / Lane', 'गली / सड़क / लेन')}
+          {textInput('aadhaarArea', 'Area / Locality / Mohalla', 'एरिया / लोकैलिटी / मोहल्ला')}
+          {textInput('aadhaarLandmark', 'Landmark (optional)', 'लैंडमार्क (वैकल्पिक)')}
           {textInput('aadhaarVillage', 'Village / Town / City', 'गाँव / कस्बा / शहर')}
+          {textInput('aadhaarBlock', 'Block (if applicable)', 'प्रखंड / ब्लॉक (यदि लागू हो)')}
+          {textInput('aadhaarSubdivision', 'Sub-division (if applicable)', 'अनुमंडल (यदि लागू हो)')}
           {textInput('aadhaarDistrict', 'District', 'जिला')}
+          {textInput('aadhaarPoliceStation', 'Police Station', 'थाना')}
+          {textInput('aadhaarPostOffice', 'Post Office (if applicable)', 'डाकघर (यदि लागू हो)')}
           {textInput('aadhaarState', 'State', 'राज्य')}
           {textInput('aadhaarPin', '6-digit PIN code', '6 अंकों का PIN कोड')}
-          {textInput('aadhaarArea', 'Area / Locality / Sector', 'एरिया / लोकैलिटी / सेक्टर')}
-          {textInput('aadhaarLandmark', 'Landmark (optional)', 'लैंडमार्क (वैकल्पिक)')}
-          {textInput('aadhaarPostOffice', 'Post Office (if applicable)', 'डाकघर (यदि लागू हो)')}
         </div>
         <div className="ds-application-upload-notice" role="note">
           <span>{hi
-            ? 'हर जानकारी उसके सामने दिए बॉक्स में अलग-अलग भरें। PIN कोड सही भरें; UIDAI पोर्टल पर PIN के अनुसार जिला और राज्य की पुष्टि करें। Village / Town / City और Post Office के लिए पोर्टल पर उपलब्ध आधिकारिक विकल्प ही चुनें; उन्हें मनमाने ढंग से न बदलें।'
-            : 'Enter each detail in its own field. Use the correct PIN code and verify the district and state against it on the UIDAI portal. Select Village / Town / City and Post Office only from the official options available on the portal; do not manually alter those options.'}</span>
+            ? 'PIN कोड, जिला, राज्य और डाकघर का विवरण दस्तावेज़ से मिलाकर भरें। सरकारी पोर्टल पर उपलब्ध विकल्पों के अनुसार अंतिम जानकारी की पुष्टि की जाएगी।'
+            : 'Match the PIN code, district, state and post office with the supporting document. Final details should be checked against the options available on the official portal.'}</span>
         </div>
       </div>}
       {service.id === 'aadhaar-co' && <div className="ds-application-field-grid">
