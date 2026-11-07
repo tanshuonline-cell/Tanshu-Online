@@ -2,11 +2,12 @@ name: Digital Seva Preview Build and Type Check
 
 on:
   pull_request:
-    branches: [main, feature/digital-seva-booking-system-2026]
+    branches: [main, feature/digital-seva-booking-system-2026, feature/digital-seva-direct-pay-only]
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
       - 'migrations/*.sql'
+      - 'migrations/**/*.sql'
       - '.github/workflows/digital-seva-ci.yml'
       - 'package.json'
       - 'package-lock.json'
