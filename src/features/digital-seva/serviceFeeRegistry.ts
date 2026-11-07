@@ -14,7 +14,7 @@ export interface ServiceFeeDisclosure {
   note: string;
 }
 
-const CHECKED_ON = '7 November 2026';
+const CHECKED_ON = '8 November 2026';
 const UIDAI = 'https://www.uidai.gov.in/en/aadhaar-seva-kendra';
 const PAN = 'https://www.incometaxindia.gov.in/en/tax-services/apply-for-pan';
 const PROTEAN = 'https://tinpan.proteantech.in/services/pan/form-form_93-form_94.html';
@@ -41,23 +41,23 @@ const routeQuote = (sourceLabel: string, sourceUrl: string, note: string): Servi
 const disclosures: Record<string, ServiceFeeDisclosure> = {
   'pan-new': {
     ...DEFAULT_DISCLOSURE,
-    governmentFee: 'Live official quote required for the exact current PAN application route, form, provider, paperless/physical mode, card and dispatch. Eligible Instant e-PAN through the Income Tax e-filing portal is free; eligibility is limited and must be checked.',
+    governmentFee: 'For the standard Indian physical-card route, the official/provider charge is ₹107 inclusive of taxes. Protean paperless physical-card mode lists ₹101; e-PAN-only routes can be ₹72 or eligible Instant e-PAN may be free. Confirm the exact live route before collecting payment.',
     governmentRefund: 'Cancellation/refund follows the selected authorised provider and application route. Check the live provider terms before payment; do not assume all PAN fees are non-refundable.',
     governmentStatus: 'route-quote',
     officialSourceLabel: 'Income Tax Department PAN / Instant e-PAN',
     officialSourceUrl: PAN,
-    note: 'PAN application forms changed for applications filed on or after 1 April 2026. Confirm the current form and exact provider quote at the time of request; no old fee example is treated as a universal price.',
+    note: 'The configured customer total for the standard Indian physical-card route is ₹300, including ₹107 official/provider fee and ₹193 TANSHU ONLINE assistance. If the customer selects a different paperless/e-PAN route, the official fee and TANSHU portion must be recalculated and shown before payment. Confirm the current form and live quote.',
   },
-  'pan-correction': routeQuote('Protean PAN correction service', PROTEAN, 'Correction/reprint charges depend on the selected provider, paperless or physical-document mode, physical card and dispatch. Show the live quote and provider cancellation rule.'),
-  'pan-photo-signature': routeQuote('Authorised PAN provider — photo/signature correction', PROTEAN, 'TANSHU ONLINE assistance fee is ₹250. Government/provider fee varies by selected provider, physical/e-PAN mode and dispatch; verify and show the live quote before payment.'),
+  'pan-correction': { ...routeQuote('Protean PAN correction service', PROTEAN, 'The configured customer total is ₹300 for the standard Indian physical-card route, including ₹107 official/provider fee and ₹193 TANSHU ONLINE assistance. Correction of applicant name, father name or mobile details uses this same total. Reconfirm the exact provider route and refund rule before payment.'), governmentFee: 'Standard Indian physical-card route: ₹107 inclusive of taxes. Protean paperless physical-card route: ₹101. Exact route and any provider variation must be confirmed before payment.' }, 
+  'pan-photo-signature': { ...routeQuote('Authorised PAN provider — photo/signature correction', PROTEAN, 'TANSHU ONLINE assistance fee is ₹250 plus the exact official/provider charge. For the standard Indian physical-card route, the current example total is ₹357 (₹250 + ₹107); paperless/e-PAN routes can differ. Verify the live provider quote before payment.'), governmentFee: 'Standard Indian physical-card route: ₹107 inclusive of taxes. Protean paperless physical-card route: ₹101. e-PAN-only route may differ; verify the exact mode and dispatch before payment.' }, 
   'aadhaar-address-doc': {
     ...DEFAULT_DISCLOSURE,
-    governmentFee: 'UIDAI lists a separate demographic update (including address) at ₹75. It is free when performed together with a biometric update. Do not confuse this with the separate PoI/PoA document-only update concession (free online until 14 June 2027).',
+    governmentFee: 'For a separate demographic address change, UIDAI lists ₹75; it is free when combined with a biometric update. The separate online PoI/PoA document-only update concession is free until 14 June 2027 and is not the same as changing the address.',
     governmentRefund: 'For a paid UIDAI transaction, cancellation/refund is subject to the current UIDAI appointment/transaction rule and receipt. UIDAI states cancelled appointment refunds are usually credited in 7–21 days after processing; confirm the exact route before promising a refund.',
     governmentStatus: 'official-fixed',
     officialSourceLabel: 'UIDAI official charges and FAQ',
     officialSourceUrl: UIDAI,
-    note: 'This service means an address change. The free myAadhaar PoI/PoA document-only update concession must not be misrepresented as a free address-change transaction.',
+    note: 'Configured customer total: ₹275 (₹75 UIDAI demographic address-update fee + ₹200 TANSHU ONLINE assistance). This service is an actual address change, not only a document refresh. The separate free online PoI/PoA document-only update must not be misrepresented as a free address-change transaction.',
   },
   'aadhaar-address-hof': {
     ...DEFAULT_DISCLOSURE,
@@ -66,7 +66,7 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
     governmentStatus: 'verify-before-payment',
     officialSourceLabel: 'UIDAI official charges',
     officialSourceUrl: UIDAI,
-    note: 'HoF eligibility, relationship evidence and HoF consent/authentication must be satisfied; fee must be rechecked on the selected flow.',
+    note: 'Configured customer total: ₹175 (₹75 UIDAI demographic address-update fee + ₹100 TANSHU ONLINE assistance), subject to confirmation of the live HoF route. HoF eligibility, relationship evidence and HoF consent/authentication must be satisfied.',
   },
   'aadhaar-co': {
     ...DEFAULT_DISCLOSURE,
@@ -75,7 +75,7 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
     governmentStatus: 'verify-before-payment',
     officialSourceLabel: 'UIDAI official charges',
     officialSourceUrl: UIDAI,
-    note: 'C/O is not a separate father-name field; only use the applicable address-update route.',
+    note: 'Configured customer total: ₹275 (₹75 UIDAI demographic address-update fee + ₹200 TANSHU ONLINE assistance). C/O is part of the address, not a separate father-name field; only use the applicable address-update route.',
   },
   'aadhaar-mobile': {
     ...DEFAULT_DISCLOSURE,
@@ -201,13 +201,13 @@ disclosures['website-services'] = {
 };
 
 const TANSHU_SERVICE_FEES: Record<string, string> = {
-  'pan-new': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
-  'aadhaar-address-doc': '₹200 TANSHU ONLINE assistance fee + ₹75 UIDAI demographic address-update fee (unless the selected eligible route is free).',
-  'aadhaar-address-hof': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the live HoF route before payment.',
-  'aadhaar-co': '₹200 TANSHU ONLINE assistance fee + applicable UIDAI address-update fee; C/O is part of the address, not a separate father-name update.',
+  'pan-new': '₹300 total for the standard Indian physical-card route: ₹107 official/provider fee + ₹193 TANSHU ONLINE assistance. Recalculate if a different paperless/e-PAN route is selected.',
+  'aadhaar-address-doc': '₹275 total: ₹75 UIDAI demographic address-update fee + ₹200 TANSHU ONLINE assistance.',
+  'aadhaar-address-hof': '₹175 total: ₹75 UIDAI demographic address-update fee + ₹100 TANSHU ONLINE assistance; confirm the live HoF route before payment.',
+  'aadhaar-co': '₹275 total: ₹75 UIDAI demographic address-update fee + ₹200 TANSHU ONLINE assistance; C/O is part of the address, not a separate father-name update.',
   'aadhaar-mobile': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the selected app/centre route before payment.',
-  'pan-correction': '₹150 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
-  'pan-photo-signature': '₹250 TANSHU ONLINE assistance fee + applicable official PAN/provider fee.',
+  'pan-correction': '₹300 total for the standard Indian physical-card route: ₹107 official/provider fee + ₹193 TANSHU ONLINE assistance. Name, father-name and mobile corrections use the same total.',
+  'pan-photo-signature': '₹250 TANSHU ONLINE assistance fee + official/provider fee (standard Indian physical-card example: ₹107; total ₹357). Reconfirm exact route before payment.',
   'aadhaar-download': '₹30 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹50; download + colour print ₹70.',
   'certificate-income': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
   'certificate-caste': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
