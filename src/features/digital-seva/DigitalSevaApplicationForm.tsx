@@ -164,7 +164,12 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   };
 
   const textInput = (key: string, label: string, labelHi: string) => (
-    <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}<input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} />{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>
+    <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}
+      {key === 'familyMemberNames'
+        ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} rows={3} />
+        : <input data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={fieldValues[key] || ''} onChange={(e) => setField(key, e.target.value)} />}
+      {fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}
+    </label>
   );
   const selectInput = (key: string, label: string, labelHi: string, opts: { value: string; label: string; hi: string }[]) => (
     <label key={key} className={fieldErrors[key] ? 'ds-field-invalid' : ''}>{hi ? labelHi : label}<select data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={serviceOptions[key] || ''} onChange={(e) => setOption(key, e.target.value)}><option value="">{hi ? 'चुनें' : 'Select'}</option>{opts.map((o) => <option key={o.value} value={o.value}>{hi ? o.hi : o.label}</option>)}</select>{fieldErrors[key] && <small className="ds-field-error" role="alert">{fieldErrors[key]}</small>}</label>
