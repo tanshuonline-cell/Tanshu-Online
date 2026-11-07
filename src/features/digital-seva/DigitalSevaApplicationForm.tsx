@@ -481,7 +481,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
 
   return <form ref={formRef} className="ds-booking-form ds-application-form" onSubmit={submit} noValidate>
     {draftRestored && <div className="ds-application-upload-notice" role="status">
-      <span>{hi ? 'आपका पिछला अधूरा फॉर्म इसी डिवाइस से वापस खोल दिया गया है। आप जानकारी बदल सकते हैं।' : 'Your previous unfinished application has been restored on this device. You can edit any details.'}</span>
+      <span>{hi ? 'आपका पिछला अधूरा फॉर्म इसी ब्राउज़र में वापस खुला है। आप जानकारी बदल सकते हैं। यदि यह नया ग्राहक है, तो नया आवेदन शुरू करें।' : 'Your previous unfinished application has been restored on this device. You can edit any details.'}</span>
       <button type="button" className="ds-application-copy" onClick={startNewApplication}>{hi ? 'नया आवेदन शुरू करें' : 'Start a new application'}</button>
     </div>}
     <div className="ds-application-progress">
@@ -580,7 +580,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         </div>
         {selectedDocuments.includes('other') && <label className={fieldErrors.otherDocumentName ? "ds-application-wide ds-field-invalid" : "ds-application-wide"}>{hi ? 'अन्य दस्तावेज़ का नाम' : 'Name of other document'}<input aria-invalid={Boolean(fieldErrors.otherDocumentName)} data-validation-key="otherDocumentName" value={otherDocumentName} onChange={(e) => { setOtherDocumentName(e.target.value); clearFieldError("otherDocumentName"); }} required /></label>}
         {selectedDocuments.includes('other') && <label className="ds-application-file-upload">{hi ? 'अन्य दस्तावेज़ की फ़ाइल (वैकल्पिक)' : 'Other document file (optional)'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => { const file = e.target.files?.[0]; setDocumentFiles((old) => { const next = { ...old }; if (file) next.other = file; else delete next.other; return next; }); clearFieldError('documentFiles'); }} />{documentFiles.other && <small>{documentFiles.other.name} · {(documentFiles.other.size / 1024 / 1024).toFixed(2)} MB</small>}</label>}
-        <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'फ़ाइलें निजी Preview स्टोरेज में सुरक्षित अपलोड होंगी। PDF, JPG या PNG स्वीकार हैं; हर फ़ाइल अधिकतम 5 MB और कुल 20 MB तक। फ़ाइल अपलोड वैकल्पिक है। OTP, पासवर्ड या पूरा Aadhaar/PAN नंबर साझा न करें।' : 'Files are uploaded to private Preview storage. PDF, JPG and PNG only; up to 5 MB per file and 20 MB total. Uploading is optional. Never share OTPs, passwords or full Aadhaar/PAN numbers.'}</span></div>
+        <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'फॉर्म की जानकारी और चुनी गई फ़ाइलें इस ब्राउज़र में अधिकतम 7 दिनों तक सेव रहेंगी। साझा कंप्यूटर पर दूसरे ग्राहक का काम शुरू करने से पहले नया आवेदन शुरू करें। फ़ाइलें Submit करने पर ही निजी Preview स्टोरेज में अपलोड होंगी। PDF, JPG या PNG स्वीकार हैं; हर फ़ाइल अधिकतम 5 MB और कुल 20 MB तक। OTP, पासवर्ड या पूरा Aadhaar/PAN नंबर साझा न करें।' : 'Your form progress is saved in this browser for up to 7 days, including selected files. On a shared computer, start a new application before serving another customer. Files are uploaded to private Preview storage only when you submit. PDF, JPG and PNG only; up to 5 MB per file and 20 MB total. Uploading is optional. Never share OTPs, passwords or full Aadhaar/PAN numbers.'}</span></div>
       </div>
     </section>}
 
