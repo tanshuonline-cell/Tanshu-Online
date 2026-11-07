@@ -110,11 +110,16 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'ration-update': ['rationAction']
   };
   const fields = [...(required[serviceId] || [])];
-  if (serviceId === 'ration-update' && options.rationAction === 'ADD_MEMBER') fields.push('memberName', 'memberRelation');
-  if (serviceId === 'ration-update' && options.rationAction === 'ADDRESS') fields.push('memberName');
+  if (serviceId === 'ration-update' && ['ADD_MEMBER', 'REMOVE_MEMBER', 'CORRECT_MEMBER', 'ADDRESS'].includes(String(options.rationAction))) fields.push('memberName');
+  if (serviceId === 'ration-update' && options.rationAction === 'ADD_MEMBER') fields.push('memberRelation');
   return fields;
 }
 
 export function validateServiceFieldValue(key: string, value: unknown): string | null {
   return validateByKind(validationKindForField(key), value);
+}
+
+export function getRequiredCorrectionFieldKeys(corrections: string[]): string[] {
+  const textCorrections = new Set(['name', 'father-name', 'mother-name', 'date-of-birth', 'gender', 'address', 'care-of', 'relation-type', 'relation-name', 'mobile', 'category', 'other', 'add-member', 'remove-member', 'member-correction', 'head-change']);
+  return corrections.filter((id) => textCorrections.has(id)).flatMap((id) => [`${id}-current`, `${id}-correct`]);
 }
