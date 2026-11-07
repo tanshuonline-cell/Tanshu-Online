@@ -222,7 +222,7 @@ function BookingApplicationDetails({ booking }: { booking: Booking }) {
   const selectedDocuments = Array.isArray(details.selectedDocuments) ? details.selectedDocuments : [];
   const correctionOptions = CORRECTION_OPTIONS[booking.service_id] || [];
   const documentOptions = getServiceDocumentOptions(booking.service_id, corrections);
-  const rows = Object.entries(fieldValues).filter(([key, value]) => !key.endsWith('Hindi') && (String(value ?? '').trim() || String(fieldValues[`${key}Hindi`] ?? '').trim()));
+  const fieldKeys = Array.from(new Set(Object.keys(fieldValues).map((key) => key.endsWith('Hindi') ? key.slice(0, -5) : key)));\n  const rows = fieldKeys.filter((key) => String(fieldValues[key] ?? '').trim() || String(fieldValues[`${key}Hindi`] ?? '').trim()).map((key) => [key, fieldValues[key]] as [string, unknown]);
   const optionRows = Object.entries(serviceOptions).filter(([, value]) => String(value ?? '').trim());
   const correctionLabels = corrections.map((id) => correctionOptions.find((item) => item.id === id)?.label || id);
   const documentLabels = selectedDocuments.map((id) => {
