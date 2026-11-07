@@ -375,3 +375,65 @@
 .dsa-bilingual-value{display:grid;gap:2px;margin-top:6px;color:#30343b;font-size:12px;line-height:1.5;white-space:pre-wrap}
 .dsa-bilingual-value span{color:#858991;font-size:9px;font-weight:800}
 @media(max-width:620px){.ds-address-form-grid{grid-template-columns:1fr}.ds-address-form-grid .ds-bilingual-pair{grid-column:span 1}.dsa-slip-action{align-items:stretch;flex-direction:column}.dsa-slip-action button{width:100%;white-space:normal}}
+
+
+/* Premium hover treatment — Popular Government Services cards only. */
+.ds-page .ds-results-section .ds-service-card{
+  position:relative;
+  isolation:isolate;
+  transition:transform .28s cubic-bezier(.2,.75,.25,1),box-shadow .28s ease,border-color .28s ease;
+}
+.ds-page .ds-results-section .ds-service-card::before{
+  content:"";
+  position:absolute;
+  inset:-1.5px;
+  z-index:2;
+  padding:1.5px;
+  border-radius:16px;
+  background:conic-gradient(from 0deg,transparent 0deg 235deg,#c7a15a 270deg,#fff0c2 292deg,#8f1725 318deg,transparent 350deg 360deg);
+  opacity:0;
+  pointer-events:none;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  transition:opacity .22s ease;
+}
+.ds-page .ds-results-section .ds-service-card::after{
+  content:"";
+  position:absolute;
+  inset:-12px;
+  z-index:-1;
+  border-radius:22px;
+  background:radial-gradient(ellipse at 50% 55%,#8f17252b 0%,#c7a15a20 42%,transparent 72%);
+  filter:blur(13px);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .28s ease;
+}
+.ds-page .ds-results-section .ds-service-card:hover,
+.ds-page .ds-results-section .ds-service-card:focus-within{
+  transform:translateY(-6px);
+  border-color:#c7a15a;
+  box-shadow:0 20px 42px #35131320,0 0 22px #c7a15a2b;
+}
+.ds-page .ds-results-section .ds-service-card:hover::before,
+.ds-page .ds-results-section .ds-service-card:focus-within::before{
+  opacity:1;
+  animation:ds-popular-service-ring-spin 3.2s linear infinite;
+}
+.ds-page .ds-results-section .ds-service-card:hover::after,
+.ds-page .ds-results-section .ds-service-card:focus-within::after{opacity:1}
+@keyframes ds-popular-service-ring-spin{to{transform:rotate(360deg)}}
+@media(hover:none){
+  .ds-page .ds-results-section .ds-service-card:active{
+    transform:translateY(-2px);
+    box-shadow:0 12px 26px #35131318,0 0 14px #c7a15a22;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .ds-page .ds-results-section .ds-service-card,
+  .ds-page .ds-results-section .ds-service-card::before,
+  .ds-page .ds-results-section .ds-service-card::after{transition:none}
+  .ds-page .ds-results-section .ds-service-card:hover::before,
+  .ds-page .ds-results-section .ds-service-card:focus-within::before{animation:none;opacity:1}
+}
