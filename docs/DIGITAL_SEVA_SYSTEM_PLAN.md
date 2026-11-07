@@ -15,13 +15,15 @@
 - Service details show documents, service fee placeholder, government fee source, availability and assistance type.
 - No real booking, payment, document upload, tracking lookup or customer-data persistence in this phase. UI explicitly identifies itself as a preview.
 
-## Phase 2 — booking workflow (not started)
-- Consent-first booking form and customer review.
-- Server-generated booking reference and immutable status history.
-- Server-side validation, rate limiting, CSRF/origin controls, idempotency.
-- No Aadhaar OTP, biometric, portal password or payment credential collection.
+## Phase 2 — booking workflow (code implemented; Preview database setup pending)
+- Consent-first booking form with minimal customer details (name, mobile, optional email).
+- Server-generated booking reference and status history.
+- Server-side validation, same-origin checks, isolate-level rate limiting and idempotency key.
+- Separate private admin route using the existing signed superadmin session; booking list and audited status updates.
+- Booking APIs fail closed until the dedicated `DIGITAL_SEVA_DB` Preview binding and migration are configured.
+- No Aadhaar/PAN number, OTP, biometric, portal password, document upload or payment credential collection.
 
-## Phase 3 — isolated infrastructure (not started)
+## Phase 3 — isolated infrastructure (database creation and binding pending)
 - A dedicated Cloudflare D1 database for Digital Seva; do not reuse the existing video/payment D1 database or tables.
 - A dedicated private R2 bucket for customer documents; no public bucket or public object URLs.
 - Separate preview bindings and production bindings; never point preview at production customer data.
