@@ -139,8 +139,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
   const consent = body.consent === true;
   const termsAccepted = body.termsAccepted === true;
+  const termsAcceptedDate = new Date(String(body.termsAcceptedAt || ''));
+  const termsAcceptedAt = termsAcceptedDate.getTime() <= Date.now() + 60_000 && termsAcceptedDate.getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000
+    ? termsAcceptedDate.toISOString() : new Date().toISOString();
   const termsPolicyVersion = String(body.termsPolicyVersion || '');
   const refundPolicyAccepted = body.refundPolicyAccepted === true;
+  const refundAcceptedDate = new Date(String(body.refundAcceptedAt || ''));
+  const refundPolicyAcceptedAt = refundAcceptedDate.getTime() <= Date.now() + 60_000 && refundAcceptedDate.getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000
+    ? refundAcceptedDate.toISOString() : new Date().toISOString();
   const refundPolicyVersion = String(body.refundPolicyVersion || '');
   const key = String(body.idempotencyKey || '');
   if (!ALLOWED_SERVICE_IDS.has(serviceId)) return json({ success: false, error: 'Please select a valid service.' }, 400);
@@ -219,11 +225,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
             requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address,
             agency_name, agency_address, application_details_json,
             status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
         ).bind(bookingId, bookingReference, key, serviceId, name, phone, email,
           requesterType, applicationFor, operatorName || null, operatorPhone || null, operatorEmail || null,
           centerName || null, centerAddress || null, agencyName || null, agencyAddress || null, applicationDetails,
-          termsPolicyVersion, refundPolicyVersion),
+          termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
         env.DIGITAL_SEVA_DB.prepare(
           `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
            VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
