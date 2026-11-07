@@ -502,7 +502,7 @@
 @keyframes ds-category-border-spin{to{--ds-category-border-angle:360deg}}
 
 /* Individual category palettes follow their service icon meaning. */
-.ds-page .ds-category-card-websites{--ds-category-accent:#7161c8;--ds-category-border-soft:#d9d2ff;--ds-category-border-bright:#fff;--ds-category-glow:#8b7be044}
+.ds-page .ds-category-card-websites{--ds-category-accent:#c64d91;--ds-category-border-soft:#ffd0e6;--ds-category-border-bright:#fff0f7;--ds-category-glow:#e96ca044}
 .ds-page .ds-category-card-pan{--ds-category-accent:#d94f91;--ds-category-border-soft:#ffc4df;--ds-category-border-bright:#fff0f7;--ds-category-glow:#e96ca044}
 .ds-page .ds-category-card-aadhaar{--ds-category-accent:#c3942f;--ds-category-border-soft:#ffe6a3;--ds-category-border-bright:#fff8dc;--ds-category-glow:#e5b94a44}
 .ds-page .ds-category-card-voter{--ds-category-accent:#4774b7;--ds-category-border-soft:#c8dcff;--ds-category-border-bright:#edf5ff;--ds-category-glow:#6794d044}
@@ -518,7 +518,7 @@
 .ds-page .ds-category-card-ration .ds-category-icon{background:#eaf4ed;color:#28754d}
 .ds-page .ds-category-card-schemes .ds-category-icon{background:#fbf0e3;color:#a96c2d}
 .ds-page .ds-category-card-forms .ds-category-icon{background:#edf2f7;color:#496b8b}
-.ds-page .ds-category-card-websites .ds-category-icon{background:#f0edfc;color:#6655b5}
+.ds-page .ds-category-card-websites .ds-category-icon{background:#fde8f1;color:#b83e82}
 
 @media(hover:none){
   .ds-page .ds-category-card:active{
