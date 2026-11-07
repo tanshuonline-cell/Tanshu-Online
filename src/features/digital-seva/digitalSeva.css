@@ -534,3 +534,11 @@
   .ds-page .ds-category-card:hover::before,
   .ds-page .ds-category-card:focus-visible::before{animation:none;opacity:1}
 }
+
+
+/* Manual Cashfree payment collection controls in the private Digital Seva Admin. */
+.dsa-payment-panel{display:grid;gap:12px;margin:16px 0;padding:15px;border:1px solid #eadbd7;border-radius:12px;background:linear-gradient(145deg,#fffaf8,#fff)}
+.dsa-payment-panel-heading{display:grid;gap:4px}.dsa-payment-panel-heading strong{color:#30343a;font-size:13px;font-weight:850}.dsa-payment-panel-heading small{color:#737982;font-size:10px;line-height:1.55}
+.dsa-payment-controls{display:flex;align-items:end;gap:10px;flex-wrap:wrap}.dsa-payment-controls label{display:grid;gap:5px;min-width:150px;flex:1;color:#555b64;font-size:10px;font-weight:800}.dsa-payment-controls input{width:100%;height:42px;border:1px solid #ded8d3;border-radius:8px;padding:0 11px;background:#fff;color:#17191d;font:600 13px 'DM Sans',sans-serif}.dsa-payment-controls button,.dsa-payment-link button{min-height:42px;border:0;border-radius:8px;padding:0 14px;background:#8f1725;color:#fff;font:800 11px 'DM Sans',sans-serif;cursor:pointer}.dsa-payment-controls button:disabled{opacity:.6;cursor:wait}
+.dsa-payment-status{display:flex;gap:9px 16px;flex-wrap:wrap;padding-top:10px;border-top:1px solid #eee5df;color:#5c626b;font-size:10px}.dsa-payment-status b{color:#333840}.dsa-payment-link{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.dsa-payment-link a{color:#8f1725;font-size:11px;font-weight:800;text-decoration:underline;overflow-wrap:anywhere}.dsa-payment-link button{min-height:36px;background:#f4e9e7;color:#8f1725;border:1px solid #e6cfca}.dsa-payment-message{margin:10px 0;padding:10px 12px;border:1px solid #cfe5d5;border-radius:8px;background:#f3faf5;color:#245b3c;font-size:11px;font-weight:700}
+@media(max-width:560px){.dsa-payment-controls{display:grid;grid-template-columns:1fr}.dsa-payment-controls button{width:100%}.dsa-payment-link{align-items:stretch;flex-direction:column}.dsa-payment-link button{width:100%}}
