@@ -115,3 +115,20 @@ Prepare a complete desktop-first PVC card editing and A4 print-preparation works
 ## Development log
 
 Record each change here with date, commit, files touched, tests run, and known limitations. Keep commits PVC-only.
+
+
+## 2026-11-09 implementation update
+
+- Rebuilt the standalone preview so it loads the catalog and engine as separate PVC-only scripts; removed the previous competing inline editor implementation.
+- Replaced the engine's cross-script lexical-variable assumptions with an explicit `window.PVC_STUDIO_STATE` API.
+- Added English/Hindi catalog labels, profile search, editable dimensions, PDF page rasterization, image import, manual front/back pairing, OCR hints, optional edge-based crop, crop reset, copies, mm gap, orientation, corner style and back-side mirroring.
+- Reworked A4 packing to place mixed-size card groups using millimetre measurements and to keep each explicit front/back pair at the same sheet coordinates. Each requested copy gets a distinct pair ID.
+- Added print sheets with separate front/back pages and a 100 mm calibration line.
+- JavaScript syntax validation passed for `catalog-settings.js` and `pvc-engine.js` after the update.
+
+### Validation still outstanding — do not mark complete
+
+- No real browser end-to-end run has been completed in this environment. PDF import, OpenCV initialization/crop, Tesseract Hindi+English OCR, print preview, duplex ordering and mixed-size overflow remain pending browser verification.
+- No printer model is connected here. The 100 mm line, card dimensions, printer feed direction, duplex flip edge and front/back registration must be measured on the user's actual printer.
+- Auto-crop is a best-effort edge detector; it must be reviewed manually. OCR only produces suggestions. The original uploaded image is retained in page memory and can be restored with Reset crop.
+- The preview must remain development-only. Do not merge to `main` or deploy publicly without explicit approval.
