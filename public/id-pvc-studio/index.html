@@ -482,8 +482,16 @@ $('batchSize').addEventListener('change',()=>{
 }));
 async function batchReadImage(file){
  const originalUrl=URL.createObjectURL(file);
- const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Could not read '+file.name));reader.readAsDataURL(file);});
- return [{name:file.name,kind:'image',originalUrl,dataUrl}];
+ try{
+  const dataUrl=await new Promise((resolve,reject)=>{
+   const reader=new FileReader(),timer=setTimeout(()=>{try{reader.abort()}catch{};reject(new Error('Reading '+file.name+' timed out. Please try the file again.'));},20000);
+   reader.onload=()=>{clearTimeout(timer);const value=String(reader.result||'');value?resolve(value):reject(new Error('The selected image is empty.'));};
+   reader.onerror=()=>{clearTimeout(timer);reject(new Error('The browser could not read '+file.name+'.'));};
+   reader.onabort=()=>{clearTimeout(timer);reject(new Error('Reading '+file.name+' was interrupted.'));};
+   try{reader.readAsDataURL(file)}catch(err){clearTimeout(timer);reject(err)}
+  });
+  return [{name:file.name,kind:'image',originalUrl,dataUrl}];
+ }catch(err){URL.revokeObjectURL(originalUrl);throw err;}
 }
 async function batchReadPdf(file){
  if(!window.pdfjsLib)throw new Error('PDF reader is still loading. Wait a moment and select the PDF again.');
@@ -502,16 +510,20 @@ $('photoInput').addEventListener('change',async e=>{
  const input=e.currentTarget,files=Array.from(input.files||[]);
  if(!files.length)return;
  $('status').textContent='Reading '+files.length+' file(s) locally…';
- let added=0;
+ let added=0,errors=[];
  for(const file of files){
+  let pages=[];
   try{
    if(!file||!file.size)throw new Error('The selected file is empty or could not be read.');
    if(file.size>25*1024*1024)throw new Error(file.name+' is larger than 25 MB.');
    const lower=file.name.toLowerCase();
-   let pages;
-   if(file.type==='application/pdf'||lower.endsWith('.pdf'))pages=await batchReadPdf(file);
-   else if((file.type&&file.type.startsWith('image/'))||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(lower))pages=await batchReadImage(file);
-   else throw new Error(file.name+' is not a supported image or PDF.');
+   if(file.type==='application/pdf'||lower.endsWith('.pdf')){
+    $('status').textContent='Opening PDF: '+file.name+'…';
+    pages=await batchReadPdf(file);
+   }else if((file.type&&file.type.startsWith('image/'))||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(lower)){
+    $('status').textContent='Loading image: '+file.name+'…';
+    pages=await batchReadImage(file);
+   }else throw new Error(file.name+' is not a supported image or PDF.');
    if(!pages||!pages.length)throw new Error('No readable image or PDF page was found in '+file.name+'.');
    for(const page of pages){
     const id='batch-'+(++batchSequence);
@@ -519,16 +531,25 @@ $('photoInput').addEventListener('change',async e=>{
     added++;
    }
    selectedBatchId=batchItems[batchItems.length-pages.length].id;
-  }catch(err){$('status').textContent=String(err.message||err);}
+  }catch(err){
+   errors.push(String(err?.message||err||('Could not load '+file.name)));
+  }
  }
- if(batchItems.length){
-  batchSelect(selectedBatchId);
-  batchUpdateList();
-  $('status').textContent=added+' file page(s) loaded. Choose Crop or Card Preset to continue.';
- }else{
+ try{
+  if(batchItems.length){
+   $('status').textContent='Preparing preview…';
+   batchSelect(selectedBatchId);
+   batchUpdateList();
+   $('status').textContent=added+' file page(s) loaded. Choose Crop or Card Preset to continue.'+(errors.length?' '+errors.join(' • '):'');
+  }else{
+   batchUpdateList();
+   $('status').textContent=errors.length?errors.join(' • '):'No supported file could be loaded. Please try again.';
+  }
+ }catch(err){
+  $('status').textContent='The file was read, but the preview could not be prepared: '+String(err?.message||err);
   batchUpdateList();
  }
- // Keep the chosen filename visible in the native picker; users can replace it with the next selection.
+ // Keep the chosen filename visible in the native picker.
 });
 $('singleMode').addEventListener('click',()=>setMode('sheet'));
 $('batchPass').addEventListener('change',()=>{if(batchMode)renderBatchSheet();});
