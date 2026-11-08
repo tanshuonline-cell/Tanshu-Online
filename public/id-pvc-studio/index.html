@@ -163,7 +163,8 @@ apaar:'APAAR / ABC is a digital academic identity, not a universally fixed PVC c
 custom:'Other state/department cards have no assumed national size. Use the original document and enter its dimensions under Custom dimensions.'
 };
 $('aadhaarProfile').addEventListener('change',()=>{const profile=$('aadhaarProfile').value;const notes={original:'Standard Aadhaar uses a white background; this option preserves the uploaded colour document exactly.',baal:'Baal Aadhaar (0–5 years) uses a light-blue background. Select this only when the uploaded original is already a Baal Aadhaar; no recolouring is applied.',scan:'Keeps the uploaded Aadhaar scan unchanged. No background, photo, QR code or text is generated or altered.'};$('aadhaarProfileInfo').textContent=notes[profile]||notes.original;applyPrintStyle('original')});
-$('printStyle').addEventListener('change',()=>applyPrintStyle($('printStyle').value));document.querySelectorAll('.design-choice').forEach(btn=>btn.addEventListener('click',()=>applyPrintStyle(btn.dataset.style)));\n$('indiaCardPreset').addEventListener('change',()=>{
+$('printStyle').addEventListener('change',()=>applyPrintStyle($('printStyle').value));document.querySelectorAll('.design-choice').forEach(btn=>btn.addEventListener('click',()=>applyPrintStyle(btn.dataset.style)));
+$('indiaCardPreset').addEventListener('change',()=>{
  const key=$('indiaCardPreset').value;
  if(key==='none'){ $('indiaCardInfo').textContent='No India preset selected. Your existing card size and settings remain unchanged.';persistSettings();return; }
  const item=indiaCardGuidance[key];
