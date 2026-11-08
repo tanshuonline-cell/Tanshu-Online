@@ -480,6 +480,14 @@ $('photoInput').addEventListener('change',async e=>{
 });
 $('singleMode').addEventListener('click',()=>{if(batchMode){mode='single';$('singleMode').classList.add('active');$('sheetMode').classList.remove('active');$('sheetWrap').classList.remove('active');$('cardPreview').style.display='none';$('batchOriginal').hidden=!batchSelected();$('sizeReadout').textContent='Original page • Full image • No auto-crop';}else setMode('single');});
 $('batchPass').addEventListener('change',()=>{if(batchMode)renderBatchSheet();});
+document.querySelectorAll('[data-side]').forEach(btn=>btn.addEventListener('click',()=>{
+  const item=batchSelected();
+  if(!batchMode||!item||btn.dataset.side==='both')return;
+  item.side=btn.dataset.side;
+  batchUpdateList();
+  renderBatchSheet();
+  $('status').textContent='Selected upload assigned to '+item.side.toUpperCase()+' pass. Use SHEET CONTENT to show all, front-only or back-only uploads.';
+}));
 const legacyPrintSheet=printSheet;
 printSheet=function(){
  if(!batchMode){legacyPrintSheet();return;}
