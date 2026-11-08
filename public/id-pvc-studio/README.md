@@ -1,0 +1,116 @@
+# PVC Card Studio — Development Workspace
+
+> Status: development / preview only. Not production-ready. Do not merge into `main` or expose as an official service until the release checklist is approved.
+
+## Scope boundary
+
+This workspace is limited to `public/id-pvc-studio/` and PVC Studio-specific assets/configuration. Do not modify the Digital Seva Center, site homepage, navigation, unrelated services, authentication, or other site features as part of this project.
+
+Current branch: `feature/pvc-studio-precision-only-2026-11-09`
+
+Preview entry point:
+- `/id-pvc-studio/premium-desktop-preview.html`
+
+## Product goal
+
+Prepare a complete desktop-first PVC card editing and A4 print-preparation workspace. The current work is a prototype foundation; features listed below must not be described as production-verified until their acceptance tests pass.
+
+## Feature inventory and readiness
+
+| Area | Intended capability | Current status |
+|---|---|---|
+| Document library | Aadhaar, PAN, Voter/EPIC, Ayushman, DL, ABHA, e-Shram, education, labour, health, custom | Prototype list present; issuer-specific dimensions need verification |
+| Import | JPG, PNG, WEBP and PDF; multiple files/pages | Basic browser upload and PDF.js page rasterization present |
+| Crop | Detect card quadrilateral, perspective correction, manual crop fallback | OpenCV prototype present; needs diverse-photo testing and failure handling |
+| OCR | English + Hindi text extraction and document hints | Tesseract prototype present; OCR quality and language asset loading need testing |
+| Front/back | Suggest side, let operator override, pair front/back | Keyword heuristic + manual side/pair controls; not reliable classification yet |
+| A4 layout | Exact mm positions, paired sides, multiple sheets | Initial layout code present; needs overflow, mixed-size and duplex validation |
+| Editing | Select, drag, duplicate, zoom, shift, fit/cover, remove | Basic controls present; usability and bounds checks pending |
+| Print | A4 output, no scaling, calibration line | Prototype present; browser print and physical printer verification pending |
+| Privacy | Local browser processing; no document upload to server | Intended architecture; verify all dependencies and network behavior |
+| Mobile | Separate future implementation | Explicitly out of current desktop scope |
+
+## Engineering principles
+
+1. Keep all PVC Studio code under this directory unless a narrowly scoped shared change is separately reviewed and approved.
+2. Do not add dependencies to the main application just to support the prototype.
+3. Prefer browser-local processing for identity documents. Do not send user documents to third-party OCR or image APIs.
+4. Treat OCR and front/back detection as suggestions. Always provide operator confirmation and manual override.
+5. Never assume every issuer's card is ID-1 size. Store dimensions as editable profiles with source, version, and verification status.
+6. Keep print geometry in millimetres. Convert to CSS pixels only for on-screen preview; print with physical mm units.
+7. Do not auto-crop destructively. Preserve original source and allow reset/re-crop.
+8. Pair front/back by an explicit pair ID, not by upload order or alternating position.
+9. Keep preview and production release separate. A successful build is not a physical print certification.
+
+## Required technical setup
+
+- Standalone entry page: `premium-desktop-preview.html`
+- PVC processing engine: `pvc-engine.js`
+- PDF rendering: PDF.js (pin a tested version; handle CDN/offline failure)
+- Image processing: OpenCV.js (wait for runtime initialization; show recoverable error)
+- OCR: Tesseract.js with Hindi and English language assets (pin versions and verify language loading)
+- Print stylesheet: dedicated A4 pages with mm units, explicit page breaks, no UI chrome
+- Test fixtures: synthetic/sample documents only; never commit real Aadhaar/PAN or other personal identity data
+
+## Acceptance checklist before calling the setup complete
+
+### A. Browser and import
+- [ ] Preview URL opens the PVC Studio page, not the website homepage.
+- [ ] JPG/PNG/WEBP single and multiple uploads work.
+- [ ] Multi-page PDF imports every page in order.
+- [ ] Missing CDN/network dependency produces a visible recoverable message.
+- [ ] Large images/PDFs do not freeze the tab; progress and cancellation are available.
+
+### B. Crop and OCR
+- [ ] Card edge detection tested on clean scan, angled photo, shadows, busy background, low contrast, rotated image, and no-card image.
+- [ ] Perspective correction preserves all four corners and correct orientation.
+- [ ] Failed detection never silently crops the wrong region.
+- [ ] OCR Hindi and English language packs load successfully.
+- [ ] Document type is shown as a suggestion with confidence/evidence; operator can override.
+- [ ] Front/back suggestion tested on representative synthetic fixtures; operator can override.
+- [ ] Original image can be restored after crop.
+
+### C. Pairing and layout
+- [ ] Explicitly pair front and back images for each card.
+- [ ] Unpaired sides are flagged before duplex export.
+- [ ] Mixed card sizes are laid out independently, not using the first card's size for all.
+- [ ] A4 margins, gaps, row/column count and overflow are calculated in mm.
+- [ ] Additional pages are created without overlap or clipping.
+- [ ] Duplex back-side alignment/mirroring behavior is configurable and tested for the selected printer.
+
+### D. Print scale
+- [ ] Print page uses A4 210 × 297 mm CSS physical dimensions.
+- [ ] Print dialog instructions specify A4, 100% / Actual size, and disable Fit to page.
+- [ ] Calibration line measures 100.0 mm on paper (record actual measured result and printer model).
+- [ ] A known-size test card is measured on paper in both axes.
+- [ ] Front/back registration is measured physically; acceptable tolerance is documented.
+- [ ] Browser print preview and at least one real printer are tested.
+
+### E. Release safety
+- [ ] No changes outside PVC Studio scope.
+- [ ] No real identity documents or personal data in repository/test fixtures.
+- [ ] Dependency versions, licenses, network requirements and offline behavior documented.
+- [ ] Keyboard/mouse workflow, errors and accessibility reviewed.
+- [ ] Build/lint/browser test evidence recorded.
+- [ ] Explicit user approval before any merge to main or public launch.
+
+## Print calibration procedure
+
+1. Print the calibration sheet on A4 with Scale = 100% / Actual size.
+2. Disable Fit/Shrink to printable area and browser headers/footers.
+3. Measure the 100 mm line with a reliable ruler/caliper and record the result.
+4. Measure a test rectangle in both width and height.
+5. Repeat for front/back registration and record printer driver settings.
+6. Do not compensate by silently distorting card images; document printer-specific offsets separately.
+
+## Known prototype limitations
+
+- OCR document/side detection is heuristic and can produce false positives.
+- OpenCV quadrilateral detection is not yet robust against all lighting, glare, shadows, rotation and background conditions.
+- Current layout logic needs validation for mixed dimensions, explicit front/back pairing, multi-page duplex output and page overflow.
+- A calibration graphic alone does not prove actual-size printing.
+- Current prototype has not yet passed browser end-to-end tests or a physical printer test.
+
+## Development log
+
+Record each change here with date, commit, files touched, tests run, and known limitations. Keep commits PVC-only.
