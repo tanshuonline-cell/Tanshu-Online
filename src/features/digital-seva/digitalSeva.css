@@ -820,3 +820,22 @@
   .ds-service-title-row{align-items:stretch;flex-direction:column;gap:12px}
   .ds-premium-sample-cta.ds-premium-sample-cta-side{flex:1 1 auto;width:100%;min-width:0}
 }
+
+/* Digital Seva service cards: keep the website showcase full-width,
+   while all regular service cards use the existing three-column desktop grid. */
+.ds-service-grid:has(#ds-service-website-services){
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.ds-service-grid:has(#ds-service-website-services) > #ds-service-website-services{
+  grid-column:1 / -1;
+}
+@media(max-width:850px){
+  .ds-service-grid:has(#ds-service-website-services){
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:600px){
+  .ds-service-grid:has(#ds-service-website-services){
+    grid-template-columns:1fr;
+  }
+}
