@@ -177,3 +177,12 @@ Record each change here with date, commit, files touched, tests run, and known l
 - Template options are explicitly sample/placeholder metadata; they do not generate official government marks, identifiers, QR codes or security features. Image Layout is a UI/configuration foundation and still needs its proof-layout behavior implemented.
 - JavaScript syntax validation passed. Pure preset geometry checks passed for A4 portrait/landscape, 4×6, Letter and Custom.
 - Browser end-to-end validation could not be run because the browser-test service declined to start with an insufficient wallet balance. No live print or printer test has been claimed.
+
+
+## 2026-11-09 — Front/back proof layout and template rendering (stage 2)
+
+- Added a central-preview **Front + Back Proof** view. It pairs sides by the explicit Pair ID carried into each generated copy; the selected Image Layout places paired faces side-by-side or stacked. The Single layout shows one face per pair (front preferred, otherwise back).
+- Kept the production imposition path for Duplex unchanged: front and back still print on separate sheet pages at matching physical coordinates for registration. The combined proof is a visual review mode, not a replacement for duplex output or a printer-registration guarantee.
+- Added non-official template frame rendering for Generic, Aadhaar-style, PAN-style and Voter-style sample selections. A neutral sample header/footer is rendered in the central preview and print output; uploaded source artwork remains visible underneath. No issuer logos, official seals, QR codes, fabricated identity numbers or security features are generated.
+- Blank template selection leaves the uploaded crop unchanged.
+- Static JavaScript parse validation passed after the implementation. Browser interaction, screenshot review, multi-pair proof overflow, print preview and physical duplex registration remain unverified because no browser session/printer test was available.
