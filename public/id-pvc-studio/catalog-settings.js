@@ -81,13 +81,13 @@ const count=$('copyCount');count.addEventListener('wheel',e=>{e.preventDefault()
 count.oninput=()=>copies=Math.max(1,Math.min(100,+count.value||1));
 $('cardGap').oninput=e=>gap=Math.max(0,+e.target.value||0);
 $('cardCorner').onchange=e=>corner=e.target.value;
-$('sheetOrientation').onchange=e=>{ $('orientation').value=e.target.value;$('orientation').dispatchEvent(new Event('change')); };
+$('sheetOrientation').onchange=e=>{ $('orientation').value=e.target.value;$('orientation').dispatchEvent(new Event('change'));const st=document.querySelector('#catalogPrintStyle');if(st)st.textContent='@page{size:A4 '+(e.target.value==='landscape'?'landscape':'portrait')+';margin:0}@media print{body.catalog-printing>*:not(#catalogPrintRoot){display:none!important}body.catalog-printing #catalogPrintRoot{display:block!important}#catalogPrintRoot .catalog-print-page:last-child{page-break-after:auto;break-after:auto}}'; };
 $('mirrorPrint').onchange=e=>mirror=e.target.checked;
 function mm(v){return v/PX}
 function layoutAll(){
  if(!items.length)return;
  const landscape=$('sheetOrientation').value==='landscape',W=landscape?297:210,H=landscape?210:297,margin=5;
- const expanded=[];items.forEach(it=>{for(let n=0;n<copies;n++)expanded.push({...it,id:crypto.randomUUID(),sheet:0})});
+ const expanded=[];items.filter(it=>!it.generatedCopy).forEach(it=>{for(let n=0;n<copies;n++)expanded.push({...it,id:crypto.randomUUID(),sheet:0,generatedCopy:n>0})});
  const pages=[];
  expanded.forEach(it=>{let w=mm(it.w),h=mm(it.h);if(landscape&&w<h)[w,h]=[h,w];let placed=false;
  for(let p=0;p<pages.length&&!placed;p++){let page=pages[p],cols=Math.max(1,Math.floor((W-2*margin+gap)/(w+gap))),rows=Math.max(1,Math.floor((H-2*margin+gap)/(h+gap)));for(let k=0;k<cols*rows;k++){if(!page.used.has(k)){page.used.add(k);it.x=(margin+(k%cols)*(w+gap))*PX;it.y=(margin+Math.floor(k/cols)*(h+gap))*PX;it.w=w*PX;it.h=h*PX;it.sheet=p;page.items.push(it);placed=true;break}}}
@@ -105,7 +105,7 @@ const oldPrint=$('print');oldPrint.onclick=()=>{
  let im=document.createElement('img');im.src=it.src;im.style.cssText='width:100%;height:100%;object-fit:fill;'+(mirror?'transform:scaleX(-1);':'');el.append(im);page.append(el)});root.append(page)}
  document.body.classList.add('catalog-printing');window.print();setTimeout(()=>document.body.classList.remove('catalog-printing'),800);
 };
-const css=document.createElement('style');css.textContent=`
+const css=document.createElement('style');css.id='catalogPrintStyle';css.textContent=`
 #catalogPrintRoot{display:none}@media print{body.catalog-printing>*:not(#catalogPrintRoot){display:none!important}body.catalog-printing #catalogPrintRoot{display:block!important}#catalogPrintRoot .catalog-print-page:last-child{page-break-after:auto;break-after:auto}@page{size:A4;margin:0}}
 `;document.head.append(css);
 window.PVC_CATALOG={catalog,layoutAll,getSettings:()=>({copies,gap,corner,orientation:$('sheetOrientation').value,mirror})};
