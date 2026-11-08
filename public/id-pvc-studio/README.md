@@ -19,13 +19,13 @@ Prepare a complete desktop-first PVC card editing and A4 print-preparation works
 
 | Area | Intended capability | Current status |
 |---|---|---|
-| Document library | Aadhaar, PAN, Voter/EPIC, Ayushman, DL, ABHA, e-Shram, education, labour, health, custom | Prototype list present; issuer-specific dimensions need verification |
+| Document library | 20 India Catalog entries across identity/government, health/welfare, labour/agriculture/property, education/other | Catalog list and profile selection implemented; non-verified dimensions remain editable / indicative |
 | Import | JPG, PNG, WEBP and PDF; multiple files/pages | Basic browser upload and PDF.js page rasterization present |
 | Crop | Detect card quadrilateral, perspective correction, manual crop fallback | OpenCV prototype present; needs diverse-photo testing and failure handling |
 | OCR | English + Hindi text extraction and document hints | Tesseract prototype present; OCR quality and language asset loading need testing |
 | Front/back | Suggest side, let operator override, pair front/back | Keyword heuristic + manual side/pair controls; not reliable classification yet |
-| A4 layout | Exact mm positions, paired sides, multiple sheets | Initial layout code present; needs overflow, mixed-size and duplex validation |
-| Editing | Select, drag, duplicate, zoom, shift, fit/cover, remove | Basic controls present; usability and bounds checks pending |
+| A4 layout | Exact mm positions, copies, gap, portrait/landscape, multiple sheets | Copy-count auto-arrange and basic A4 pagination added; mixed-size and duplex alignment still need validation |
+| Editing | Select, drag, duplicate, zoom, shift, fit/cover, remove | Basic controls present; usability and bounds checks pending |\n| Print options | Copies (mouse wheel), gap in mm, original / 3 mm rounded corners, orientation, optional mirror | Controls added; physical printer and corner-cut accuracy not certified |\n| Language | English / हिंदी switch | Main labels switch; full translation review still required |
 | Print | A4 output, no scaling, calibration line | Prototype present; browser print and physical printer verification pending |
 | Privacy | Local browser processing; no document upload to server | Intended architecture; verify all dependencies and network behavior |
 | Mobile | Separate future implementation | Explicitly out of current desktop scope |
@@ -46,6 +46,7 @@ Prepare a complete desktop-first PVC card editing and A4 print-preparation works
 
 - Standalone entry page: `premium-desktop-preview.html`
 - PVC processing engine: `pvc-engine.js`
+- India catalog and sheet settings extension: `catalog-settings.js`
 - PDF rendering: PDF.js (pin a tested version; handle CDN/offline failure)
 - Image processing: OpenCV.js (wait for runtime initialization; show recoverable error)
 - OCR: Tesseract.js with Hindi and English language assets (pin versions and verify language loading)
@@ -109,7 +110,7 @@ Prepare a complete desktop-first PVC card editing and A4 print-preparation works
 - OpenCV quadrilateral detection is not yet robust against all lighting, glare, shadows, rotation and background conditions.
 - Current layout logic needs validation for mixed dimensions, explicit front/back pairing, multi-page duplex output and page overflow.
 - A calibration graphic alone does not prove actual-size printing.
-- Current prototype has not yet passed browser end-to-end tests or a physical printer test.
+- Current prototype has not yet passed browser end-to-end tests or a physical printer test.\n- The new India Catalog and print controls are code-level additions only; the complete UI translation, mixed-size packing, duplex back-side registration, and physical corner cutting still require testing.
 
 ## Development log
 
