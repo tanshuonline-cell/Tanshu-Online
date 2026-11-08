@@ -40,7 +40,7 @@ export default function DigitalSevaPage() {
   const [selected, setSelected] = useState<SevaService | null>(null);
   const [showWebsiteShowcase, setShowWebsiteShowcase] = useState(false);
   const serviceHindi = selected ? { ...selected, ...SEVA_SERVICE_HINDI[selected.id] } : null;
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [searchTarget, setSearchTarget] = useState<string | null>(null);
   const [searchAttempt, setSearchAttempt] = useState(0);
   const [showTrackingInfo, setShowTrackingInfo] = useState(false);
