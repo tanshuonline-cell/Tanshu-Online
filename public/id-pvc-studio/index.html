@@ -243,12 +243,12 @@ const templates={
  blank:{badge:'CUSTOM SIZE CARD',title:'YOUR CARD TITLE',front:'<strong>Name:</strong> YOUR TEXT<br><strong>ID No:</strong> YOUR NUMBER<br><strong>Details:</strong> ADD YOUR CONTENT<br><strong>Note:</strong> CUSTOM DESIGN',back:'<strong>Back side:</strong> YOUR CONTENT<br><strong>Contact:</strong> OPTIONAL<br><strong>Address:</strong> OPTIONAL<br><strong>Note:</strong> CUSTOM DESIGN'}
 };
 function getSize(){if($('sizePreset').value==='custom')return {w:Math.max(30,Math.min(200,+$('customW').value||85.6)),h:Math.max(20,Math.min(140,+$('customH').value||54))};if($('sizePreset').value==='aadhaar')return {w:86,h:54};if($('sizePreset').value==='id1')return {w:85.6,h:53.98};return {w:85.6,h:54}}
-function openStudio(){ $('welcome').classList.add('hidden');$('editor').classList.add('active');window.scrollTo({top:0,behavior:'smooth'});render()}
+function openStudio(){ $('welcome').classList.add('hidden');$('editor').classList.add('active');window.scrollTo({top:0,behavior:'smooth'});setMode('sheet')}
 function showWelcome(){ $('editor').classList.remove('active');$('welcome').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'})}
 function setSide(value){side=value;if(value==='front'||value==='back')activeCropSide=value;$('printSides').value=value==='both'?'both':'current';document.querySelectorAll('[data-side]').forEach(x=>x.classList.toggle('active',x.dataset.side===value));if(value==='both'){setMode('sheet');$('status').textContent='BOTH selected • Front and Back are arranged separately at the chosen card size on the selected sheet.'}else{render()}if($('cropEditor').classList.contains('active'))openCropEditor();updateCropBox();persistSettings()}
 
 
-function setMode(v){mode=v;$('singleMode').classList.toggle('active',v==='single');$('sheetMode').classList.toggle('active',v==='sheet');$('cardPreview').style.display=v==='single'?'block':'none';$('sheetWrap').classList.toggle('active',v==='sheet');render()}
+function setMode(v){mode='sheet';$('singleMode').classList.remove('active');$('sheetMode').classList.add('active');$('cardPreview').style.display='none';$('batchOriginal').hidden=true;$('sheetWrap').classList.add('active');render()}
 function render(){const t=templates[$('cardType').value],s=getSize(),hasArtwork=!!photoUrl,activeSide=cropTargetSide();const originalDocument=$('cardType').value==='original'&&loadedArtworkImage?.naturalWidth>0;$('cardPreview').classList.toggle('original-document-mode',originalDocument);$('cardPreview').style.aspectRatio=originalDocument?(loadedArtworkImage.naturalWidth+'/'+loadedArtworkImage.naturalHeight):(s.w+'/'+s.h);$('cardPreview').classList.toggle('artwork-mode',hasArtwork);$('artworkViewport').className='artwork-viewport single front';$('artworkViewport').style.display=hasArtwork?'block':'none';if(hasArtwork){$('cardArtwork').src=getCroppedArtworkUrl(activeSide)||photoUrl;$('cropTools').style.display=$('cardType').value==='original'?'none':'block';$('cropSideLabel').textContent=side==='both'?'BOTH • '+activeSide.toUpperCase()+' CROP':activeSide.toUpperCase()}else{$('cropTools').style.display='none';$('cropEditor').classList.remove('active')}$('cardBadge').textContent=t.badge;$('cardTitle').textContent=side==='back'?t.title+' • BACK':t.title;$('cardInfo').innerHTML=side==='back'?t.back:t.front;$('cardPhoto').classList.add('hidden');$('sizeReadout').textContent=s.w.toFixed(1)+' × '+s.h.toFixed(1)+' mm • '+side.toUpperCase()+' • '+$('mediaType').selectedOptions[0].text;$('customSize').style.display=$('sizePreset').value==='custom'?'block':'none';renderSheet()}
 function sheetGeometry(){const s=getSize(),rotated=$('sheetSize').value==='photo4x6rotated'||$('sheetSize').value==='photo4x6',tray=$('sheetSize').value==='epsonTray',custom=$('sheetSize').value==='custom',land=tray||rotated||$('sheetSize').value==='photo4x6'||$('orientation').value==='landscape',sizes={a4:{w:210,h:297},photo4x6:{w:101.6,h:152.4},photo4x6rotated:{w:101.6,h:152.4},letter:{w:215.9,h:279.4},dragon200:{w:200,h:300},dragon205:{w:205,h:304},custom:{w:Math.max(50,Math.min(500,+$('formatSheetW').value||210)),h:Math.max(50,Math.min(500,+$('formatSheetH').value||297))},epsonTray:{w:54,h:86}},page={...(sizes[$('sheetSize').value]||sizes.a4)};if(land){const z=page.w;page.w=page.h;page.h=z}const base=tray?0:(page.w<=120?5:8),feed=$('mediaType').value==='dragon'?Math.max(0,Math.min(25.4,+$('feedMargin').value||0)):0,edge=$('feedEdge').value||'left',m={left:base,right:base,top:base,bottom:base};if(feed)m[edge]+=feed;const gap=Math.max(0,Math.min(8,+$('gap').value||0)),both=$('printSides').value==='both';let pairDirection='horizontal',itemW=s.w,itemH=s.h,layoutCardW=s.w,layoutCardH=s.h;if(both){if(rotated){pairDirection='horizontal';layoutCardW=s.h;layoutCardH=s.w;itemW=layoutCardW*2+gap;itemH=layoutCardH}else if(page.w-m.left-m.right>=s.w*2+gap){pairDirection='horizontal';itemW=s.w*2+gap;itemH=s.h}else{pairDirection='vertical';itemW=s.w;itemH=s.h*2+gap}}const availableW=page.w-m.left-m.right,availableH=page.h-m.top-m.bottom,fits=itemW<=availableW&&itemH<=availableH,cols=fits?Math.max(1,Math.floor((availableW+gap)/(itemW+gap))):1,rows=fits?Math.max(1,Math.floor((availableH+gap)/(itemH+gap))):1;return {s,page,margin:base,margins:m,feed,edge,gap,cols,rows,capacity:cols*rows,both,pairDirection,itemW,itemH,layoutCardW,layoutCardH,rotated,tray,fits}}
 function renderSheet(){const n=Math.max(1,Math.min(30,+$('copies').value||1)),t=templates[$('cardType').value],g=sheetGeometry(),shown=Math.min(n,g.capacity),corner=$('cornerStyle').value==='rounded'?'rounded':'square';$('sheetWrap').style.setProperty('--page-ratio',g.page.w+'/'+g.page.h);$('sheetWrap').style.width='min(100%, '+Math.min(620,Math.round(760*g.page.w/g.page.h))+'px)';$('sheetWrap').style.padding=(g.margins.top/g.page.w*100)+'% '+(g.margins.right/g.page.w*100)+'% '+(g.margins.bottom/g.page.w*100)+'% '+(g.margins.left/g.page.w*100)+'%';$('feedMarginField').style.display=$('mediaType').value==='dragon'?'block':'none';$('feedEdgeField').style.display=$('mediaType').value==='dragon'&&g.feed>0?'block':'none';$('sheetWrap').classList.remove('feed-left','feed-right','feed-top','feed-bottom');if(g.feed>0)$('sheetWrap').classList.add('feed-'+g.edge);$('sheetWrap').style.setProperty('--feed-margin',g.feed+'mm');$('sheetGrid').style.transform=$('sheetSize').value==='epsonTray'?'translate('+((+$('formatOffsetX').value||0))+'mm,'+((+$('formatOffsetY').value||0))+'mm)':'';$('formatCustomSheetFields').style.display=$('sheetSize').value==='custom'?'block':'none';$('traySlotField').style.display=$('printFormat').value==='epson-tray'?'block':'none';$('trayOffsetFields').style.display=$('printFormat').value==='epson-tray'?'block':'none';$('sheetWrap').dataset.media=$('mediaType').value;$('sheetGrid').style.gap=(g.gap/g.page.w*100)+'%';const gridColumnWidth=g.rotated?(g.itemW/(g.page.w-g.margins.left-g.margins.right)*100):100;$('sheetGrid').style.gridTemplateColumns='repeat('+g.cols+',minmax(0,'+gridColumnWidth+'%))';$('sheetGrid').style.justifyContent='center';$('sheetGrid').style.setProperty('--card-ratio',g.s.w+'/'+g.s.h);$('sheetGrid').style.setProperty('--pair-ratio',g.itemW+'/'+g.itemH);$('sheetGrid').style.setProperty('--pair-gap',g.gap+'mm');$('sheetGrid').style.setProperty('--rot-card-ratio',g.rotated?(g.s.h/g.s.w):1);$('sheetGrid').style.setProperty('--rot-card-ratio-inverse',g.rotated?(g.s.w/g.s.h):1);const card=(which,i)=>{const cls='mini-card '+(g.rotated?'rotated ':'')+corner+' draggable-card';if(photoUrl){const data=getCroppedArtworkUrl(which)||photoUrl;return '<div class="'+cls+'" data-card-side="'+which+'"><div class="mini-artwork"><img src="'+data+'" alt="'+which+' side artwork"></div><button class="rotate-handle" type="button" data-rotate-handle="'+which+'" aria-label="Rotate '+which+' card">↻</button></div>'}return '<div class="'+cls+'" data-card-side="'+which+'"><div class="mini-brand">TANSHU ONLINE • SAMPLE</div><div class="mini-title">'+(which==='front'?t.title:t.title+' BACK')+'</div><div class="mini-lines"></div><div class="mini-lines" style="width:42%"></div><div class="mini-bottom">ILLUSTRATIVE • NOT OFFICIAL</div><div class="mini-id">DEMO '+String(i+1).padStart(2,'0')+'</div><button class="rotate-handle" type="button" data-rotate-handle="'+which+'" aria-label="Rotate '+which+' card">↻</button></div>'};const item=i=>g.both?'<div class="mini-pair '+(g.pairDirection==='vertical'?'stacked ':'')+(g.rotated?'rotated-pair':'')+'" data-pair="true">'+card('front',i)+card('back',i)+'</div>':card(side,i);$('sheetGrid').innerHTML=Array.from({length:shown},(_,i)=>item(i)).join('');applyArrangeTransforms(g);$('arrangeTools').style.display=g.rotated?'flex':'none';$('sheetLabel').textContent=$('sheetSize').selectedOptions[0].text+' • '+(g.both?'FRONT + BACK PAIRS':side.toUpperCase()+' SIDE')+' • '+n+' COPIES • '+g.cols+' COLUMNS × '+Math.ceil(n/g.cols)+' ROWS • '+$('orientation').value.toUpperCase()+' • '+$('mediaType').selectedOptions[0].text.toUpperCase()+(g.both?' • '+g.pairDirection.toUpperCase()+' PAIR'+(g.rotated?' • ROTATED 90° ID CARDS':''):'');$('status').textContent=!g.fits?'This full-size '+(g.both?'front/back pair':'card')+' does not fit the selected sheet orientation. Choose Portrait or a larger sheet; artwork will not be reduced.':n>g.capacity?'Only '+g.capacity+' complete '+(g.both?'front/back pair(s)':'card(s)')+' fit on one sheet at this size; reduce copies or adjust dimensions.':'Preview updated • '+n+' '+(g.both?'front/back pair(s)':'card(s)')+' fit on one sheet. Print at 100% / Actual Size.';$('mirrorPrint').checked&&$('sheetWrap').classList.add('mirror-preview');if(!$('mirrorPrint').checked)$('sheetWrap').classList.remove('mirror-preview');$('dragonProfileField').style.display=$('mediaType').value==='dragon'?'block':'none';const mh=$('mediaHint');if(mh){mh.textContent=$('mediaType').value==='dragon'?($('dragonProfile').value==='film125'?'Thin Dragon printable film selected: supplier listings show some variants around 125 µm. Confirm whether this is a print film used with a separate core/overlay before loading it.':$('dragonProfile').value==='layered076'?'A+B+A layered Dragon set selected: some packs total about 0.76–0.78 mm. Confirm the matching printer, lamination/fusing process and layer order on the pack.':'Custom Dragon stock selected: enter no assumed temperature or thickness; follow the exact supplier specification.'):$('mediaType').value==='pvc'?'PVC sheet: confirm inkjet/laser compatibility and whether the stock needs overlay, lamination or fusing.':'Select media that matches your printer and run a 100% scale test before production.'}}
@@ -373,29 +373,30 @@ function batchSetOriginal(item){
   $('batchOriginalImage').hidden=false;
 }
 function batchUpdateList(){
+  const gallery=document.querySelector('.upload-gallery');if(gallery)gallery.hidden=batchItems.length===0;
   $('batchCount').textContent=batchItems.length+' item'+(batchItems.length===1?'':'s');
   const galleryCount=document.getElementById('uploadGalleryCount');if(galleryCount)galleryCount.textContent=batchItems.length+' item'+(batchItems.length===1?'':'s');
   $('batchItemsList').innerHTML=batchItems.length?batchItems.map(item=>'<div class="batch-item-row '+(item.id===selectedBatchId?'active':'')+'"><button type="button" data-batch-select="'+item.id+'" style="border:0;background:transparent;text-align:left;min-width:0;flex:1;color:inherit"><img src="'+item.dataUrl+'" alt=""><span class="batch-item-name">'+batchEsc(item.name)+'</span><small>'+batchEsc(item.template.toUpperCase())+' • '+item.w+' × '+item.h+' mm</small></button><button type="button" data-batch-remove="'+item.id+'" aria-label="Remove '+batchEsc(item.name)+'">✕</button></div>').join(''):'<div class="batch-empty">No files uploaded yet.</div>';
-  $('batchSelectedSettings').hidden=!batchSelected();
+  $('batchSelectedSettings').hidden=!(batchItems.length>1&&batchSelected());
 }
 function batchSelect(id){
   const item=batchById(id);if(!item)return;
   selectedBatchId=id;
+  if(batchItems.length===1){batchMode=false;batchSetOriginal(null);batchUpdateList();mode='sheet';$('singleMode').classList.remove('active');$('sheetMode').classList.add('active');$('cardPreview').style.display='none';$('sheetWrap').classList.add('active');loadArtworkImage(item.dataUrl,item.name);return;}
   $('batchTemplate').value=item.template;
 
   const presets={'86x54':[86,54],'85.6x54':[85.6,54],'85.6x53.98':[85.6,53.98]};
   const match=Object.entries(presets).find(([,v])=>Math.abs(v[0]-item.w)<.001&&Math.abs(v[1]-item.h)<.001);
   $('batchSize').value=match?match[0]:'custom';
   $('batchWidth').value=item.w;$('batchHeight').value=item.h;
-  batchSetOriginal(item);batchUpdateList();batchMode=true;
-  mode='single';
+  batchSetOriginal(null);batchUpdateList();batchMode=true;
+  mode='sheet';
   $('cardPreview').style.display='none';
-  $('batchOriginal').hidden=false;
-  $('sheetWrap').classList.remove('active');
-  $('singleMode').classList.add('active');
-  $('sheetMode').classList.remove('active');
-  $('sizeReadout').textContent='Original page • Full image • No auto-crop';
-  $('status').textContent='Original page selected. Choose A4 SHEET when you are ready to arrange and print uploaded items.';
+  $('batchOriginal').hidden=true;
+  $('sheetWrap').classList.add('active');
+  $('singleMode').classList.remove('active');
+  $('sheetMode').classList.add('active');
+  renderBatchSheet();
 
 }
 function batchSetSize(item,w,h){item.w=Math.max(30,Math.min(200,Number(w)||85.6));item.h=Math.max(20,Math.min(140,Number(h)||54));}
@@ -463,7 +464,7 @@ function batchDeleteItem(id){
   if(removed.originalUrl&&removed.kind==='image')URL.revokeObjectURL(removed.originalUrl);
   if(removed.originalUrl&&removed.kind==='pdf'&&!batchItems.some(x=>x.originalUrl===removed.originalUrl))URL.revokeObjectURL(removed.originalUrl);
   if(selectedBatchId===id)selectedBatchId=batchItems[0]?.id||null;
-  if(batchItems.length){batchSelect(selectedBatchId);}else{batchMode=false;$('batchOriginal').hidden=true;$('sheetGrid').classList.remove('batch-layout');$('sheetGrid').innerHTML='';$('sheetWrap').classList.remove('active');$('singleMode').classList.add('active');$('sheetMode').classList.remove('active');mode='single';$('cardPreview').style.display='block';legacyRenderSheet();}
+  if(batchItems.length){batchSelect(selectedBatchId);}else{batchMode=false;$('batchOriginal').hidden=true;$('sheetGrid').classList.remove('batch-layout');$('sheetGrid').innerHTML='';$('sheetWrap').classList.add('active');$('singleMode').classList.remove('active');$('sheetMode').classList.add('active');mode='sheet';$('cardPreview').style.display='none';legacyRenderSheet();}
   batchUpdateList();
 }
 $('batchTemplate').addEventListener('change',()=>{
@@ -519,15 +520,15 @@ $('photoInput').addEventListener('change',async e=>{
  if(batchItems.length)batchSelect(selectedBatchId);
  batchUpdateList();
 });
-$('singleMode').addEventListener('click',()=>{if(batchMode){mode='single';$('singleMode').classList.add('active');$('sheetMode').classList.remove('active');$('sheetWrap').classList.remove('active');$('cardPreview').style.display='none';$('batchOriginal').hidden=!batchSelected();$('sizeReadout').textContent='Original page • Full image • No auto-crop';}else setMode('single');});
+$('singleMode').addEventListener('click',()=>setMode('sheet'));
 $('batchPass').addEventListener('change',()=>{if(batchMode)renderBatchSheet();});
 document.querySelectorAll('[data-side]').forEach(btn=>btn.addEventListener('click',()=>{
   const item=batchSelected();
-  if(!batchMode||!item||btn.dataset.side==='both')return;
+  if(!batchMode||!item)return;
   item.side=btn.dataset.side;
   batchUpdateList();
   renderBatchSheet();
-  $('status').textContent='Selected upload assigned to '+item.side.toUpperCase()+' pass. Use SHEET CONTENT to show all, front-only or back-only uploads.';
+  $('status').textContent='Selected upload assigned to '+item.side.toUpperCase()+' pass on the print sheet.';
 }));
 const legacyPrintSheet=printSheet;
 printSheet=function(){
@@ -693,6 +694,7 @@ $('resetBtn').addEventListener('click',()=>{
  #editor .premium-preview .crop-tools{display:none!important}
 }
 </style>
+<style id="pvc-single-sheet-preview-fix">\n#editor .batch-original{display:none!important}\n#editor #cardPreview{display:none!important}\n#editor .upload-gallery[hidden]{display:none!important}\n</style>
 <script>
 (function buildPremiumTopNavigation(){
  const editor=document.getElementById('editor');
@@ -743,7 +745,7 @@ $('resetBtn').addEventListener('click',()=>{
  preview.appendChild(workspace);
  const modeSwitch=toolbarMode&&toolbarMode.querySelector('.seg');
  const workspaceTop=workspace.querySelector('.workspace-top');
- if(modeSwitch&&workspaceTop)workspaceTop.appendChild(modeSwitch);
+ if(modeSwitch)modeSwitch.remove();
  const sheetGrid=toolbarSettings.querySelector('.sheet-settings-grid');
  const actions=sheetSettings.querySelector('.action-row');
  const status=sheetSettings.querySelector('.status');
@@ -767,12 +769,13 @@ $('resetBtn').addEventListener('click',()=>{
  const batchSelectedSettings=document.getElementById('batchSelectedSettings');
  const batchPassField=document.getElementById('batchPass')?.closest('.field');
  if(uploadSection&&batchList){
-  const gallery=document.createElement('div');gallery.className='upload-gallery';
+  const gallery=document.createElement('div');gallery.className='upload-gallery';gallery.hidden=true;
   gallery.innerHTML='<div class="upload-gallery-head"><b>UPLOADED FILES</b><span id="uploadGalleryCount">0 items</span></div>';
   gallery.appendChild(batchList);uploadSection.appendChild(gallery);if(batchSelectedSettings)uploadSection.appendChild(batchSelectedSettings);
  }
  if(uploadSection&&batchPassField){batchPassField.classList.add('upload-sheet-content');uploadSection.appendChild(batchPassField);}
  if(batchPanel){batchPanel.style.display='none';batchPanel.setAttribute('aria-hidden','true');}
+ const batchOriginal=document.getElementById('batchOriginal');if(batchOriginal)batchOriginal.hidden=true;
  const titles={
   upload:['STEP 01 • START HERE','Upload documents','Choose one or more images or PDFs. Each uploaded page stays available as an individual customer item.'],
   crop:['STEP 02 • IMAGE PREPARATION','Crop & clean edges','Choose the front, back or both sides, then use Auto Crop or Manual Crop.'],
