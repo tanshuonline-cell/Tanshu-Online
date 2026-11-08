@@ -464,7 +464,7 @@ function batchDeleteItem(id){
   if(removed.originalUrl&&removed.kind==='image')URL.revokeObjectURL(removed.originalUrl);
   if(removed.originalUrl&&removed.kind==='pdf'&&!batchItems.some(x=>x.originalUrl===removed.originalUrl))URL.revokeObjectURL(removed.originalUrl);
   if(selectedBatchId===id)selectedBatchId=batchItems[0]?.id||null;
-  if(batchItems.length){batchSelect(selectedBatchId);}else{batchMode=false;$('batchOriginal').hidden=true;$('sheetGrid').classList.remove('batch-layout');$('sheetGrid').innerHTML='';$('sheetWrap').classList.add('active');$('singleMode').classList.remove('active');$('sheetMode').classList.add('active');mode='sheet';$('cardPreview').style.display='none';legacyRenderSheet();}
+  if(batchItems.length){batchSelect(selectedBatchId);}else{batchMode=false;photoUrl=null;photoDataUrl=null;loadedArtworkImage=null;$('photoStatus').innerHTML='';$('batchOriginal').hidden=true;$('sheetGrid').classList.remove('batch-layout');$('sheetGrid').innerHTML='';$('sheetWrap').classList.add('active');$('singleMode').classList.remove('active');$('sheetMode').classList.add('active');mode='sheet';$('cardPreview').style.display='none';legacyRenderSheet();}
   batchUpdateList();
 }
 $('batchTemplate').addEventListener('change',()=>{
