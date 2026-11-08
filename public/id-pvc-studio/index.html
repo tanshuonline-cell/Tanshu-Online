@@ -699,4 +699,229 @@ $('resetBtn').addEventListener('click',()=>{
 }
 </style>
 
+
+<style id="tanshu-pvc-premium-top-navigation">
+:root{--pvc-ink:#1b2038;--pvc-muted:#727993;--pvc-line:#e2e5f0;--pvc-paper:#f5f6fb;--pvc-violet:#6557d9;--pvc-violet2:#8176f2;--pvc-cyan:#1b9bb5;--pvc-card:#fff}
+#editor.active{display:block;background:linear-gradient(145deg,#f4f5fb 0%,#eef1f8 52%,#f7f7fc 100%);min-height:calc(100vh - 64px);color:var(--pvc-ink)}
+#editor .editor-head,#editor .studio-toolbar{display:none!important}
+#editor .premium-studio{position:sticky;top:64px;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-bottom:1px solid #e4e5f1;box-shadow:0 9px 28px rgba(39,38,91,.08)}
+#editor .premium-brandrow{min-height:66px;display:flex;align-items:center;gap:18px;padding:9px clamp(14px,2.6vw,38px);max-width:1800px;margin:auto}
+#editor .premium-brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:190px}
+#editor .premium-mark{width:39px;height:39px;border-radius:13px;background:linear-gradient(145deg,#7569ee,#3f3b9d 65%,#159cb7);display:grid;place-items:center;color:white;font-weight:1000;font-size:17px;box-shadow:0 7px 17px #6259cb44}
+#editor .premium-brand strong{display:block;font-size:15px;letter-spacing:.045em;color:#20213e;font-weight:950}
+#editor .premium-brand small{display:block;font-size:8px;letter-spacing:.17em;color:#8a8da5;margin-top:3px;font-weight:800}
+#editor .premium-back{border:1px solid #e1e3ef;background:#fff;border-radius:10px;padding:9px 11px;color:#626783;font-size:10px;font-weight:900;white-space:nowrap}
+#editor .premium-state{margin-left:auto;border:1px solid #dcdaf9;background:#f4f2ff;color:#6257c7;border-radius:999px;padding:7px 11px;font-size:9px;font-weight:950;white-space:nowrap}
+#editor .premium-navrow{max-width:1800px;margin:auto;padding:0 clamp(12px,2vw,32px) 11px;display:flex;align-items:center;gap:5px;overflow-x:auto;scrollbar-width:thin}
+#editor .premium-navrow button{flex:0 0 auto;border:1px solid transparent;background:transparent;border-radius:10px;padding:10px 12px;color:#626984;font-size:10px;font-weight:950;letter-spacing:.025em;white-space:nowrap;transition:.18s}
+#editor .premium-navrow button:hover{background:#f1f0ff;color:#5145c2}
+#editor .premium-navrow button.active{background:linear-gradient(135deg,#6659d9,#5145bc);color:#fff;box-shadow:0 7px 17px #6557d933}
+#editor .premium-navrow button .nav-num{opacity:.65;margin-right:5px;font-size:9px}
+#editor .premium-grid{max-width:1800px;margin:auto;padding:18px clamp(12px,2vw,30px) 28px;display:grid;grid-template-columns:minmax(320px,390px) minmax(0,1fr);gap:18px;align-items:start}
+#editor .premium-controls{min-width:0;background:#fff;border:1px solid #e3e5f0;border-radius:17px;box-shadow:0 12px 32px rgba(39,38,91,.055);overflow:hidden;position:sticky;top:177px;max-height:calc(100vh - 195px);display:flex;flex-direction:column}
+#editor .premium-panel-head{padding:16px 18px 12px;border-bottom:1px solid #edf0f6;background:linear-gradient(120deg,#fff,#f8f8ff)}
+#editor .premium-panel-head span{font-size:9px;color:#786de0;letter-spacing:.15em;font-weight:950}
+#editor .premium-panel-head h3{font-size:17px;margin:5px 0 3px;color:#252644;letter-spacing:-.025em}
+#editor .premium-panel-head p{font-size:10px;color:#8589a1;margin:0;line-height:1.5}
+#editor .premium-panel-body{padding:14px 16px 18px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#editor .premium-panel-body>.field,#editor .premium-panel-body .field{margin:0 0 13px;min-width:0}
+#editor .premium-panel-body label{font-size:9px!important;color:#626783!important;letter-spacing:.06em}
+#editor .premium-panel-body select,#editor .premium-panel-body input[type=number],#editor .premium-panel-body input[type=text]{border:1px solid #dfe2ef;border-radius:10px;background:#fbfbff;color:#292b49;padding:10px 11px;font-size:11px;min-height:38px}
+#editor .premium-panel-body select:focus,#editor .premium-panel-body input:focus{outline:2px solid #8176f255;border-color:#8176f2}
+#editor .premium-panel-body .hint{font-size:9px;color:#898da4;line-height:1.55}
+#editor .premium-panel-body .seg{background:#f0effb;border-radius:11px;padding:4px}
+#editor .premium-panel-body .seg button{border-radius:8px;font-size:9px}
+#editor .premium-panel-body .seg button.active{background:#fff;color:#584cc8;box-shadow:0 2px 7px #403b871c}
+#editor .premium-panel-body .design-selection,#editor .premium-panel-body .batch-panel,#editor .premium-panel-body #uploadSection{border:1px solid #e7e7f2;border-radius:13px;padding:13px;background:#fbfbff;margin:0 0 12px}
+#editor .premium-panel-body #photoInput{width:100%;border:1px dashed #a9a6e6;border-radius:12px;padding:11px;background:#f8f7ff;font-size:10px}
+#editor .premium-panel-body #photoInput::file-selector-button{border:0;border-radius:8px;padding:9px 12px;margin-right:8px;background:linear-gradient(135deg,#6c5de0,#4f46b8);color:#fff;font-size:10px;font-weight:900;cursor:pointer}
+#editor .premium-panel-body .batch-items-list{display:grid;gap:6px;max-height:180px;overflow:auto}
+#editor .premium-panel-body .batch-item-row{border:1px solid #e4e6f0;border-radius:9px;background:#fff}
+#editor .premium-panel-body .batch-item-row.active{border-color:#8c83ec;background:#f5f3ff}
+#editor .premium-panel-body .batch-item-row>button:last-child{border:1px solid #f2caca;border-radius:7px;background:#fff2f2;color:#cf4444}
+#editor .premium-panel-body .design-heading{color:#5148b5}
+#editor .premium-panel-body .design-choice.active{border-color:#8075e7;background:#f4f2ff}
+#editor .premium-panel-body .frame-optional{border:1px solid #e6e6f0;border-radius:10px;padding:10px}
+#editor .premium-panel-body .format-selection{border:1px solid #e6e6f0;border-radius:13px;padding:13px;background:#fbfbff}
+#editor .premium-panel-body .format-selection h3{font-size:11px;margin:0 0 12px;color:#554bb8}
+#editor .premium-preview{min-width:0}
+#editor .premium-preview .workspace{min-width:0}
+#editor .premium-preview .workspace-top{position:sticky;top:177px;z-index:12;margin:0 0 12px;padding:12px 15px;border:1px solid #e2e4f0;border-radius:13px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);box-shadow:0 7px 22px rgba(39,38,91,.055)}
+#editor .premium-preview .workspace-top h3{font-size:14px;color:#292a4a}
+#editor .premium-preview .workspace-top .muted{font-size:9px;color:#898da4}
+#editor .premium-preview .workspace-top .seg{background:#f0effb;border-radius:10px;padding:4px}
+#editor .premium-preview .workspace-top .seg button{font-size:9px;border-radius:7px}
+#editor .premium-preview .workspace-top .seg button.active{background:#fff;color:#584cc8}
+#editor .premium-preview .preview-area{min-height:calc(100vh - 280px);padding:clamp(15px,2vw,30px);border:1px solid #dfe2ef;border-radius:18px;background:radial-gradient(circle at 50% 12%,#fff 0,#f0f1f9 70%);box-shadow:inset 0 1px 0 #fff;align-items:center}
+#editor .premium-preview .card-preview{box-shadow:0 24px 55px rgba(35,36,78,.19);border-radius:14px}
+#editor .premium-preview .sheet-wrap{box-shadow:0 20px 48px rgba(35,36,78,.15);border:1px solid #dfe2ee}
+#editor .premium-preview .crop-tools{margin-top:12px;border:1px solid #e1e3ef;border-radius:14px;background:#fff;padding:14px;box-shadow:0 7px 22px rgba(39,38,91,.04)}
+#editor .premium-preview .crop-action{border-radius:9px}
+#editor .premium-actions{position:sticky;bottom:8px;z-index:14;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px;border:1px solid #e1e3ef;border-radius:13px;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(39,38,91,.09)}
+#editor .premium-actions .action{border-radius:9px;padding:11px 14px;font-size:9px}
+#editor .premium-actions .action.main{background:linear-gradient(135deg,#6659d9,#4f46b8);box-shadow:0 7px 15px #6557d933}
+#editor .premium-status{font-size:10px;color:#686d88;margin:8px 2px 0}
+#editor .premium-controls .back-btn,#editor .premium-controls>h3{display:none!important}
+#editor .premium-panel-body .arrange-tools{display:grid!important;gap:8px}
+#editor .premium-panel-body .arrange-tools button{width:100%}
+#editor .premium-panel-body .crop-tools{display:block!important}
+#editor .premium-panel-body .crop-editor{display:block}
+#editor .premium-panel-body .crop-editor:not(.active){display:none}
+#editor .premium-panel-body .crop-tools-actions{display:flex;gap:6px;flex-wrap:wrap}
+#editor .premium-panel-body .crop-tools-actions button{flex:1 1 95px}
+#editor .premium-panel-body .crop-stage{max-width:100%}
+#editor .premium-panel-body .sheet-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#editor .premium-panel-body .sheet-settings-grid .field{margin:0}
+#editor .premium-panel-body #mirrorPrint{width:15px;min-width:15px}
+@media(max-width:1050px){
+ #editor .premium-grid{grid-template-columns:minmax(285px,350px) minmax(0,1fr);gap:12px}
+ #editor .premium-brand{min-width:160px}
+ #editor .premium-navrow button{padding:9px 10px}
+}
+@media(max-width:760px){
+ #editor .premium-studio{top:64px}
+ #editor .premium-brandrow{min-height:58px;gap:9px}
+ #editor .premium-brand{min-width:0}
+ #editor .premium-brand strong{font-size:12px}
+ #editor .premium-brand small{font-size:7px}
+ #editor .premium-back{font-size:8px;padding:8px}
+ #editor .premium-state{font-size:8px;padding:6px 8px}
+ #editor .premium-navrow{padding-bottom:8px}
+ #editor .premium-navrow button{font-size:9px;padding:9px}
+ #editor .premium-grid{grid-template-columns:1fr;padding:12px;gap:12px}
+ #editor .premium-controls{position:relative;top:auto;max-height:none;min-height:0}
+ #editor .premium-panel-body{max-height:46vh}
+ #editor .premium-preview .workspace-top{top:146px}
+ #editor .premium-preview .preview-area{min-height:390px}
+}
+@media(max-width:480px){
+ #editor .premium-brandrow{flex-wrap:wrap}
+ #editor .premium-back{margin-left:auto}
+ #editor .premium-state{display:none}
+ #editor .premium-panel-body{padding:12px}
+ #editor .premium-preview .workspace-top{flex-wrap:wrap;gap:8px}
+ #editor .premium-preview .preview-area{min-height:340px;padding:10px}
+ #editor .premium-actions{bottom:5px;gap:5px;padding:7px}
+ #editor .premium-actions .action{flex:1 1 42%;padding:10px 7px}
+}
+@media print{
+ #editor .premium-studio,#editor .premium-controls,#editor .premium-actions,#editor .premium-preview .workspace-top{display:none!important}
+ #editor .premium-grid{display:block;padding:0;margin:0}
+ #editor .premium-preview .preview-area{min-height:0;padding:0;border:0;background:#fff;box-shadow:none}
+ #editor .premium-preview .crop-tools{display:none!important}
+}
+</style>
+<script>
+(function buildPremiumTopNavigation(){
+ const editor=document.getElementById('editor');
+ if(!editor||editor.dataset.premiumNavBuilt==='1')return;
+ editor.dataset.premiumNavBuilt='1';
+ ['tanshu-pvc-sticky-studio-redesign','tanshu-pvc-workspace-header-controls'].forEach(function(id){const old=document.getElementById(id);if(old)old.remove();});
+ const oldHead=editor.querySelector('.editor-head');
+ const oldLayout=editor.querySelector('.editor-layout');
+ const aside=oldLayout&&oldLayout.querySelector(':scope > aside');
+ const workspace=oldLayout&&oldLayout.querySelector(':scope > .workspace');
+ const toolbarMode=document.getElementById('toolbarMode');
+ const toolbarSettings=document.getElementById('toolbarSettings');
+ const sheetSettings=document.getElementById('sheetSettings');
+ if(!oldLayout||!aside||!workspace||!toolbarSettings||!sheetSettings)return;
+ const brandContent=oldHead&&oldHead.firstElementChild;
+ const back=document.getElementById('backWelcome');
+ const state=oldHead&&oldHead.querySelector('.pill');
+ const studio=document.createElement('div');studio.className='premium-studio';
+ const brandRow=document.createElement('div');brandRow.className='premium-brandrow';
+ const brand=document.createElement('div');brand.className='premium-brand';brand.innerHTML='<span class="premium-mark">T</span><span><strong>TANSHU ONLINE</strong><small>ID CARD & PVC PRINT STUDIO</small></span>';
+ if(back){back.className='premium-back';brandRow.appendChild(back);}
+ brandRow.insertBefore(brand,brandRow.firstChild);
+ if(state){state.className='premium-state';state.textContent='● DEMO • LOCAL PREVIEW';brandRow.appendChild(state);}
+ const nav=document.createElement('nav');nav.className='premium-navrow';nav.setAttribute('aria-label','PVC Studio tools');
+ const navItems=[
+  ['upload','01','UPLOAD','Add photos, scans and PDF pages'],
+  ['crop','02','CROP','Auto crop, manual crop and front/back crop'],
+  ['card','03','CARD TYPE','Template, side and original document mode'],
+  ['finish','04','IMAGE TOOLS','Colour and scan finish presets, frames'],
+  ['catalog','05','INDIA CATALOG','Indian ID card catalogue'],
+  ['size','06','CARD PRESET','Card size and custom dimensions'],
+  ['media','07','PRINT MEDIA','PVC, Dragon, magnetic and paper'],
+  ['format','08','PRINT FORMAT','Printer and insert profiles'],
+  ['sheet','09','SHEET SETUP','Sheet, copies, gap, corners and mirror'],
+  ['arrange','10','ARRANGE','Rotate and position controls']
+ ];
+ navItems.forEach(function(item){const b=document.createElement('button');b.type='button';b.dataset.tab=item[0];b.innerHTML='<span class="nav-num">'+item[1]+'</span>'+item[2];b.title=item[3];nav.appendChild(b);});
+ studio.append(brandRow,nav);
+ const grid=document.createElement('div');grid.className='premium-grid';
+ const controls=document.createElement('aside');controls.className='premium-controls';
+ const panelHead=document.createElement('div');panelHead.className='premium-panel-head';
+ const panelTitle=document.createElement('h3');const panelDesc=document.createElement('p');const panelKicker=document.createElement('span');
+ panelHead.append(panelKicker,panelTitle,panelDesc);
+ const panelBody=document.createElement('div');panelBody.className='premium-panel-body';
+ controls.append(panelHead,panelBody);
+ const preview=document.createElement('main');preview.className='premium-preview';
+ preview.appendChild(workspace);
+ const modeSwitch=toolbarMode&&toolbarMode.querySelector('.seg');
+ const workspaceTop=workspace.querySelector('.workspace-top');
+ if(modeSwitch&&workspaceTop)workspaceTop.appendChild(modeSwitch);
+ const sheetGrid=toolbarSettings.querySelector('.sheet-settings-grid');
+ const actions=sheetSettings.querySelector('.action-row');
+ const status=sheetSettings.querySelector('.status');
+ const crop=document.getElementById('cropTools');
+ const arrange=document.getElementById('arrangeTools');
+ const groups={
+  upload:[document.getElementById('uploadSection'),document.getElementById('batchPanel')],
+  crop:[crop],
+  card:[document.getElementById('cardType')?.closest('.field'),document.querySelector('[data-side]')?.closest('.field')],
+  finish:[document.getElementById('designSelection')],
+  catalog:[document.getElementById('indiaCatalogField')],
+  size:[document.getElementById('sizePreset')?.closest('.field'),document.getElementById('customSize')],
+  media:[document.getElementById('mediaType')?.closest('.field'),document.getElementById('dragonProfileField'),document.getElementById('mediaHint')],
+  format:[aside.querySelector('.format-selection')],
+  sheet:[sheetGrid],
+  arrange:[arrange]
+ };
+ const titles={
+  upload:['STEP 01 • START HERE','Upload documents','Choose one or more images or PDFs. Each uploaded page stays available as an individual customer item.'],
+  crop:['STEP 02 • IMAGE PREPARATION','Crop & clean edges','Choose the front, back or both sides, then use Auto Crop or Manual Crop.'],
+  card:['STEP 03 • CARD TYPE','Choose card template','Select the document template and the side you want to work on.'],
+  finish:['IMAGE TOOLS • PRINT FINISH','Colour & scan finish','Choose the available colour correction, clarity and frame presets.'],
+  catalog:['INDIA CARD CATALOG','Choose an Indian card type','Use the catalogue for sizing guidance while keeping the original uploaded artwork.'],
+  size:['CARD PRESET','Set card dimensions','Choose Aadhaar, CR80, ISO ID-1 or enter custom dimensions.'],
+  media:['PRINT MEDIA','Choose your material','Select PVC, Dragon, magnetic or A4 proof media and its related stock profile.'],
+  format:['PRINT FORMAT','Choose printer and insert','Select the print format, printer profile, tray and any required alignment values.'],
+  sheet:['SHEET SETUP','Arrange the output sheet','Set sheet size, copies, card gap, print sides, corners, orientation and mirror option.'],
+  arrange:['LAYOUT TOOLS','Position & rotate','Use the available controls to rotate or reset front/back and selected customer cards.']
+ };
+ function appendNodes(key){
+  panelBody.innerHTML='';
+  (groups[key]||[]).forEach(function(node){if(node)panelBody.appendChild(node);});
+  if(key==='crop'&&crop){crop.style.display='block';}
+  if(key==='arrange'&&arrange){arrange.style.display='grid';}
+  if(key==='sheet'&&sheetGrid){sheetGrid.style.display='grid';}
+  if(key==='upload'){
+   const cardSide=document.querySelector('[data-side]')?.closest('.field');
+   if(cardSide)panelBody.appendChild(cardSide);
+  }
+  panelKicker.textContent=titles[key][0];panelTitle.textContent=titles[key][1];panelDesc.textContent=titles[key][2];
+ }
+ function activate(key){
+  nav.querySelectorAll('button').forEach(function(b){b.classList.toggle('active',b.dataset.tab===key);});
+  appendNodes(key);
+  controls.dataset.activeTab=key;
+ }
+ nav.addEventListener('click',function(e){const b=e.target.closest('button[data-tab]');if(b)activate(b.dataset.tab);});
+ grid.append(controls,preview);
+ studio.appendChild(grid);
+ editor.insertBefore(studio,oldHead||oldLayout);
+ if(oldHead)oldHead.remove();
+ if(toolbarMode)toolbarMode.remove();
+ if(toolbarSettings)toolbarSettings.remove();
+ const oldAsideBack=aside.querySelector('#demoReturn');if(oldAsideBack)oldAsideBack.remove();
+ const actionBar=document.createElement('div');actionBar.className='premium-actions';
+ if(actions)actionBar.appendChild(actions);
+ if(status){status.className='premium-status';actionBar.appendChild(status);}
+ preview.appendChild(actionBar);
+ oldLayout.remove();
+ activate('upload');
+})();
+</script>
+
 </body></html>
