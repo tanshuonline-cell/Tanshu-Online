@@ -51,7 +51,7 @@
 .sheet-grid.batch-layout{display:flex!important;flex-wrap:wrap;align-content:flex-start;align-items:flex-start;justify-content:flex-start!important;gap:2mm!important;width:100%;transform:none!important}
 .batch-card{position:relative;flex:0 0 auto;box-sizing:border-box;border:1px solid #9aabb9;border-radius:1mm;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#34455d}
 .batch-card img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
-.batch-card .batch-card-label{position:absolute;left:1mm;top:1mm;max-width:80%;padding:1px 3px;border-radius:3px;background:#ffffffd9;color:#53657a;font-size:6px;line-height:1.2;pointer-events:none}
+.batch-card[data-template="aadhaar"]{border-color:#0b7f78}.batch-card[data-template="pan"]{border-color:#64748b}.batch-card[data-template="voter"]{border-color:#2563eb}.batch-card[data-template="generic"]{border-style:dashed}.batch-card[data-template="pvc"]{border-color:#0c8f84;border-width:1.2px}.batch-card .batch-card-label{position:absolute;left:1mm;top:1mm;max-width:80%;padding:1px 3px;border-radius:3px;background:#ffffffd9;color:#53657a;font-size:6px;line-height:1.2;pointer-events:none}
 .batch-card .batch-delete{display:none;position:absolute;right:2px;top:2px;z-index:10;width:25px;height:25px;border:0;border-radius:50%;background:#dc2626;color:#fff;font-size:15px;font-weight:900;box-shadow:0 2px 7px #0005;cursor:pointer}
 .batch-card.delete-ready .batch-delete{display:block}
 .batch-card.delete-ready{outline:2px solid #dc2626;outline-offset:1px}
@@ -114,8 +114,8 @@
   <div class="batch-list-head"><b>Uploaded card items</b><span id="batchCount">0 items</span></div>
   <div id="batchItemsList" class="batch-items-list"><div class="batch-empty">No additional files uploaded yet.</div></div>
   <div class="batch-selected-settings" id="batchSelectedSettings" hidden>
-    <div class="field"><label for="batchTemplate">SELECTED ITEM • CARD TEMPLATE</label><select id="batchTemplate"><option value="aadhaar">Aadhaar-style sample</option><option value="pan">PAN-style sample</option><option value="voter">Voter ID-style sample</option><option value="generic">Generic ID card</option><option value="blank">Blank custom card</option></select></div>
-    <div class="field"><label for="batchSize">SELECTED ITEM • CARD SIZE</label><select id="batchSize"><option value="86x54">Aadhaar PVC • 86 × 54 mm</option><option value="85.6x54">CR80 • 85.6 × 54 mm</option><option value="85.6x53.98">ISO ID-1 • 85.6 × 53.98 mm</option><option value="custom">Custom dimensions</option></select></div>
+    <div class="field"><label for="batchTemplate">SELECTED ITEM • CARD TEMPLATE</label><select id="batchTemplate"><option value="">Select template first…</option><option value="pvc">PVC Card • Original artwork</option><option value="aadhaar">Aadhaar-style sample</option><option value="pan">PAN-style sample</option><option value="voter">Voter ID-style sample</option><option value="generic">Generic ID card</option><option value="blank">Blank custom card</option></select></div>
+    <div class="field"><label for="batchSide">SELECTED ITEM • PRINT SIDE</label><select id="batchSide"><option value="front">FRONT</option><option value="back">BACK</option></select></div><div class="field"><label for="batchSize">SELECTED ITEM • CARD SIZE</label><select id="batchSize"><option value="86x54">Aadhaar PVC • 86 × 54 mm</option><option value="85.6x54">CR80 • 85.6 × 54 mm</option><option value="85.6x53.98">ISO ID-1 • 85.6 × 53.98 mm</option><option value="custom">Custom dimensions</option></select></div>
     <div class="batch-dimensions" id="batchDimensions"><div class="field"><label for="batchWidth">WIDTH (mm)</label><input id="batchWidth" type="number" min="30" max="200" step=".1" value="86"></div><div class="field"><label for="batchHeight">HEIGHT (mm)</label><input id="batchHeight" type="number" min="20" max="140" step=".1" value="54"></div></div>
     <div class="hint">These settings apply only to the selected uploaded item. Other customers' cards keep their own template and dimensions.</div>
   </div>
@@ -167,6 +167,7 @@ function batchSelect(id){
   const item=batchById(id);if(!item)return;
   selectedBatchId=id;
   $('batchTemplate').value=item.template;
+  $('batchSide').value=item.side||'front';
   const presets={'86x54':[86,54],'85.6x54':[85.6,54],'85.6x53.98':[85.6,53.98]};
   const match=Object.entries(presets).find(([,v])=>Math.abs(v[0]-item.w)<.001&&Math.abs(v[1]-item.h)<.001);
   $('batchSize').value=match?match[0]:'custom';
@@ -179,6 +180,7 @@ function batchSelect(id){
 function batchSetSize(item,w,h){item.w=Math.max(30,Math.min(200,Number(w)||85.6));item.h=Math.max(20,Math.min(140,Number(h)||54));}
 function renderBatchSheet(){
   const g=sheetGeometry(),page=g.page,margin=page.w<=120?5:8;
+  const readyItems=batchItems.filter(x=>!!x.template);
   $('sheetWrap').dataset.media=$('mediaType').value;
   $('sheetWrap').style.width='min(100%, '+Math.min(620,Math.round(760*page.w/page.h))+'px)';
   $('sheetWrap').style.aspectRatio=page.w+'/'+page.h;
@@ -187,10 +189,10 @@ function renderBatchSheet(){
   $('sheetGrid').classList.add('batch-layout');
   $('sheetGrid').style.display='flex';$('sheetGrid').style.flexWrap='wrap';
   $('sheetGrid').style.gap='2mm';$('sheetGrid').style.transform='none';
-  $('sheetGrid').innerHTML=batchItems.map(item=>'<div class="batch-card" data-batch-card="'+item.id+'" data-template="'+item.template+'" style="width:'+item.w+'mm;height:'+item.h+'mm"><img src="'+item.dataUrl+'" alt="Original artwork for '+batchEsc(item.name)+'"><span class="batch-card-label">'+batchEsc(item.template.toUpperCase())+' • '+batchEsc(item.name)+'</span><button class="batch-delete" type="button" data-batch-delete="'+item.id+'" aria-label="Delete this card">×</button></div>').join('');
-  $('sheetLabel').textContent='MULTI-CUSTOMER SHEET • '+batchItems.length+' CARD ITEMS • '+$('sheetSize').selectedOptions[0].text;
+  $('sheetGrid').innerHTML=readyItems.map(item=>'<div class="batch-card" data-batch-card="'+item.id+'" data-template="'+item.template+'" style="width:'+item.w+'mm;height:'+item.h+'mm"><img src="'+item.dataUrl+'" alt="Original artwork for '+batchEsc(item.name)+'"><span class="batch-card-label">'+batchEsc(item.template.toUpperCase())+' • '+batchEsc((item.side||'front').toUpperCase())+' • '+batchEsc(item.name)+'</span><button class="batch-delete" type="button" data-batch-delete="'+item.id+'" aria-label="Delete this card">×</button></div>').join('');
+  $('sheetLabel').textContent='MULTI-CUSTOMER SHEET • '+readyItems.length+' READY / '+batchItems.length+' UPLOADED • '+$('sheetSize').selectedOptions[0].text;
   $('arrangeTools').style.display='none';
-  $('status').textContent=batchItems.length+' independent card item(s) • each item keeps its own template and physical size. Tap a card once to reveal its red Delete icon.';
+  $('status').textContent=readyItems.length+' card item(s) ready from '+batchItems.length+' uploads. Choose a template for each item; tap a card once to reveal its red Delete icon.';
 }
 function batchLeave(){
   batchMode=false;
@@ -232,6 +234,7 @@ $('batchSize').addEventListener('change',()=>{
  if(p)batchSetSize(item,p[0],p[1]);
  $('batchWidth').value=item.w;$('batchHeight').value=item.h;batchUpdateList();renderBatchSheet();
 });
+$('batchSide').addEventListener('change',()=>{const item=batchSelected();if(!item)return;item.side=$('batchSide').value;batchUpdateList();renderBatchSheet();});
 ['batchWidth','batchHeight'].forEach(id=>$(id).addEventListener('change',()=>{
  const item=batchSelected();if(!item)return;batchSetSize(item,$('batchWidth').value,$('batchHeight').value);$('batchSize').value='custom';batchUpdateList();renderBatchSheet();
 }));
@@ -265,7 +268,7 @@ $('batchFiles').addEventListener('change',async e=>{
    else throw new Error(file.name+' is not a supported image or PDF.');
    for(const page of pages){
     const id='batch-'+(++batchSequence);
-    const item={...page,id,template:'blank',w:86,h:54};
+    const item={...page,id,template:'',side:'front',w:86,h:54};
     batchItems.push(item);
    }
    if(pages[0]){selectedBatchId=batchItems[batchItems.length-pages.length].id;batchSetOriginal(batchItems[batchItems.length-pages.length]);}
@@ -275,6 +278,7 @@ $('batchFiles').addEventListener('change',async e=>{
  if(batchItems.length)batchSelect(selectedBatchId);
  batchUpdateList();
 });
+$('singleMode').addEventListener('click',()=>{if(batchMode)batchLeave();});
 const legacyPrintSheet=printSheet;
 printSheet=function(){
  if(!batchMode){legacyPrintSheet();return;}
@@ -292,7 +296,7 @@ downloadSheetSvg=function(){
  if(!batchMode){legacyDownloadSvg();return;}
  const g=sheetGeometry(),page=g.page,margin=page.w<=120?5:8,gap=2;
  let x=margin,y=margin,rowH=0,body='',overflow=false;
- for(const item of batchItems){
+ for(const item of batchItems.filter(x=>!!x.template)){
   if(x+item.w>page.w-margin){x=margin;y+=rowH+gap;rowH=0;}
   if(y+item.h>page.h-margin){overflow=true;break;}
   body+='<rect x="'+x+'" y="'+y+'" width="'+item.w+'" height="'+item.h+'" fill="white" stroke="#8799a8" stroke-width=".25"/><image href="'+item.dataUrl+'" x="'+x+'" y="'+y+'" width="'+item.w+'" height="'+item.h+'" preserveAspectRatio="xMidYMid meet"/>';
