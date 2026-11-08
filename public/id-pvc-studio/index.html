@@ -111,7 +111,7 @@
 <div class="batch-panel" id="batchPanel">
   <h3>② Multi-Upload • Customer Cards</h3>
   <div class="field"><label for="batchFiles">UPLOAD MULTIPLE PHOTOS / PDF FILES</label><input id="batchFiles" type="file" accept="image/*,application/pdf,.pdf" multiple><div class="hint">Each image becomes one card. Every page of an uploaded PDF becomes its own card item. Original files remain available in the Original Preview.</div></div>
-  <div class="batch-list-head"><b>Uploaded card items</b><span id="batchCount">0 items</span></div>
+  <div class="field"><label for="batchPass">PRINT PASS / SIDE</label><select id="batchPass"><option value="all">All uploaded sides</option><option value="front">Front side only</option><option value="back">Back side only</option></select></div><div class="batch-list-head"><b>Uploaded card items</b><span id="batchCount">0 items</span></div>
   <div id="batchItemsList" class="batch-items-list"><div class="batch-empty">No additional files uploaded yet.</div></div>
   <div class="batch-selected-settings" id="batchSelectedSettings" hidden>
     <div class="field"><label for="batchTemplate">SELECTED ITEM • CARD TEMPLATE</label><select id="batchTemplate"><option value="">Select template first…</option><option value="pvc">PVC Card • Original artwork</option><option value="aadhaar">Aadhaar-style sample</option><option value="pan">PAN-style sample</option><option value="voter">Voter ID-style sample</option><option value="generic">Generic ID card</option><option value="blank">Blank custom card</option></select></div>
@@ -180,7 +180,7 @@ function batchSelect(id){
 function batchSetSize(item,w,h){item.w=Math.max(30,Math.min(200,Number(w)||85.6));item.h=Math.max(20,Math.min(140,Number(h)||54));}
 function renderBatchSheet(){
   const g=sheetGeometry(),page=g.page,margin=page.w<=120?5:8;
-  const readyItems=batchItems.filter(x=>!!x.template);
+  const readyItems=batchItems.filter(x=>!!x.template&&($('batchPass').value==='all'||(x.side||'front')===$('batchPass').value));
   $('sheetWrap').dataset.media=$('mediaType').value;
   $('sheetWrap').style.width='min(100%, '+Math.min(620,Math.round(760*page.w/page.h))+'px)';
   $('sheetWrap').style.aspectRatio=page.w+'/'+page.h;
@@ -279,6 +279,7 @@ $('batchFiles').addEventListener('change',async e=>{
  batchUpdateList();
 });
 $('singleMode').addEventListener('click',()=>{if(batchMode)batchLeave();});
+$('batchPass').addEventListener('change',()=>{if(batchMode)renderBatchSheet();});
 const legacyPrintSheet=printSheet;
 printSheet=function(){
  if(!batchMode){legacyPrintSheet();return;}
@@ -296,7 +297,7 @@ downloadSheetSvg=function(){
  if(!batchMode){legacyDownloadSvg();return;}
  const g=sheetGeometry(),page=g.page,margin=page.w<=120?5:8,gap=2;
  let x=margin,y=margin,rowH=0,body='',overflow=false;
- for(const item of batchItems.filter(x=>!!x.template)){
+ for(const item of batchItems.filter(x=>!!x.template&&($('batchPass').value==='all'||(x.side||'front')===$('batchPass').value))){
   if(x+item.w>page.w-margin){x=margin;y+=rowH+gap;rowH=0;}
   if(y+item.h>page.h-margin){overflow=true;break;}
   body+='<rect x="'+x+'" y="'+y+'" width="'+item.w+'" height="'+item.h+'" fill="white" stroke="#8799a8" stroke-width=".25"/><image href="'+item.dataUrl+'" x="'+x+'" y="'+y+'" width="'+item.w+'" height="'+item.h+'" preserveAspectRatio="xMidYMid meet"/>';
