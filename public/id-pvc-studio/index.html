@@ -131,7 +131,7 @@
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="brandmark">T</div><div>TANSHU ONLINE<small>RELIABLE • SECURE • PROFESSIONAL</small></div></div><div class="top-actions"><span class="pill">✦ INDEPENDENT STUDIO PREVIEW</span><button class="pill" id="topHome" type="button">← Back to TANSHU ONLINE</button></div></header>
+<header class="topbar"><div class="brand"><div class="brandmark">T</div><div>TANSHU ONLINE<small>ID CARD &amp; PVC PRINT STUDIO</small></div></div><div class="top-actions"><span class="pill">✦ INDEPENDENT STUDIO PREVIEW</span><button class="pill" id="topHome" type="button">← Back to TANSHU ONLINE</button></div></header>
 <main class="welcome" id="welcome">
 <section class="hero"><div class="hero-inner"><div><div class="eyebrow">NEXT-GENERATION PRINT WORKSPACE</div><h1>ID CARD & PVC PRINT STUDIO</h1><p>Design, size and arrange your cards with confidence. Preview front and back, prepare a single PVC card or arrange multiple cards on an A4 sheet — all in one smooth workspace.</p><div class="hero-buttons"><button class="primary" id="startBtn" type="button">START DESIGNING <span>→</span></button><button class="secondary" id="exploreBtn">EXPLORE FEATURES ↓</button></div><div class="hero-note">Browser-side demo • Your uploaded image stays on this device in this demo</div></div><div class="visual-stage"><div class="glow"></div><div class="sample-card back"><div class="sample-head">TANSHU ONLINE • CARD STUDIO</div><div class="sample-name">CARD BACK SIDE</div><div class="sample-line long"></div><div class="sample-line"></div><div class="sample-line long"></div><div class="sample-chip"></div></div><div class="sample-card"><div class="sample-head">TANSHU ONLINE • ID STUDIO</div><div class="sample-name">YOUR ID CARD</div><div class="sample-line long"></div><div class="sample-line"></div><div class="sample-line long"></div><div class="sample-photo"></div><div class="sample-chip"></div></div><div class="visual-tag tag-a">CR80 • 85.6 × 54 mm</div><div class="visual-tag tag-b">A4 MULTI-CARD LAYOUT</div></div></div></section>
 <section class="section"><div class="section-head"><div class="kicker">ONE STUDIO • MANY POSSIBILITIES</div><h2>Everything you need for clean card printing</h2><p>Simple controls for everyday print-shop work, with a clear preview at every step.</p></div><div class="feature-grid"><article class="feature"><div class="feature-icon">▣</div><h3>Ready Card Presets</h3><p>Start with a standard CR80 / ID-1 card size or enter your own custom dimensions.</p></article><article class="feature"><div class="feature-icon">⇄</div><h3>Front & Back Preview</h3><p>Switch between both sides and check alignment before preparing the print sheet.</p></article><article class="feature"><div class="feature-icon">▦</div><h3>Multiple Cards on A4</h3><p>Arrange repeated cards in a neat grid, with a live copy count and cut-friendly spacing.</p></article><article class="feature"><div class="feature-icon">⌁</div><h3>Local Photo Upload</h3><p>Add a photo from your device to preview the card. This demo does not upload it to a server.</p></article><article class="feature"><div class="feature-icon">◫</div><h3>Custom Sheet Setup</h3><p>Choose a PVC single-card preview or A4 sheet layout for PVC or magnetic printable media.</p></article><article class="feature"><div class="feature-icon">✓</div><h3>Print-ready Preview</h3><p>Review the layout, then use your browser print dialog to save as PDF or print.</p></article></div></section>
@@ -141,7 +141,7 @@
 </main>
 <section class="editor" id="editor">
 <div class="editor-head"><div><button class="back-btn" id="backWelcome" type="button">← BACK TO WELCOME</button><h2>Studio Workspace</h2><p>Choose a sample, adjust your layout and preview before printing.</p></div><span class="pill">DEMO MODE • LOCAL PREVIEW</span></div>
-<div class="studio-toolbar" id="studioToolbar"><div class="toolbar-mode" id="toolbarMode"><span class="toolbar-mode-title">PREVIEW MODE</span></div><div class="toolbar-settings" id="toolbarSettings"></div></div><div class="editor-layout"><aside class="panel"><button class="back-btn demo-return" id="demoReturn" type="button">← BACK TO DEMO</button><div class="quick-tools" aria-label="Quick tools"><a href="#uploadSection">UPLOAD</a><a href="#designSelection">COLOUR</a><a href="#cropTools">CROP</a><a href="#formatSelectionTitle">PRINT</a><a href="#sheetSettings">SHEET</a></div><div id="uploadSection" class="upload-first"><div class="field"><label for="photoInput">UPLOAD CARD / IMAGE / DOCUMENT</label><input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" multiple><div class="hint">Upload JPG, PNG, WEBP or PDF. Multiple files are supported; every PDF page becomes a separate item. Your original page is shown first without auto-cropping.</div><div class="field" id="pdfPageControl" style="display:none;margin-top:10px"><label for="pdfPageSelect">PDF PAGE TO CROP / PRINT</label><select id="pdfPageSelect"></select><div class="hint" id="pdfPageInfo">Select a page from the uploaded PDF.</div></div><label for="artworkLayout" style="margin-top:10px">IMAGE LAYOUT</label><select id="artworkLayout"><option value="single">One side / complete image</option><option value="horizontal">Front + Back side-by-side</option><option value="vertical">Front + Back stacked</option></select><div class="hint">Use FRONT and BACK to switch between halves when you upload a two-side scan.</div><div class="upload-preview" id="photoStatus"></div></div></div>
+<div class="studio-toolbar" id="studioToolbar"><div class="toolbar-mode" id="toolbarMode"><span class="toolbar-mode-title">PREVIEW MODE</span></div><div class="toolbar-settings" id="toolbarSettings"></div></div><div class="editor-layout"><aside class="panel"><button class="back-btn demo-return" id="demoReturn" type="button">← BACK TO DEMO</button><div class="quick-tools" aria-label="Quick tools"><a href="#uploadSection">UPLOAD</a><a href="#designSelection">COLOUR</a><a href="#cropTools">CROP</a><a href="#formatSelectionTitle">PRINT</a><a href="#sheetSettings">SHEET</a></div><div id="uploadSection" class="upload-first"><div class="field"><label for="photoInput">UPLOAD CARD / IMAGE / DOCUMENT</label><input id="photoInput" type="file" accept="image/*,application/pdf,.pdf" multiple><div class="hint">Upload JPG, PNG, WEBP or PDF. Multiple files are supported; every PDF page becomes a separate item. Your original page is shown first without auto-cropping.</div><div class="field" id="pdfPageControl" style="display:none;margin-top:10px"><label for="pdfPageSelect">PDF PAGE TO CROP / PRINT</label><select id="pdfPageSelect"></select><div class="hint" id="pdfPageInfo">Select a page from the uploaded PDF.</div></div><label for="artworkLayout" style="margin-top:10px">IMAGE LAYOUT</label><select id="artworkLayout"><option value="single">One side / complete image</option><option value="horizontal">Front + Back side-by-side</option><option value="vertical">Front + Back stacked</option></select><div class="hint">Use FRONT and BACK to switch between halves when you upload a two-side scan.</div><div class="upload-preview" id="photoStatus"></div></div></div>
 <div class="batch-panel" id="batchPanel">
   <h3>UPLOADED CUSTOMER ITEMS</h3>
   <div class="hint">All uploaded photos and PDF pages appear here. Select an item to view its complete original page and set its own template and size.</div>
@@ -499,26 +499,36 @@ async function batchReadPdf(file){
  return items;
 }
 $('photoInput').addEventListener('change',async e=>{
- const files=Array.from(e.target.files||[]);if(!files.length)return;
- $('status').textContent='Reading uploaded files locally…';
+ const input=e.currentTarget,files=Array.from(input.files||[]);
+ if(!files.length)return;
+ $('status').textContent='Reading '+files.length+' file(s) locally…';
+ let added=0;
  for(const file of files){
   try{
+   if(!file||!file.size)throw new Error('The selected file is empty or could not be read.');
    if(file.size>25*1024*1024)throw new Error(file.name+' is larger than 25 MB.');
+   const lower=file.name.toLowerCase();
    let pages;
-   if(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'))pages=await batchReadPdf(file);
-   else if(file.type.startsWith('image/'))pages=await batchReadImage(file);
+   if(file.type==='application/pdf'||lower.endsWith('.pdf'))pages=await batchReadPdf(file);
+   else if((file.type&&file.type.startsWith('image/'))||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(lower))pages=await batchReadImage(file);
    else throw new Error(file.name+' is not a supported image or PDF.');
+   if(!pages||!pages.length)throw new Error('No readable image or PDF page was found in '+file.name+'.');
    for(const page of pages){
     const id='batch-'+(++batchSequence);
-    const item={...page,id,template:'original',side:'front',w:86,h:54,tx:0,ty:0,rotation:0};
-    batchItems.push(item);
+    batchItems.push({...page,id,template:'original',side:'front',w:86,h:54,tx:0,ty:0,rotation:0});
+    added++;
    }
-   if(pages[0]){selectedBatchId=batchItems[batchItems.length-pages.length].id;batchSetOriginal(batchItems[batchItems.length-pages.length]);}
+   selectedBatchId=batchItems[batchItems.length-pages.length].id;
   }catch(err){$('status').textContent=String(err.message||err);}
  }
- e.target.value='';
- if(batchItems.length)batchSelect(selectedBatchId);
- batchUpdateList();
+ if(batchItems.length){
+  batchSelect(selectedBatchId);
+  batchUpdateList();
+  $('status').textContent=added+' file page(s) loaded. Choose Crop or Card Preset to continue.';
+ }else{
+  batchUpdateList();
+ }
+ // Keep the chosen filename visible in the native picker; users can replace it with the next selection.
 });
 $('singleMode').addEventListener('click',()=>setMode('sheet'));
 $('batchPass').addEventListener('change',()=>{if(batchMode)renderBatchSheet();});
@@ -692,6 +702,25 @@ $('resetBtn').addEventListener('click',()=>{
  #editor .premium-grid{display:block;padding:0;margin:0}
  #editor .premium-preview .preview-area{min-height:0;padding:0;border:0;background:#fff;box-shadow:none}
  #editor .premium-preview .crop-tools{display:none!important}
+}
+</style>
+<style id="pvc-desktop-workstation-tuning">
+/* Desktop-first workstation sizing: keep the approved premium palette/layout. */
+@media(min-width:1100px){
+ #editor .premium-brandrow{min-height:72px;padding-top:11px;padding-bottom:11px}
+ #editor .premium-brand strong{font-size:16px}
+ #editor .premium-brand small{font-size:9px;letter-spacing:.13em}
+ #editor .premium-back{font-size:11px;padding:10px 13px}
+ #editor .premium-navrow{gap:7px;padding-bottom:13px}
+ #editor .premium-navrow button{font-size:12px;padding:12px 14px}
+ #editor .premium-navrow button .nav-num{font-size:10px}
+ #editor .premium-grid{grid-template-columns:minmax(350px,410px) minmax(0,1fr);gap:22px;padding-top:22px}
+ #editor .premium-panel-head h3{font-size:18px}
+ #editor .premium-panel-body label{font-size:10px!important}
+ #editor .premium-panel-body select,#editor .premium-panel-body input[type=number],#editor .premium-panel-body input[type=text]{font-size:12px;min-height:41px}
+ #editor .premium-panel-body #photoInput{font-size:12px}
+ #editor .premium-panel-body #photoInput::file-selector-button{font-size:11px;padding:10px 14px}
+ #editor .premium-preview .workspace-top h3{font-size:15px}
 }
 </style>
 <style id="pvc-single-sheet-preview-fix">
