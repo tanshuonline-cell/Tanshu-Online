@@ -187,7 +187,7 @@ function renderBatchSheet(){
   $('sheetGrid').classList.add('batch-layout');
   $('sheetGrid').style.display='flex';$('sheetGrid').style.flexWrap='wrap';
   $('sheetGrid').style.gap='2mm';$('sheetGrid').style.transform='none';
-  $('sheetGrid').innerHTML=batchItems.map(item=>'<div class="batch-card" data-batch-card="'+item.id+'" style="width:'+item.w+'mm;height:'+item.h+'mm"><img src="'+item.dataUrl+'" alt="Original artwork for '+batchEsc(item.name)+'"><span class="batch-card-label">'+batchEsc(item.name)+'</span><button class="batch-delete" type="button" data-batch-delete="'+item.id+'" aria-label="Delete this card">×</button></div>').join('');
+  $('sheetGrid').innerHTML=batchItems.map(item=>'<div class="batch-card" data-batch-card="'+item.id+'" data-template="'+item.template+'" style="width:'+item.w+'mm;height:'+item.h+'mm"><img src="'+item.dataUrl+'" alt="Original artwork for '+batchEsc(item.name)+'"><span class="batch-card-label">'+batchEsc(item.template.toUpperCase())+' • '+batchEsc(item.name)+'</span><button class="batch-delete" type="button" data-batch-delete="'+item.id+'" aria-label="Delete this card">×</button></div>').join('');
   $('sheetLabel').textContent='MULTI-CUSTOMER SHEET • '+batchItems.length+' CARD ITEMS • '+$('sheetSize').selectedOptions[0].text;
   $('arrangeTools').style.display='none';
   $('status').textContent=batchItems.length+' independent card item(s) • each item keeps its own template and physical size. Tap a card once to reveal its red Delete icon.';
@@ -280,7 +280,7 @@ printSheet=function(){
  if(!batchMode){legacyPrintSheet();return;}
  if(!batchItems.length){$('status').textContent='Upload at least one card item first.';return;}
  const g=sheetGeometry(),root=document.documentElement,margin=g.page.w<=120?5:8;
- root.style.setProperty('--print-page',g.page.w+'mm '+g.page.h+'mm);
+ root.style.setProperty('--print-page',g.page.w+'mm '+g.page.h+'mm');
  root.style.setProperty('--print-page-margin','0mm');
  $('sheetWrap').style.width='100%';$('sheetWrap').style.maxWidth='none';$('sheetWrap').style.padding=margin+'mm';
  $('sheetGrid').style.gap='2mm';
