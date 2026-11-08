@@ -165,3 +165,15 @@ Record each change here with date, commit, files touched, tests run, and known l
 - Static HTML/engine element-ID check passed: no duplicate HTML IDs and no missing IDs referenced by the engine.
 - Branch comparison still shows only the four PVC Studio files under public/id-pvc-studio/; no files outside that directory were changed.
 - These are static checks only. No browser session, PDF/image visual test, A4 print preview in a real browser, or physical printer calibration has been completed.
+
+
+## 2026-11-09 — Preset engine foundation (stage 1)
+
+- Added `preset-engine.js` as a separate PVC-only configuration layer for A4, 4×6 landscape/portrait, Letter and Custom sheet geometry; card-size presets; media labels; and non-official blank/sample template metadata.
+- Added Sheet Size, Print Media, Print Format, Card Preset, Card Template, Image Layout and Sheet Content selectors inside the existing right settings panel. The top toolbar, three-column layout and central sheet-preview placement were not changed.
+- Connected sheet geometry to preview aspect ratio, source-page placement, drag, resize, snapping, imposition and CSS physical print page dimensions. The existing default A4 portrait geometry remains 210 × 297 mm.
+- Kept the existing 86 × 54 mm default as the initial DIY card preset. Selecting a catalog profile continues to use that profile's editable dimensions.
+- Front-only / back-only filtering is connected to the print sheet generation. Media selections currently identify the selected stock only; they do not claim printer-specific margins or stock registration.
+- Template options are explicitly sample/placeholder metadata; they do not generate official government marks, identifiers, QR codes or security features. Image Layout is a UI/configuration foundation and still needs its proof-layout behavior implemented.
+- JavaScript syntax validation passed. Pure preset geometry checks passed for A4 portrait/landscape, 4×6, Letter and Custom.
+- Browser end-to-end validation could not be run because the browser-test service declined to start with an insufficient wallet balance. No live print or printer test has been claimed.
