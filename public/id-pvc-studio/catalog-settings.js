@@ -96,6 +96,16 @@ function layoutAll(){
  state.items.splice(0,state.items.length,...expanded);state.active=state.items[0];window.render();{const n=document.getElementById('engineStatus');if(n)n.textContent='A4 layout: '+state.items.length+' copies across '+pages.length+' page(s).';}
 }
 const layoutBtn=document.createElement('button');layoutBtn.className='btn primary';layoutBtn.textContent='▦ Auto Arrange Copies';layoutBtn.onclick=layoutAll;document.querySelector('.toolbar').insertBefore(layoutBtn,document.querySelector('.toolbar .spacer'));
+async function importToEngine(file){
+ if(file.type==='application/pdf'){
+  if(!window.pdfjsLib){alert('PDF.js is unavailable. Check the network connection.');return}
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n),vp=page.getViewport({scale:2}),canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;window.addItem(canvas.toDataURL('image/jpeg',.94),file.name+' · '+n)}
+ }else{const url=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});window.addItem(url,file.name)}
+}
+$('file').onchange=async e=>{for(const f of e.target.files)await importToEngine(f);e.target.value=''};
+$('drop').ondragover=e=>e.preventDefault();
+$('drop').ondrop=async e=>{e.preventDefault();for(const f of e.dataTransfer.files)await importToEngine(f)};
 const oldPrint=$('print');oldPrint.onclick=()=>{
  layoutAll();const root=document.getElementById('catalogPrintRoot')||document.body.appendChild(document.createElement('div'));root.id='catalogPrintRoot';root.innerHTML='';
  const W=$('sheetOrientation').value==='landscape'?297:210,H=$('sheetOrientation').value==='landscape'?210:297;
