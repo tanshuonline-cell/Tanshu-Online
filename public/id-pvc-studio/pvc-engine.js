@@ -1,6 +1,7 @@
 /* PVC Studio: original-page import, manual front/back crop, output modes and A4 imposition. */
 (()=>{'use strict';
-const $=id=>document.getElementById(id), catalog=window.PVC_CATALOG_DATA||[];\nif(window.pdfjsLib?.GlobalWorkerOptions)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const $=id=>document.getElementById(id), catalog=window.PVC_CATALOG_DATA||[];
+if(window.pdfjsLib?.GlobalWorkerOptions)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const S={docs:[],docIndex:0,crops:[],sheets:[],activeCrop:null,selection:null,lang:'hi',mode:'pvc',orientation:'portrait',gap:3,copies:1,corner:'square',mirror:false};
 const mmPx=96/25.4, toPx=n=>n*mmPx, toMm=n=>n/mmPx;
 const say=(en,hi=en)=>{$('status').textContent=S.lang==='hi'?hi:en;};
