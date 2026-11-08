@@ -549,8 +549,8 @@ export default function App() {
               <div>
                 <span className="mb-1 inline-block text-xs font-bold uppercase tracking-widest text-rose-800">Independent Digital Assistance</span>
                 <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">Digital Seva Center</h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Get government service and document work done through our assistance. Choose a service, submit your request and required documents, and our team will guide the process.</p>
-                <p className="mt-1 text-sm font-medium text-slate-500">सरकारी सेवा या दस्तावेज़ संबंधी काम करवाने के लिए सेवा चुनें और अनुरोध के साथ ज़रूरी दस्तावेज़ जमा करें। हमारी टीम आगे की प्रक्रिया में आपकी सहायता करेगी।</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">For eligible online government services and document-related work, contact us through this section. We assist with online processes only; biometric, face-scan and physical-centre services are not handled.</p>
+                <p className="mt-1 text-sm font-medium text-slate-500">ऑनलाइन हो सकने वाली सरकारी सेवा या दस्तावेज़ संबंधी काम के लिए यहाँ अनुरोध करें। हम केवल ऑनलाइन प्रक्रिया में सहायता करते हैं; बायोमेट्रिक, फेस स्कैन या सेंटर पर जाकर होने वाले काम नहीं करते।</p>
               </div>
             </div>
             <span className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-rose-900 px-5 py-3 text-sm font-bold text-white transition-colors group-hover:bg-rose-800 sm:self-center">Explore Digital Seva <span aria-hidden="true">→</span></span>
