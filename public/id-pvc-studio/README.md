@@ -132,3 +132,28 @@ Record each change here with date, commit, files touched, tests run, and known l
 - No printer model is connected here. The 100 mm line, card dimensions, printer feed direction, duplex flip edge and front/back registration must be measured on the user's actual printer.
 - Auto-crop is a best-effort edge detector; it must be reviewed manually. OCR only produces suggestions. The original uploaded image is retained in page memory and can be restored with Reset crop.
 - The preview must remain development-only. Do not merge to `main` or deploy publicly without explicit approval.
+
+
+## 2026-11-09 — Original-page crop workflow implementation
+
+### Implemented in the development branch
+
+- Replaced the previous direct-to-card upload interface with a staged workflow: original document page → manual crop → PVC/Normal output → A4 sheet.
+- PDF uploads are rasterized page-by-page for editing while retaining each PDF page's physical dimensions from its page box (points converted to mm). No card auto-crop is applied during import.
+- Raster image uploads preserve their full pixel canvas and aspect ratio. Since ordinary image files often do not carry reliable print-size metadata, their initial physical dimensions use the browser's 96-DPI CSS convention; the operator can edit source width/height in mm before cropping.
+- Added a manual rectangular crop selector on the original page. Front and Back are cropped independently and saved as separate outputs.
+- Added an editable Pair ID so front/back crops from separate source pages/files can be assigned to the same physical card.
+- Added PVC and Normal Print modes. PVC mode uses the selected profile/custom dimensions and optional 3 mm visual corner radius. Normal mode keeps the crop aspect ratio and uses the entered physical width.
+- Added A4 portrait/landscape packing, copies, mm gap, separate front/back print pages, optional back mirroring, and a 100 mm calibration page.
+- Set an explicit PDF.js worker URL for the pinned PDF.js CDN version.
+
+### Important behavior and limitations
+
+- This is an initial implementation of the requested workflow, not a completed/certified print application.
+- A PDF page's dimensions are read from its PDF page box; an uploaded image's true paper/photo size cannot reliably be inferred from pixels alone. Set the source width and height manually when the physical size matters (e.g. 4×6 inch photo).
+- The crop selector is rectangular and manual. It does not yet provide perspective correction, polygon selection, zoom/pan, crop handles, undo history, or keyboard precision controls.
+- The Normal Print mode preserves crop aspect ratio and uses the entered width to calculate height; it is not a full page-layout reproduction tool for arbitrary source pages.
+- Pair ID must match exactly for separate front/back source pages. The UI starts each source page with its own Card number; edit it to the same ID to pair two different pages.
+- A4 packing, page overflow, front/back registration, print order, browser rendering, CDN availability and physical printer scaling have not yet been tested end-to-end.
+- Normal/PVC print preview and actual printer output must be reviewed. Browser print dialog must use A4 and Actual Size / 100%, with Fit to page disabled.
+- No production merge or public release is authorized by this implementation.
