@@ -144,7 +144,7 @@ Record each change here with date, commit, files touched, tests run, and known l
 - Added a manual rectangular crop selector on the original page. Front and Back are cropped independently and saved as separate outputs.
 - Added an editable Pair ID so front/back crops from separate source pages/files can be assigned to the same physical card.
 - Added PVC and Normal Print modes. PVC mode uses the selected profile/custom dimensions and optional 3 mm visual corner radius. Normal mode keeps the crop aspect ratio and uses the entered physical width.
-- Added A4 portrait/landscape packing, copies, mm gap, separate front/back print pages, optional back mirroring, and a 100 mm calibration page.
+- Added A4 portrait/landscape packing, copies, mm gap, separate front/back print pages, optional back mirroring, a visual A4 sheet preview with page/side selection, one-sided pair warnings, oversized-card print blocking, and a 100 mm calibration page.
 - Set an explicit PDF.js worker URL for the pinned PDF.js CDN version.
 
 ### Important behavior and limitations
@@ -157,3 +157,11 @@ Record each change here with date, commit, files touched, tests run, and known l
 - A4 packing, page overflow, front/back registration, print order, browser rendering, CDN availability and physical printer scaling have not yet been tested end-to-end.
 - Normal/PVC print preview and actual printer output must be reviewed. Browser print dialog must use A4 and Actual Size / 100%, with Fit to page disabled.
 - No production merge or public release is authorized by this implementation.
+
+
+### Latest code-level checks
+
+- JavaScript parse check passed for the current catalog-settings.js and pvc-engine.js after the workflow changes.
+- Static HTML/engine element-ID check passed: no duplicate HTML IDs and no missing IDs referenced by the engine.
+- Branch comparison still shows only the four PVC Studio files under public/id-pvc-studio/; no files outside that directory were changed.
+- These are static checks only. No browser session, PDF/image visual test, A4 print preview in a real browser, or physical printer calibration has been completed.
