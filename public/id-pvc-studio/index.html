@@ -236,17 +236,21 @@
 if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 const $=id=>document.getElementById(id);
 
-// Move the existing live controls into the sticky toolbar without cloning IDs or handlers.
+// Place live sheet controls and view mode in the Studio Workspace header.
 (function organizeStudioToolbar(){
- const toolbar=$('studioToolbar'),modeSwitch=document.querySelector('.workspace-top .seg'),settings=$('sheetSettings'),grid=settings?.firstElementChild;
- if(!toolbar||!modeSwitch||!settings||!grid)return;
- const inner=document.createElement('div');inner.className='studio-toolbar-inner';
+ const head=document.querySelector('#editor .editor-head');
+ const modeSwitch=document.querySelector('.workspace-top .seg');
+ const settings=$('sheetSettings'),grid=settings?.firstElementChild;
+ if(!head||!modeSwitch||!settings||!grid)return;
+ const controls=document.createElement('div');controls.className='studio-head-controls';
  const modeSlot=$('toolbarMode'),settingsSlot=$('toolbarSettings');
- inner.append(modeSlot,settingsSlot);toolbar.append(inner);
+ controls.append(modeSlot,settingsSlot);
  modeSlot.append(modeSwitch);
  grid.classList.add('sheet-settings-grid');settingsSlot.append(grid);
+ const badge=head.querySelector('.pill');
+ head.insertBefore(controls,badge||null);
  const actions=settings.querySelector('.action-row'),status=settings.querySelector('.status');
- if(actions){settings.append(actions);actions.setAttribute('aria-label','Final output actions');}
+ if(actions){settings.append(actions);actions.setAttribute('aria-label','Sheet output actions');}
  if(status)settings.append(status);
 })();
 
@@ -648,6 +652,50 @@ $('resetBtn').addEventListener('click',()=>{
  #editor .editor-layout>aside.panel{display:none!important}
  #editor .workspace-top{display:none!important}
  #editor .action-row{display:none!important}
+}
+</style>
+
+
+<style id="tanshu-pvc-workspace-header-controls">
+/* Keep the live sheet controls and Single Card / A4 Sheet on the Studio Workspace header row. */
+#editor .studio-toolbar{display:none!important}
+#editor .editor-head{display:grid;grid-template-columns:minmax(205px,auto) minmax(0,1fr) auto;align-items:center;gap:14px;min-width:0}
+#editor .studio-head-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:2px 0}
+#editor .toolbar-mode{flex:0 0 auto}
+#editor .toolbar-mode .seg{min-width:190px}
+#editor .toolbar-mode .seg button{white-space:nowrap;font-size:9px;padding:7px 5px}
+#editor .toolbar-settings{flex:0 0 auto;min-width:0}
+#editor .toolbar-settings .sheet-settings-grid{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:6px}
+#editor .toolbar-settings .field{flex:0 0 112px;min-width:105px;margin:0}
+#editor .toolbar-settings .field label{font-size:8px;white-space:nowrap}
+#editor .toolbar-settings .field select,
+#editor .toolbar-settings .field input[type=number]{width:100%;min-width:0;padding:7px 7px;font-size:10px}
+#editor .toolbar-settings #mirrorPrint{width:14px;min-width:14px}
+#editor #sheetSettings{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:12px 0 0!important}
+#editor #sheetSettings>h3{display:none!important}
+#editor #sheetSettings>.action-row{margin-top:0}
+#editor .workspace-top{top:145px}
+#editor .editor-layout>aside.panel{top:145px}
+@media(max-width:1100px){
+ #editor .editor-head{grid-template-columns:minmax(180px,auto) minmax(0,1fr);gap:8px}
+ #editor .editor-head>.pill{grid-column:1/-1;justify-self:end}
+ #editor .studio-head-controls{justify-content:flex-start}
+}
+@media(max-width:850px){
+ #editor .editor-head{grid-template-columns:1fr;gap:8px}
+ #editor .studio-head-controls{justify-content:flex-start;width:100%}
+ #editor .editor-head>.pill{grid-column:auto;justify-self:start}
+ #editor .workspace-top{top:116px}
+}
+@media(max-width:540px){
+ #editor .studio-head-controls{gap:7px}
+ #editor .toolbar-mode .seg{min-width:180px}
+ #editor .toolbar-settings .field{flex-basis:104px;min-width:100px}
+ #editor .workspace-top{top:112px}
+}
+@media print{
+ #editor .studio-head-controls{display:none!important}
+ #editor #sheetSettings{display:none!important}
 }
 </style>
 
