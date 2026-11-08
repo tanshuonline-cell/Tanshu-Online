@@ -767,7 +767,7 @@ $('resetBtn').addEventListener('click',()=>{
 #editor .premium-panel-body .crop-tools-actions{display:flex;gap:6px;flex-wrap:wrap}
 #editor .premium-panel-body .crop-tools-actions button{flex:1 1 95px}
 #editor .premium-panel-body .crop-stage{max-width:100%}
-#editor .premium-panel-body .sheet-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#editor .premium-print-shortcuts{display:grid;grid-template-columns:1fr;gap:9px;margin-top:8px}\n#editor .premium-print-shortcuts .action{border:1px solid #e1e3ef;border-radius:10px;padding:12px;background:#f7f6ff;color:#554bb8;font-size:10px;font-weight:950}\n#editor .premium-print-shortcuts .action.main{background:linear-gradient(135deg,#6659d9,#4f46b8);color:#fff}\n#editor .premium-panel-body .sheet-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 #editor .premium-panel-body .sheet-settings-grid .field{margin:0}
 #editor .premium-panel-body #mirrorPrint{width:15px;min-width:15px}
 @media(max-width:1050px){
@@ -842,7 +842,8 @@ $('resetBtn').addEventListener('click',()=>{
   ['media','07','PRINT MEDIA','PVC, Dragon, magnetic and paper'],
   ['format','08','PRINT FORMAT','Printer and insert profiles'],
   ['sheet','09','SHEET SETUP','Sheet, copies, gap, corners and mirror'],
-  ['arrange','10','ARRANGE','Rotate and position controls']
+  ['arrange','10','ARRANGE','Rotate and position controls'],
+  ['print','11','PRINT','Save, download or print the finished sheet']
  ];
  navItems.forEach(function(item){const b=document.createElement('button');b.type='button';b.dataset.tab=item[0];b.innerHTML='<span class="nav-num">'+item[1]+'</span>'+item[2];b.title=item[3];nav.appendChild(b);});
  studio.append(brandRow,nav);
@@ -885,12 +886,18 @@ $('resetBtn').addEventListener('click',()=>{
   media:['PRINT MEDIA','Choose your material','Select PVC, Dragon, magnetic or A4 proof media and its related stock profile.'],
   format:['PRINT FORMAT','Choose printer and insert','Select the print format, printer profile, tray and any required alignment values.'],
   sheet:['SHEET SETUP','Arrange the output sheet','Set sheet size, copies, card gap, print sides, corners, orientation and mirror option.'],
-  arrange:['LAYOUT TOOLS','Position & rotate','Use the available controls to rotate or reset front/back and selected customer cards.']
+  arrange:['LAYOUT TOOLS','Position & rotate','Use the available controls to rotate or reset front/back and selected customer cards.'],
+  print:['FINAL STEP • OUTPUT','Save or print your sheet','Use these actions after checking the live preview. The original output buttons remain fixed below the preview.']
  };
  function appendNodes(key){
   panelBody.innerHTML='';
   (groups[key]||[]).forEach(function(node){if(node)panelBody.appendChild(node);});
   if(key==='sheet'&&sheetGrid){sheetGrid.style.display='grid';}
+  if(key==='print'){
+   const quick=document.createElement('div');quick.className='premium-print-shortcuts';
+   [['DOWNLOAD SHEET','downloadSvg'],['SAVE IMAGE','saveImageBtn'],['PRINT','printBtn']].forEach(function(item){const proxy=document.createElement('button');proxy.type='button';proxy.className='action'+(item[1]==='printBtn'?' main':'');proxy.textContent=item[0];proxy.addEventListener('click',function(){const target=document.getElementById(item[1]);if(target)target.click();});quick.appendChild(proxy);});
+   panelBody.appendChild(quick);
+  }
   panelKicker.textContent=titles[key][0];panelTitle.textContent=titles[key][1];panelDesc.textContent=titles[key][2];
  }
  function activate(key){
