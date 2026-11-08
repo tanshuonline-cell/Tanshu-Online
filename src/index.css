@@ -30,3 +30,30 @@
   background: #ffeb3b !important;
   color: #111827 !important;
 }
+
+
+/* Digital Seva Smart Form Validation */
+.ds-application-form .ds-field-invalid > input,
+.ds-application-form .ds-field-invalid > select,
+.ds-application-form .ds-field-invalid > textarea {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12) !important;
+  outline: none;
+}
+.ds-application-form .ds-field-error {
+  display: block;
+  margin-top: 5px;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+.ds-application-form [aria-invalid="true"] {
+  border-color: #dc2626 !important;
+}
+
+.ds-application-form .ds-application-doc-list.ds-field-invalid {
+  outline: 2px solid rgba(220, 38, 38, 0.55);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
