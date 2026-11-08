@@ -240,7 +240,7 @@ const $=id=>document.getElementById(id);
 (function organizeStudioToolbar(){
  const head=document.querySelector('#editor .editor-head');
  const modeSwitch=document.querySelector('.workspace-top .seg');
- const settings=$('sheetSettings'),grid=settings?.firstElementChild;
+ const settings=$('sheetSettings'),heading=settings?.querySelector(':scope > h3'),grid=heading?.nextElementSibling;
  if(!head||!modeSwitch||!settings||!grid)return;
  const controls=document.createElement('div');controls.className='studio-head-controls';
  const modeSlot=$('toolbarMode'),settingsSlot=$('toolbarSettings');
