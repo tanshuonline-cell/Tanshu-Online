@@ -141,12 +141,12 @@
 </main>
 <section class="editor" id="editor">
 <div class="editor-head"><div><button class="back-btn" id="backWelcome" type="button">← BACK TO WELCOME</button><h2>Studio Workspace</h2><p>Choose a sample, adjust your layout and preview before printing.</p></div><span class="pill">DEMO MODE • LOCAL PREVIEW</span></div>
-<div class="studio-toolbar" id="studioToolbar"><div class="toolbar-mode" id="toolbarMode"><span class="toolbar-mode-title">PREVIEW MODE</span></div><div class="toolbar-settings" id="toolbarSettings"></div></div><div class="editor-layout"><aside class="panel"><button class="back-btn demo-return" id="demoReturn" type="button">← BACK TO DEMO</button><div class="quick-tools" aria-label="Quick tools"><a href="#uploadSection">UPLOAD</a><a href="#designSelection">COLOUR</a><a href="#cropTools">CROP</a><a href="#formatSelectionTitle">PRINT</a><a href="#sheetSettings">SHEET</a></div><div id="uploadSection" class="upload-first"><div class="field"><label for="photoInput">UPLOAD CARD / IMAGE / DOCUMENT</label><input id="photoInput" type="file" accept="image/*,application/pdf,.pdf" multiple><div class="hint">Upload JPG, PNG, WEBP or PDF. Multiple files are supported; every PDF page becomes a separate item. Your original page is shown first without auto-cropping.</div><div class="field" id="pdfPageControl" style="display:none;margin-top:10px"><label for="pdfPageSelect">PDF PAGE TO CROP / PRINT</label><select id="pdfPageSelect"></select><div class="hint" id="pdfPageInfo">Select a page from the uploaded PDF.</div></div><label for="artworkLayout" style="margin-top:10px">IMAGE LAYOUT</label><select id="artworkLayout"><option value="single">One side / complete image</option><option value="horizontal">Front + Back side-by-side</option><option value="vertical">Front + Back stacked</option></select><div class="hint">Use FRONT and BACK to switch between halves when you upload a two-side scan.</div><div class="upload-preview" id="photoStatus"></div></div></div>
+<div class="studio-toolbar" id="studioToolbar"><div class="toolbar-mode" id="toolbarMode"><span class="toolbar-mode-title">PREVIEW MODE</span></div><div class="toolbar-settings" id="toolbarSettings"></div></div><div class="editor-layout"><aside class="panel"><button class="back-btn demo-return" id="demoReturn" type="button">← BACK TO DEMO</button><div class="quick-tools" aria-label="Quick tools"><a href="#uploadSection">UPLOAD</a><a href="#designSelection">COLOUR</a><a href="#cropTools">CROP</a><a href="#formatSelectionTitle">PRINT</a><a href="#sheetSettings">SHEET</a></div><div id="uploadSection" class="upload-first"><div class="field"><label for="photoInput">UPLOAD CARD / IMAGE / DOCUMENT</label><input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" multiple><div class="hint">Upload JPG, PNG, WEBP or PDF. Multiple files are supported; every PDF page becomes a separate item. Your original page is shown first without auto-cropping.</div><div class="field" id="pdfPageControl" style="display:none;margin-top:10px"><label for="pdfPageSelect">PDF PAGE TO CROP / PRINT</label><select id="pdfPageSelect"></select><div class="hint" id="pdfPageInfo">Select a page from the uploaded PDF.</div></div><label for="artworkLayout" style="margin-top:10px">IMAGE LAYOUT</label><select id="artworkLayout"><option value="single">One side / complete image</option><option value="horizontal">Front + Back side-by-side</option><option value="vertical">Front + Back stacked</option></select><div class="hint">Use FRONT and BACK to switch between halves when you upload a two-side scan.</div><div class="upload-preview" id="photoStatus"></div></div></div>
 <div class="batch-panel" id="batchPanel">
   <h3>UPLOADED CUSTOMER ITEMS</h3>
   <div class="hint">All uploaded photos and PDF pages appear here. Select an item to view its complete original page and set its own template and size.</div>
   <div class="batch-list-head"><b>Uploaded card items</b><span id="batchCount">0 items</span></div>
-  <div id="batchItemsList" class="batch-items-list"><div class="batch-empty">No additional files uploaded yet.</div></div>
+  <div id="batchItemsList" class="batch-items-list"></div>
   <div class="batch-selected-settings" id="batchSelectedSettings" hidden>
     <div class="field"><label for="batchTemplate">SELECTED ITEM • CARD TEMPLATE</label><select id="batchTemplate"><option value="pvc">PVC Card • Original artwork</option><option value="aadhaar">Aadhaar-style sample</option><option value="pan">PAN-style sample</option><option value="voter">Voter ID-style sample</option><option value="generic">Generic ID card</option><option value="blank">Blank custom card</option><option value="original">Original Document / Original Page • No Auto-Crop</option></select></div>
     <div class="hint">Front / Back / Both का मुख्य चुनाव नीचे Card Setup में ही करें। यहाँ दूसरा Print Side selector नहीं है।</div><div class="field"><label for="batchSize">SELECTED ITEM • CARD SIZE</label><select id="batchSize"><option value="86x54">Aadhaar PVC • 86 × 54 mm</option><option value="85.6x54">CR80 • 85.6 × 54 mm</option><option value="85.6x53.98">ISO ID-1 • 85.6 × 53.98 mm</option><option value="custom">Custom dimensions</option></select></div>
@@ -592,7 +592,7 @@ downloadSheetSvg=function(){
 };
 $('resetBtn').addEventListener('click',()=>{
  for(const item of batchItems){if(item.originalUrl&&item.kind==='image')URL.revokeObjectURL(item.originalUrl);if(item.kind==='pdf'&&!batchItems.some(x=>x!==item&&x.originalUrl===item.originalUrl))URL.revokeObjectURL(item.originalUrl);}
- batchItems.length=0;selectedBatchId=null;batchMode=false;$('photoInput').value='';$('batchOriginal').hidden=true;$('batchItemsList').innerHTML='<div class="batch-empty">No additional files uploaded yet.</div>';$('batchCount').textContent='0 items';$('batchSelectedSettings').hidden=true;$('sheetGrid').classList.remove('batch-layout');$('sheetGrid').innerHTML='';$('cardPreview').style.display=mode==='single'?'block':'none';legacyRenderSheet();
+ batchItems.length=0;selectedBatchId=null;batchMode=false;$('photoInput').value='';$('batchOriginal').hidden=true;$('batchItemsList').innerHTML='';$('batchCount').textContent='0 items';$('batchSelectedSettings').hidden=true;$('sheetGrid').classList.remove('batch-layout');$('sheetGrid').innerHTML='';$('cardPreview').style.display=mode==='single'?'block':'none';legacyRenderSheet();
 });
 
 
@@ -609,7 +609,8 @@ $('resetBtn').addEventListener('click',()=>{
 :root{--pvc-ink:#1b2038;--pvc-muted:#727993;--pvc-line:#e2e5f0;--pvc-paper:#f5f6fb;--pvc-violet:#6557d9;--pvc-violet2:#8176f2;--pvc-cyan:#1b9bb5;--pvc-card:#fff}
 #editor.active{display:block;background:linear-gradient(145deg,#f4f5fb 0%,#eef1f8 52%,#f7f7fc 100%);min-height:calc(100vh - 64px);color:var(--pvc-ink)}
 #editor .editor-head,#editor .studio-toolbar{display:none!important}
-#editor .premium-studio{position:sticky;top:64px;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-bottom:1px solid #e4e5f1;box-shadow:0 9px 28px rgba(39,38,91,.08)}
+body:has(#editor.active) > .topbar{display:none!important}
+#editor .premium-studio{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-bottom:1px solid #e4e5f1;box-shadow:0 9px 28px rgba(39,38,91,.08)}
 #editor .premium-brandrow{min-height:66px;display:flex;align-items:center;gap:18px;padding:9px clamp(14px,2.6vw,38px);max-width:1800px;margin:auto}
 #editor .premium-brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:190px}
 #editor .premium-mark{width:39px;height:39px;border-radius:13px;background:linear-gradient(145deg,#7569ee,#3f3b9d 65%,#159cb7);display:grid;place-items:center;color:white;font-weight:1000;font-size:17px;box-shadow:0 7px 17px #6259cb44}
@@ -870,7 +871,7 @@ $('resetBtn').addEventListener('click',()=>{
  const oldAsideBack=aside.querySelector('#demoReturn');if(oldAsideBack)oldAsideBack.remove();
  const actionBar=document.createElement('div');actionBar.className='premium-actions';
  if(actions)actionBar.appendChild(actions);
- if(status){status.className='premium-status';actionBar.appendChild(status);}
+ if(status){status.className='premium-status';const uploadStatusTarget=document.getElementById('uploadSection');if(uploadStatusTarget)uploadStatusTarget.appendChild(status);else actionBar.appendChild(status);}
  preview.appendChild(actionBar);
  oldLayout.remove();
  activate('upload');
