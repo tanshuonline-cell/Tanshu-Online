@@ -53,4 +53,6 @@ async function loadFile(file){if(file.type==='application/pdf'){if(!window.pdfjs
 $('file').onchange=async e=>{for(const f of e.target.files)await loadFile(f);e.target.value=''};
 $('drop').ondragover=e=>{e.preventDefault();$('drop').style.background='#edf2ff'};$('drop').ondragleave=()=>$('drop').style.background='#f8faff';$('drop').ondrop=async e=>{e.preventDefault();for(const f of e.dataTransfer.files)await loadFile(f)};
 drawDocs();
-</script></body></html>
+</script>
+<script src="/id-pvc-studio/pvc-engine.js"></script>
+</body></html>
