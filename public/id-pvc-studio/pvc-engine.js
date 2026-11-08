@@ -27,5 +27,5 @@ $('cropzoom').oninput=()=>{if(active){active.zoom=+$('cropzoom').value;$('zoomva
 $('xpos').oninput=()=>{if(active){active.dx=+$('xpos').value;render()}};
 $('ypos').oninput=()=>{if(active){active.dy=+$('ypos').value;render()}};
 $('kind').onchange=()=>{let d=docs.find(x=>x[0]===$('kind').value);if(d){chosen=d;$('cw').value=d[2];$('ch').value=d[3];if(active){active.w=px(+d[2]);active.h=px(+d[3]);render()}}};
-window.addItem=addItem;window.render=render;window.selectDoc=function(d){chosen=d;$('kind').value=d[0];$('cw').value=d[2];$('ch').value=d[3];if(active){active.w=px(+d[2]);active.h=px(+d[3]);render();sync()}};tools();if(items.length){items.forEach(i=>{i.w=px(mm(i.w));i.h=px(mm(i.h))});render();sync()}notice('Precision tools ready · A4 millimetre grid · local OCR/CV');
+window.PVC_STUDIO_STATE={get items(){return items},get active(){return active},set active(v){active=v}};window.addItem=addItem;window.render=render;window.selectDoc=function(d){chosen=d;$('kind').value=d[0];$('cw').value=d[2];$('ch').value=d[3];if(active){active.w=px(+d[2]);active.h=px(+d[3]);render();sync()}};tools();if(items.length){items.forEach(i=>{i.w=px(mm(i.w));i.h=px(mm(i.h))});render();sync()}notice('Precision tools ready · A4 millimetre grid · local OCR/CV');
 })();
