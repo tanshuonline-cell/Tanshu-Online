@@ -762,9 +762,6 @@ $('resetBtn').addEventListener('click',()=>{
 #editor .premium-actions .action.main{background:linear-gradient(135deg,#6659d9,#4f46b8);box-shadow:0 7px 15px #6557d933}
 #editor .premium-status{font-size:10px;color:#686d88;margin:8px 2px 0}
 #editor .premium-controls .back-btn,#editor .premium-controls>h3{display:none!important}
-#editor .premium-panel-body .arrange-tools{display:grid!important;gap:8px}
-#editor .premium-panel-body .arrange-tools button{width:100%}
-#editor .premium-panel-body .crop-tools{display:block!important}
 #editor .premium-panel-body .crop-editor{display:block}
 #editor .premium-panel-body .crop-editor:not(.active){display:none}
 #editor .premium-panel-body .crop-tools-actions{display:flex;gap:6px;flex-wrap:wrap}
@@ -893,13 +890,7 @@ $('resetBtn').addEventListener('click',()=>{
  function appendNodes(key){
   panelBody.innerHTML='';
   (groups[key]||[]).forEach(function(node){if(node)panelBody.appendChild(node);});
-  if(key==='crop'&&crop){crop.style.display='block';}
-  if(key==='arrange'&&arrange){arrange.style.display='grid';}
   if(key==='sheet'&&sheetGrid){sheetGrid.style.display='grid';}
-  if(key==='upload'){
-   const cardSide=document.querySelector('[data-side]')?.closest('.field');
-   if(cardSide)panelBody.appendChild(cardSide);
-  }
   panelKicker.textContent=titles[key][0];panelTitle.textContent=titles[key][1];panelDesc.textContent=titles[key][2];
  }
  function activate(key){
