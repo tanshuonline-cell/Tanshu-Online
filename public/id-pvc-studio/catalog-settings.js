@@ -1,6 +1,6 @@
 /* Indian Card Catalog + print controls. PVC-only extension. */
 (()=>{'use strict';
-const $=id=>document.getElementById(id), PX=96/25.4;
+const $=id=>document.getElementById(id), PX=96/25.4, state=window.PVC_STUDIO_STATE;
 const catalog=[
 {group:'Identity & Government',items:[
 ['Aadhaar PVC','आधार PVC',86,54,'UIDAI size','verified-label'],
@@ -42,7 +42,7 @@ function renderCatalog(filter=''){
  let h=document.createElement('div');h.className='category';h.textContent=group.group;oldList.append(h);
  rows.forEach(d=>{let el=document.createElement('div');el.className='doc'+(d===selected?' selected':'');el.innerHTML='<div class="docicon">'+d[0].slice(0,3).toUpperCase()+'</div><div><strong>'+d[0]+'</strong><small>'+d[4]+'</small></div>';el.onclick=()=>choose(d);oldList.append(el)})});
 }
-function choose(d){selected=d;$('kind').value=d[0];$('cw').value=d[2];$('ch').value=d[3];renderCatalog(search.value);if(active){active.w=d[2]*PX;active.h=d[3]*PX;render();syncControls?.()}}
+function choose(d){selected=d;window.selectDoc(docs.find(x=>x[0]===d[0])||docs[0]);$('kind').value=d[0];$('cw').value=d[2];$('ch').value=d[3];renderCatalog(search.value);if(state.active){state.active.w=d[2]*PX;state.active.h=d[3]*PX;window.render()}}
 flat.forEach(d=>{let o=document.createElement('option');o.value=d[0];o.textContent=d[0]+' — '+d[4];select.append(o)});
 select.onchange=()=>choose(flat.find(d=>d[0]===select.value)||flat[0]);
 search.oninput=()=>renderCatalog(search.value);renderCatalog();
@@ -85,23 +85,23 @@ $('sheetOrientation').onchange=e=>{ $('orientation').value=e.target.value;$('ori
 $('mirrorPrint').onchange=e=>mirror=e.target.checked;
 function mm(v){return v/PX}
 function layoutAll(){
- if(!items.length)return;
+ if(!state.items.length)return;
  const landscape=$('sheetOrientation').value==='landscape',W=landscape?297:210,H=landscape?210:297,margin=5;
- const expanded=[];items.filter(it=>!it.generatedCopy).forEach(it=>{for(let n=0;n<copies;n++)expanded.push({...it,id:crypto.randomUUID(),sheet:0,generatedCopy:n>0})});
+ const expanded=[];state.items.filter(it=>!it.generatedCopy).forEach(it=>{for(let n=0;n<copies;n++)expanded.push({...it,id:crypto.randomUUID(),sheet:0,generatedCopy:n>0})});
  const pages=[];
  expanded.forEach(it=>{let w=mm(it.w),h=mm(it.h);if(landscape&&w<h)[w,h]=[h,w];let placed=false;
  for(let p=0;p<pages.length&&!placed;p++){let page=pages[p],cols=Math.max(1,Math.floor((W-2*margin+gap)/(w+gap))),rows=Math.max(1,Math.floor((H-2*margin+gap)/(h+gap)));for(let k=0;k<cols*rows;k++){if(!page.used.has(k)){page.used.add(k);it.x=(margin+(k%cols)*(w+gap))*PX;it.y=(margin+Math.floor(k/cols)*(h+gap))*PX;it.w=w*PX;it.h=h*PX;it.sheet=p;page.items.push(it);placed=true;break}}}
  if(!placed){let page={items:[],used:new Set()};pages.push(page);let cols=Math.max(1,Math.floor((W-2*margin+gap)/(w+gap)));it.x=margin*PX;it.y=margin*PX;it.w=w*PX;it.h=h*PX;it.sheet=pages.length-1;page.used.add(0);page.items.push(it)}
  });
- items.splice(0,items.length,...expanded);active=items[0];window.render();{const n=document.getElementById('engineStatus');if(n)n.textContent='A4 layout: '+items.length+' copies across '+pages.length+' page(s).';}
+ state.items.splice(0,state.items.length,...expanded);state.active=state.items[0];window.render();{const n=document.getElementById('engineStatus');if(n)n.textContent='A4 layout: '+state.items.length+' copies across '+pages.length+' page(s).';}
 }
 const layoutBtn=document.createElement('button');layoutBtn.className='btn primary';layoutBtn.textContent='▦ Auto Arrange Copies';layoutBtn.onclick=layoutAll;document.querySelector('.toolbar').insertBefore(layoutBtn,document.querySelector('.toolbar .spacer'));
 const oldPrint=$('print');oldPrint.onclick=()=>{
  layoutAll();const root=document.getElementById('catalogPrintRoot')||document.body.appendChild(document.createElement('div'));root.id='catalogPrintRoot';root.innerHTML='';
  const W=$('sheetOrientation').value==='landscape'?297:210,H=$('sheetOrientation').value==='landscape'?210:297;
- const max=Math.max(...items.map(i=>i.sheet||0),0);
+ const max=Math.max(...state.items.map(i=>i.sheet||0),0);
  for(let p=0;p<=max;p++){let page=document.createElement('div');page.className='catalog-print-page';page.style.cssText='width:'+W+'mm;height:'+H+'mm;position:relative;overflow:hidden;page-break-after:always;break-after:page';
- items.filter(i=>(i.sheet||0)===p).forEach(it=>{let el=document.createElement('div');el.style.cssText='position:absolute;left:'+mm(it.x)+'mm;top:'+mm(it.y)+'mm;width:'+mm(it.w)+'mm;height:'+mm(it.h)+'mm;overflow:hidden;border-radius:'+(corner==='rounded'?'3mm':'0');
+ state.items.filter(i=>(i.sheet||0)===p).forEach(it=>{let el=document.createElement('div');el.style.cssText='position:absolute;left:'+mm(it.x)+'mm;top:'+mm(it.y)+'mm;width:'+mm(it.w)+'mm;height:'+mm(it.h)+'mm;overflow:hidden;border-radius:'+(corner==='rounded'?'3mm':'0');
  let im=document.createElement('img');im.src=it.src;im.style.cssText='width:100%;height:100%;object-fit:fill;'+(mirror?'transform:scaleX(-1);':'');el.append(im);page.append(el)});root.append(page)}
  document.body.classList.add('catalog-printing');window.print();setTimeout(()=>document.body.classList.remove('catalog-printing'),800);
 };
