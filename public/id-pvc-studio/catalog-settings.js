@@ -58,8 +58,8 @@ settings.innerHTML+=`
 <div class="field"><label><input id="mirrorPrint" type="checkbox"> Mirror Print (optional)</label></div>
 <div class="tip">Mouse wheel over Number of Copies changes count by one. Use Ctrl/⌘ + wheel for larger steps.</div>`;
 const top=document.querySelector('.top');
-const lang=document.createElement('div');lang.style.cssText='display:flex;gap:5px;margin-left:12px';
-lang.innerHTML='<button class="btn" id="langEn">EN</button><button class="btn" id="langHi">हिंदी</button>';top.append(lang);
+const langButtons=document.createElement('div');langButtons.style.cssText='display:flex;gap:5px;margin-left:12px';
+langButtons.innerHTML='<button class="btn" id="langEn">EN</button><button class="btn" id="langHi">हिंदी</button>';top.append(langButtons);
 function setLang(v){lang=v;$('langEn').classList.toggle('primary',v==='en');$('langHi').classList.toggle('primary',v==='hi');
 document.documentElement.lang=v==='hi'?'hi':'en';
 document.querySelector('.sidehead h3').textContent=text('India Card Catalog','भारत का कार्ड कैटलॉग');
@@ -93,7 +93,7 @@ function layoutAll(){
  for(let p=0;p<pages.length&&!placed;p++){let page=pages[p],cols=Math.max(1,Math.floor((W-2*margin+gap)/(w+gap))),rows=Math.max(1,Math.floor((H-2*margin+gap)/(h+gap)));for(let k=0;k<cols*rows;k++){if(!page.used.has(k)){page.used.add(k);it.x=(margin+(k%cols)*(w+gap))*PX;it.y=(margin+Math.floor(k/cols)*(h+gap))*PX;it.w=w*PX;it.h=h*PX;it.sheet=p;page.items.push(it);placed=true;break}}}
  if(!placed){let page={items:[],used:new Set()};pages.push(page);let cols=Math.max(1,Math.floor((W-2*margin+gap)/(w+gap)));it.x=margin*PX;it.y=margin*PX;it.w=w*PX;it.h=h*PX;it.sheet=pages.length-1;page.used.add(0);page.items.push(it)}
  });
- items.splice(0,items.length,...expanded);active=items[0];window.render();notice?.('A4 layout: '+items.length+' copies across '+pages.length+' page(s).');
+ items.splice(0,items.length,...expanded);active=items[0];window.render();{const n=document.getElementById('engineStatus');if(n)n.textContent='A4 layout: '+items.length+' copies across '+pages.length+' page(s).';}
 }
 const layoutBtn=document.createElement('button');layoutBtn.className='btn primary';layoutBtn.textContent='▦ Auto Arrange Copies';layoutBtn.onclick=layoutAll;document.querySelector('.toolbar').insertBefore(layoutBtn,document.querySelector('.toolbar .spacer'));
 const oldPrint=$('print');oldPrint.onclick=()=>{
