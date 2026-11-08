@@ -499,41 +499,6 @@ export default function App() {
           onScrollToTop={() => scrollToSection('home')}
         />
 
-        {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
-        <VideoLearningCenter
-          videos={catalogVideos}
-          onOpenCatalog={() => navigateTo('videos', '/videos')}
-          onSelectVideo={navigateToVideoDetail}
-        />
-
-        {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
-        <FeaturedTools onOpenTool={handleOpenTool} />
-
-        {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
-        <AllToolsDirectory
-          onOpenTool={handleOpenTool}
-          initialSearchQuery={searchQuery}
-          initialCategory={directoryCategory}
-        />
-
-        {/* Government Services Directory */}
-        <GovernmentServices selectedServiceId={selectedServiceId} />
-
-        {/* Government Schemes Directory */}
-        <GovernmentSchemes
-          selectedSchemeModal={selectedScheme}
-          onCloseModal={() => setSelectedScheme(null)}
-        />
-
-        {/* Latest Videos & Tutorials Hub */}
-        <LatestVideos
-          selectedVideoModal={selectedVideo}
-          onCloseModal={() => setSelectedVideo(null)}
-        />
-
-        {/* About TANSHU ONLINE & Privacy Mission */}
-        <AboutSection />
-
         {/* Digital Seva entry card: placed between Government Category and Video Learning Center */}
         <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Digital Seva Center">
           <style>{`
@@ -592,6 +557,40 @@ export default function App() {
           </a>
         </section>
 
+        {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
+        <VideoLearningCenter
+          videos={catalogVideos}
+          onOpenCatalog={() => navigateTo('videos', '/videos')}
+          onSelectVideo={navigateToVideoDetail}
+        />
+
+        {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
+        <FeaturedTools onOpenTool={handleOpenTool} />
+
+        {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
+        <AllToolsDirectory
+          onOpenTool={handleOpenTool}
+          initialSearchQuery={searchQuery}
+          initialCategory={directoryCategory}
+        />
+
+        {/* Government Services Directory */}
+        <GovernmentServices selectedServiceId={selectedServiceId} />
+
+        {/* Government Schemes Directory */}
+        <GovernmentSchemes
+          selectedSchemeModal={selectedScheme}
+          onCloseModal={() => setSelectedScheme(null)}
+        />
+
+        {/* Latest Videos & Tutorials Hub */}
+        <LatestVideos
+          selectedVideoModal={selectedVideo}
+          onCloseModal={() => setSelectedVideo(null)}
+        />
+
+        {/* About TANSHU ONLINE & Privacy Mission */}
+        <AboutSection />
       </main>
 
       {/* Footer */}
