@@ -41,14 +41,15 @@ function bindCrop(){
   window.removeEventListener('pointermove',move);
   window.removeEventListener('pointerup',finish);
   window.removeEventListener('pointercancel',finish);
-  paint();drawCropWorkspacePreview();
+  if(document.body.classList.contains('crop-workspace-open')){paint();drawCropWorkspacePreview();}
  };
  const move=e=>{
   if(!drag||e.pointerId!==pointerId)return;
   const p=point(e),dx=p.x-drag.start.x,dy=p.y-drag.start.y,o=drag.origin;
   if(drag.mode==='draw'){
    const x=Math.min(drag.start.x,p.x),y=Math.min(drag.start.y,p.y);
-   S.selection={x,y,w:Math.max(.002,Math.abs(dx)),h:Math.max(.002,Math.abs(dy))};
+   const minSize=document.body.classList.contains('crop-workspace-open')?.002:0;
+   S.selection={x,y,w:Math.max(minSize,Math.abs(dx)),h:Math.max(minSize,Math.abs(dy))};
    S.selection.x=Math.min(S.selection.x,1-S.selection.w);
    S.selection.y=Math.min(S.selection.y,1-S.selection.h);
   }
@@ -58,10 +59,11 @@ function bindCrop(){
   }
   else{
    let l=o.x,t=o.y,r=o.x+o.w,b=o.y+o.h;
-   if(drag.mode.includes('w'))l=Math.max(0,Math.min(r-.008,o.x+dx));
-   if(drag.mode.includes('e'))r=Math.min(1,Math.max(l+.008,o.x+o.w+dx));
-   if(drag.mode.includes('n'))t=Math.max(0,Math.min(b-.008,o.y+dy));
-   if(drag.mode.includes('s'))b=Math.min(1,Math.max(t+.008,o.y+o.h+dy));
+   const minSize=document.body.classList.contains('crop-workspace-open')?.008:.015;
+   if(drag.mode.includes('w'))l=Math.max(0,Math.min(r-minSize,o.x+dx));
+   if(drag.mode.includes('e'))r=Math.min(1,Math.max(l+minSize,o.x+o.w+dx));
+   if(drag.mode.includes('n'))t=Math.max(0,Math.min(b-minSize,o.y+dy));
+   if(drag.mode.includes('s'))b=Math.min(1,Math.max(t+minSize,o.y+o.h+dy));
    S.selection={x:l,y:t,w:r-l,h:b-t};
   }
   if(document.body.classList.contains('crop-workspace-open')&&$('mode').value==='pvc'){
@@ -75,7 +77,7 @@ function bindCrop(){
   pointerId=e.pointerId;
   const p=point(e),origin=S.selection?{...S.selection}:null;
   drag={mode,start:p,origin};
-  if(mode==='draw'){
+  if(mode==='draw'&&document.body.classList.contains('crop-workspace-open')){
    const tiny=Math.max(.002,Math.min(.006,2/Math.max(1,canvas.clientWidth)));
    S.selection={x:Math.min(p.x,1-tiny),y:Math.min(p.y,1-tiny),w:tiny,h:tiny};
    paint();drawCropWorkspacePreview();
