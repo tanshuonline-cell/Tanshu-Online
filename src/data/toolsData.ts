@@ -1376,7 +1376,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   },
   {
     id: 'pvc-card-printer-studio',
-    name: 'PVC Card Printer',
+    name: 'Multi-Printer Auto Print',
     category: 'pvc-id',
     categoryLabel: 'ID Card & Print',
     isFeatured: true,
