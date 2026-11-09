@@ -1,4 +1,4 @@
-// High-quality preview image resolver for all 89 tools in Tanshu Online
+// High-quality preview image resolver for all 90 tools in Tanshu Online
 // Combines realistic photographic captures and high-fidelity SVG graphic previews
 
 import passportImg from '../assets/images/tool_passport_photos_1793211936275.jpg';
