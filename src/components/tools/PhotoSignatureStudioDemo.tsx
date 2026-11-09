@@ -38,7 +38,6 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
   const [photoProgress, setPhotoProgress] = useState('');
   const [photoError, setPhotoError] = useState('');
   const [photoBg, setPhotoBg] = useState('#ffffff');
-  const [customPhotoBg, setCustomPhotoBg] = useState('#dbeafe');
   const [presetIndex, setPresetIndex] = useState(0);
   const [unit, setUnit] = useState<Unit>('mm');
   const [customW, setCustomW] = useState('35');
@@ -62,6 +61,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
   const [sheetUrl, setSheetUrl] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
+  const photoColorInput = useRef<HTMLInputElement>(null);
   const signatureInput = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{x:number;y:number;px:number;py:number}|null>(null);
   const cropDragRef = useRef<{x:number;y:number;cx:number;cy:number}|null>(null);
@@ -182,7 +182,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
     {customSize ? <div className="mt-2 grid grid-cols-2 gap-2"><div><label className={label}>Width ({unit})</label><input className={control} type="number" min="5" value={customW} onChange={e=>setCustomW(e.target.value)}/></div><div><label className={label}>Height ({unit})</label><input className={control} type="number" min="5" value={customH} onChange={e=>setCustomH(e.target.value)}/></div></div> : <p className="mt-1 text-[11px] text-slate-500">फ्रेम: {photoSize.w} × {photoSize.h} mm</p>}
     <div className="mt-3 rounded-xl bg-slate-50 p-3"><div className="mb-2 flex items-center justify-between"><b className="text-xs">Manual Crop</b><span className="text-[10px] text-slate-500">Zoom {zoom}%</span></div><label className={label}>Zoom</label><input type="range" min="80" max="220" value={zoom} onChange={e=>setZoom(Number(e.target.value))} className="w-full accent-blue-600"/><label className={label}>Horizontal crop</label><input type="range" min="0" max="100" value={cropX} onChange={e=>setCropX(Number(e.target.value))} className="w-full accent-blue-600"/><label className={label}>Vertical crop</label><input type="range" min="0" max="100" value={cropY} onChange={e=>setCropY(Number(e.target.value))} className="w-full accent-blue-600"/></div>
     <div className="mt-3"><label className={label}>Background removal & colour</label><button disabled={!photo||photoBusy} onClick={()=>removeBg('photo')} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50"><Eraser size={16}/>{photoBusy?'AI से बैकग्राउंड हट रहा है…':'AI से बैकग्राउंड हटाएँ'}</button>{photoProgress&&<p className="mt-1 text-xs text-blue-700">{photoProgress}</p>}{photoError&&<p className="mt-1 text-xs text-red-600">{photoError}</p>}
-      <div className="mt-2 flex flex-wrap gap-2">{[['#ffffff','White'],['#dbeafe','Blue'],['#bfdbfe','Light Blue'],['#e5e7eb','Grey'],['#d1fae5','Light Green']].map(([c,n])=><button key={c} onClick={()=>setPhotoBg(c)} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${photoBg===c?'border-blue-600 ring-2 ring-blue-100':'border-slate-200'}`}><span className="mr-1 inline-block h-3 w-3 rounded-full border align-middle" style={{background:c}}/>{n}</button>)}</div><div className="mt-2 flex items-center gap-2"><label className="text-xs font-bold">Custom</label><input type="color" value={customPhotoBg} onChange={e=>setCustomPhotoBg(e.target.value)}/><button onClick={()=>setPhotoBg(customPhotoBg)} className="text-xs font-bold text-blue-700">Apply</button><button onClick={()=>{setPhotoCutout('');setPhotoBg('#ffffff')}} className="ml-auto text-xs text-slate-500">Original</button></div>
+      <div className="mt-2 flex flex-wrap gap-2">{[['#ffffff','White'],['#dbeafe','Blue'],['#bfdbfe','Light Blue'],['#e5e7eb','Grey'],['#d1fae5','Light Green']].map(([c,n])=><button key={c} onClick={()=>setPhotoBg(c)} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${photoBg===c?'border-blue-600 ring-2 ring-blue-100':'border-slate-200'}`}><span className="mr-1 inline-block h-3 w-3 rounded-full border align-middle" style={{background:c}}/>{n}</button>)}</div><div className="mt-2 flex items-center gap-2"><label className="text-xs font-bold">Custom</label><input ref={photoColorInput} type="color" defaultValue="#dbeafe" aria-label="कस्टम फोटो बैकग्राउंड रंग चुनें"/><button onClick={()=>{const color=photoColorInput.current?.value;if(color)setPhotoBg(color)}} className="text-xs font-bold text-blue-700">रंग लागू करें</button><button onClick={()=>{setPhotoCutout('');setPhotoBg('#ffffff')}} className="ml-auto text-xs text-slate-500">Original</button></div>
     </div>
   </div>;
 
