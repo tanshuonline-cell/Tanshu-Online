@@ -89,7 +89,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
           </p>
         </div>
 
-        {/* Featured tools; the new Photo & Signature Resizer appears first. */}
+        {/* Existing featured tools stay in order; Instant Passport Photo Maker is appended. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8 gap-3.5 sm:gap-4">
           {featuredTools.map((tool) => {
             const previewImg = getToolImage(tool.id);
