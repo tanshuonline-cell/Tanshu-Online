@@ -98,6 +98,12 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 </button>
               );
             })}
+            <a
+              href="/digital-seva"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#C62828]/20 bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-[#C62828] shadow-sm transition-colors hover:bg-red-100 whitespace-nowrap"
+            >
+              Tanshu Digital Center <ArrowRight className="h-3 w-3" />
+            </a>
           </nav>
 
           {/* Left on Mobile / Tablet: Quick section label */}
@@ -189,6 +195,13 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 {link.label}
               </button>
             ))}
+            <a
+              href="/digital-seva"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block w-full rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-extrabold text-[#C62828]"
+            >
+              Tanshu Digital Center
+            </a>
 
             {/* Mobile Customer Access Trigger */}
             {onOpenCustomerAuth && (
