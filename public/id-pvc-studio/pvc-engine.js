@@ -464,7 +464,7 @@ function bindWhatsAppPerspectiveCrop(){
  const rotate=dir=>{if(!image)return;const old=sourceCanvas,w=old.width,h=old.height,out=document.createElement('canvas');out.width=h;out.height=w;const c=out.getContext('2d');c.translate(out.width/2,out.height/2);c.rotate(dir*Math.PI/2);c.drawImage(old,-w/2,-h/2);const map=p=>dir===1?{x:h-p.y,y:p.x}:{x:p.y,y:w-p.x};corners=corners.map(map);sourceCanvas=out;image=out;canvas.width=out.width;canvas.height=out.height;rotation=(rotation+dir+4)%4;draw();};
  const setSide=next=>{if(side===next)return;side=next;syncSide();image=null;sourceCanvas=null;corners=[];rotation=0;input.value='';status.textContent=finished[side]?'इस साइड की फोटो पहले सेव हो चुकी है। नई फोटो चुनकर बदल सकते हैं।':side.toUpperCase()+' फोटो चुनें।';draw();};
  $('openWhatsAppPhotoCrop').addEventListener('click',open);$('closeWhatsAppPhotoCrop').onclick=close;$('cancelPerspective').onclick=close;
- $('perspectiveFront').onclick=()=>setSide('front');$('perspectiveBack').onclick=()=>setSide('back);
+ $('perspectiveFront').onclick=()=>setSide('front');$('perspectiveBack').onclick=()=>setSide('back');
  $('rotatePerspectiveLeft').onclick=()=>rotate(-1);$('rotatePerspectiveRight').onclick=()=>rotate(1);
  input.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)loadImage(f).catch(err=>{status.textContent='फोटो लोड नहीं हुई।';console.warn(err);});});
  canvas.addEventListener('pointerdown',e=>{if(!image)return;const p=point(e);let best=Infinity;corners.forEach((c,i)=>{const d=Math.hypot(c.x-p.x,c.y-p.y);if(d<best){best=d;dragIndex=i;}});if(best>Math.max(30,canvas.width/18)){dragIndex=-1;return;}canvas.setPointerCapture(e.pointerId);e.preventDefault();});
