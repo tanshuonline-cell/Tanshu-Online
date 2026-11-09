@@ -108,6 +108,9 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
  body>.toolbar .btn{flex:0 0 auto;min-height:38px;padding:8px 10px;font-size:11px}
  .layout{height:auto;min-height:0;display:flex;flex-direction:column;gap:12px;padding:10px 9px 18px;overflow:visible}
  .panel{width:100%;min-width:0;max-height:none;overflow:visible;border-radius:15px;padding:13px;box-shadow:0 5px 20px #14233b0b}
+ body.mobile-step-mode .layout>.panel{display:none}
+ body.mobile-step-mode .layout>.panel.mobile-step-active{display:block;scroll-margin-top:126px;min-height:0}
+ body.mobile-step-mode .layout{min-height:calc(100dvh - 190px)}
  .left-panel,.center-panel,.right-panel{width:100%;min-width:0}
  .panel h3{font-size:15px;line-height:1.35;margin-top:4px}
  .field{min-width:0;margin-bottom:12px}.field-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -266,33 +269,42 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
 (function(){
  const dock=document.querySelector('.mobile-step-dock');
  if(!dock)return;
- const left=document.querySelector('.left-panel');
- const center=document.querySelector('.center-panel');
- const right=document.querySelector('.right-panel');
- if(left)left.id='upload-step';
- if(center)center.id='edit-step';
- if(right)right.id='print-step';
+ const panels={
+  'upload-step':document.querySelector('.left-panel'),
+  'edit-step':document.querySelector('.center-panel'),
+  'print-step':document.querySelector('.right-panel')
+ };
  const buttons=[...dock.querySelectorAll('button[data-go]')];
- function activate(target){
-  buttons.forEach(b=>b.classList.toggle('active',b.dataset.go===target));
+ Object.entries(panels).forEach(([id,panel])=>{if(panel)panel.id=id;});
+ function activate(target,scroll){
+  const selected=panels[target];
+  if(!selected)return;
+  document.body.classList.add('mobile-step-mode');
+  Object.entries(panels).forEach(([id,panel])=>{
+   if(!panel)return;
+   const active=id===target;
+   panel.classList.toggle('mobile-step-active',active);
+   panel.setAttribute('aria-hidden',String(!active));
+  });
+  buttons.forEach(button=>{
+   const active=button.dataset.go===target;
+   button.classList.toggle('active',active);
+   if(active)button.setAttribute('aria-current','step');
+   else button.removeAttribute('aria-current');
+  });
+  if(scroll)window.scrollTo({top:0,behavior:'smooth'});
  }
- buttons.forEach(b=>b.addEventListener('click',()=>{
-  const target=b.dataset.go;
+ buttons.forEach(button=>button.addEventListener('click',()=>{
+  const target=button.dataset.go;
   if(target==='print-action'){
+   activate('print-step',false);
    const print=document.getElementById('print');
    if(print)print.click();
    return;
   }
-  const node=document.getElementById(target);
-  if(node){activate(target);node.scrollIntoView({behavior:'smooth',block:'start'});}
+  activate(target,true);
  }));
- if('IntersectionObserver' in window){
-  const observer=new IntersectionObserver(entries=>{
-   const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
-   if(visible)activate(visible.target.id);
-  },{rootMargin:'-22% 0px -58% 0px',threshold:[0,.15,.35,.6]});
-  [left,center,right].filter(Boolean).forEach(n=>observer.observe(n));
- }
+ activate('upload-step',false);
 })();
 </script>
 </body></html>
