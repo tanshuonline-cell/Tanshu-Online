@@ -173,7 +173,21 @@ function magicBuildCanvas(img,showArea=false){
 function magicRender(){if(!magicOriginal)return;const canvas=$('magicCanvas'),out=magicBuildCanvas(magicOriginal,true);canvas.width=out.width;canvas.height=out.height;canvas.getContext('2d').drawImage(out,0,0);magicUpdateLabels();}
 function magicTargets(){const mode=$('magicApplyTarget').value;let list=[];if(mode==='all')list=S.crops.slice();else if(mode==='front'||mode==='back')list=S.crops.filter(c=>c.pairId===magicPairId&&c.side===mode);else list=S.crops.filter(c=>c.pairId===magicPairId&&(c.side==='front'||c.side==='back'));return [...new Map(list.map(c=>[c.id,c])).values()];}
 function magicLoadPreview(side){const c=S.crops.find(x=>x.pairId===magicPairId&&x.side===side)||magicCrop;if(!c)return;magicCrop=c;S.activeCrop=c;magicOriginal=new Image();magicOriginal.onload=()=>{magicBgSample=null;magicArea=null;magicRender();$('magicPhotoLabel').textContent=c.side.toUpperCase()+' · '+(c.profile||'Custom')+' · '+c.pairId;};magicOriginal.onerror=()=>say('यह फोटो एडिटर में लोड नहीं हो पाई।');magicOriginal.src=c.src;}
-function openMagicTools(c=S.activeCrop){if(!c){say('पहले Cropped Front या Back फोटो चुनें।','पहले Cropped Front या Back फोटो चुनें।');return;}S.activeCrop=c;magicCrop=c;magicPairId=c.pairId;magicArea=null;magicPickMode=false;$('magicPreviewSide').value=c.side;$('magicApplyTarget').value='both';$('magicEditArea').value='whole';magicOriginal=new Image();magicOriginal.onload=()=>{magicBgSample=null;$('magicCanvas').classList.remove('magic-pick');magicSetControls();magicRender();$('magicPhotoLabel').textContent=c.side.toUpperCase()+' · '+(c.profile||'Custom')+' · '+c.pairId;$('magicTools').classList.add('open');$('magicTools').setAttribute('aria-hidden','false');};magicOriginal.onerror=()=>say('यह फोटो एडिटर में लोड नहीं हो पाई।');magicOriginal.src=c.src;}
+function openMagicTools(c=S.activeCrop){
+ if(!c){say('पहले Cropped Front या Back फोटो चुनें।','पहले Cropped Front या Back फोटो चुनें।');return;}
+ const modal=$('magicTools'),canvas=$('magicCanvas'),label=$('magicPhotoLabel'),hint=$('magicHint');
+ if(!modal||!canvas){say('Magic Tools panel नहीं मिल पाया। पेज refresh करके फिर कोशिश करें।');return;}
+ S.activeCrop=c;magicCrop=c;magicPairId=c.pairId;magicArea=null;magicPickMode=false;
+ $('magicPreviewSide').value=c.side;$('magicApplyTarget').value='both';$('magicEditArea').value='whole';
+ modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+ if(label)label.textContent='फोटो लोड हो रही है…';
+ if(hint)hint.textContent='कृपया फोटो लोड होने तक प्रतीक्षा करें।';
+ canvas.classList.remove('magic-pick');
+ magicOriginal=new Image();
+ magicOriginal.onload=()=>{if(magicCrop!==c)return;magicBgSample=null;magicSetControls();magicRender();if(label)label.textContent=c.side.toUpperCase()+' · '+(c.profile||'Custom')+' · '+c.pairId;if(hint)hint.textContent='फोटो तैयार है। अब आवश्यक बदलाव चुनें।';};
+ magicOriginal.onerror=()=>{if(label)label.textContent='फोटो लोड नहीं हो पाई';if(hint)hint.textContent='इस फोटो को दोबारा चुनें या Crop Workspace से फिर सेव करें।';say('Magic Tools खुल गया, लेकिन चुनी हुई फोटो लोड नहीं हो पाई।');};
+ magicOriginal.src=c.src;
+}
 function closeMagicTools(){magicPickMode=false;magicAreaDrag=null;$('designTextEditor').classList.remove('open');$('designTextEditor').setAttribute('aria-hidden','true');$('magicTools').classList.remove('open');$('magicTools').setAttribute('aria-hidden','true');magicOriginal=null;magicCrop=null;magicArea=null;}
 function magicPreset(name){const presets={natural:{brightness:105,contrast:105,saturation:105,clarity:8,sharpness:15,scale:100,filter:'none'},studio:{brightness:112,contrast:112,saturation:92,clarity:18,sharpness:25,scale:100,filter:'soft'},vivid:{brightness:105,contrast:118,saturation:145,clarity:22,sharpness:28,scale:100,filter:'vivid'},mono:{brightness:105,contrast:112,saturation:0,clarity:15,sharpness:20,scale:100,filter:'mono'}};magicSetControls({...magicDefaults,...presets[name]});magicRender();}
 function magicCanvasPoint(e){const c=$('magicCanvas'),r=c.getBoundingClientRect();return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};}
