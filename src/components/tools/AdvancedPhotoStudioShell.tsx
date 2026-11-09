@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-  ArrowLeft, ChevronDown, Search, Upload, Download, Printer, Undo2, Redo2,
-  MousePointer2, Crop, WandSparkles, SlidersHorizontal, Image as ImageIcon,
+  ArrowLeft, ChevronDown, Search, Download, Undo2, Redo2,
+  MousePointer2, Crop, WandSparkles, Image as ImageIcon,
   Layers3, Palette, Ruler, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
-  MoreHorizontal, Check, LockKeyhole, ScanFace, RotateCcw
+  MoreHorizontal, Check, LockKeyhole, ScanFace
 } from 'lucide-react';
 
 const toolItems = [
