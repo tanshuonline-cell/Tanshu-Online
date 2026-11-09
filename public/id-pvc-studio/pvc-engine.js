@@ -35,28 +35,54 @@ function bindCrop(){
  const clamp=(v)=>Math.max(0,Math.min(1,v));
  const paint=()=>{const s=S.selection;if(!s)return;const r=canvas.getBoundingClientRect();Object.assign(box.style,{left:(canvas.offsetLeft+s.x*r.width)+'px',top:(canvas.offsetTop+s.y*r.height)+'px',width:(s.w*r.width)+'px',height:(s.h*r.height)+'px',display:'block'});};
  const point=e=>cropPointer(e);
- const finish=e=>{if(pointerId===null||(e?.pointerId!==undefined&&e.pointerId!==pointerId))return;drag=null;pointerId=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',finish);};
+ const finish=e=>{
+  if(pointerId===null||(e?.pointerId!==undefined&&e.pointerId!==pointerId))return;
+  drag=null;pointerId=null;
+  window.removeEventListener('pointermove',move);
+  window.removeEventListener('pointerup',finish);
+  window.removeEventListener('pointercancel',finish);
+  paint();drawCropWorkspacePreview();
+ };
  const move=e=>{
   if(!drag||e.pointerId!==pointerId)return;
   const p=point(e),dx=p.x-drag.start.x,dy=p.y-drag.start.y,o=drag.origin;
-  if(drag.mode==='draw'){const x=Math.min(drag.start.x,p.x),y=Math.min(drag.start.y,p.y);S.selection={x,y,w:Math.abs(dx),h:Math.abs(dy)};}
-  else if(drag.mode==='move'){S.selection={...o,x:clamp(o.x+dx),y:clamp(o.y+dy)};S.selection.x=Math.min(S.selection.x,1-o.w);S.selection.y=Math.min(S.selection.y,1-o.h);}
+  if(drag.mode==='draw'){
+   const x=Math.min(drag.start.x,p.x),y=Math.min(drag.start.y,p.y);
+   S.selection={x,y,w:Math.max(.002,Math.abs(dx)),h:Math.max(.002,Math.abs(dy))};
+   S.selection.x=Math.min(S.selection.x,1-S.selection.w);
+   S.selection.y=Math.min(S.selection.y,1-S.selection.h);
+  }
+  else if(drag.mode==='move'){
+   S.selection={...o,x:clamp(o.x+dx),y:clamp(o.y+dy)};
+   S.selection.x=Math.min(S.selection.x,1-o.w);S.selection.y=Math.min(S.selection.y,1-o.h);
+  }
   else{
    let l=o.x,t=o.y,r=o.x+o.w,b=o.y+o.h;
-   if(drag.mode.includes('w'))l=Math.max(0,Math.min(r-.015,o.x+dx));
-   if(drag.mode.includes('e'))r=Math.min(1,Math.max(l+.015,o.x+o.w+dx));
-   if(drag.mode.includes('n'))t=Math.max(0,Math.min(b-.015,o.y+dy));
-   if(drag.mode.includes('s'))b=Math.min(1,Math.max(t+.015,o.y+o.h+dy));
+   if(drag.mode.includes('w'))l=Math.max(0,Math.min(r-.008,o.x+dx));
+   if(drag.mode.includes('e'))r=Math.min(1,Math.max(l+.008,o.x+o.w+dx));
+   if(drag.mode.includes('n'))t=Math.max(0,Math.min(b-.008,o.y+dy));
+   if(drag.mode.includes('s'))b=Math.min(1,Math.max(t+.008,o.y+o.h+dy));
    S.selection={x:l,y:t,w:r-l,h:b-t};
   }
-  if(document.body.classList.contains('crop-workspace-open')&&$('mode').value==='pvc'){const fitted=workspaceFittedSelection();if(fitted)S.selection=fitted;}
+  if(document.body.classList.contains('crop-workspace-open')&&$('mode').value==='pvc'){
+   const fitted=workspaceFittedSelection();if(fitted)S.selection=fitted;
+  }
   paint();drawCropWorkspacePreview();
  };
  const begin=(e,mode)=>{
-  if(!current())return;e.preventDefault();e.stopPropagation();pointerId=e.pointerId;
+  if(!current())return;
+  e.preventDefault();e.stopPropagation();
+  pointerId=e.pointerId;
   const p=point(e),origin=S.selection?{...S.selection}:null;
   drag={mode,start:p,origin};
-  window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',finish);
+  if(mode==='draw'){
+   const tiny=Math.max(.002,Math.min(.006,2/Math.max(1,canvas.clientWidth)));
+   S.selection={x:Math.min(p.x,1-tiny),y:Math.min(p.y,1-tiny),w:tiny,h:tiny};
+   paint();drawCropWorkspacePreview();
+  }
+  window.addEventListener('pointermove',move);
+  window.addEventListener('pointerup',finish);
+  window.addEventListener('pointercancel',finish);
  };
  canvas.addEventListener('pointerdown',e=>{S.selection=null;box.style.display='none';begin(e,'draw');});
  box.addEventListener('pointerdown',e=>{
