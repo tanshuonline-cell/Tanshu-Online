@@ -764,6 +764,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     name: 'PDF OCR & Text Extractor (Hindi & Eng)',
     category: 'pdf',
     categoryLabel: 'PDF Tools',
+    isFeatured: true,
     iconName: 'ScanLine',
     description: 'Extract copyable, searchable Hindi and English text from non-searchable scanned image PDFs and photographed certificates.',
     detailedInstructions: 'Runs in-browser optical character recognition to turn scanned paperwork into editable text ready to paste into online application forms.',

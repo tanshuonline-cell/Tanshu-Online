@@ -20,11 +20,12 @@ interface Props {
 
 export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const { t, isHindi } = useLanguage();
-  // Exactly the six featured tools from the confirmed tools list
+  // Eight featured tools; OCR follows Photo & Signature Resizer.
   const featuredOrder = [
     'advanced-passport-photo-studio',
     'pvc-card-printer-studio',
     'photo-signature-resizer',
+    'pdf-ocr-text-extractor',
     'auto-document-cropper',
     'document-scanner-image-rectifier',
     'id-card-front-back-print-layout-maker',
@@ -33,12 +34,14 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const featuredTools = CONFIRMED_TOOLS
     .filter((tool) => tool.isFeatured)
     .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
-    .slice(0, 7);
+    .slice(0, 8);
 
   const getToolImage = (id: string) => {
     switch (id) {
       case 'photo-signature-resizer':
         return getToolPreviewImage('photo-signature-resizer', 'Photo & Signature Resizer', 'Photo & Signature');
+      case 'pdf-ocr-text-extractor':
+        return scannerImg;
       case 'advanced-passport-photo-studio':
         return passportImg;
       case 'auto-document-cropper':
@@ -87,14 +90,14 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
           </p>
         </div>
 
-        {/* Featured tools; the new Photo & Signature Resizer appears first. */}
+        {/* Featured tools; OCR is placed immediately after Photo & Signature Resizer. The eighth item wraps to the next row at the seven-column desktop layout. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 sm:gap-4">
           {featuredTools.map((tool) => {
             const previewImg = getToolImage(tool.id);
             const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
             const displayName = hindiCopy?.name || tool.name;
             const displayDescription = hindiCopy?.description || tool.description;
-            const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer';
+            const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer' || tool.id === 'pdf-ocr-text-extractor';
             return (
               <div
                 key={tool.id}

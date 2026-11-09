@@ -6,6 +6,7 @@ import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
 import { AdvancedPassportPhotoStudioWelcome } from './AdvancedPassportPhotoStudioWelcome';
 import { PhotoSignatureResizerTool } from './PhotoSignatureResizerTool';
 import { PhotoSignatureResizerWelcome } from './PhotoSignatureResizerWelcome';
+import { PdfOcrTextExtractorTool } from './PdfOcrTextExtractorTool';
 import { AutoDocumentCropperTool } from './AutoDocumentCropperTool';
 import { DocumentScannerTool } from './DocumentScannerTool';
 import { PdfToPvcTool } from './PdfToPvcTool';
@@ -59,6 +60,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         return showPhotoSignatureStudio
           ? <PhotoSignatureResizerTool onBack={onClose} />
           : <PhotoSignatureResizerWelcome onStart={() => setShowPhotoSignatureStudio(true)} onBack={onClose} />;
+      case 'pdf-ocr-text-extractor':
+        return <PdfOcrTextExtractorTool />;
       case 'ai-selfie-passport-photo-maker':
         return <PassportPhotoTool />;
       case 'auto-document-cropper':
@@ -152,7 +155,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           )}
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">TANSHU ONLINE</span><span>·</span>
-            <span>{isPhotoSignatureResizer ? 'Photo and signature files are processed locally in your browser.' : isAdvancedStudio ? 'Photos are processed in your browser in this studio.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
+            <span>{isPhotoSignatureResizer ? 'Photo and signature files are processed locally in your browser.' : isAdvancedStudio ? 'Photos are processed in your browser in this studio.' : tool.id === 'pdf-ocr-text-extractor' ? 'OCR runs locally in your browser after its OCR engine and language data load.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
           </div>
           <button onClick={onClose} className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Close Workspace</button>
         </div>
