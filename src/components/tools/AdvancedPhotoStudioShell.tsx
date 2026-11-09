@@ -32,6 +32,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [photos, setPhotos] = useState<StudioPhoto[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [zoom, setZoom] = useState(100);
+  const [cropZoom, setCropZoom] = useState(100);
+  const [positionX, setPositionX] = useState(50);
+  const [positionY, setPositionY] = useState(50);
   const [preset, setPreset] = useState<StudioPreset>('india');
   const [customWidthMm, setCustomWidthMm] = useState(35);
   const [customHeightMm, setCustomHeightMm] = useState(45);
@@ -159,8 +162,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="absolute left-5 top-5 flex items-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted"><MousePointer2 size={13}/> Move tool <span className="ml-2 text-[#626B74]">V</span></div>
               <div className="absolute right-5 top-5 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>
               {selected ? (
-                <div className="relative flex max-h-full max-w-full items-center justify-center border border-white/10 bg-[#E7E5E0] p-3 shadow-2xl" style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: Math.min(560, 420 * documentSize.widthMm / documentSize.heightMm), maxWidth: "55vw", maxHeight: 420, padding: 0 }}>
-                  <img src={selected.url} alt={selected.file.name} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="block h-full w-full object-cover"/>
+                <div className="relative max-h-full max-w-full overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl" style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: Math.min(560, 420 * documentSize.widthMm / documentSize.heightMm), maxWidth: "55vw", maxHeight: 420 }}>
+                  <img src={selected.url} alt={selected.file.name} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="block h-full w-full object-cover" style={{ objectPosition: `${positionX}% ${positionY}%`, transform: `scale(${cropZoom / 100})` }}/>
                 </div>
               ) : (
                 <button type="button" onClick={() => uploadRef.current?.click()} className="group flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
@@ -201,6 +204,12 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="flex items-center justify-between py-2 text-[11px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
               <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Color profile</span><span className="text-[#D5DADF]">sRGB</span></div>
+            </div>
+            <div className="border-b studio-line p-4">
+              <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
+              <div className="mb-3"><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-crop-zoom" className="studio-muted">Crop zoom</label><span className="text-[#D5DADF]">{cropZoom}%</span></div><input id="studio-crop-zoom" aria-label="Crop zoom" type="range" min="100" max="250" step="1" value={cropZoom} onChange={event => setCropZoom(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
+              <div className="mb-3"><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-position-x" className="studio-muted">Horizontal position</label><span className="text-[#D5DADF]">{positionX}%</span></div><input id="studio-position-x" aria-label="Horizontal position" type="range" min="0" max="100" value={positionX} onChange={event => setPositionX(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
+              <div><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-position-y" className="studio-muted">Vertical position</label><span className="text-[#D5DADF]">{positionY}%</span></div><input id="studio-position-y" aria-label="Vertical position" type="range" min="0" max="100" value={positionY} onChange={event => setPositionY(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
             </div>
             <div className="border-b studio-line p-4">
               <div className="mb-3 text-[10px] font-semibold tracking-[.12em] studio-muted">APPEARANCE</div>
