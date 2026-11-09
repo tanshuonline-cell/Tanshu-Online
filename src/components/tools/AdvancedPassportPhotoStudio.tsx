@@ -147,9 +147,6 @@ export const AdvancedPassportPhotoStudio: React.FC = () => {
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"loading"|"saved"|"saving"|"error">("loading");
   const [showStepSidebar, setShowStepSidebar] = useState(true);
-  const [sheetToolsExpanded, setSheetToolsExpanded] = useState(true);
-  const sheetToolsDragStartRef = useRef<number | null>(null);
-  const sheetToolsDragMovedRef = useRef(false);
   const sheetToolsPanelRef = useRef<HTMLDivElement | null>(null);
   const [selectedId, setSelectedId] = useState<string>('');
   const [draggingPhotoId, setDraggingPhotoId] = useState<string>('');
