@@ -83,6 +83,39 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     setPhotos(current => current.map(photo => photo.id === id ? { ...photo, width, height } : photo));
   };
 
+  const exportSelectedPhoto = () => {
+    if (!selected) return;
+    const image = new Image();
+    image.onload = () => {
+      const output = document.createElement('canvas');
+      output.width = documentSize.widthPx;
+      output.height = documentSize.heightPx;
+      const context = output.getContext('2d');
+      if (!context) return;
+      const ratio = output.width / output.height;
+      const baseWidth = Math.min(image.naturalWidth, image.naturalHeight * ratio);
+      const baseHeight = baseWidth / ratio;
+      const scale = Math.max(1, cropZoom / 100);
+      const sourceWidth = baseWidth / scale;
+      const sourceHeight = baseHeight / scale;
+      const sourceX = Math.max(0, Math.min(image.naturalWidth - sourceWidth, (image.naturalWidth - sourceWidth) * positionX / 100));
+      const sourceY = Math.max(0, Math.min(image.naturalHeight - sourceHeight, (image.naturalHeight - sourceHeight) * positionY / 100));
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, output.width, output.height);
+      output.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = selected.file.name.replace(/\\.[^.]+$/, '') + '-tanshu-studio.jpg';
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }, 'image/jpeg', 0.96);
+    };
+    image.src = selected.url;
+  };
+
   return (
     <div className="min-h-screen bg-[#101214] text-[#D9DDE1] font-sans antialiased">
       <style>{`
@@ -133,6 +166,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Undo2 size={14}/> Undo</div>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Redo2 size={14}/> Redo</div>
             <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-8 items-center gap-2 rounded-md bg-[#D9DEE2] px-3 text-[11px] font-semibold text-[#20252A] hover:bg-[#E5E8EA]"><Upload size={14}/> Import photo</button>
+            <button type="button" disabled={!selected} onClick={exportSelectedPhoto} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-40"><Download size={14}/> Export JPG</button>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
           </div>
         </nav>
