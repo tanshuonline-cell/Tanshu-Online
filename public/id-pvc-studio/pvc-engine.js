@@ -123,6 +123,8 @@ async function renderCardArtwork(item,side){
  const dx=(ox-w/2)*zoom+w/2,dy=(oy-h/2)*zoom+h/2;
  if(S.mirror&&side==='back'){ctx.translate(w,0);ctx.scale(-1,1);}
  ctx.drawImage(im,dx,dy,dw*zoom,dh*zoom);ctx.restore();
+ const template=S.cardTemplate||'blank';
+ if(template!=='blank'){const colors={generic:['#23395d','#e8eef7'],'aadhaar-style':['#3b536e','#edf2f7'],'pan-style':['#344b62','#edf1f5'],'voter-style':['#40556b','#edf1f5']}[template]||['#23395d','#e8eef7'];ctx.save();ctx.fillStyle=colors[0];ctx.fillRect(0,0,w,h*.17);ctx.fillStyle='#fff';ctx.font='bold '+Math.round(w*.027)+'px Arial';ctx.textBaseline='middle';ctx.fillText('IDENTITY CARD · NON-OFFICIAL SAMPLE',w*.04,h*.085,w*.92);ctx.fillStyle=colors[1];ctx.fillRect(0,h*.88,w,h*.12);ctx.fillStyle='#26384b';ctx.font='bold '+Math.round(w*.024)+'px Arial';ctx.fillText(side==='back'?'PERSONAL DETAILS':'SAMPLE · NOT AN OFFICIAL DOCUMENT',w*.04,h*.94,w*.92);ctx.restore();}
  if(S.borderEnabled){const bw=Math.max(.1,Math.min(2,Number(S.borderWidth)||.4))*scale,inset=bw/2;ctx.save();ctx.strokeStyle=S.borderColor||'#111111';ctx.lineWidth=bw;ctx.beginPath();if(rounded&&ctx.roundRect)ctx.roundRect(inset,inset,w-bw,h-bw,Math.max(0,radius-inset));else if(rounded){const r=Math.max(0,radius-inset);ctx.moveTo(inset+r,inset);ctx.lineTo(w-inset-r,inset);ctx.arcTo(w-inset,inset,w-inset,inset+r,r);ctx.lineTo(w-inset,h-inset-r);ctx.arcTo(w-inset,h-inset,w-inset-r,h-inset,r);ctx.lineTo(inset+r,h-inset);ctx.arcTo(inset,h-inset,inset,h-inset-r,r);ctx.lineTo(inset,inset+r);ctx.arcTo(inset,inset,inset+r,inset,r);ctx.closePath();}else ctx.rect(inset,inset,w-bw,h-bw);ctx.stroke();ctx.restore();}
  return canvas.toDataURL('image/png');
 }
