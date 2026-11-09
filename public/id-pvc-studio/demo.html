@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101a30">
-<meta name="description" content="Tanshu Online PVC Card Studio — मोबाइल और कंप्यूटर के लिए फीचर डेमो।">
+<meta name="description" content="Tanshu Online PVC Card Studio — Feature demo for mobile and desktop.">
 <title>TANSHU ONLINE · PVC Card Studio Demo</title>
 <style>
 :root{--navy:#101a30;--navy2:#172744;--ink:#17243b;--muted:#68758b;--gold:#d7b66e;--blue:#5da8ff;--paper:#f4f6fa;--line:#e1e7f0;--teal:#38b6a1;--purple:#8d78df}
@@ -22,19 +22,40 @@ footer{background:#0c1527;color:#9aabc3;padding:23px 0;font-size:10px}.foot{disp
 @media(max-width:850px){.hero-grid{grid-template-columns:1fr;gap:35px}.preview-frame{max-width:590px;margin:auto;width:100%}.feature-grid{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.trustgrid{grid-template-columns:repeat(2,1fr)}.navlinks>a:not(.nav-cta){display:none}}
 @media(max-width:560px){.shell{padding:0 16px}.nav{height:68px}.brand img{width:40px;height:40px}.brandname{font-size:13px}.brandtag{font-size:8px}.navlinks{gap:0}.nav-cta{padding:9px 10px;font-size:10px}.hero{padding:44px 0 54px}.hero h1{font-size:37px}.hero p{font-size:13px}.hero-actions .btn{width:100%}.preview-frame{padding:9px;border-radius:15px}.mock-ui{grid-template-columns:78px 1fr 70px;gap:5px;min-height:230px;padding:6px}.mock-side,.mock-right{padding:5px}.mock-control{font-size:6px;padding:4px 3px}.mock-canvas{padding:6px}.a4{min-width:100px;width:82%;padding:7%;gap:7px}.sample-card{padding:4px;gap:4px}.avatar{width:19px;height:25px}.avatar:before{left:6px;top:3px;width:7px;height:7px}.avatar:after{left:3px;width:13px;height:10px}.sample-lines b,.sample-lines span{height:3px;margin:3px 0}.float-tag{font-size:7px;padding:6px 7px}.float-tag.one{left:-5px;top:48px}.float-tag.two{right:-5px;bottom:25px}.trustgrid{gap:13px}.trustitem{font-size:9px}.devices{grid-template-columns:1fr}.device{padding:20px}.feature-grid{gap:9px}.feature{padding:13px;min-height:150px}.workflow{gap:9px}.step{padding:14px}.cta-panel{padding:28px 18px}.cta-panel h2{font-size:23px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+
+/* Premium interaction polish */
+header{position:sticky;top:0;z-index:1000;backdrop-filter:blur(18px);box-shadow:0 8px 28px #07132630}
+.nav{min-height:78px}
+.lang-switch{display:inline-flex;align-items:center;gap:3px;padding:4px;border:1px solid #d7b66e66;border-radius:999px;background:#ffffff10}
+.lang-btn{border:0;border-radius:999px;padding:7px 10px;background:transparent;color:#d8e4f4;font:800 10px inherit;cursor:pointer;transition:background .2s,color .2s,transform .2s}
+.lang-btn.active{background:linear-gradient(135deg,#f0d99f,#c69b4d);color:#17243b}
+.lang-btn:hover{transform:translateY(-1px);color:#fff}.lang-btn.active:hover{color:#17243b}
+h1,h2,h3,.brandname,.kicker,.eyebrow{transition:color .22s,text-shadow .22s}
+h1:hover,h2:hover,h3:hover,.brandname:hover,.kicker:hover{color:#ef5555;text-shadow:0 0 18px #ef555522}
+.btn,.nav-cta,.device,.feature,.step,.float-tag,.lang-btn{position:relative;isolation:isolate;overflow:hidden}
+.btn:after,.nav-cta:after,.device:after,.feature:after,.step:after,.float-tag:after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;opacity:0;z-index:2;background:radial-gradient(circle at var(--ripple-x,50%) var(--ripple-y,50%),#ffffff9c 0, #ffffff35 9%,transparent 34%);transform:scale(.35);transition:transform .65s ease,opacity .65s ease}
+.btn:hover:after,.nav-cta:hover:after,.device:hover:after,.feature:hover:after,.step:hover:after,.float-tag:hover:after{opacity:.9;transform:scale(2.5)}
+.feature-icon{position:relative;overflow:visible;isolation:isolate}
+.feature-icon:after{content:"";position:absolute;inset:-5px;border:1px solid currentColor;border-radius:13px;opacity:0;transform:rotate(-25deg) scale(.75);transition:opacity .25s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.feature:hover .feature-icon:after{opacity:.7;transform:rotate(135deg) scale(1.22);animation:orbitPulse 1.7s ease-in-out infinite alternate}
+@keyframes orbitPulse{from{border-radius:13px;filter:drop-shadow(0 0 2px currentColor)}to{border-radius:50%;filter:drop-shadow(0 0 8px currentColor)}}
+@media(max-width:850px){.navlinks{gap:9px}.lang-btn{padding:7px 8px}}
+@media(max-width:560px){.nav{gap:8px}.navlinks{gap:6px}.lang-switch{padding:3px}.lang-btn{font-size:9px;padding:6px 7px}.nav-cta{font-size:9px;padding:8px}}
+@media(prefers-reduced-motion:reduce){.feature:hover .feature-icon:after{animation:none}}
+
 </style>
 </head>
 <body>
 <header><div class="shell nav">
 <a class="brand" href="/" aria-label="Tanshu Online home"><img src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online गोल लोगो"><span class="brandname">TANSHU <span>ONLINE</span><small class="brandtag">PVC CARD STUDIO</small></span></a>
-<nav class="navlinks" aria-label="मुख्य नेविगेशन"><a href="#features">Studio Features</a><a href="#workflow">कैसे काम करता है</a><a class="nav-cta" href="/">← Home</a></nav>
+<nav class="navlinks" aria-label="Main navigation"><a href="#features">Studio Features</a><a href="#workflow">How It Works</a><div class="lang-switch" role="group" aria-label="Language"><button type="button" class="lang-btn active" data-lang="en" aria-pressed="true">EN</button><button type="button" class="lang-btn" data-lang="hi" aria-pressed="false">हिंदी</button></div><a class="nav-cta" href="/">← Home</a></nav>
 </div></header>
 <main>
 <section class="hero"><div class="shell hero-grid">
-<div><span class="eyebrow"><i></i> Premium ID Card Workspace</span><h1>आपका PVC Card Studio.<br><em>एक जगह, कई स्मार्ट टूल्स।</em></h1>
-<p>फोटो तैयार करें, कार्ड को सही आकार में सेट करें, Front और Back व्यवस्थित करें और अपने प्रिंटर के अनुसार प्रिंट तैयार करें। पहले स्टूडियो का प्रीव्यू देखें, फिर अपने डिवाइस से आगे बढ़ें।</p>
-<div class="hero-actions"><a class="btn btn-gold" href="#choose-device">अपना डिवाइस चुनें <span>→</span></a><a class="btn btn-ghost" href="#features">सभी फीचर देखें</a></div>
-<p class="hero-note">यह एक इंटरैक्टिव दिखने वाला फीचर डेमो है। असली एडिटिंग और प्रिंटिंग अगले पेज पर होगी।</p></div>
+<div><span class="eyebrow"><i></i> Premium ID Card Workspace</span><h1>Your PVC Card Studio.<br><em>Multiple Smart Tools. One Workspace.</em></h1>
+<p>Prepare photos, set precise card dimensions, arrange front and back layouts, and get print-ready output for your printer. Preview the studio, then continue on your device.</p>
+<div class="hero-actions"><a class="btn btn-gold" href="#choose-device">Choose Your Device <span>→</span></a><a class="btn btn-ghost" href="#features">Explore Features</a></div>
+<p class="hero-note">This is a feature preview. Actual editing and printing take place in the studio.</p></div>
 <div class="preview-frame" aria-label="PVC Card Studio का स्थिर सैंपल प्रीव्यू">
 <div class="preview-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="preview-title">TANSHU ONLINE · PVC CARD STUDIO</span></div>
 <div class="mock-ui"><aside class="mock-side"><div class="mock-label">PHOTO & CARD</div><div class="mock-control active">＋ Choose Files</div><div class="mock-control">✂ Auto Crop</div><div class="mock-control">▧ Crop Workspace</div><div class="mock-control">▤ Printer Setup</div><div class="mock-control">✦ Magic Tools</div></aside>
@@ -43,23 +64,40 @@ footer{background:#0c1527;color:#9aabc3;padding:23px 0;font-size:10px}.foot{disp
 <span class="float-tag one">✦ Auto Crop</span><span class="float-tag two">▣ A4 Print Preview</span>
 </div></div></section>
 <div class="trustbar"><div class="shell trustgrid"><div class="trustitem"><b>✂</b> Precision Photo Crop</div><div class="trustitem"><b>▣</b> Front + Back Layout</div><div class="trustitem"><b>🖨</b> Printer Profiles</div><div class="trustitem"><b>✦</b> Smart Magic Tools</div></div></div>
-<section id="choose-device"><div class="shell"><div class="section-head"><span class="kicker">Choose your workspace</span><h2>आप किस डिवाइस पर हैं?</h2><p>मोबाइल और कंप्यूटर—दोनों के लिए आगे बढ़ें। स्टूडियो स्क्रीन के आकार के अनुसार अपना लेआउट समायोजित करता है।</p></div>
-<div class="devices"><article class="device"><div class="device-head"><div class="device-icon">▯</div><div><h3>मोबाइल यूज़र</h3><small>Android फोन · iPhone · Touch Screen</small></div></div><p>फोन से फोटो चुनें, क्रॉप और प्रीव्यू करें। मोबाइल स्क्रीन पर स्टूडियो का responsive layout इस्तेमाल करें।</p><a class="btn" href="/id-pvc-studio/premium-desktop-preview.html?device=mobile">मोबाइल से आगे बढ़ें <span>→</span></a><div class="device-foot">Touch-friendly responsive workspace</div></article>
-<article class="device"><div class="device-head"><div class="device-icon">▣</div><div><h3>कंप्यूटर / लैपटॉप / PC</h3><small>Windows · macOS · Desktop Browser</small></div></div><p>बड़ी स्क्रीन पर A4 शीट, कार्ड प्लेसमेंट, मैनुअल क्रॉप और प्रिंटर सेटिंग्स के साथ काम करें।</p><a class="btn" href="/id-pvc-studio/premium-desktop-preview.html?device=desktop">कंप्यूटर से आगे बढ़ें <span>→</span></a><div class="device-foot">Full studio workspace</div></article></div></div></section>
-<section class="features" id="features"><div class="shell"><div class="section-head"><span class="kicker">Inside the studio</span><h2>एक ही स्टूडियो में ज़रूरी फीचर</h2><p>नीचे दिए गए फीचर स्टूडियो में उपलब्ध टूल्स का परिचय हैं। इस डेमो पेज पर ये केवल देखने और समझने के लिए हैं।</p></div>
+<section id="choose-device"><div class="shell"><div class="section-head"><span class="kicker">Choose your workspace</span><h2>Choose Your Device</h2><p>Choose mobile or desktop. The studio adapts its layout to your screen.</p></div>
+<div class="devices"><article class="device"><div class="device-head"><div class="device-icon" aria-hidden="true">📱</div><div><h3>Mobile User</h3><small>Android फोन · iPhone · Touch Screen</small></div></div><p>Select photos, crop and preview them with a responsive workspace designed for mobile screens.</p><a class="btn" href="/id-pvc-studio/premium-desktop-preview.html?device=mobile">Continue on Mobile <span>→</span></a><div class="device-foot">Touch-friendly responsive workspace</div></article>
+<article class="device"><div class="device-head"><div class="device-icon" aria-hidden="true">🖥️</div><div><h3>Desktop / Laptop / PC</h3><small>Windows · macOS · Desktop Browser</small></div></div><p>Work with A4 sheets, card placement, manual cropping and printer settings on a larger screen.</p><a class="btn" href="/id-pvc-studio/premium-desktop-preview.html?device=desktop">Continue on Desktop <span>→</span></a><div class="device-foot">Full studio workspace</div></article></div></div></section>
+<section class="features" id="features"><div class="shell"><div class="section-head"><span class="kicker">Inside the studio</span><h2>Essential Tools in One Studio</h2><p>Explore the tools available in the studio. This demo is for preview and guidance only.</p></div>
 <div class="feature-grid">
-<article class="feature"><div class="feature-icon">✂</div><h3>Photo Crop & Crop Workspace</h3><p>फोटो को मैनुअल तरीके से क्रॉप करें और कार्ड के अंदर सही जगह सेट करें।</p></article>
-<article class="feature"><div class="feature-icon">✦</div><h3>Auto Crop</h3><p>फोटो की तैयारी और कार्ड लेआउट के लिए ऑटो क्रॉप व A4 व्यवस्था।</p></article>
-<article class="feature"><div class="feature-icon">▧</div><h3>WhatsApp Photo Crop</h3><p>WhatsApp से आई तिरछी फोटो के चारों कोने सेट करके perspective सीधा करें।</p></article>
-<article class="feature"><div class="feature-icon">✧</div><h3>Magic Tools</h3><p>फोटो को बेहतर बनाने और उपलब्ध डिजाइन टूल्स इस्तेमाल करने के विकल्प।</p></article>
-<article class="feature"><div class="feature-icon">▣</div><h3>Auto PVC Card Print</h3><p>कार्ड और Front/Back को शीट पर व्यवस्थित करके प्रिंट की तैयारी।</p></article>
-<article class="feature"><div class="feature-icon">⌖</div><h3>Manual Crop & Placement</h3><p>क्रॉप, आकार और शीट पर कार्ड की पोज़िशन पर मैनुअल नियंत्रण।</p></article>
-<article class="feature"><div class="feature-icon">🖨</div><h3>Multi-Printer Auto Print</h3><p>चुने गए printer profile और print format के अनुसार सेटअप।</p></article>
-<article class="feature"><div class="feature-icon">▤</div><h3>A4 Sheet & Normal Print</h3><p>A4 कॉपी लेआउट, PVC Card और Normal Print मोड के विकल्प।</p></article>
+<article class="feature"><div class="feature-icon">✂</div><h3>Photo Crop & Crop Workspace</h3><p>Crop photos manually and position them precisely inside the card.</p></article>
+<article class="feature"><div class="feature-icon">✦</div><h3>Auto Crop</h3><p>Prepare photos with auto-cropping and A4 layout tools.</p></article>
+<article class="feature"><div class="feature-icon">▧</div><h3>WhatsApp Photo Crop</h3><p>Adjust the four corners of angled WhatsApp photos to correct perspective.</p></article>
+<article class="feature"><div class="feature-icon">✧</div><h3>Magic Tools</h3><p>Enhance photos and use the available creative tools.</p></article>
+<article class="feature"><div class="feature-icon">▣</div><h3>Auto PVC Card Print</h3><p>Arrange card fronts and backs on a sheet for printing.</p></article>
+<article class="feature"><div class="feature-icon">⌖</div><h3>Manual Crop & Placement</h3><p>Control cropping, dimensions and card placement manually.</p></article>
+<article class="feature"><div class="feature-icon">🖨</div><h3>Multi-Printer Auto Print</h3><p>Configure output for your selected printer profile and print format.</p></article>
+<article class="feature"><div class="feature-icon">▤</div><h3>A4 Sheet & Normal Print</h3><p>Choose A4 copy layouts, PVC Card or Normal Print modes.</p></article>
 </div></div></section>
-<section id="workflow"><div class="shell"><div class="section-head"><span class="kicker">Simple workflow</span><h2>काम करने का आसान तरीका</h2><p>डेमो देखने के बाद असली स्टूडियो में अपना काम शुरू करें।</p></div>
-<div class="workflow"><article class="step"><span class="step-num">STEP 01</span><h3>फोटो चुनें</h3><p>अपनी Front और Back फोटो स्टूडियो में अपलोड करें।</p></article><article class="step"><span class="step-num">STEP 02</span><h3>क्रॉप और सुधारें</h3><p>Auto Crop, Manual Crop या WhatsApp Photo Crop इस्तेमाल करें।</p></article><article class="step"><span class="step-num">STEP 03</span><h3>लेआउट सेट करें</h3><p>A4 शीट, कार्ड आकार और printer profile चुनें।</p></article><article class="step"><span class="step-num">STEP 04</span><h3>प्रिंट तैयार करें</h3><p>PVC Card या Normal Print मोड में आउटपुट तैयार करें।</p></article></div></div></section>
-<section class="cta"><div class="shell"><div class="cta-panel"><h2>अब अपना PVC Card Studio खोलें</h2><p>डेमो पूरा हुआ? अपने डिवाइस के अनुसार असली स्टूडियो में आगे बढ़ें।</p><a class="btn btn-gold" href="/id-pvc-studio/premium-desktop-preview.html">Next · Enter PVC Studio →</a></div></div></section>
+<section id="workflow"><div class="shell"><div class="section-head"><span class="kicker">Simple workflow</span><h2>A Simple Workflow</h2><p>After exploring the demo, continue to the full studio.</p></div>
+<div class="workflow"><article class="step"><span class="step-num">STEP 01</span><h3>Select Photos</h3><p>Upload your front and back photos to the studio.</p></article><article class="step"><span class="step-num">STEP 02</span><h3>Crop & Refine</h3><p>Use Auto Crop, Manual Crop or WhatsApp Photo Crop.</p></article><article class="step"><span class="step-num">STEP 03</span><h3>Set Your Layout</h3><p>Choose your A4 sheet, card size and printer profile.</p></article><article class="step"><span class="step-num">STEP 04</span><h3>Prepare to Print</h3><p>Prepare your output in PVC Card or Normal Print mode.</p></article></div></div></section>
+<section class="cta"><div class="shell"><div class="cta-panel"><h2>Open Your PVC Card Studio</h2><p>Ready to begin? Enter the full studio on your selected device.</p><a class="btn btn-gold" href="/id-pvc-studio/premium-desktop-preview.html">Next · Enter PVC Studio →</a></div></div></section>
 </main>
-<footer><div class="shell foot"><span><strong>TANSHU ONLINE</strong> · PVC CARD STUDIO</span><span>Demo preview · Sample artwork is illustrative and not an official identity card.</span><a href="/">मुख्य होमपेज पर वापस जाएँ</a></div></footer>
+<footer><div class="shell foot"><span><strong>TANSHU ONLINE</strong> · PVC CARD STUDIO</span><span>Demo preview · Sample artwork is illustrative and not an official identity card.</span><a href="/">Back to Home</a></div></footer>
+<script>
+(function(){
+ const hiMap={"Feature demo for mobile and desktop.":"मोबाइल और कंप्यूटर के लिए फीचर डेमो।","Your PVC Card Studio.":"आपका PVC Card Studio.","Multiple Smart Tools. One Workspace.":"एक जगह, कई स्मार्ट टूल्स।","Prepare photos, set precise card dimensions, arrange front and back layouts, and get print-ready output for your printer. Preview the studio, then continue on your device.":"फोटो तैयार करें, कार्ड को सही आकार में सेट करें, Front और Back व्यवस्थित करें और अपने प्रिंटर के अनुसार प्रिंट तैयार करें। पहले स्टूडियो का प्रीव्यू देखें, फिर अपने डिवाइस से आगे बढ़ें।","Choose Your Device":"आप किस डिवाइस पर हैं?","Explore Features":"सभी फीचर देखें","This is a feature preview. Actual editing and printing take place in the studio.":"यह एक इंटरैक्टिव दिखने वाला फीचर डेमो है। असली एडिटिंग और प्रिंटिंग अगले पेज पर होगी।","How It Works":"कैसे काम करता है","Main navigation":"मुख्य नेविगेशन","Back to Home":"मुख्य होमपेज पर वापस जाएँ","Choose mobile or desktop. The studio adapts its layout to your screen.":"मोबाइल और कंप्यूटर—दोनों के लिए आगे बढ़ें। स्टूडियो स्क्रीन के आकार के अनुसार अपना लेआउट समायोजित करता है।","Mobile User":"मोबाइल यूज़र","Desktop / Laptop / PC":"कंप्यूटर / लैपटॉप / PC","Select photos, crop and preview them with a responsive workspace designed for mobile screens.":"फोन से फोटो चुनें, क्रॉप और प्रीव्यू करें। मोबाइल स्क्रीन पर स्टूडियो का responsive layout इस्तेमाल करें।","Continue on Mobile":"मोबाइल से आगे बढ़ें","Continue on Desktop":"कंप्यूटर से आगे बढ़ें","Use the responsive studio layout on your phone.":"मोबाइल स्क्रीन पर स्टूडियो का responsive layout इस्तेमाल करें।","Touch-friendly responsive workspace":"Touch-friendly responsive workspace","Work with A4 sheets, card placement, manual cropping and printer settings on a larger screen.":"बड़ी स्क्रीन पर A4 शीट, कार्ड प्लेसमेंट, मैनुअल क्रॉप और प्रिंटर सेटिंग्स के साथ काम करें।","Essential Tools in One Studio":"एक ही स्टूडियो में ज़रूरी फीचर","Explore the tools available in the studio. This demo is for preview and guidance only.":"नीचे दिए गए फीचर स्टूडियो में उपलब्ध टूल्स का परिचय हैं। इस डेमो पेज पर ये केवल देखने और समझने के लिए हैं।","Crop photos manually and position them precisely inside the card.":"फोटो को मैनुअल तरीके से क्रॉप करें और कार्ड के अंदर सही जगह सेट करें।","Prepare photos with auto-cropping and A4 layout tools.":"फोटो की तैयारी और कार्ड लेआउट के लिए ऑटो क्रॉप व A4 व्यवस्था।","Adjust the four corners of angled WhatsApp photos to correct perspective.":"WhatsApp से आई तिरछी फोटो के चारों कोने सेट करके perspective सीधा करें।","Enhance photos and use the available creative tools.":"फोटो को बेहतर बनाने और उपलब्ध डिजाइन टूल्स इस्तेमाल करने के विकल्प।","Arrange card fronts and backs on a sheet for printing.":"कार्ड और Front/Back को शीट पर व्यवस्थित करके प्रिंट की तैयारी।","Control cropping, dimensions and card placement manually.":"क्रॉप, आकार और शीट पर कार्ड की पोज़िशन पर मैनुअल नियंत्रण।","Configure output for your selected printer profile and print format.":"चुने गए printer profile और print format के अनुसार सेटअप।","Choose A4 copy layouts, PVC Card or Normal Print modes.":"A4 कॉपी लेआउट, PVC Card और Normal Print मोड के विकल्प।","A Simple Workflow":"काम करने का आसान तरीका","After exploring the demo, continue to the full studio.":"डेमो देखने के बाद असली स्टूडियो में अपना काम शुरू करें।","Select Photos":"फोटो चुनें","Upload your front and back photos to the studio.":"अपनी Front और Back फोटो स्टूडियो में अपलोड करें।","Crop & Refine":"क्रॉप और सुधारें","Use Auto Crop, Manual Crop or WhatsApp Photo Crop.":"Auto Crop, Manual Crop या WhatsApp Photo Crop इस्तेमाल करें।","Set Your Layout":"लेआउट सेट करें","Choose your A4 sheet, card size and printer profile.":"A4 शीट, कार्ड आकार और printer profile चुनें।","Prepare to Print":"प्रिंट तैयार करें","Prepare your output in PVC Card or Normal Print mode.":"PVC Card या Normal Print मोड में आउटपुट तैयार करें।","Open Your PVC Card Studio":"अब अपना PVC Card Studio खोलें","Ready to begin? Enter the full studio on your selected device.":"डेमो पूरा हुआ? अपने डिवाइस के अनुसार असली स्टूडियो में आगे बढ़ें।","Demo preview · Sample artwork is illustrative and not an official identity card.":"डेमो प्रीव्यू · नमूना चित्र केवल उदाहरण हैं, आधिकारिक पहचान पत्र नहीं।"};
+ const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+ const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+ const originals=new Map(nodes.map(n=>[n,n.nodeValue]));
+ function setLanguage(lang){
+  nodes.forEach(n=>{const original=originals.get(n);if(lang==='hi'){n.nodeValue=hiMap[original]||original;}else{n.nodeValue=original;}});
+  document.documentElement.lang=lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>{const active=b.dataset.lang===lang;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+  try{document.title=lang==='hi'?'TANSHU ONLINE · PVC कार्ड स्टूडियो डेमो':'TANSHU ONLINE · PVC Card Studio Demo';}catch(e){}
+ }
+ document.querySelectorAll('.lang-btn').forEach(b=>b.addEventListener('click',()=>setLanguage(b.dataset.lang)));
+ document.addEventListener('pointermove',e=>{const el=e.target.closest('.btn,.nav-cta,.device,.feature,.step,.float-tag');if(!el)return;const r=el.getBoundingClientRect();el.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');el.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%');},{passive:true});
+ setLanguage('en');
+})();
+</script>
 </body></html>
