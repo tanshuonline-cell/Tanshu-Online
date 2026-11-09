@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Camera, Check, Crop, Download, ImagePlus, Laptop,
   Monitor, Printer, RotateCcw, Signature, Smartphone, SlidersHorizontal,
@@ -44,8 +44,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
   }, [photoUrl, signatureUrl]);
 
   const size = PHOTO_SIZES[photoSize];
-  const tx = (hi: string, en: string) => hi;
-
+  
   const acceptFile = (file: File | undefined, slot: 'photo' | 'signature') => {
     if (!file || !file.type.startsWith('image/')) return;
     const url = URL.createObjectURL(file);
@@ -65,8 +64,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
 
   const photoFilter = `brightness(${brightness}%) contrast(${contrast}%)`;
   const a4PhotoWidth = size.width / 210 * 100;
-  const a4PhotoHeight = size.height / 297 * 100;
-  const readyCount = Number(Boolean(photoUrl)) + Number(Boolean(signatureUrl));
+    const readyCount = Number(Boolean(photoUrl)) + Number(Boolean(signatureUrl));
 
   const UploadCard = ({ slot }: { slot: 'photo' | 'signature' }) => {
     const isPhoto = slot === 'photo';
@@ -89,7 +87,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
           </div>
         ) : (
           <button type="button" onClick={() => inputRef.current?.click()} className="flex min-h-24 w-full flex-col items-center justify-center gap-2 rounded-lg text-center text-sm font-bold text-slate-700 hover:bg-blue-50">
-            <span className="rounded-full bg-blue-100 p-2 text-blue-700">{isPhoto ? <Camera size={19} /> : <Signature size={19} />}</span>
+            <span className="rounded-full bg-blue-100 p-2 text-blue-700">{isPhoto ? <Camera size={19} /> : <PenLine size={19} />}</span>
             {isPhoto ? 'फोटो चुनें या कैमरा से लें' : 'सिग्नेचर की फोटो चुनें'}
             <span className="text-[11px] font-medium text-slate-500">JPG · PNG · WEBP</span>
           </button>
@@ -133,7 +131,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
 
   const SignatureControls = () => (
     <div className={panelClass}>
-      <h3 className="mb-3 flex items-center gap-2 font-black text-slate-900"><Signature size={17} className="text-violet-600" /> सिग्नेचर सेटअप</h3>
+      <h3 className="mb-3 flex items-center gap-2 font-black text-slate-900"><PenLine size={17} className="text-violet-600" /> सिग्नेचर सेटअप</h3>
       <UploadCard slot="signature" />
       <div className="mt-4">
         <label className={labelClass}>सिग्नेचर बैकग्राउंड</label>
