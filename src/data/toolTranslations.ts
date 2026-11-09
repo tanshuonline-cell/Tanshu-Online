@@ -4,7 +4,7 @@ export const TOOL_HINDI_TRANSLATIONS: Record<string, ToolHindiCopy> = {
   'auto-document-cropper': { name: 'ऑटो डॉक्यूमेंट क्रॉपर', description: 'दस्तावेज़ की सीमाएँ पहचानकर अतिरिक्त बैकग्राउंड हटाएँ, पेज सीधा करें और साफ़ इमेज डाउनलोड करें।' },
   'document-scanner-image-rectifier': { name: 'डॉक्यूमेंट स्कैनर और इमेज रेक्टिफायर', description: 'तिरछी फोटो को सीधा करके साफ़ ब्लैक-एंड-व्हाइट या रंगीन दस्तावेज़ स्कैन बनाएँ।' },
   'pdf-to-pvc-card-auto-cropper': { name: 'PDF to PVC कार्ड ऑटो क्रॉप', description: 'सरकारी PDF से ID कार्ड के आगे और पीछे वाले हिस्से को सही आकार में क्रॉप करें।' },
-  'pvc-card-printer-studio': { name: 'PVC कार्ड प्रिंटर', description: 'फोटो अपलोड करें, कार्ड को ऑटो क्रॉप करके A4 शीट पर सेट करें और PVC कार्ड या सामान्य प्रिंट तैयार करें।' },
+  'pvc-card-printer-studio': { name: 'Multi-Printer Auto Print', description: 'फोटो अपलोड करें, कार्ड को ऑटो क्रॉप करके A4 शीट पर सेट करें और PVC कार्ड या सामान्य प्रिंट तैयार करें।' },
   'id-card-front-back-print-layout-maker': { name: 'ID कार्ड आगे-पीछे प्रिंट लेआउट मेकर', description: 'ID कार्ड के आगे और पीछे की फोटो को 4×6 या A4 पेपर पर प्रिंट के लिए सेट करें।' },
   'invoice-generator': { name: 'इनवॉइस और बिल जनरेटर', description: 'GST और बिना GST के प्रोफेशनल बिल बनाएँ, टैक्स की गणना करें और प्रिंट करें।' },
   'cash-payment-receipt-maker': { name: 'कैश पेमेंट रसीद मेकर', description: 'दुकान, साइबर कैफ़े और ऑनलाइन सेवाओं के लिए क्रमांक वाली भुगतान रसीद बनाएँ।' },
