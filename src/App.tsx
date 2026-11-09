@@ -593,7 +593,7 @@ export default function App() {
         {/* 3. Future Tools (Featured Tools catalog) */}
         <FeaturedTools onOpenTool={handleOpenTool} />
 
-        {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
+        {/* All Tools Directory: Searchable, Filterable 90 confirmed tools */}
         <AllToolsDirectory
           onOpenTool={handleOpenTool}
           initialSearchQuery={searchQuery}
