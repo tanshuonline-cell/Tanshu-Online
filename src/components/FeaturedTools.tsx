@@ -87,7 +87,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
         </div>
 
         {/* Featured tools; the new Photo & Signature Resizer appears first. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8 gap-3.5 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 sm:gap-4">
           {featuredTools.map((tool) => {
             const previewImg = getToolImage(tool.id);
             const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
@@ -132,34 +132,6 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
               </div>
             );
           })}
-          {/* Standalone demo entry: kept separate from the existing resizer tool and opens its dedicated route. */}
-          <div className="bg-gradient-to-b from-slate-50/70 via-white to-slate-50/40 border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-xl hover:border-red-300 hover:-translate-y-1.5 active:scale-[0.99] transition-all duration-300 ease-out flex flex-col justify-between group select-none">
-            <div>
-              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 border border-slate-200/80 shadow-2xs">
-                <img
-                  src={getToolPreviewImage('photo-signature-resizer', 'Photo & Signature Studio Demo', 'Photo & Signature')}
-                  alt={isHindi ? 'फोटो और सिग्नेचर स्टूडियो डेमो' : 'Photo & Signature Studio Demo'}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight mb-1 line-clamp-2 leading-snug group-hover:text-[#C62828] transition-colors">
-                {isHindi ? 'Photo & Signature Studio Demo' : 'Photo & Signature Studio Demo'}
-              </h3>
-              <p className="text-[11px] sm:text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                {isHindi
-                  ? 'पासपोर्ट फोटो का साइज, क्रॉप, बैकग्राउंड, सिग्नेचर और A4 / 4×6 प्रिंट शीट तैयार करें।'
-                  : 'Set photo size, crop, background, signature, and prepare A4 / 4×6 print sheets.'}
-              </p>
-            </div>
-            <a
-              href="/photo-signature-demo"
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-[#C62828] hover:bg-[#A61F2A] text-white rounded-xl text-xs font-semibold tracking-wide transition-colors cursor-pointer mt-auto shadow-2xs"
-            >
-              <span>{t('common.openTool', 'Open Tool')}</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
-          </div>
         </div>
       </div>
     </section>
