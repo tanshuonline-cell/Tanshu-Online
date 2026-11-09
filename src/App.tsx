@@ -12,6 +12,7 @@ import { LatestVideos } from './components/LatestVideos';
 import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
+import { PhotoSignatureStudioDemo } from './components/tools/PhotoSignatureStudioDemo';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
@@ -23,7 +24,7 @@ import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'photo-signature-demo'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -64,6 +65,7 @@ export default function App() {
   useEffect(() => {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
+    const isPhotoSignatureDemo = pathname === '/photo-signature-demo';
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const video = isVideoDetail
@@ -71,12 +73,16 @@ export default function App() {
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isVideoCatalog
+    const title = isPhotoSignatureDemo
+      ? 'Photo & Signature Studio Demo | TANSHU ONLINE'
+      : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isVideoCatalog
+    const description = isPhotoSignatureDemo
+      ? 'मोबाइल और कंप्यूटर के लिए Photo & Signature Studio का अलग डेमो।'
+      : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
         ? (video.description || video.title).slice(0, 300)
@@ -143,7 +149,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/admin' || hash === '#admin') {
+      if (pathname === '/photo-signature-demo') {
+        setCurrentPage('photo-signature-demo');
+      } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
         setCurrentPage('videos');
@@ -369,6 +377,15 @@ export default function App() {
   const handleCloseTool = () => {
     setActiveTool(null);
   };
+
+  // ROUTE 0: ISOLATED PHOTO & SIGNATURE DEMO (does not alter homepage sections)
+  if (currentPage === 'photo-signature-demo') {
+    return <PhotoSignatureStudioDemo onBack={() => {
+      window.history.pushState({}, '', '/');
+      setCurrentPage('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }} />;
+  }
 
   // ROUTE 1: ADMIN PANEL
   if (currentPage === 'admin') {
