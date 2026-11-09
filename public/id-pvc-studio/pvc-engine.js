@@ -522,6 +522,7 @@ const applyPrinterProfile=()=>{const profile=printerProfile.value,device=printer
  if(profile==='pvc-a4-insert'||profile==='normal-a4'){$('sheetSize').value='a4';$('orientation').value='portrait';$('sheetWidth').value='210';$('sheetHeight').value='297';S.sheetWidthMm=210;S.sheetHeightMm=297;}
  if(profile==='ntr-4x6-170'){$('sheetSize').value='photo4x6p';$('orientation').value='portrait';S.sheetWidthMm=101.6;S.sheetHeightMm=152.4;}
  if(profile==='epson-l8050-tray'){$('sheetSize').value='a4';$('orientation').value='portrait';$('mode').value='pvc';$('printMedia').value='pvc';$('imageLayout').value='single';$('sheetContent').value='both';$('printFormat').value='duplex';$('sheetWidth').value='210';$('sheetHeight').value='297';S.mode='pvc';S.sheetWidthMm=210;S.sheetHeightMm=297;}
+ $('printFormat').value='duplex';$('sheetContent').value='both';$('imageLayout').value='single';S.printFormat='duplex';S.sheetContent='both';S.imageLayout='single';if(profile!=='normal-a4'){$('mode').value='pvc';S.mode='pvc';}
  if(profile==='pvc-a4-insert')$('printMedia').value='pvc';
  if(profile==='ntr-4x6-170'||profile==='epson-easy-custom'||profile==='canon-easy-custom')$('printMedia').value='inkjet';
  if(profile==='normal-a4')$('printMedia').value='proof';
