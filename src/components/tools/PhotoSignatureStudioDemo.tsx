@@ -64,7 +64,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
   const photoInput = useRef<HTMLInputElement>(null);
   const signatureInput = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{x:number;y:number;px:number;py:number}|null>(null);
-  const photoSize = customSize ? { w: Math.max(5, Number(customW)||35), h: Math.max(5, Number(customH)||45) } : presets[presetIndex];
+  const photoSize = customSize ? { w: mm(Math.max(5, Number(customW)||35), unit), h: mm(Math.max(5, Number(customH)||45), unit) } : presets[presetIndex];
   const photoSource = photoCutout || photo;
   const signatureSource = signatureCutout || signature;
   const signatureBgColor = signatureBg === 'white' ? '#ffffff' : signatureBg === 'blue' ? '#dbeafe' : signatureBg === 'custom' ? signatureCustomBg : 'transparent';
