@@ -380,6 +380,10 @@ export default function App() {
   };
 
   const handleOpenTool = (tool: ToolItem) => {
+    if (tool.id === 'pdf-to-pvc-card-auto-cropper') {
+      window.location.href = '/id-pvc-studio/demo';
+      return;
+    }
     setActiveTool(tool);
   };
 
