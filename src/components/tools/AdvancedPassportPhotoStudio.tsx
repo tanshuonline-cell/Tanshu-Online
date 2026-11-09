@@ -277,7 +277,27 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
 
 
   useEffect(() => { let active = true; readPhotoStudioWork().then((saved) => { if (!active) return; if (saved && saved.version === 1) { setPhotos(saved.photos || []); setSelectedId(saved.selectedId || ""); setPhotoEdits(saved.photoEdits || {}); setSheetPositions(saved.sheetPositions || {}); setMode(saved.mode || "official"); setPreset(saved.preset || "india"); setCustomWidth(saved.customWidth ?? 35); setCustomHeight(saved.customHeight ?? 45); setSizeUnit(saved.sizeUnit || "mm"); setPaper(saved.paper || "single"); setSheetMargin(saved.sheetMargin ?? 5); setSheetGap(saved.sheetGap ?? 2); setSheetPhotoCount(saved.sheetPhotoCount ?? 4); setSheetPhotoOverrides(saved.sheetPhotoOverrides || {}); setBackground(saved.background || "#ffffff"); setBackgroundDraft(saved.backgroundDraft || saved.background || "#ffffff"); setBackgroundRemoved(saved.backgroundRemoved || {}); setBackgroundTolerance(saved.backgroundTolerance ?? 32); setAiCutouts(saved.aiCutouts || {}); setRetouchStrength(saved.retouchStrength ?? 18); setBorder(saved.border ?? 1); setBorderDraft(saved.borderDraft ?? saved.border ?? 1); setSignatureSrc(saved.signatureSrc || ""); setSignatureName(saved.signatureName || ""); setSignatureBackground(saved.signatureBackground || "transparent"); setSignatureCustomColor(saved.signatureCustomColor || "#ffffff"); setSignatureRemoveWhite(saved.signatureRemoveWhite ?? true); setSignatureConfirmed(saved.signatureConfirmed ?? false); setSignatureAspect(saved.signatureAspect ?? 3.2); setSignatureCrop(saved.signatureCrop || {x:0,y:0,w:100,h:100}); setSignaturePlacement(saved.signaturePlacement || {x:58,y:78,width:32,height:8}); setLanguage(saved.language || "en"); setStep(saved.step || 1); setShowStepSidebar(saved.showStepSidebar ?? true); } setSaveStatus("saved"); setRestoreReady(true); }).catch(() => { if (active) { setSaveStatus("error"); setRestoreReady(true); } }); return () => { active = false; }; }, []);
-  useEffect(() => { if (!restoreReady) return; setSaveStatus("saving"); const timer = window.setTimeout(() => { writePhotoStudioWork({version:1,savedAt:Date.now(),photos,selectedId,photoEdits,sheetPositions,mode,preset,customWidth,customHeight,sizeUnit,paper,sheetMargin,sheetGap,sheetPhotoCount,sheetPhotoOverrides,background,backgroundDraft,backgroundRemoved,backgroundTolerance,aiCutouts,retouchStrength,border,borderDraft,signatureSrc,signatureName,signatureBackground,signatureCustomColor,signatureRemoveWhite,signatureConfirmed,signatureAspect,signatureCrop,signaturePlacement,language,step,showStepSidebar}).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error")); }, 500); return () => window.clearTimeout(timer); }, [restoreReady,photos,selectedId,photoEdits,sheetPositions,mode,preset,customWidth,customHeight,sizeUnit,paper,sheetMargin,sheetGap,sheetPhotoCount,sheetPhotoOverrides,background,backgroundDraft,backgroundRemoved,backgroundTolerance,aiCutouts,retouchStrength,border,borderDraft,signatureSrc,signatureName,signatureBackground,signatureCustomColor,signatureRemoveWhite,signatureConfirmed,signatureAspect,signatureCrop,signaturePlacement,language,step,showStepSidebar]);
+  useEffect(() => {
+    if (!restoreReady) return;
+    const snapshot = { version: 1, savedAt: Date.now(), photos, selectedId, photoEdits, sheetPositions, mode, preset, customWidth, customHeight, sizeUnit, paper, sheetMargin, sheetGap, sheetPhotoCount, sheetPhotoOverrides, background, backgroundDraft, backgroundRemoved, backgroundTolerance, aiCutouts, retouchStrength, border, borderDraft, signatureSrc, signatureName, signatureBackground, signatureCustomColor, signatureRemoveWhite, signatureConfirmed, signatureAspect, signatureCrop, signaturePlacement, language, step, showStepSidebar };
+    const persist = () => {
+      writePhotoStudioWork(snapshot)
+        .then(() => setSaveStatus("saved"))
+        .catch(() => setSaveStatus("error"));
+    };
+    setSaveStatus("saving");
+    const timer = window.setTimeout(persist, 250);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") persist();
+    };
+    window.addEventListener("pagehide", persist);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pagehide", persist);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [restoreReady,photos,selectedId,photoEdits,sheetPositions,mode,preset,customWidth,customHeight,sizeUnit,paper,sheetMargin,sheetGap,sheetPhotoCount,sheetPhotoOverrides,background,backgroundDraft,backgroundRemoved,backgroundTolerance,aiCutouts,retouchStrength,border,borderDraft,signatureSrc,signatureName,signatureBackground,signatureCustomColor,signatureRemoveWhite,signatureConfirmed,signatureAspect,signatureCrop,signaturePlacement,language,step,showStepSidebar]);
   const finishAndClearWork = async () => { const message = language === "hi" ? "क्या आप काम खत्म करके सेव किया हुआ पूरा काम हटाना चाहते हैं? यह वापस नहीं आएगा।" : "Finish this session and permanently clear its saved work? This cannot be undone."; if (!window.confirm(message)) return; try { await clearPhotoStudioWork(); setPhotos([]); setSelectedId(""); setPhotoEdits({}); setSheetPositions({}); setSheetPhotoOverrides({}); setSheetPhotoCount(4); setSignatureSrc(""); setSignatureName(""); setAiCutouts({}); setBackgroundRemoved({}); setSaveStatus("saved"); } catch { setSaveStatus("error"); setError("Could not clear saved work."); } };
 
   const selected = photos.find((photo) => photo.id === selectedId) || photos[0] || null;
