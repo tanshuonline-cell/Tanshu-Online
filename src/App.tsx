@@ -13,6 +13,8 @@ import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
 import { PhotoSignatureStudioDemo } from './components/tools/PhotoSignatureStudioDemo';
+import { AdvancedPassportPhotoStudio } from './components/tools/AdvancedPassportPhotoStudio';
+import { AdvancedPassportPhotoStudioWelcome } from './components/tools/AdvancedPassportPhotoStudioWelcome';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
@@ -26,7 +28,7 @@ import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'photo-signature-demo'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'photo-signature-demo' | 'advanced-passport-photo-studio'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -68,6 +70,7 @@ export default function App() {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
     const isPhotoSignatureDemo = pathname === '/photo-signature-demo';
+    const isAdvancedPhotoStudio = pathname === '/advanced-passport-photo-studio' || pathname === '/advanced-passport-photo-studio/studio';
     const isDigitalSevaAdmin = pathname === '/digital-seva-admin';
     const isDigitalSeva = pathname === '/digital-seva' || isDigitalSevaAdmin;
     const isVideoCatalog = pathname === '/videos';
@@ -81,6 +84,8 @@ export default function App() {
       ? 'Digital Seva Center | TANSHU ONLINE'
       : isPhotoSignatureDemo
       ? 'Instant Passport Photo Maker | TANSHU ONLINE'
+      : isAdvancedPhotoStudio
+      ? 'Advanced Passport Photo Studio | TANSHU ONLINE'
       : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
@@ -90,6 +95,8 @@ export default function App() {
       ? 'TANSHU ONLINE Digital Seva Center: explore government service assistance, document services and PDF tools.'
       : isPhotoSignatureDemo
       ? 'मोबाइल और कंप्यूटर पर पासपोर्ट साइज फोटो बनाने, सिग्नेचर जोड़ने और प्रिंट शीट तैयार करने का टूल।'
+      : isAdvancedPhotoStudio
+      ? 'Advanced Passport Photo Studio में फोटो एडिटिंग, क्रॉप, बैकग्राउंड, सिग्नेचर और प्रिंट शीट का काम सुरक्षित रखें।'
       : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
@@ -160,6 +167,8 @@ export default function App() {
 
       if (pathname === '/photo-signature-demo') {
         setCurrentPage('photo-signature-demo');
+      } else if (pathname === '/advanced-passport-photo-studio' || pathname === '/advanced-passport-photo-studio/studio') {
+        setCurrentPage('advanced-passport-photo-studio');
       } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
@@ -388,6 +397,10 @@ export default function App() {
       window.location.href = '/photo-signature-demo';
       return;
     }
+    if (tool.id === 'advanced-passport-photo-studio') {
+      window.location.href = '/advanced-passport-photo-studio';
+      return;
+    }
     setActiveTool(tool);
   };
 
@@ -403,6 +416,20 @@ export default function App() {
   // DIGITAL SEVA CENTER — restore the complete service catalogue and application flow.
   if (window.location.pathname === '/digital-seva') {
     return <DigitalSevaPage />;
+  }
+
+  // ROUTE: ADVANCED PASSPORT PHOTO STUDIO — standalone URL survives refresh.
+  if (currentPage === 'advanced-passport-photo-studio') {
+    const isEditorRoute = window.location.pathname === '/advanced-passport-photo-studio/studio';
+    return isEditorRoute
+      ? <AdvancedPassportPhotoStudio onBack={() => {
+          window.history.pushState({}, '', '/advanced-passport-photo-studio');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }} />
+      : <AdvancedPassportPhotoStudioWelcome onStart={() => {
+          window.history.pushState({}, '', '/advanced-passport-photo-studio/studio');
+          setCurrentPage('advanced-passport-photo-studio');
+        }} />;
   }
 
   // ROUTE 0: ISOLATED PHOTO & SIGNATURE DEMO (does not alter homepage sections)
