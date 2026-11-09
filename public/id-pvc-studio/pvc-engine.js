@@ -147,12 +147,14 @@ function magicBuildCanvas(img,showArea=false){
  ctx.putImageData(data,0,0);
  let result=subject;
  if(v.bgMode!=='none'&&v.bgMode!=='transparent'&&magicBgSample){
-  const composed=document.createElement('canvas');composed.width=w;composed.height=h;const cc=composed.getContext('2d');
-  if(v.bgMode==='image'&&magicBgImage){const iw=magicBgImage.width,ih=magicBgImage.height,s=Math.max(w/iw,h/ih),dw=iw*s,dh=ih*s;cc.drawImage(magicBgImage,(w-dw)/2,(h-dh)/2,dw,dh);}
-  else{const fill=v.bgMode==='custom'?$('magicCustomBg').value:v.bgMode;cc.fillStyle=fill;cc.fillRect(0,0,w,h);}
-  cc.drawImage(subject,0,0);result=composed;
+  let outScale=1;
+  if(v.bgMode==='image'&&magicBgImage){const nativeScale=1/Math.max(w/magicBgImage.width,h/magicBgImage.height);const maxScale=Math.min(4096/Math.max(w,h),Math.sqrt(16000000/(w*h)));outScale=Math.max(1,Math.min(nativeScale,maxScale));}
+  const ow=Math.max(1,Math.round(w*outScale)),oh=Math.max(1,Math.round(h*outScale)),composed=document.createElement('canvas');composed.width=ow;composed.height=oh;const cc=composed.getContext('2d');
+  if(v.bgMode==='image'&&magicBgImage){const iw=magicBgImage.width,ih=magicBgImage.height,cover=Math.max(ow/iw,oh/ih),dw=iw*cover,dh=ih*cover;cc.imageSmoothingEnabled=true;cc.imageSmoothingQuality='high';cc.drawImage(magicBgImage,(ow-dw)/2,(oh-dh)/2,dw,dh);}
+  else{const fill=v.bgMode==='custom'?$('magicCustomBg').value:v.bgMode;cc.fillStyle=fill;cc.fillRect(0,0,ow,oh);}
+  cc.imageSmoothingEnabled=true;cc.imageSmoothingQuality='high';cc.drawImage(subject,0,0,ow,oh);result=composed;
  }
- if($('magicEditArea')?.value==='area'&&magicArea){const x=Math.round(magicArea.x*w),y=Math.round(magicArea.y*h),aw=Math.max(1,Math.round(magicArea.w*w)),ah=Math.max(1,Math.round(magicArea.h*h)),filtered=document.createElement('canvas');filtered.width=w;filtered.height=h;filtered.getContext('2d').drawImage(result,0,0);const merged=document.createElement('canvas');merged.width=w;merged.height=h;const mc=merged.getContext('2d');mc.drawImage(img,0,0,w,h);mc.save();mc.beginPath();mc.rect(x,y,aw,ah);mc.clip();mc.drawImage(filtered,0,0);mc.restore();if(showArea){mc.save();mc.strokeStyle='#f59e0b';mc.lineWidth=Math.max(2,Math.round(w/450));mc.setLineDash([8,5]);mc.strokeRect(x,y,aw,ah);mc.restore();}result=merged;}
+ if($('magicEditArea')?.value==='area'&&magicArea){const rw=result.width,rh=result.height,sx=rw/w,sy=rh/h,x=Math.round(magicArea.x*rw),y=Math.round(magicArea.y*rh),aw=Math.max(1,Math.round(magicArea.w*rw)),ah=Math.max(1,Math.round(magicArea.h*rh)),filtered=document.createElement('canvas');filtered.width=rw;filtered.height=rh;filtered.getContext('2d').drawImage(result,0,0);const merged=document.createElement('canvas');merged.width=rw;merged.height=rh;const mc=merged.getContext('2d');mc.imageSmoothingEnabled=true;mc.imageSmoothingQuality='high';mc.drawImage(img,0,0,rw,rh);mc.save();mc.beginPath();mc.rect(x,y,aw,ah);mc.clip();mc.drawImage(filtered,0,0);mc.restore();if(showArea){mc.save();mc.strokeStyle='#f59e0b';mc.lineWidth=Math.max(2,Math.round(rw/450));mc.setLineDash([8,5]);mc.strokeRect(x,y,aw,ah);mc.restore();}result=merged;}
  return result;
 }
 function magicRender(){if(!magicOriginal)return;const canvas=$('magicCanvas'),out=magicBuildCanvas(magicOriginal,true);canvas.width=out.width;canvas.height=out.height;canvas.getContext('2d').drawImage(out,0,0);magicUpdateLabels();}
