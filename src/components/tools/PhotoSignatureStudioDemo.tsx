@@ -227,7 +227,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
     const photoH = photoW * photoSize.h / photoSize.w;
     return <div className={panel}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">शीट प्रीव्यू</h3><span className="text-xs text-slate-500">{isA4 ? 'A4 · 210×297 mm' : '4×6 inch · 101.6×152.4 mm'} · {copies} फोटो</span></div>
-      <div className="mx-auto grid w-full max-w-[360px] border border-slate-300 bg-white shadow-inner" style={{aspectRatio: isA4 ? '210 / 297' : '4 / 6', padding: `${margin / pageW * 100}%`, gap: `${gap / pageW * 100}%`, gridTemplateColumns: `repeat(${cols},minmax(0,1fr))`, gridTemplateRows: `repeat(${rows},minmax(0,1fr))`}}>
+      <div className="mx-auto grid w-full max-w-[360px] border border-slate-300 bg-white shadow-inner" style={{aspectRatio: isA4 ? '210 / 297' : '4 / 6', padding: `${margin / pageH * 100}% ${margin / pageW * 100}%`, columnGap: `${gap / pageW * 100}%`, rowGap: `${gap / pageH * 100}%`, gridTemplateColumns: `repeat(${cols},minmax(0,1fr))`, gridTemplateRows: `repeat(${rows},minmax(0,1fr))`}}>
         {Array.from({length: copies}, (_, i) => <div key={i} className="flex min-h-0 min-w-0 items-center justify-center overflow-hidden bg-white">
           <div className="relative max-h-full max-w-full overflow-hidden" style={{aspectRatio: `${photoSize.w}/${photoSize.h}`, width: '100%', height: 'auto', background: photoCutout ? photoBg : 'transparent', border: borderMm === '0' ? 'none' : `${borderMm}mm solid ${borderColor}`}}>
             {photoSource && <img src={photoSource} alt="" className="absolute inset-0 h-full w-full object-cover" style={{objectPosition: `${cropX}% ${cropY}%`, transform: `scale(${zoom/100})`}}/>}
