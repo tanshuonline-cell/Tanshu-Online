@@ -25,19 +25,13 @@
 </nav>
 <main class="layout">
 <aside class="panel left-panel">
-<h3 data-en="Files & Card Catalog" data-hi="फाइल और कार्ड कैटलॉग">फाइल और कार्ड कैटलॉग</h3>
+<h3 data-en="Files & Card Profile" data-hi="फाइल और कार्ड प्रोफ़ाइल">फाइल और कार्ड प्रोफ़ाइल</h3>
 <input id="upload" type="file" accept="image/*,.pdf" multiple hidden>
 <div class="hint" data-en="Drop image or PDF files here, or use Choose Files above." data-hi="इमेज या PDF यहाँ डालें या ऊपर फाइल चुनें।">इमेज या PDF यहाँ डालें या ऊपर फाइल चुनें।</div>
 <div id="sources"></div>
 <div class="divider"></div>
-<div class="field"><label data-en="Select Card Type" data-hi="कार्ड का प्रकार चुनें">कार्ड का प्रकार चुनें</label><button id="catalogToggle" class="catalog-toggle" type="button" aria-expanded="false" style="margin:0 0 8px"><span id="catalogToggleLabel" data-en="— None / कोई कार्ड प्रकार नहीं —" data-hi="— कोई कार्ड प्रकार नहीं —">— कोई कार्ड प्रकार नहीं —</span><span id="catalogArrow">▾</span></button></div>
-<div id="catalogArea" hidden>
-<input id="search" placeholder="Search cards / कार्ड खोजें" style="width:100%;padding:8px;border:1px solid #d8dfeb;border-radius:7px">
-<div id="catalog" class="catalog"></div>
-</div>
-<div class="divider"></div>
-<div class="field" hidden><label data-en="Selected card type" data-hi="चुना गया कार्ड प्रकार">चुना गया कार्ड प्रकार</label><select id="profile"></select></div>
-<p class="hint" data-en="Catalog profiles are editable suggestions; verify issuer-specific dimensions before printing." data-hi="कैटलॉग प्रोफ़ाइल संपादन योग्य सुझाव हैं; प्रिंट से पहले जारीकर्ता के वास्तविक आकार की पुष्टि करें।">कैटलॉग प्रोफ़ाइल संपादन योग्य सुझाव हैं; प्रिंट से पहले जारीकर्ता के वास्तविक आकार की पुष्टि करें।</p>
+<div class="field"><label data-en="Card Profile · Select Card Type" data-hi="कार्ड प्रोफ़ाइल · कार्ड का प्रकार चुनें">कार्ड प्रोफ़ाइल · कार्ड का प्रकार चुनें</label><input id="search" type="search" placeholder="Search card types / कार्ड का प्रकार खोजें" style="width:100%;padding:8px;border:1px solid #d8dfeb;border-radius:7px;margin-bottom:7px"><select id="profile" style="width:100%;padding:9px;border:1px solid #d8dfeb;border-radius:7px;background:#fff"></select></div>
+<p class="hint" data-en="Choose a card profile. Profiles are editable suggestions; verify issuer-specific dimensions before printing." data-hi="कार्ड का प्रकार चुनें। प्रोफ़ाइल सुझाव हैं; प्रिंट से पहले जारीकर्ता के वास्तविक आकार की पुष्टि करें।">कार्ड का प्रकार चुनें। प्रोफ़ाइल सुझाव हैं; प्रिंट से पहले जारीकर्ता के वास्तविक आकार की पुष्टि करें।</p>
 </aside>
 <section class="panel center-panel">
 <div class="center-head"><h3 data-en="A4 Sheet Preview" data-hi="A4 शीट प्रीव्यू">A4 शीट प्रीव्यू</h3><span class="preview-note" data-en="PVC card: drag to move · Shift+drag to pan photo · wheel to zoom" data-hi="PVC कार्ड: खींचें = शीट पर मूव · Shift+खींचें = फोटो सेट · व्हील = ज़ूम">PVC कार्ड: खींचें = शीट पर मूव · Shift+खींचें = फोटो सेट · व्हील = ज़ूम</span></div>
