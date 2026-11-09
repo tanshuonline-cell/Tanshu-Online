@@ -159,7 +159,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="absolute left-5 top-5 flex items-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted"><MousePointer2 size={13}/> Move tool <span className="ml-2 text-[#626B74]">V</span></div>
               <div className="absolute right-5 top-5 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>
               {selected ? (
-                <div className="relative flex max-h-full max-w-full items-center justify-center border border-white/10 bg-[#E7E5E0] p-3 shadow-2xl" style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: "min(560px, 55vw)", maxHeight: 420, padding: 0 }}>
+                <div className="relative flex max-h-full max-w-full items-center justify-center border border-white/10 bg-[#E7E5E0] p-3 shadow-2xl" style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: Math.min(560, 420 * documentSize.widthMm / documentSize.heightMm), maxWidth: "55vw", maxHeight: 420, padding: 0 }}>
                   <img src={selected.url} alt={selected.file.name} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="block h-full w-full object-cover"/>
                 </div>
               ) : (
