@@ -23,10 +23,10 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
     'advanced-passport-photo-studio',
+    'pvc-card-printer-studio',
     'photo-signature-resizer',
     'auto-document-cropper',
     'document-scanner-image-rectifier',
-    'pdf-to-pvc-card-auto-cropper',
     'id-card-front-back-print-layout-maker',
     'invoice-generator',
   ];
