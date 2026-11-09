@@ -46,6 +46,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   }, [preset, customWidthMm, customHeightMm]);
   const uploadRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<StudioPhoto[]>([]);
+  const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const selected = photos.find(photo => photo.id === selectedId) || photos[0] || null;
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
@@ -162,8 +163,30 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="absolute left-5 top-5 flex items-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted"><MousePointer2 size={13}/> Move tool <span className="ml-2 text-[#626B74]">V</span></div>
               <div className="absolute right-5 top-5 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>
               {selected ? (
-                <div className="relative max-h-full max-w-full overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl" style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: Math.min(560, 420 * documentSize.widthMm / documentSize.heightMm), maxWidth: "55vw", maxHeight: 420 }}>
-                  <img src={selected.url} alt={selected.file.name} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="block h-full w-full object-cover" style={{ objectPosition: `${positionX}% ${positionY}%`, transform: `scale(${cropZoom / 100})` }}/>
+                <div
+                  className="relative max-h-full max-w-full overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl cursor-grab active:cursor-grabbing"
+                  style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: Math.min(560, 420 * documentSize.widthMm / documentSize.heightMm), maxWidth: "55vw", maxHeight: 420, touchAction: "none" }}
+                  onPointerDown={event => {
+                    event.preventDefault();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    cropDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, positionX, positionY };
+                  }}
+                  onPointerMove={event => {
+                    const drag = cropDragRef.current;
+                    if (!drag || drag.pointerId !== event.pointerId) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const dx = (event.clientX - drag.x) / rect.width * 100;
+                    const dy = (event.clientY - drag.y) / rect.height * 100;
+                    setPositionX(Math.max(0, Math.min(100, drag.positionX - dx)));
+                    setPositionY(Math.max(0, Math.min(100, drag.positionY - dy)));
+                  }}
+                  onPointerUp={event => {
+                    cropDragRef.current = null;
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  }}
+                  onPointerCancel={() => { cropDragRef.current = null; }}
+                >
+                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="pointer-events-none block h-full w-full object-cover select-none" style={{ objectPosition: `${positionX}% ${positionY}%`, transform: `scale(${cropZoom / 100})` }}/>
                 </div>
               ) : (
                 <button type="button" onClick={() => uploadRef.current?.click()} className="group flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
