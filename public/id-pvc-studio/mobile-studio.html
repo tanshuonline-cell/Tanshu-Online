@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · PVC Card Studio</title>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>TANSHU ONLINE · PVC Card Studio</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{font-family:Inter,system-ui,Arial;color:#17233d;background:#eef1f6}*{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden}
@@ -98,11 +98,11 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
 @media(max-width:760px){
  html{scroll-behavior:smooth;scroll-padding-top:126px}
  body{height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto;padding-bottom:calc(78px + env(safe-area-inset-bottom));background:#eef2f8}
- .top{position:sticky;top:0;z-index:1500;height:auto;min-height:58px;padding:7px 10px;gap:8px;flex-wrap:wrap;box-shadow:0 5px 20px #101d3830}
+ .top{position:sticky;top:0;z-index:1500;height:auto;min-height:58px;padding:7px 8px;gap:6px;flex-wrap:nowrap;box-shadow:0 5px 20px #101d3830}
  .studio-brand{gap:7px;min-width:0}.studio-brand-photo{width:34px!important;height:34px!important;object-fit:cover}
- .studio-brand strong{font-size:12px!important;line-height:1.2}.brand-studio{font-size:9px!important}
- .top .tagline{display:none}.home-back{margin-left:auto;padding:7px 8px;font-size:10px;white-space:nowrap}
- .lang-switch{gap:2px;padding:2px}.lang-switch button{min-width:35px;padding:6px 7px;font-size:10px}
+ .studio-brand strong{font-size:11px!important;line-height:1.2;white-space:nowrap}.brand-studio{font-size:9px!important}
+ .top .tagline{display:none}.home-back{margin-left:auto;padding:6px 7px;font-size:9px;white-space:nowrap;flex:0 0 auto}
+ .lang-switch{gap:1px;padding:2px;flex:0 0 auto}.lang-switch button{min-width:31px;padding:6px 5px;font-size:9px}
  body>.toolbar{position:sticky;top:58px;z-index:1400;height:auto;min-height:48px;padding:6px 8px;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;background:#f7f9fc;border-bottom:1px solid #dbe3ef;box-shadow:0 5px 15px #14233b12;scrollbar-width:thin}
  body>.toolbar .spacer{display:none}
  body>.toolbar .btn{flex:0 0 auto;min-height:38px;padding:8px 10px;font-size:11px}
@@ -167,7 +167,7 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
  .source-wrap,.preview-wrap,.perspective-stage{overscroll-behavior:contain}
 }
 @media(max-width:390px){
- .studio-brand strong{font-size:10px!important}.brand-studio{display:block;font-size:8px!important;margin-top:2px}
+ .studio-brand strong{font-size:9px!important}.brand-studio{display:block;font-size:8px!important;margin-top:2px}
  .home-back{font-size:9px;padding:6px}.lang-switch button{min-width:31px;padding:5px 5px}
  .field-row{grid-template-columns:1fr}
  .magic-controls{grid-template-columns:1fr}
@@ -257,7 +257,7 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
 <script src="/id-pvc-studio/catalog-settings.js"></script><script src="/id-pvc-studio/preset-engine.js"></script><script src="/id-pvc-studio/pvc-engine.js"></script>
 
 <nav class="mobile-step-dock" aria-label="Mobile studio steps">
-<button type="button" class="active" data-go="upload-step"><b>01</b><span>Upload</span></button>
+<button type="button" class="active" data-go="upload-step"><b>01</b><span>Upload &amp; Setup</span></button>
 <button type="button" data-go="edit-step"><b>02</b><span>Crop &amp; Preview</span></button>
 <button type="button" data-go="print-step"><b>03</b><span>Print Setup</span></button>
 <button type="button" data-go="print-action"><b>↗</b><span>Print</span></button>
