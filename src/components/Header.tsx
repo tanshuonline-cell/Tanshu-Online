@@ -98,6 +98,12 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 </button>
               );
             })}
+            <a
+              href="/digital-seva"
+              className="whitespace-nowrap shrink-0 rounded-full border border-amber-300/70 bg-white px-3 py-1.5 text-xs font-bold text-[#7A4B16] shadow-sm transition-colors hover:border-amber-500 hover:bg-amber-50 hover:text-[#8F1725]"
+            >
+              Digital Seva Center
+            </a>
           </nav>
 
           {/* Left on Mobile / Tablet: Quick section label */}
