@@ -89,6 +89,6 @@ export const TOOL_HINDI_TRANSLATIONS: Record<string, ToolHindiCopy> = {
   'whatsapp-document-print-helper': { name: 'WhatsApp डॉक्यूमेंट प्रिंट हेल्पर', description: 'WhatsApp से मिले दस्तावेज़ को साफ़ और सही पेपर आकार में प्रिंट के लिए तैयार करें।' },
   'qr-code-scanner-decoder': { name: 'QR कोड स्कैनर और डिकोडर', description: 'इमेज या कैमरे से QR कोड स्कैन करके उपलब्ध जानकारी पढ़ें।' },
   'photo-signature-resizer': { name: 'फोटो और सिग्नेचर रिसाइज़र', description: 'फोटो और हस्ताक्षर का अलग-अलग आकार और KB सीमा सेट करके फाइल तैयार करें।' },
-  'advanced-passport-photo-studio': { name: 'एडवांस्ड पासपोर्ट फोटो स्टूडियो', description: 'पासपोर्ट फोटो, हस्ताक्षर एडिटिंग और 4×6 या A4 प्रिंट शीट तैयार करें।' }
+  'advanced-passport-photo-studio': { name: 'एडवांस्ड पासपोर्ट फोटो स्टूडियो', description: 'पासपोर्ट फोटो, हस्ताक्षर एडिटिंग और 4×6 या A4 प्रिंट शीट तैयार करें।' },
   'instant-passport-photo-maker': { name: 'इंस्टेंट पासपोर्ट फोटो मेकर', description: 'मोबाइल या कंप्यूटर पर पासपोर्ट फोटो और सिग्नेचर तैयार करें, बैकग्राउंड बदलें और A4 या 4×6 प्रिंट शीट डाउनलोड करें।' },
 };
