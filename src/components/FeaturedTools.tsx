@@ -46,6 +46,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
       case 'document-scanner-image-rectifier':
         return scannerImg;
       case 'pdf-to-pvc-card-auto-cropper':
+      case 'pvc-card-printer-studio':
         return pvcCropperImg;
       case 'id-card-front-back-print-layout-maker':
         return idLayoutImg;
