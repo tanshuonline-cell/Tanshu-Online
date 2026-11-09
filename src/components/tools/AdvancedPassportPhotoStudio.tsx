@@ -1033,7 +1033,7 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
         <button type="button" aria-label="Zoom in" onClick={() => setCanvasZoom(value => Math.min(2, Number((value + 0.1).toFixed(2))))} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700">+</button>
       </div>
 
-      <div className={`grid min-h-0 flex-1 grid-cols-1 items-start gap-2 overflow-hidden lg:grid-rows-[minmax(0,1fr)] lg:gap-3 ${showStepSidebar ? "lg:grid-cols-[minmax(210px,220px)_minmax(0,1fr)_minmax(245px,285px)] xl:grid-cols-[minmax(220px,240px)_minmax(0,1fr)_minmax(260px,300px)] 2xl:grid-cols-[minmax(230px,250px)_minmax(0,1fr)_minmax(275px,320px)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(245px,285px)]"}`}
+      <div className={`grid min-h-0 flex-1 grid-cols-1 items-start gap-2 overflow-hidden lg:grid-rows-[minmax(0,1fr)] lg:gap-3 ${showStepSidebar ? "lg:grid-cols-[minmax(210px,220px)_minmax(0,1fr)_minmax(245px,285px)] xl:grid-cols-[minmax(220px,240px)_minmax(0,1fr)_minmax(260px,300px)] 2xl:grid-cols-[minmax(230px,250px)_minmax(0,1fr)_minmax(275px,320px)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(245px,285px)]"}`}>
         {showStepSidebar && <section className={`space-y-3 rounded-2xl border border-indigo-100 bg-white p-2.5 shadow-lg animate-in slide-in-from-left-3 fade-in duration-300 sm:p-3 lg:h-full lg:min-h-0 lg:max-h-full lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-y-contain lg:touch-pan-y ${step !== 2 ? "h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain" : ""}`}>
           <div className="relative z-10 -mx-1 mb-2 rounded-xl border border-slate-200 bg-white/95 p-1.5 shadow-sm backdrop-blur">
             <div className="grid grid-cols-3 gap-1">
