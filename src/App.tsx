@@ -384,6 +384,10 @@ export default function App() {
       window.location.href = '/id-pvc-studio/demo';
       return;
     }
+    if (tool.id === 'instant-passport-photo-maker') {
+      window.location.href = '/photo-signature-demo';
+      return;
+    }
     setActiveTool(tool);
   };
 
@@ -586,7 +590,7 @@ export default function App() {
           onSelectVideo={navigateToVideoDetail}
         />
 
-        {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
+        {/* 3. Future Tools (Featured Tools catalog) */}
         <FeaturedTools onOpenTool={handleOpenTool} />
 
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
