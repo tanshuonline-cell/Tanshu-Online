@@ -15,7 +15,42 @@ function drawDocList(){const root=$('sources');root.innerHTML='';S.docs.forEach(
 function updateSourceZoom(){const c=$('sourceCanvas'),wrap=$('sourceWrap'),d=current();if(!d)return;const z=Math.max(.75,Math.min(3,S.sourceZoom||1));S.sourceZoom=z;c.style.maxWidth=z>1?'none':'100%';c.style.width=Math.round(c.width*z)+'px';c.style.height=Math.round(c.height*z)+'px';wrap.style.width='100%';wrap.style.height=Math.min(260,Math.round(c.height*z))+'px';$('sourceZoomReset').textContent=Math.round(z*100)+'%';}
 function drawSource(){const d=current(),c=$('sourceCanvas'),wrap=$('sourceWrap');if(!d){c.width=1;c.height=1;wrap.style.width='1px';$('pageLabel').textContent='कोई फाइल नहीं';return;}const maxW=1000,maxH=1200,scale=Math.min(maxW/d.canvas.width,maxH/d.canvas.height,1);c.width=Math.max(1,Math.round(d.canvas.width*scale));c.height=Math.max(1,Math.round(d.canvas.height*scale));c.getContext('2d').drawImage(d.canvas,0,0,c.width,c.height);wrap.style.width='100%';wrap.style.maxWidth='100%';updateSourceZoom();$('cropBox').style.display='none';$('pageLabel').textContent=(S.docIndex+1)+' / '+S.docs.length+' · '+d.name+' · '+d.widthMm.toFixed(1)+' × '+d.heightMm.toFixed(1)+' mm';}
 function cropPointer(e){const c=$('sourceCanvas'),r=c.getBoundingClientRect();const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));return{x,y};}
-function bindCrop(){const wrap=$('sourceWrap'),canvas=$('sourceCanvas'),box=$('cropBox');let start=null,pointerId=null;const paint=(x,y,w,h)=>{const r=canvas.getBoundingClientRect(),wr=wrap.getBoundingClientRect();box.style.left=(r.left-wr.left+x*r.width)+'px';box.style.top=(r.top-wr.top+y*r.height)+'px';box.style.width=(w*r.width)+'px';box.style.height=(h*r.height)+'px';};const move=e=>{if(!start||e.pointerId!==pointerId)return;const p=cropPointer(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(start.x-p.x),h=Math.abs(start.y-p.y);S.selection={x,y,w,h};paint(x,y,w,h);};const stop=e=>{if(!start||e.pointerId!==pointerId)return;start=null;pointerId=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',stop);};canvas.addEventListener('pointerdown',e=>{if(!current())return;e.preventDefault();pointerId=e.pointerId;start=cropPointer(e);S.selection={x:start.x,y:start.y,w:0,h:0};box.style.display='block';paint(start.x,start.y,0,0);window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop);window.addEventListener('pointercancel',stop);});}
+function bindCrop(){
+ const wrap=$('sourceWrap'),canvas=$('sourceCanvas'),box=$('cropBox');
+ let drag=null,pointerId=null;
+ box.innerHTML='<span class="crop-handle nw" data-handle="nw"></span><span class="crop-handle ne" data-handle="ne"></span><span class="crop-handle sw" data-handle="sw"></span><span class="crop-handle se" data-handle="se"></span>';
+ const clamp=(v)=>Math.max(0,Math.min(1,v));
+ const paint=()=>{const s=S.selection;if(!s)return;const r=canvas.getBoundingClientRect(),wr=wrap.getBoundingClientRect();Object.assign(box.style,{left:(r.left-wr.left+s.x*r.width)+'px',top:(r.top-wr.top+s.y*r.height)+'px',width:(s.w*r.width)+'px',height:(s.h*r.height)+'px',display:'block'});};
+ const point=e=>cropPointer(e);
+ const finish=e=>{if(pointerId===null||(e?.pointerId!==undefined&&e.pointerId!==pointerId))return;drag=null;pointerId=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',finish);};
+ const move=e=>{
+  if(!drag||e.pointerId!==pointerId)return;
+  const p=point(e),dx=p.x-drag.start.x,dy=p.y-drag.start.y,o=drag.origin;
+  if(drag.mode==='draw'){const x=Math.min(drag.start.x,p.x),y=Math.min(drag.start.y,p.y);S.selection={x,y,w:Math.abs(dx),h:Math.abs(dy)};}
+  else if(drag.mode==='move'){S.selection={...o,x:clamp(o.x+dx),y:clamp(o.y+dy)};S.selection.x=Math.min(S.selection.x,1-o.w);S.selection.y=Math.min(S.selection.y,1-o.h);}
+  else{
+   let l=o.x,t=o.y,r=o.x+o.w,b=o.y+o.h;
+   if(drag.mode.includes('w'))l=Math.max(0,Math.min(r-.015,o.x+dx));
+   if(drag.mode.includes('e'))r=Math.min(1,Math.max(l+.015,o.x+o.w+dx));
+   if(drag.mode.includes('n'))t=Math.max(0,Math.min(b-.015,o.y+dy));
+   if(drag.mode.includes('s'))b=Math.min(1,Math.max(t+.015,o.y+o.h+dy));
+   S.selection={x:l,y:t,w:r-l,h:b-t};
+  }
+  paint();
+ };
+ const begin=(e,mode)=>{
+  if(!current())return;e.preventDefault();e.stopPropagation();pointerId=e.pointerId;
+  const p=point(e),origin=S.selection?{...S.selection}:null;
+  drag={mode,start:p,origin};
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',finish);
+ };
+ canvas.addEventListener('pointerdown',e=>{S.selection=null;box.style.display='none';begin(e,'draw');});
+ box.addEventListener('pointerdown',e=>{
+  const h=e.target.closest?.('[data-handle]');
+  if(h){begin(e,h.dataset.handle);return;}
+  if(S.selection)begin(e,'move');
+ });
+}
 function cropCurrent(){const d=current(),sel=S.selection;if(!d||!sel||sel.w<.008||sel.h<.008){say('Select a crop area on the page first.','पहले पेज पर क्रॉप का क्षेत्र चुनें।');return;}const sx=Math.round(sel.x*d.canvas.width),sy=Math.round(sel.y*d.canvas.height),sw=Math.max(1,Math.round(sel.w*d.canvas.width)),sh=Math.max(1,Math.round(sel.h*d.canvas.height));const out=document.createElement('canvas');out.width=sw;out.height=sh;out.getContext('2d').drawImage(d.canvas,sx,sy,sw,sh,0,0,sw,sh);const side=activeSide(),id=$('pairId').value.trim()||d.pairId;const existing=S.crops.find(c=>c.pairId===id&&c.side===side);const item={id:crypto.randomUUID(),pairId:id,side,src:out.toDataURL('image/png'),name:d.name+' · '+side,width:sw,height:sh,ratio:sw/sh,sourceId:d.id,mode:$('mode').value,profile:$('profile').value,cardWidthMm:Math.max(10,+$('width').value||86),cardHeightMm:Math.max(10,+$('height').value||54)};if(existing){Object.assign(existing,item);S.activeCrop=existing;}else{S.crops.push(item);S.activeCrop=item;}drawCrops();$('cropBox').style.display='none';S.selection=null;buildSheets();saveSession();say('Crop saved as '+side+'. Select the other side and crop it separately.','क्रॉप '+side+' के रूप में सुरक्षित। दूसरी साइड चुनकर अलग क्रॉप करें।');}
 function drawCrops(){const root=$('crops');root.innerHTML='';saveSession();S.crops.forEach(c=>{const el=document.createElement('div');el.className='cardthumb';if(c===S.activeCrop)el.style.borderColor='#4268ed';const im=document.createElement('img');im.src=c.src;const tx=document.createElement('small');tx.textContent=c.side.toUpperCase()+' · '+c.pairId+' · '+(c.profile||'Custom');const meta=document.createElement('small');meta.textContent=(c.cardWidthMm||86)+' × '+(c.cardHeightMm||54)+' mm';el.append(im,tx,meta);el.onclick=()=>{S.activeCrop=c;$('pairId').value=c.pairId;document.querySelector('input[name="cropSide"][value="'+c.side+'"]').checked=true;if(c.profile){const p=catalog.flatMap(g=>g.items).find(x=>x[0]===c.profile);if(p){$('profile').value=p[0];$('width').value=p[2];$('height').value=p[3];}}drawCrops();};root.append(el);});}
 function makeCatalog(filter=''){const list=$('catalog'),sel=$('profile');list.innerHTML='';sel.innerHTML='';const none=document.createElement('option');none.value='';none.textContent='— None / कोई प्रोफ़ाइल नहीं —';sel.append(none);catalog.forEach(g=>{const matches=g.items.filter(d=>(d[0]+' '+d[1]+' '+d[4]).toLowerCase().includes(filter.toLowerCase()));if(!matches.length)return;const group=document.createElement('optgroup');group.label=S.lang==='hi'?g.hi:g.group;matches.forEach(d=>{const opt=document.createElement('option');opt.value=d[0];opt.textContent=(S.lang==='hi'?d[1]:d[0])+' · '+d[4];group.append(opt);const b=document.createElement('button');b.className='profile';b.textContent=(S.lang==='hi'?d[1]:d[0])+' · '+d[4];b.onclick=()=>selectProfile(d);list.append(b);});sel.append(group);});sel.value=S.selectedProfile||'';const out=$('catalogSelected');if(out){const d=catalog.flatMap(g=>g.items).find(x=>x[0]===S.selectedProfile);out.textContent=S.selectedProfile?(S.lang==='hi'?'चुना गया कार्ड: ':'Selected card: ')+(d?(S.lang==='hi'?d[1]:d[0]):S.selectedProfile):(S.lang==='hi'?'अभी कोई कार्ड नहीं चुना गया':'No card selected yet');}}
