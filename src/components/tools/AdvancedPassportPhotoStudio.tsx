@@ -1291,17 +1291,9 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
             <label className="flex items-center justify-between text-[11px] font-semibold text-slate-600">{language === 'hi' ? 'कस्टम रंग' : 'Custom colour'}<input type="color" value={background} onChange={event => {setBackground(event.target.value);setBackgroundDraft(event.target.value);}} className="h-8 w-12 rounded border"/></label>
           </section>
           <section className="space-y-2 border-t border-slate-100 pt-3">
-            <h4 className="text-xs font-extrabold text-slate-700">{language === 'hi' ? 'सिग्नेचर' : 'Signature'}</h4>
-            <p className="text-[11px] text-slate-500">{signatureSrc ? signatureName : (language === 'hi' ? 'अभी सिग्नेचर अपलोड नहीं है' : 'No signature uploaded yet')}</p>
-            <button type="button" onClick={() => signatureInputRef.current?.click()} className="w-full rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-800">{language === 'hi' ? 'सिग्नेचर अपलोड करें' : 'Upload Signature'}</button>
-            <div className="grid grid-cols-3 gap-1">{(['transparent','white','custom'] as SignatureBackground[]).map(value => <button key={value} type="button" onClick={() => setSignatureBackground(value)} className={`rounded-lg border px-1 py-2 text-[10px] font-bold ${signatureBackground === value ? 'border-violet-700 bg-violet-600 text-white' : 'border-violet-100 bg-white text-violet-800'}`}>{value === 'transparent' ? 'Transparent' : value === 'white' ? 'White' : 'Custom'}</button>)}</div>
-            {signatureBackground === 'custom' && <input type="color" value={signatureCustomColor} onChange={event => setSignatureCustomColor(event.target.value)} className="h-8 w-12 rounded border"/>}
-          </section>
-          <section className="space-y-2 border-t border-slate-100 pt-3">
             <h4 className="text-xs font-extrabold text-slate-700">{language === 'hi' ? 'क्विक एडिट' : 'Quick Edit'}</h4>
             <button type="button" onClick={() => setActivePanel('color')} className="w-full rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-800">{language === 'hi' ? 'एडवांस बैकग्राउंड टूल' : 'Advanced Background Tools'}</button>
             <button type="button" onClick={() => setActivePanel('border')} className="w-full rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-800">{language === 'hi' ? 'बॉर्डर सेटिंग' : 'Border Settings'}</button>
-            <button type="button" onClick={downloadPdf} disabled={!selected} className="w-full rounded-lg bg-violet-700 px-3 py-2.5 text-xs font-bold text-white disabled:opacity-40">{language === 'hi' ? 'PDF डाउनलोड' : 'Download PDF'}</button>
           </section>
         </aside>
       </div>
