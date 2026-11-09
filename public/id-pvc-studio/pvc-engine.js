@@ -20,7 +20,7 @@ function bindCrop(){
  let drag=null,pointerId=null;
  box.innerHTML='<span class="crop-handle nw" data-handle="nw"></span><span class="crop-handle ne" data-handle="ne"></span><span class="crop-handle sw" data-handle="sw"></span><span class="crop-handle se" data-handle="se"></span>';
  const clamp=(v)=>Math.max(0,Math.min(1,v));
- const paint=()=>{const s=S.selection;if(!s)return;const r=canvas.getBoundingClientRect(),wr=wrap.getBoundingClientRect();Object.assign(box.style,{left:(r.left-wr.left+s.x*r.width)+'px',top:(r.top-wr.top+s.y*r.height)+'px',width:(s.w*r.width)+'px',height:(s.h*r.height)+'px',display:'block'});};
+ const paint=()=>{const s=S.selection;if(!s)return;const r=canvas.getBoundingClientRect();Object.assign(box.style,{left:(canvas.offsetLeft+s.x*r.width)+'px',top:(canvas.offsetTop+s.y*r.height)+'px',width:(s.w*r.width)+'px',height:(s.h*r.height)+'px',display:'block'});};
  const point=e=>cropPointer(e);
  const finish=e=>{if(pointerId===null||(e?.pointerId!==undefined&&e.pointerId!==pointerId))return;drag=null;pointerId=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',finish);};
  const move=e=>{
@@ -116,7 +116,7 @@ function snapPlaced(item,index){const dims=sheetDimensions(),W=dims.width,H=dims
 function beginPlacedCrop(e,index){
  const el=e.target.closest?.('.placed-source')||e.currentTarget.closest?.('.placed-source')||e.currentTarget;
  const item=S.placedSources[index],r=el.getBoundingClientRect();
- if(!item||!r.width||!r.height)return;
+ if(!item||!r.width||!r.height||e.button!==undefined&&e.button!==0)return;
  S.activePlacedIndex=index;
  const px=v=>Math.max(0,Math.min(1,(v.clientX-r.left)/r.width));
  const py=v=>Math.max(0,Math.min(1,(v.clientY-r.top)/r.height));
@@ -128,8 +128,16 @@ function beginPlacedCrop(e,index){
  else if(inside&&S.placedCropSelection){mode='move';origin={...S.placedCropSelection};}
  else{S.placedCropSelection={index,x:x0,y:y0,w:0,h:0};}
  e.preventDefault();e.stopPropagation();
- const box=el.querySelector('.placed-crop-box');
- if(box)box.setPointerCapture?.(e.pointerId);
+ let box=el.querySelector('.placed-crop-box');
+ if(!box){
+  box=document.createElement('div');box.className='placed-crop-box';
+  ['nw','ne','sw','se'].forEach(d=>{const h=document.createElement('span');h.className='crop-handle crop-'+d;h.dataset.cropHandle=d;box.append(h);});
+  box.addEventListener('pointerdown',ev=>beginPlacedCrop(ev,index));
+  el.append(box);
+ }
+ const paint=()=>{const q=S.placedCropSelection;if(q&&q.index===index)Object.assign(box.style,{left:q.x*100+'%',top:q.y*100+'%',width:q.w*100+'%',height:q.h*100+'%'});};
+ paint();
+ try{el.setPointerCapture?.(e.pointerId);}catch(_){}
  const move=v=>{
   if(v.pointerId!==undefined&&e.pointerId!==undefined&&v.pointerId!==e.pointerId)return;
   const x=px(v),y=py(v);
@@ -147,15 +155,14 @@ function beginPlacedCrop(e,index){
    if(mode.includes('s'))b=Math.min(1,Math.max(y,t+.01));
    S.placedCropSelection={index,x:l,y:t,w:rr-l,h:b-t};
   }
-  const s=S.placedCropSelection,live=el.querySelector('.placed-crop-box');
-  if(live)Object.assign(live.style,{left:s.x*100+'%',top:s.y*100+'%',width:s.w*100+'%',height:s.h*100+'%'});
+  paint();
  };
  const done=v=>{
   if(v?.pointerId!==undefined&&e.pointerId!==undefined&&v.pointerId!==e.pointerId)return;
   window.removeEventListener('pointermove',move);
   window.removeEventListener('pointerup',done);
   window.removeEventListener('pointercancel',done);
-  $('applyPlacedCrop').disabled=!(S.placedCropSelection?.w>.01&&S.placedCropSelection?.h>.01);
+  $('applyPlacedCrop').disabled=!(S.placedCropSelection?.index===index&&S.placedCropSelection?.w>.01&&S.placedCropSelection?.h>.01);
   drawSheetPreview();
  };
  window.addEventListener('pointermove',move);
