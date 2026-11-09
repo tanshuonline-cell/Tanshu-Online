@@ -1103,6 +1103,7 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
           </div>
 
           {step===1 && <>
+          </>}
           {step===2 && <div className="space-y-4">
           <div className="grid grid-cols-1 gap-2">
             <button onClick={()=>setActivePanel('remove-bg')} disabled={!selected} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white px-3 py-2.5 text-xs font-bold text-emerald-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400 hover:from-emerald-100 hover:shadow-md disabled:opacity-40"><Eraser className="h-4 w-4 shrink-0" /><span className="whitespace-nowrap">{language==='hi'?'बैकग्राउंड हटाएँ':'Remove Background'}</span></button>
