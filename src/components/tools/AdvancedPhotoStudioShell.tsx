@@ -91,7 +91,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="h-6 w-px bg-[#30363D]"/>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#303840] text-[#D8DEE4]"><ImageIcon size={17}/></div>
-              <div><div className="text-[13px] font-semibold tracking-wide text-[#E4E7EA]">ADVANCE PHOTO STUDIO</div><div className="text-[10px] tracking-[.16em] studio-muted">PROFESSIONAL WORKSPACE</div></div>
+              <div><div className="text-[13px] font-semibold tracking-wide text-[#E4E7EA]">TANSHU STUDIO</div><div className="text-[10px] tracking-[.16em] studio-muted">PHOTO EDITING & PASSPORT STUDIO</div></div>
             </div>
           </div>
           <div className="flex items-center gap-2">
