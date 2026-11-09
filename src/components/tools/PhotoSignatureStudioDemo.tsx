@@ -63,7 +63,8 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
   const [exportBusy, setExportBusy] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
   const signatureInput = useRef<HTMLInputElement>(null);
-  const dragRef = useRef<{x:number;y:number;px:number;py:number}|null>(null);\n  const cropDragRef = useRef<{x:number;y:number;cx:number;cy:number}|null>(null);
+  const dragRef = useRef<{x:number;y:number;px:number;py:number}|null>(null);
+  const cropDragRef = useRef<{x:number;y:number;cx:number;cy:number}|null>(null);
   const photoSize = customSize ? { w: mm(Math.max(5, Number(customW)||35), unit), h: mm(Math.max(5, Number(customH)||45), unit) } : presets[presetIndex];
   const photoSource = photoCutout || photo;
   const signatureSource = signatureCutout || signature;
