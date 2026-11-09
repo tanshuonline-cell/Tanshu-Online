@@ -20,7 +20,7 @@ interface Props {
 
 export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const { t, isHindi } = useLanguage();
-  // Restore the exact eight-card order shown on the reference homepage.
+  // Preserve the existing featured order and append the new standalone studio.
   const featuredOrder = [
     'advanced-passport-photo-studio',
     'pdf-to-pvc-card-auto-cropper',
@@ -30,6 +30,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
     'document-scanner-image-rectifier',
     'id-card-front-back-print-layout-maker',
     'invoice-generator',
+    'instant-passport-photo-maker',
   ];
   const featuredTools = CONFIRMED_TOOLS
     .filter((tool) => tool.isFeatured || tool.id === 'pdf-ocr-text-extractor')
@@ -39,6 +40,8 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
     switch (id) {
       case 'photo-signature-resizer':
         return getToolPreviewImage('photo-signature-resizer', 'Photo & Signature Resizer', 'Photo & Signature');
+      case 'instant-passport-photo-maker':
+        return getToolPreviewImage('instant-passport-photo-maker', 'Instant Passport Photo Maker', 'Photo & Signature');
       case 'advanced-passport-photo-studio':
         return passportImg;
       case 'auto-document-cropper':
@@ -95,7 +98,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
               ? 'Multi-Printer Auto Print'
               : (hindiCopy?.name || tool.name);
             const displayDescription = hindiCopy?.description || tool.description;
-            const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer';
+            const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer' || tool.id === 'instant-passport-photo-maker';
             return (
               <div
                 key={tool.id}
