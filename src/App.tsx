@@ -29,6 +29,7 @@ import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'photo-signature-demo' | 'advanced-passport-photo-studio'>('home');
+  const [advancedStudioEditor, setAdvancedStudioEditor] = useState(window.location.pathname === '/advanced-passport-photo-studio/studio');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -169,6 +170,7 @@ export default function App() {
         setCurrentPage('photo-signature-demo');
       } else if (pathname === '/advanced-passport-photo-studio' || pathname === '/advanced-passport-photo-studio/studio') {
         setCurrentPage('advanced-passport-photo-studio');
+        setAdvancedStudioEditor(pathname.endsWith('/studio'));
       } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
@@ -420,15 +422,15 @@ export default function App() {
 
   // ROUTE: ADVANCED PASSPORT PHOTO STUDIO — standalone URL survives refresh.
   if (currentPage === 'advanced-passport-photo-studio') {
-    const isEditorRoute = window.location.pathname === '/advanced-passport-photo-studio/studio';
-    return isEditorRoute
+    return advancedStudioEditor
       ? <AdvancedPassportPhotoStudio onBack={() => {
           window.history.pushState({}, '', '/advanced-passport-photo-studio');
+          setAdvancedStudioEditor(false);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }} />
       : <AdvancedPassportPhotoStudioWelcome onStart={() => {
           window.history.pushState({}, '', '/advanced-passport-photo-studio/studio');
-          setCurrentPage('advanced-passport-photo-studio');
+          setAdvancedStudioEditor(true);
         }} />;
   }
 
