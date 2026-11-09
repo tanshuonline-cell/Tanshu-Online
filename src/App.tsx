@@ -41,12 +41,17 @@ export default function App() {
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isVideoCatalog
+    const isStudioPreview = pathname === '/advanced-photo-studio-preview';
+    const title = isStudioPreview
+      ? 'Tanshu Studio | TANSHU ONLINE'
+      : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isVideoCatalog
+    const description = isStudioPreview
+      ? 'Tanshu Studio — Professional Photo Editing & Passport Studio by TANSHU ONLINE.'
+      : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
         ? (video.description || video.title).slice(0, 300)
