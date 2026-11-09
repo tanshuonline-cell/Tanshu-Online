@@ -12,6 +12,7 @@ import { LatestVideos } from './components/LatestVideos';
 import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
+import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
@@ -23,7 +24,7 @@ import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'studio-shell'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [catalogVideos, setCatalogVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
@@ -112,7 +113,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/admin' || hash === '#admin') {
+      if (pathname === '/advanced-photo-studio-preview') {
+        setCurrentPage('studio-shell');
+      } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
         setCurrentPage('videos');
@@ -335,7 +338,12 @@ export default function App() {
     );
   }
 
-  // ROUTE 4: STANDARD HOMEPAGE
+  // ROUTE 4: VISUAL-ONLY PHOTO STUDIO SHELL REVIEW
+  if (currentPage === 'studio-shell') {
+    return <AdvancedPhotoStudioShell />;
+  }
+
+  // ROUTE 5: STANDARD HOMEPAGE
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
       {/* 2 & 3: Announcement Bar + Sticky Header + Tricolor Strip */}
