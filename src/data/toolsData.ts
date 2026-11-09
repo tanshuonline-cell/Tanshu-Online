@@ -38,10 +38,9 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   },
   {
     id: 'pdf-to-pvc-card-auto-cropper',
-    name: 'PDF to PVC Card Auto Cropper',
+    name: 'PDF to PVC कार्ड ऑटो क्रॉप',
     category: 'pvc-id',
     categoryLabel: 'ID Card & Print',
-    isFeatured: true,
     iconName: 'CreditCard',
     description: 'Crop standard CR80 ID cards (85.6 × 53.98 mm) from e-Aadhaar, Voter, Ayushman, or Driving License PDFs for instant plastic card printing.',
     detailedInstructions: 'Extract front and back card regions from government PDFs. Pre-formatted with exact millimeter dimensions for Epson and Canon PVC card printing trays.',
@@ -1373,6 +1372,22 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Passport, stamp, PAN and custom dimensions',
       'Signature crop, background and photo overlay',
       '4×6 and A4 print sheets with manual layout and PDF export'
+    ]
+  },
+  {
+    id: 'pvc-card-printer-studio',
+    name: 'PVC Card Printer',
+    category: 'pvc-id',
+    categoryLabel: 'ID Card & Print',
+    isFeatured: true,
+    iconName: 'CreditCard',
+    description: 'Prepare PVC ID cards with independent front and back photo placement, precision cropping, A4 sheet layout, and print-ready output.',
+    detailedInstructions: 'Open the dedicated PVC Card Printer Studio to upload card images, auto-crop and arrange cards on A4, adjust the artwork, and prepare PVC card or normal print output.',
+    keyFeatures: [
+      'Dedicated PVC Card Printer Studio',
+      'Independent front and back card image handling',
+      'Automatic crop and A4 sheet arrangement',
+      'PVC card and normal print output modes'
     ]
   },
 ];
