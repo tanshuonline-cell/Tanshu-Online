@@ -42,8 +42,59 @@ button:not(.primary):not(.card-delete):not(.card-action):not(:disabled):focus-vi
 .top .tagline:hover{color:#fff;font-weight:700}
 @media(max-width:560px){.top{gap:8px}.studio-brand{gap:7px}.studio-brand-photo{width:30px;height:30px}.studio-brand strong{font-size:12px}.home-back{padding:6px 8px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){button:not(:disabled)::after,.home-back::after{transition:none}.studio-brand strong,.top .tagline{transition:none}}
+
+/* Refined, contained premium interaction system */
+.studio-brand strong{color:#fff;text-shadow:none;transition:none}
+.studio-brand:hover strong,.studio-brand strong:hover{color:#fff;text-shadow:none}
+.studio-brand .brand-tanshu{color:#fff}
+.studio-brand .brand-online{color:#60a5fa}
+.studio-brand .brand-studio{color:#d9e4f5;font-weight:750}
+.studio-brand-photo{border-color:#d6b56d;box-shadow:0 0 0 2px #ffffff16,0 2px 9px #0006}
+.home-back{margin-left:auto}
+button:not(:disabled),.home-back{position:relative;isolation:isolate;overflow:hidden}
+button:not(:disabled)::after,.home-back::after{
+ content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+ opacity:0;transform:scale(.12);
+ background:radial-gradient(circle at 50% 50%,transparent 0 28%,rgba(255,255,255,.42) 30% 32%,rgba(219,184,105,.42) 34% 36%,transparent 39% 100%);
+}
+button:not(:disabled):hover::after,button:not(:disabled):focus-visible::after,.home-back:hover::after,.home-back:focus-visible::after{
+ opacity:1;animation:studio-contained-ripple 1.65s ease-out infinite;
+}
+button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animation-duration:.72s}
+@keyframes studio-contained-ripple{
+ 0%{transform:scale(.12);opacity:.0}
+ 18%{opacity:.85}
+ 78%{opacity:.32}
+ 100%{transform:scale(1.65);opacity:0}
+}
+.btn{background:linear-gradient(145deg,#fff 0%,#f6f8fc 100%);border-color:#d4ddec;color:#263653;box-shadow:0 1px 2px #14233b0b;transition:background .2s ease,border-color .2s ease,box-shadow .2s ease,color .2s ease}
+.btn:hover:not(:disabled){background:linear-gradient(145deg,#fffdf7,#f1ead8);border-color:#c9a85f;color:#a51f2b;box-shadow:0 3px 12px #14233b1c}
+.btn.primary{background:linear-gradient(135deg,#315fe0 0%,#2447a8 55%,#1d367e 100%);border-color:#416bd2;color:#fff;box-shadow:inset 0 1px #ffffff30,0 3px 9px #173d9a35}
+.btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#4779f1,#2c52b9 58%,#203e91);border-color:#e0c47c;color:#fff;box-shadow:inset 0 1px #ffffff45,0 5px 15px #173d9a4d}
+#chooseFiles::before{content:"＋";display:inline-grid;place-items:center;width:19px;height:19px;margin-right:6px;border-radius:6px;background:#dce8ff;color:#234db4;font-size:16px;font-weight:900;vertical-align:-3px}
+#autoPrepare::before{content:"✦";display:inline-grid;place-items:center;width:19px;height:19px;margin-right:6px;border-radius:6px;background:#f4d98d;color:#60430a;font-size:14px;vertical-align:-2px}
+#makeSheets::before{content:"▦";display:inline-grid;place-items:center;width:19px;height:19px;margin-right:6px;border-radius:6px;background:#d9f0ea;color:#08745b;font-size:14px;vertical-align:-2px}
+#openCropWorkspaceToolbar::before{content:"✂";display:inline-grid;place-items:center;width:21px;height:21px;margin-right:7px;border-radius:7px;background:#e8ddff;color:#6335a5;font-size:14px;vertical-align:-3px}
+#openWhatsAppPhotoCrop{background:linear-gradient(135deg,#fff,#f5f0ff);border-color:#d9c8fa}
+#openWhatsAppPhotoCrop:hover:not(:disabled){background:linear-gradient(135deg,#f5efff,#e9dcff);border-color:#9b77d6;color:#5a3298}
+#openWhatsAppPhotoCrop::before{content:"⌗";display:inline-grid;place-items:center;width:21px;height:21px;margin-right:7px;border-radius:7px;background:#e5d7ff;color:#6636a6;font-size:16px;font-weight:900;vertical-align:-3px}
+#openPrinterSetup,#openPrinterSetupCrop{background:linear-gradient(135deg,#effbfa,#e0f4f0);border-color:#9bd7ca;color:#075f56}
+#openPrinterSetup:hover:not(:disabled),#openPrinterSetupCrop:hover:not(:disabled){background:linear-gradient(135deg,#e0f7f2,#c9eee5);border-color:#48aa98;color:#064e46}
+#openPrinterSetup::before,#openPrinterSetupCrop::before{content:"▤";display:inline-grid;place-items:center;width:21px;height:21px;margin-right:7px;border-radius:7px;background:#bce9df;color:#08685b;font-size:15px;font-weight:900;vertical-align:-3px}
+#openMagicTools{background:linear-gradient(135deg,#fff9e9,#f9edcf);border-color:#e6cc85;color:#76500b}
+#openMagicTools:hover:not(:disabled){background:linear-gradient(135deg,#fff2cb,#f5dfa2);border-color:#d3aa4d;color:#704400}
+#openMagicTools::before{content:"✧";display:inline-grid;place-items:center;width:21px;height:21px;margin-right:6px;border-radius:7px;background:#f3dfa7;color:#8a5b08;font-size:17px;vertical-align:-3px}
+#print::before{content:"▣";display:inline-grid;place-items:center;width:19px;height:19px;margin-right:6px;border-radius:6px;background:#d6e5ff;color:#234ba5;font-size:14px;vertical-align:-3px}
+#sheetUndo::before{content:"↶";color:#5472aa;margin-right:5px;font-size:15px}
+#sheetRedo::before{content:"↷";color:#5472aa;margin-right:5px;font-size:15px}
+.panel h3,.panel label,.panel .section-title,.panel .tool-title{transition:color .16s ease,font-weight .16s ease}
+.panel h3:hover,.panel label:hover,.panel .section-title:hover,.panel .tool-title:hover{color:#c62828}
+.panel small:hover,.panel .hint:hover,.panel .help-text:hover,.panel .muted:hover{color:#17233d;font-weight:700}
+.top .tagline{transition:color .16s ease,font-weight .16s ease}
+.top .tagline:hover{color:#fff;font-weight:700}
+@media(prefers-reduced-motion:reduce){button:not(:disabled):hover::after,button:not(:disabled):focus-visible::after,.home-back:hover::after,.home-back:focus-visible::after{animation:none;opacity:.22;transform:none}}
 </style></head><body>
-<header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong>TANSHU ONLINE · PVC CARD STUDIO</strong></div><span class="tagline" data-en="Original page · Manual crop · A4 print" data-hi="मूल पेज · मैनुअल क्रॉप · A4 प्रिंट">मूल पेज · मैनुअल क्रॉप · A4 प्रिंट</span><a class="home-back" href="/" data-en="← Back to Home" data-hi="← होम पर वापस" aria-label="Back to Tanshu Online home">← होम पर वापस</a><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
+<header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · PVC CARD STUDIO</span></strong></div><span class="tagline" data-en="Original page · Manual crop · A4 print" data-hi="मूल पेज · मैनुअल क्रॉप · A4 प्रिंट">मूल पेज · मैनुअल क्रॉप · A4 प्रिंट</span><a class="home-back" href="/" data-en="← Back to Home" data-hi="← होम पर वापस" aria-label="Back to Tanshu Online home">← होम पर वापस</a><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
 <nav class="toolbar" aria-label="Main tools">
 <button id="chooseFiles" class="btn primary" data-en="Choose Files" data-hi="फाइल चुनें">फाइल चुनें</button>
 <button id="makeSheets" class="btn" data-en="Arrange A4 Copies" data-hi="A4 कॉपी व्यवस्थित करें">A4 कॉपी व्यवस्थित करें</button>
