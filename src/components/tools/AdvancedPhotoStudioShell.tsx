@@ -24,9 +24,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [selectedId, setSelectedId] = useState('');
   const [zoom, setZoom] = useState(100);
   const uploadRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef<StudioPhoto[]>([]);
   const selected = photos.find(photo => photo.id === selectedId) || photos[0] || null;
 
-  useEffect(() => () => photos.forEach(photo => URL.revokeObjectURL(photo.url)), []);
+  useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
     if (!files) return;
