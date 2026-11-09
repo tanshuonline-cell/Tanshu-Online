@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft, ArrowRight, Camera, Check, Crop, Download, ImagePlus, Laptop,
-  Monitor, Printer, RotateCcw, Signature, Smartphone, SlidersHorizontal,
-  Upload, WandSparkles
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Laptop, PenLine, Printer, RotateCcw, Smartphone } from 'lucide-react';
 
 type DeviceMode = 'mobile' | 'desktop';
 type Step = 'photo' | 'signature' | 'print';
