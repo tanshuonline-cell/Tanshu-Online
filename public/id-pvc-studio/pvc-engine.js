@@ -123,7 +123,7 @@ async function renderCardArtwork(item,side){
  const dx=(ox-w/2)*zoom+w/2,dy=(oy-h/2)*zoom+h/2;
  if(S.mirror&&side==='back'){ctx.translate(w,0);ctx.scale(-1,1);}
  ctx.drawImage(im,dx,dy,dw*zoom,dh*zoom);ctx.restore();
- if(S.borderEnabled){const bw=Math.max(.1,Math.min(2,Number(S.borderWidth)||.4))*scale;ctx.save();ctx.strokeStyle=S.borderColor||'#111111';ctx.lineWidth=bw;makePath();ctx.stroke();ctx.restore();}
+ if(S.borderEnabled){const bw=Math.max(.1,Math.min(2,Number(S.borderWidth)||.4))*scale,inset=bw/2;ctx.save();ctx.strokeStyle=S.borderColor||'#111111';ctx.lineWidth=bw;ctx.beginPath();if(rounded&&ctx.roundRect)ctx.roundRect(inset,inset,w-bw,h-bw,Math.max(0,radius-inset));else if(rounded){const r=Math.max(0,radius-inset);ctx.moveTo(inset+r,inset);ctx.lineTo(w-inset-r,inset);ctx.arcTo(w-inset,inset,w-inset,inset+r,r);ctx.lineTo(w-inset,h-inset-r);ctx.arcTo(w-inset,h-inset,w-inset-r,h-inset,r);ctx.lineTo(inset+r,h-inset);ctx.arcTo(inset,h-inset,inset,h-inset-r,r);ctx.lineTo(inset,inset+r);ctx.arcTo(inset,inset,inset+r,inset,r);ctx.closePath();}else ctx.rect(inset,inset,w-bw,h-bw);ctx.stroke();ctx.restore();}
  return canvas.toDataURL('image/png');
 }
 function bindCardFit(el,img,item,side,sheet){
