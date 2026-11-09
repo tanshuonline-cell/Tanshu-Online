@@ -319,7 +319,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   },
 
   // ==========================================
-  // CATEGORY 3: PHOTO & SIGNATURE TOOLS (18 Tools)
+  // CATEGORY 3: PHOTO & SIGNATURE TOOLS (19 Tools)
   // ==========================================
   {
     id: 'ai-selfie-passport-photo-maker',
@@ -1373,6 +1373,24 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Passport, stamp, PAN and custom dimensions',
       'Signature crop, background and photo overlay',
       '4×6 and A4 print sheets with manual layout and PDF export'
+    ]
+  },,
+
+  {
+    id: 'instant-passport-photo-maker',
+    name: 'Instant Passport Photo Maker',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    isFeatured: true,
+    iconName: 'Camera',
+    description: 'Create passport-size photos, add a signature, adjust backgrounds and prepare print-ready A4 or 4×6 sheets.',
+    detailedInstructions: 'Choose the mobile or computer workflow, upload a photo and optional signature, set the required photo dimensions, adjust the crop and background, then export a print-ready sheet.',
+    keyFeatures: [
+      'Separate mobile and computer workflows',
+      'Photo and signature upload with adjustable placement',
+      'AI background removal and background colour options',
+      'Passport, stamp, PAN and custom photo dimensions',
+      'A4 and 4×6 print sheets with JPG, PNG and PDF export'
     ]
   },
 ];
