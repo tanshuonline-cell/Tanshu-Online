@@ -186,3 +186,13 @@ Record each change here with date, commit, files touched, tests run, and known l
 - Added non-official template frame rendering for Generic, Aadhaar-style, PAN-style and Voter-style sample selections. A neutral sample header/footer is rendered in the central preview and print output; uploaded source artwork remains visible underneath. No issuer logos, official seals, QR codes, fabricated identity numbers or security features are generated.
 - Blank template selection leaves the uploaded crop unchanged.
 - Static JavaScript parse validation passed after the implementation. Browser interaction, screenshot review, multi-pair proof overflow, print preview and physical duplex registration remain unverified because no browser session/printer test was available.
+
+
+## 2026-11-09 — One-click auto crop and A4 workflow
+
+- Replaced the disabled Auto Crop placeholder with an active **Auto Crop + A4 · OK** action.
+- Added layout choices for automatic two-up detection, explicit side-by-side / stacked front-back scans, separately uploaded Front-then-Back files, and single-side input.
+- The workflow creates front/back crop records from a combined scan, or pairs separately uploaded sides by upload order when that explicit mode is selected. Each uploaded combined scan keeps its own person/pair ID, so additional people can be appended and imposed onto subsequent A4 pages.
+- The workflow switches the sheet to A4, applies the selected PVC profile dimensions, arranges all prepared pairs using the existing page-packing engine, and opens the Front + Back Proof view. PVC / Normal mode changes are applied to all prepared crops.
+- **Important detection limit:** auto layout is ratio-based, not a certified document-edge detector. If the image is a single-side photo, the system does not invent the missing reverse; upload the reverse separately and use “अलग-अलग फोटो: पहले Front, फिर Back”. For ambiguous scans, choose the explicit side-by-side or stacked layout. Check every crop before printing.
+- Static JavaScript parse, duplicate-ID and engine element-ID checks passed. No live browser interaction or physical printer test has been completed; do not describe the workflow as browser-verified yet.
