@@ -119,8 +119,8 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
     if (signatureSource) {
       const sig = await loadImage(signatureSource);
       const sigW = w * sigPosition.w / 100, sigH = h * sigPosition.h / 100;
-      const sigX = x + (w - sigW) * sigPosition.x / 100;
-      const sigY = y + (h - sigH) * sigPosition.y / 100;
+      const sigX = x + w * sigPosition.x / 100 - sigW / 2;
+      const sigY = y + h * sigPosition.y / 100 - sigH / 2;
       if (signatureBg !== 'transparent') { ctx.fillStyle = signatureBgColor; ctx.fillRect(sigX, sigY, sigW, sigH); }
       ctx.drawImage(sig, sigX, sigY, sigW, sigH);
     }
