@@ -472,11 +472,11 @@ function bindWhatsAppPerspectiveCrop(){
  $('resetPerspectivePoints').onclick=()=>{if(!image)return;corners=defaults();draw();};
  const solve=(A,b)=>{const n=b.length,m=A.map((r,i)=>[...r,b[i]]);for(let i=0;i<n;i++){let p=i;for(let k=i+1;k<n;k++)if(Math.abs(m[k][i])>Math.abs(m[p][i]))p=k;if(Math.abs(m[p][i])<1e-10)throw Error('Invalid corner geometry');[m[i],m[p]]=[m[p],m[i]];const q=m[i][i];for(let j=i;j<=n;j++)m[i][j]/=q;for(let k=0;k<n;k++){if(k===i)continue;const z=m[k][i];for(let j=i;j<=n;j++)m[k][j]-=z*m[i][j];}}return m.map(r=>r[n]);};
  const rectify=()=>{
-  const [p0,p1,p2,p3]=corners,w=Math.max(2,Math.round((Math.hypot(p1.x-p0.x,p1.y-p0.y)+Math.hypot(p2.x-p3.x,p2.y-p3.y))/2)),h=Math.max(2,Math.round((Math.hypot(p3.x-p0.x,p3.y-p0.y)+Math.hypot(p2.x-p1.x,p2.y-p1.y))/2));
+  const [p0,p1,p2,p3]=corners,quad=[p0,p1,p2,p3],turns=quad.map((p,i)=>{const q=quad[(i+1)%4],r=quad[(i+2)%4];return(q.x-p.x)*(r.y-q.y)-(q.y-p.y)*(r.x-q.x);});if(turns.some(v=>Math.abs(v)<4)||!(turns.every(v=>v>0)||turns.every(v=>v<0)))throw Error('Please keep the four points in order around the photo.');const w=Math.max(2,Math.round((Math.hypot(p1.x-p0.x,p1.y-p0.y)+Math.hypot(p2.x-p3.x,p2.y-p3.y))/2)),h=Math.max(2,Math.round((Math.hypot(p3.x-p0.x,p3.y-p0.y)+Math.hypot(p2.x-p1.x,p2.y-p1.y))/2));
   const outW=Math.max(2,Math.min(2200,w)),outH=Math.max(2,Math.min(2200,h,Math.floor(5000000/outW)));
   const uv=[[0,0],[outW,0],[outW,outH],[0,outH]],pts=[p0,p1,p2,p3],A=[],b=[];
   for(let i=0;i<4;i++){const [u,v]=uv[i],{x,y}=pts[i];A.push([u,v,1,0,0,0,-u*x,-v*x]);b.push(x);A.push([0,0,0,u,v,1,-u*y,-v*y]);b.push(y);}
-  const [a,bb,c,d,e,f,g,k]=solve(A,b),src=ctx.createImageData(canvas.width,canvas.height); // allocate source buffer below from the original image canvas
+  const [a,bb,c,d,e,f,g,k]=solve(A,b);
   const srcData=sourceCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,canvas.width,canvas.height).data,out=document.createElement('canvas');out.width=outW;out.height=outH;const outCtx=out.getContext('2d'),dst=outCtx.createImageData(outW,outH),D=dst.data,sw=canvas.width,sh=canvas.height;
   for(let y=0;y<outH;y++)for(let x=0;x<outW;x++){const den=g*x+k*y+1,sx=(a*x+bb*y+c)/den,sy=(d*x+e*y+f)/den,ix=Math.floor(sx),iy=Math.floor(sy);if(ix<0||iy<0||ix>=sw-1||iy>=sh-1)continue;const fx=sx-ix,fy=sy-iy,di=(y*outW+x)*4,i00=(iy*sw+ix)*4,i10=i00+4,i01=i00+sw*4,i11=i01+4;for(let ch=0;ch<4;ch++){const top=srcData[i00+ch]*(1-fx)+srcData[i10+ch]*fx,bot=srcData[i01+ch]*(1-fx)+srcData[i11+ch]*fx;D[di+ch]=top*(1-fy)+bot*fy;}}
   outCtx.putImageData(dst,0,0);return out;
