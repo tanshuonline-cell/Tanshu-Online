@@ -40,13 +40,16 @@ function autoPrepare(){
  const cardH=S.mode==='pvc'?(profile?.[3]||Math.max(10,+$('height').value||54)):Math.max(10,+$('height').value||54);
  if(S.mode==='pvc'){$('width').value=cardW;$('height').value=cardH;}
  let made=0,paired=0,needsBack=0;
- for(const d of S.docs){
+ for(let di=0;di<S.docs.length;di++){
+  const d=S.docs[di];
   if(S.crops.some(c=>c.sourceId===d.id))continue;
+  if(S.autoLayout==='separate')d.pairId='Person '+(Math.floor(di/2)+1);
   const canvas=d.canvas,w=canvas.width,h=canvas.height,ratio=w/h;
   let layout=S.autoLayout;
+  if(layout==='separate')layout='single';
   if(layout==='auto'){
    if(ratio>2.55&&ratio<4.2)layout='side-by-side';
-   else if(ratio>.55&&ratio<.92)layout='stacked';
+   else if(ratio>.70&&ratio<.90)layout='stacked';
    else layout='single';
   }
   const make=(side,sx,sy,sw,sh)=>{
@@ -57,7 +60,7 @@ function autoPrepare(){
   };
   if(layout==='side-by-side'){const half=w/2;make('front',0,0,half,h);make('back',half,0,w-half,h);paired++;}
   else if(layout==='stacked'){const half=h/2;make('front',0,0,w,half);make('back',0,half,w,h-half);paired++;}
-  else{make(activeSide(),0,0,w,h);needsBack++;}
+  else{const side=S.autoLayout==='separate'?(di%2===0?'front':'back'):activeSide();make(side,0,0,w,h);if(side==='front')needsBack++;}
  }
  if(!made){say('इस फोटो का ऑटो क्रॉप पहले से तैयार है। नया व्यक्ति जोड़ने के लिए नई फोटो अपलोड करें।','इस फोटो का ऑटो क्रॉप पहले से तैयार है। नया व्यक्ति जोड़ने के लिए नई फोटो अपलोड करें।');return;}
  S.sheetSize='a4';$('sheetSize').value='a4';S.orientation=$('orientation').value;S.sheets=[];$('previewSide').value='proof';$('previewPage').value=1;
