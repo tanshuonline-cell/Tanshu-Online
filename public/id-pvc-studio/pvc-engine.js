@@ -64,7 +64,46 @@ function drawCropWorkspaceSourceSide(){const d=current(),c=$('sourceCanvas'),wra
 function workspaceFittedSelection(){const s=S.selection,d=current(),r=workspaceSideRect();if(!s||!d||!r||s.w<.005||s.h<.005)return null;if($('mode').value!=='pvc')return{...s};const cw=Math.max(10,+$('width').value||86),ch=Math.max(10,+$('height').value||54),target=(cw/ch)*(r.h/r.w),cx=s.x+s.w/2,cy=s.y+s.h/2;let w=s.w,h=s.h;if(w/h>target)w=h*target;else h=w/target;w=Math.min(1,w);h=Math.min(1,h);return{x:Math.max(0,Math.min(1-w,cx-w/2)),y:Math.max(0,Math.min(1-h,cy-h/2)),w,h};}
 function drawCropWorkspacePreview(){const canvas=$('cropWorkspacePreview'),note=$('cropWorkspacePreviewNote'),d=current(),r=workspaceSideRect();if(!canvas||!d||!r)return;const ctx=canvas.getContext('2d'),sel=workspaceFittedSelection();ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#edf1f7';ctx.fillRect(0,0,canvas.width,canvas.height);if(sel){const sx=Math.round(r.x+sel.x*r.w),sy=Math.round(r.y+sel.y*r.h),sw=Math.max(1,Math.round(sel.w*r.w)),sh=Math.max(1,Math.round(sel.h*r.h)),scale=Math.min(canvas.width/sw,canvas.height/sh),w=sw*scale,h=sh*scale;ctx.drawImage(d.canvas,sx,sy,sw,sh,(canvas.width-w)/2,(canvas.height-h)/2,w,h);note.textContent='चुना गया '+activeSide().toUpperCase()+' · '+sw+' × '+sh+' px · '+($('mode').value==='pvc'?'PVC अनुपात लॉक':'Normal अनुपात');}else{const scale=Math.min(canvas.width/r.w,canvas.height/r.h),w=r.w*scale,h=r.h*scale;ctx.drawImage(d.canvas,r.x,r.y,r.w,r.h,(canvas.width-w)/2,(canvas.height-h)/2,w,h);note.textContent=activeSide().toUpperCase()+' हिस्सा चुनें — केवल यही साइड दिखाई दे रही है।';}}
 function saveWorkspaceSide(){const d=current(),sel=workspaceFittedSelection(),r=workspaceSideRect();if(!d||!sel||!r){say('पहले चुनी हुई साइड पर क्रॉप क्षेत्र चुनें।');return false;}pushHistory();const sx=Math.max(0,Math.round(r.x+sel.x*r.w)),sy=Math.max(0,Math.round(r.y+sel.y*r.h)),sw=Math.max(1,Math.min(d.canvas.width-sx,Math.round(sel.w*r.w))),sh=Math.max(1,Math.min(d.canvas.height-sy,Math.round(sel.h*r.h))),out=document.createElement('canvas');out.width=sw;out.height=sh;out.getContext('2d').drawImage(d.canvas,sx,sy,sw,sh,0,0,sw,sh);const side=activeSide(),pairId=$('pairId').value.trim()||d.pairId,profile=catalog.flatMap(g=>g.items).find(x=>x[0]===$('profile').value),cardW=$('mode').value==='pvc'?(profile?.[2]||Math.max(10,+$('width').value||86)):Math.max(10,+$('width').value||86),cardH=$('mode').value==='pvc'?(profile?.[3]||Math.max(10,+$('height').value||54)):Math.max(10,+$('height').value||54),item={id:crypto.randomUUID(),pairId,side,src:out.toDataURL('image/png'),name:d.name+' · '+side,width:sw,height:sh,ratio:sw/sh,sourceId:d.id,mode:$('mode').value,profile:profile?.[0]||'',cardWidthMm:cardW,cardHeightMm:cardH};const existing=S.crops.find(c=>c.pairId===pairId&&c.side===side);if(existing){Object.assign(existing,item);S.activeCrop=existing;}else{S.crops.push(item);S.activeCrop=item;}drawCrops();S.selection=null;$('cropBox').style.display='none';drawCropWorkspacePreview();say(side.toUpperCase()+' क्रॉप सेव हो गया। अब दूसरी साइड चुनें।',side.toUpperCase()+' क्रॉप सेव हो गया। अब दूसरी साइड चुनें।');return true;}
-function applyCropWorkspace(){const d=current(),pairId=$('pairId').value.trim()||d?.pairId;if(!d)return;const front=S.crops.find(c=>c.pairId===pairId&&c.side==='front'),back=S.crops.find(c=>c.pairId===pairId&&c.side==='back');if(!front||!back){say('पहले Front और Back दोनों का क्रॉप सेव करें।');return;}S.printFormat='duplex';$('printFormat').value='duplex';S.sheetContent='both';$('sheetContent').value='both';if(S.imageLayout==='single'){S.imageLayout='side-by-side';$('imageLayout').value='side-by-side';}S.placedSources=S.placedSources.filter(p=>p.sourceId!==d.id);if(!S.removedSourceIds.includes(d.id))S.removedSourceIds.push(d.id);S.activePlacedIndex=-1;S.sheets=[];const ok=buildSheets();if(!ok){S.removedSourceIds=S.removedSourceIds.filter(id=>id!==d.id);saveSession();return;}$('previewSide').value='proof';saveSession();drawSheetPreview();closeCropWorkspace();say('Front और Back दोनों कार्ड A4 शीट पर साथ दिखाए गए हैं। मूल combined फोटो को कार्डों के साथ दोबारा नहीं जोड़ा गया।','Front और Back दोनों कार्ड A4 शीट पर साथ दिखाए गए हैं। मूल combined फोटो को कार्डों के साथ दोबारा नहीं जोड़ा गया।');}
+function applyCropWorkspace(){
+ const d=current();
+ if(!d){say('मूल फोटो उपलब्ध नहीं है। Crop Workspace बंद करके फोटो दोबारा चुनें।');return false;}
+ let pairId=$('pairId').value.trim()||d.pairId||'Card 1';
+ let front=S.crops.find(c=>c.pairId===pairId&&c.side==='front');
+ let back=S.crops.find(c=>c.pairId===pairId&&c.side==='back');
+ // If the two sides were saved under different pair IDs, pair only the Front/Back
+ // crops from this same uploaded source instead of silently building an empty sheet.
+ if(!front||!back){
+  const sourceSides=S.crops.filter(c=>c.sourceId===d.id);
+  const sourceFront=sourceSides.find(c=>c.side==='front'),sourceBack=sourceSides.find(c=>c.side==='back');
+  if(sourceFront&&sourceBack){front=sourceFront;back=sourceBack;pairId=front.pairId;back.pairId=pairId;$('pairId').value=pairId;}
+ }
+ if(!front||!back){say('पहले इसी फोटो की Front और Back दोनों साइड सेव करें।');return false;}
+ // Make the selected pair explicit before rebuilding the sheet.
+ front.pairId=pairId;back.pairId=pairId;
+ S.printFormat='duplex';$('printFormat').value='duplex';
+ S.sheetContent='both';$('sheetContent').value='both';
+ if(S.imageLayout==='single'){S.imageLayout='side-by-side';$('imageLayout').value='side-by-side';}
+ S.previewPage=1;$('previewPage').value='1';$('previewSide').value='proof';
+ const previousRemoved=S.removedSourceIds.includes(d.id);
+ S.placedSources=S.placedSources.filter(p=>p.sourceId!==d.id);
+ if(!previousRemoved)S.removedSourceIds.push(d.id);
+ S.activePlacedIndex=-1;
+ const ok=buildSheets();
+ // Always refresh the visible proof after imposition, including an overflow warning.
+ $('previewSide').value='proof';$('previewPage').value='1';
+ drawSheetPreview();saveSession();
+ const pageCount=S.sheets.length,itemCount=S.sheets.reduce((n,p)=>n+(p.items||[]).length,0);
+ if(!pageCount||!itemCount){
+  if(!previousRemoved)S.removedSourceIds=S.removedSourceIds.filter(id=>id!==d.id);
+  saveSession();
+  say('Front/Back सेव हैं, लेकिन A4 लेआउट में कार्ड नहीं बने। Sheet Size A4, Card Size और Image Layout जाँचें।');
+  return false;
+ }
+ closeCropWorkspace();
+ if(!ok)say('कार्ड A4 प्रीव्यू पर आ गए हैं, लेकिन चुने गए कार्ड साइज़/गैप में शीट से बाहर जा रहे हैं। आकार या गैप थोड़ा कम करें।');
+ else say('Front और Back दोनों कार्ड A4 शीट प्रीव्यू पर लागू हो गए हैं।');
+ return true;
+}
 
 function drawSource(){const d=current(),c=$('sourceCanvas'),wrap=$('sourceWrap');if(!d){c.width=1;c.height=1;wrap.style.width='1px';$('pageLabel').textContent='कोई फाइल नहीं';return;}const maxW=1000,maxH=1200,scale=Math.min(maxW/d.canvas.width,maxH/d.canvas.height,1);c.width=Math.max(1,Math.round(d.canvas.width*scale));c.height=Math.max(1,Math.round(d.canvas.height*scale));c.getContext('2d').drawImage(d.canvas,0,0,c.width,c.height);wrap.style.width='100%';wrap.style.maxWidth='100%';updateSourceZoom();$('cropBox').style.display='none';$('pageLabel').textContent=(S.docIndex+1)+' / '+S.docs.length+' · '+d.name+' · '+d.widthMm.toFixed(1)+' × '+d.heightMm.toFixed(1)+' mm';}
 function cropPointer(e){const c=$('sourceCanvas'),r=c.getBoundingClientRect();const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));return{x,y};}
