@@ -496,15 +496,27 @@ const refreshImposition=()=>{if(S.crops.length||S.placedSources.length||S.docs.l
 ['width','height'].forEach(id=>$(id).addEventListener('change',()=>{const pair=$('pairId').value.trim(),w=Math.max(1,+$('width').value||86),h=Math.max(1,+$('height').value||54);S.crops.filter(c=>c.pairId===pair).forEach(c=>{c.cardWidthMm=w;c.cardHeightMm=h;});drawCrops();refreshImposition();}));syncPresetUI();$('applySourceSize').onclick=()=>{const d=current();if(!d)return;d.widthMm=Math.max(1,+$('sourceWidth').value||d.widthMm);d.heightMm=Math.max(1,+$('sourceHeight').value||d.heightMm);drawDocList();say('Source physical size updated; crop coordinates remain unchanged.','मूल पेज का वास्तविक आकार अपडेट हुआ; क्रॉप क्षेत्र वही रहेगा।');};$('makeSheets').onclick=buildSheets;
 const printerModal=$('printerSetup'),printerProfile=$('printerProfile'),printerDevice=$('printerDevice');
 const closePrinterSetup=()=>{printerModal.classList.remove('open');printerModal.setAttribute('aria-hidden','true');};
+const printerProfileDimensions={
+ 'pvc-a4-insert':{width:210,height:297,sheetSize:'a4'},
+ 'ntr-4x6-170':{width:101.6,height:152.4,sheetSize:'photo4x6p'},
+ 'epson-l8050-tray':{width:210,height:297,sheetSize:'a4'},
+ 'epson-easy-custom':{width:210,height:297,sheetSize:'a4'},
+ 'canon-easy-custom':{width:210,height:297,sheetSize:'a4'},
+ 'normal-a4':{width:210,height:297,sheetSize:'a4'}
+};
 const refreshPrinterProfile=()=>{const profile=printerProfile.value,notes={
  existing:'मौजूदा सेटिंग्स में कोई बदलाव नहीं होगा। आपके वर्तमान Card Size, Sheet Size, Crop, Front/Back और Print Format वैसे ही रहेंगे।',
- 'pvc-a4-insert':'A4 · 210 × 297 mm पर PVC insert sheet layout बनेगा। कार्ड का चुना हुआ माप और क्रॉप अनुपात नहीं बदलेगा। PVC insert की वास्तविक slot/grid spacing पैक पर दिए template से मिलाएँ।',
- 'ntr-4x6-170':'4×6 inch · 101.6 × 152.4 mm शीट। 170 µm (0.17 mm) मोटाई है, 170 gsm नहीं। यह सामान्य rear-feed sheet layout है; NTR पैक की printable side और feed compatibility पहले spare sheet पर जाँचें।',
- 'epson-l8050-tray':'Epson L8050 PVC ID Card Tray: हर Front/Back साइड अलग A4 driver page पर चुने कार्ड के वास्तविक आकार में center होगी। Driver में Paper Source = Disc/ID Card Tray, Paper Type = PVC ID Card (Borders/Borderless) चुनें। 2-sided printing बंद रखें; Front के बाद कार्ड निकालकर Back के लिए फिर डालें।',
- 'epson-easy-custom':'Epson Easy Card custom insert: पैक/ट्रे से वास्तविक width, height और safe margin भरें। कोई अनुमानित insert size लागू नहीं होगा।',
- 'canon-easy-custom':'Canon Easy Card custom insert: पैक/ट्रे से वास्तविक width, height और safe margin भरें। कोई अनुमानित insert size लागू नहीं होगा।',
- 'normal-a4':'Normal A4 Paper · 210 × 297 mm। सामान्य कागज़ पर proof/print; PVC tray driver settings लागू नहीं होंगी।'
-};$('printerCustomFields').hidden=!['epson-easy-custom','canon-easy-custom'].includes(profile);$('printerProfileNote').textContent=notes[profile]||notes.existing;
+ 'pvc-a4-insert':'A4 · 210 × 297 mm शुरुआती माप अपने-आप भरे जाएँगे। जरूरत के अनुसार Width/Height बदल सकते हैं। PVC insert की वास्तविक slot/grid spacing पैक के template से मिलाएँ।',
+ 'ntr-4x6-170':'4×6 inch · 101.6 × 152.4 mm शुरुआती माप अपने-आप भरे जाएँगे। जरूरत के अनुसार बदल सकते हैं। 170 µm (0.17 mm) मोटाई है, 170 gsm नहीं।',
+ 'epson-l8050-tray':'Epson L8050 PVC ID Card Tray के लिए A4 · 210 × 297 mm page size अपने-आप भरेगा। कार्ड की वास्तविक tray position और driver feed setting अलग से जाँचें।',
+ 'epson-easy-custom':'Epson Easy Card Custom Insert के लिए शुरुआती A4 · 210 × 297 mm भरे जाएँगे। अगर आपके insert का माप अलग है तो Width/Height यहाँ edit करें।',
+ 'canon-easy-custom':'Canon Easy Card Custom Insert के लिए शुरुआती A4 · 210 × 297 mm भरे जाएँगे। अगर आपके insert का माप अलग है तो Width/Height यहाँ edit करें।',
+ 'normal-a4':'Normal A4 Paper · 210 × 297 mm अपने-आप भरे जाएँगे। जरूरत हो तो Width/Height edit करके custom size इस्तेमाल करें।'
+};
+const dims=printerProfileDimensions[profile];
+$('printerCustomFields').hidden=!dims;
+if(dims){$('printerCustomWidth').value=String(dims.width);$('printerCustomHeight').value=String(dims.height);}
+$('printerProfileNote').textContent=notes[profile]||notes.existing;
 const steps={
  'epson-l8050-tray':['Print dialog में Epson L8050 चुनें।','Paper Source: Disc/ID Card Tray चुनें (यदि driver में उपलब्ध हो)।','Paper Type: PVC ID Card (Borders) या PVC ID Card (Borderless) चुनें।','2-sided / Duplex बंद रखें। Front print के बाद कार्ड को manual reinsert करके Back print करें।','पहले spare PVC card पर alignment test करें।'],
  'ntr-4x6-170':['Printer में 4×6 inch / 10×15 cm paper size चुनें।','Rear paper feeder और सही printable side चुनें।','NTR insert की feed direction पैक के निर्देश से मिलाएँ।'],
@@ -516,10 +528,8 @@ printerDevice.addEventListener('change',()=>{if(printerDevice.value==='epson-l80
 const openPrinterSetupPanel=()=>{printerModal.classList.add('open');printerModal.setAttribute('aria-hidden','false');printerProfile.value=S.printerProfile||'existing';printerDevice.value=S.printerDevice||'epson-l8050';refreshPrinterProfile();};$('openPrinterSetup').onclick=openPrinterSetupPanel;$('openPrinterSetupCrop').onclick=openPrinterSetupPanel;const updateCropPrinterStatus=()=>{const el=$('cropPrinterProfileStatus');if(!el)return;const names={'existing':'मौजूदा सेटिंग्स','pvc-a4-insert':'PVC A4 Insert','ntr-4x6-170':'NTR 4×6 Insert','epson-l8050-tray':'Epson L8050 Tray','epson-easy-custom':'Epson Easy Card','canon-easy-custom':'Canon Easy Card','normal-a4':'Normal A4'};el.textContent='प्रिंटर: '+(names[S.printerProfile||'existing']||'मौजूदा सेटिंग्स')+' · '+(S.printerDevice||'epson-l8050').replaceAll('-',' ').toUpperCase();};updateCropPrinterStatus();
 $('closePrinterSetup').onclick=closePrinterSetup;$('printerSetupCancel').onclick=closePrinterSetup;
 const applyPrinterProfile=()=>{const profile=printerProfile.value,device=printerDevice.value;if(profile==='existing'){S.printerProfile='existing';S.printerDevice=device;updateCropPrinterStatus();saveSession();closePrinterSetup();say('मौजूदा सेटिंग्स जस की तस रखी गईं।','मौजूदा सेटिंग्स जस की तस रखी गईं।');return true;}
- if(['epson-easy-custom','canon-easy-custom'].includes(profile)){const w=Number($('printerCustomWidth').value),h=Number($('printerCustomHeight').value);if(!(w>=25&&w<=1000&&h>=25&&h<=1000)){$('printerProfileNote').textContent='पहले insert pack से वास्तविक Width और Height (mm) भरें।';return false;}S.printerCustomMargin=Math.max(0,Math.min(30,Number($('printerCustomMargin').value)||0));$('sheetWidth').value=w.toFixed(1);$('sheetHeight').value=h.toFixed(1);$('sheetSize').value='custom';$('orientation').value='portrait';S.sheetWidthMm=w;S.sheetHeightMm=h;}
- if(profile==='pvc-a4-insert'||profile==='normal-a4'){$('sheetSize').value='a4';$('orientation').value='portrait';$('sheetWidth').value='210';$('sheetHeight').value='297';S.sheetWidthMm=210;S.sheetHeightMm=297;}
- if(profile==='ntr-4x6-170'){$('sheetSize').value='photo4x6p';$('orientation').value='portrait';S.sheetWidthMm=101.6;S.sheetHeightMm=152.4;}
- if(profile==='epson-l8050-tray'){$('sheetSize').value='a4';$('orientation').value='portrait';$('mode').value='pvc';$('printMedia').value='pvc';$('imageLayout').value='single';$('sheetContent').value='both';$('printFormat').value='duplex';$('sheetWidth').value='210';$('sheetHeight').value='297';S.mode='pvc';S.sheetWidthMm=210;S.sheetHeightMm=297;}
+ const profileDims=printerProfileDimensions[profile];if(profileDims){const w=Number($('printerCustomWidth').value),h=Number($('printerCustomHeight').value);if(!(w>=25&&w<=1000&&h>=25&&h<=1000)){$('printerProfileNote').textContent='Width और Height 25 से 1000 mm के बीच भरें।';return false;}S.printerCustomMargin=Math.max(0,Math.min(30,Number($('printerCustomMargin').value)||0));$('sheetWidth').value=w.toFixed(1);$('sheetHeight').value=h.toFixed(1);const isDefault=Math.abs(w-profileDims.width)<0.01&&Math.abs(h-profileDims.height)<0.01;$('sheetSize').value=isDefault?profileDims.sheetSize:'custom';$('orientation').value='portrait';S.sheetWidthMm=w;S.sheetHeightMm=h;}
+ if(profile==='epson-l8050-tray'){$('mode').value='pvc';$('printMedia').value='pvc';$('imageLayout').value='single';$('sheetContent').value='both';$('printFormat').value='duplex';S.mode='pvc';}
  $('printFormat').value='duplex';$('sheetContent').value='both';$('imageLayout').value='single';S.printFormat='duplex';S.sheetContent='both';S.imageLayout='single';if(profile!=='normal-a4'){$('mode').value='pvc';S.mode='pvc';}
  if(profile==='pvc-a4-insert')$('printMedia').value='pvc';
  if(profile==='ntr-4x6-170'||profile==='epson-easy-custom'||profile==='canon-easy-custom')$('printMedia').value='inkjet';
