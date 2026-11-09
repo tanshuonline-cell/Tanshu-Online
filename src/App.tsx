@@ -373,7 +373,7 @@ export default function App() {
 
   const handleOpenTool = (tool: ToolItem) => {
     if (tool.id === 'pvc-card-printer-studio') {
-      window.location.href = '/id-pvc-studio/premium-desktop-preview.html';
+      window.location.href = '/id-pvc-studio/demo.html';
       return;
     }
     setActiveTool(tool);
