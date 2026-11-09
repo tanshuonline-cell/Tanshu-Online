@@ -80,7 +80,7 @@ export default function App() {
     const title = isDigitalSeva
       ? 'Digital Seva Center | TANSHU ONLINE'
       : isPhotoSignatureDemo
-      ? 'Photo & Signature Studio Demo | TANSHU ONLINE'
+      ? 'Instant Passport Photo Maker | TANSHU ONLINE'
       : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
@@ -89,7 +89,7 @@ export default function App() {
     const description = isDigitalSeva
       ? 'TANSHU ONLINE Digital Seva Center: explore government service assistance, document services and PDF tools.'
       : isPhotoSignatureDemo
-      ? 'मोबाइल और कंप्यूटर के लिए Photo & Signature Studio का अलग डेमो।'
+      ? 'मोबाइल और कंप्यूटर पर पासपोर्ट साइज फोटो बनाने, सिग्नेचर जोड़ने और प्रिंट शीट तैयार करने का टूल।'
       : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
