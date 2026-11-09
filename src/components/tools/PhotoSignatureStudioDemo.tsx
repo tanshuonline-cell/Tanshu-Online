@@ -147,7 +147,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
         <div><h3 className="font-black text-slate-900">A4 Print Sheet Preview</h3><p className="text-[11px] text-slate-500">210 × 297 mm · Portrait · 300 DPI target</p></div>
         <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-800">{readyCount}/2 assets</span>
       </div>
-      <div className="mx-auto aspect-[210/297] w-full max-w-[330px] border border-slate-300 bg-white p-[5%] shadow-lg">
+      <div id="photo-signature-print-sheet" className="mx-auto aspect-[210/297] w-full max-w-[330px] border border-slate-300 bg-white p-[5%] shadow-lg">
         <div className="flex h-full flex-col">
           <div className="mb-[5%] text-center text-[clamp(6px,1.6vw,10px)] font-bold tracking-wide text-slate-500">TANSHU ONLINE · PHOTO & SIGNATURE DEMO</div>
           <div className="flex flex-1 items-start justify-center gap-[8%]">
@@ -199,7 +199,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
         @media print {
           body * { visibility: hidden !important; }
           #photo-signature-print-sheet, #photo-signature-print-sheet * { visibility: visible !important; }
-          #photo-signature-print-sheet { position: absolute; inset: 0; width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; background: white !important; box-shadow: none !important; }
+          #photo-signature-print-sheet { position: absolute; left: 0; top: 0; width: 210mm !important; height: 297mm !important; max-width: none !important; aspect-ratio: auto !important; margin: 0 !important; background: white !important; box-shadow: none !important; }
         }
       `}</style>
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-3 py-3 shadow-sm backdrop-blur sm:px-6">
@@ -238,7 +238,7 @@ export const PhotoSignatureStudioDemo: React.FC<{ onBack: () => void }> = ({ onB
           </div>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(260px,1fr)_minmax(360px,1.2fr)_minmax(260px,1fr)]">
             <PhotoControls/>
-            <div id="photo-signature-print-sheet"><SheetPreview/></div>
+            <SheetPreview/>
             <SignatureControls/>
           </div>
         </section>
