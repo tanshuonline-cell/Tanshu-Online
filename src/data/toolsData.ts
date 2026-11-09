@@ -1374,8 +1374,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Signature crop, background and photo overlay',
       '4×6 and A4 print sheets with manual layout and PDF export'
     ]
-  },,
-
+  },
   {
     id: 'instant-passport-photo-maker',
     name: 'Instant Passport Photo Maker',
