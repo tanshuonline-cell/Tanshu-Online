@@ -277,7 +277,6 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     name: 'Multiple ID Cards Print on A4 (5-in-1)',
     category: 'pvc-id',
     categoryLabel: 'ID Card & Print',
-    isFeatured: true,
     iconName: 'Grid',
     description: 'Fit up to 5 full ID cards (both front & back) onto a single A4 page with cutting guides to maximize paper and ink efficiency.',
     detailedInstructions: 'Upload multiple citizen ID cards in batch. Arrange them automatically in an ink-saving grid with scissors guidelines for fast lamination.',
