@@ -10,8 +10,8 @@ function undoSheet(){if(!undoStack.length)return;redoStack.push(historySnapshot(
 function redoSheet(){if(!redoStack.length)return;undoStack.push(historySnapshot());restoreHistory(redoStack.pop());say('बदला हुआ काम फिर से लागू कर दिया गया।','Change redone.');}
 function cardGroupBounds(items){const x=Math.min(...items.map(c=>Number(c.x)||0)),y=Math.min(...items.map(c=>Number(c.y)||0)),right=Math.max(...items.map(c=>(Number(c.x)||0)+(Number(c.printWidth)||0))),bottom=Math.max(...items.map(c=>(Number(c.y)||0)+(Number(c.printHeight)||0)));return{x,y,w:right-x,h:bottom-y};}
 function findNonOverlappingCardPosition(sheet,movingItems,targetX,targetY,W,H){
- const geom=sheetGeometry(),margin=geom.margin,gap=Math.max(0,Number(geom.gap)||0),movingPair=movingItems[0]?.pair,b=cardGroupBounds(movingItems),others=new Map();
- (sheet?.items||[]).forEach(c=>{if(c.pair===movingPair)return;let a=others.get(c.pair);if(!a)others.set(c.pair,a=[]);a.push(c);});
+ const geom=sheetGeometry(),margin=geom.margin,gap=Math.max(0,Number(geom.gap)||0),movingIds=new Set(movingItems.map(c=>c.id)),b=cardGroupBounds(movingItems),others=new Map();
+ (sheet?.items||[]).forEach(c=>{if(movingIds.has(c.id))return;let a=others.get(c.pair);if(!a)others.set(c.pair,a=[]);a.push(c);});
  const obstacles=[...others.values()].map(cardGroupBounds),xs=new Set([targetX,margin]),ys=new Set([targetY,margin]);
  obstacles.forEach(o=>{xs.add(o.x+o.w+gap);xs.add(o.x-b.w-gap);ys.add(o.y+o.h+gap);ys.add(o.y-b.h-gap);});
  const candidates=[];for(const y of ys)for(const x of xs){if(x<margin-.001||y<margin-.001||x+b.w>W-margin+.001||y+b.h>H-margin+.001)continue;const hit=obstacles.some(o=>x<o.x+o.w+gap-.001&&x+b.w>o.x-gap+.001&&y<o.y+o.h+gap-.001&&y+b.h>o.y-gap+.001);if(!hit)candidates.push({x,y,d:(x-targetX)**2+(y-targetY)**2});}
