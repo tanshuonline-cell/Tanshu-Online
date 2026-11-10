@@ -10,7 +10,8 @@ type Props = {
   photos: PhotoItem[];
   widthPx: number;
   heightPx: number;
-  onApplyImage: (blob: Blob, suffix: string) => void;
+  onApplyImage: (blob: Blob, suffix: string, sourceId?: string) => void;
+  onAddSignature: (file: File) => void;
   activeSection?: 'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print';
   hideTabs?: boolean;
 };
@@ -23,7 +24,7 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 });
 const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
-export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, activeSection, hideTabs = false }) => {
+export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, onAddSignature, activeSection, hideTabs = false }) => {
   const [section, setSection] = useState<'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
   React.useEffect(() => { if (activeSection) setSection(activeSection); }, [activeSection]);
   const [brightness, setBrightness] = useState(100);
@@ -31,6 +32,9 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const [saturation, setSaturation] = useState(100);
   const [retouch, setRetouch] = useState(22);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundMode, setBackgroundMode] = useState<'transparent'|'color'>('transparent');
+  const [backgroundSelection, setBackgroundSelection] = useState<string[]>(selected ? [selected.id] : []);
+  const [progress, setProgress] = useState(0);
   const [cutoutUrl, setCutoutUrl] = useState('');
   const [cutoutBlob, setCutoutBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,7 +62,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const tabClass = (key: typeof section) => `flex items-center gap-2 rounded-md border px-2 py-2 text-[10px] transition ${section===key?'border-[#59636D] bg-[#30373E] text-[#F0F2F4]':'border-[#343A42] bg-[#202429] text-[#AAB2BA] hover:bg-[#292F35]'}`;
   const run = async (task: () => Promise<void>) => {
     if (!selected || busy) return;
-    setBusy(true); setStatus('Processing…');
+    setBusy(true); setProgress(0); setStatus('Processing…');
     try { await task(); }
     catch (error) { setStatus(error instanceof Error ? error.message : 'Processing failed.'); }
     finally { setBusy(false); }
@@ -76,18 +80,46 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     setStatus('Adjustments applied to the selected layer.');
   });
 
-  const removeBg = () => run(async () => {
-    const cutout = await removeBackgroundAI(selected!.url, message => setStatus(message));
-    const previewUrl = URL.createObjectURL(cutout);
-    setCutoutUrl(current => { if (current) URL.revokeObjectURL(current); return previewUrl; });
-    setCutoutBlob(cutout);
-    setStatus('Transparent cutout ready. Original photo remains untouched; choose how to apply it.');
-  });
+  const removeBg = async () => {
+    if (busy) return;
+    const targets = photos.filter(photo => backgroundSelection.includes(photo.id));
+    if (!targets.length) { setStatus('Select at least one image layer.'); return; }
+    setBusy(true); setProgress(0); setStatus('Starting background removal…');
+    try {
+      for (let index = 0; index < targets.length; index++) {
+        const item = targets[index];
+        const cutout = await removeBackgroundAI(item.url, message => {
+          const match = message.match(/(\\d+(?:\\.\\d+)?)%/);
+          const itemProgress = match ? Number(match[1]) : 0;
+          setProgress(Math.min(100, Math.round(((index + itemProgress / 100) / targets.length) * 100)));
+          setStatus(`${targets.length > 1 ? `Processing ${index + 1} of ${targets.length}: ` : ''}${message}`);
+        });
+        if (targets.length === 1) {
+          const previewUrl = URL.createObjectURL(cutout);
+          setCutoutUrl(current => { if (current) URL.revokeObjectURL(current); return previewUrl; });
+          setCutoutBlob(cutout);
+        } else {
+          let output = cutout;
+          if (backgroundMode === 'color') {
+            const image = await loadImage(URL.createObjectURL(cutout));
+            const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+            const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Canvas is unavailable.');
+            ctx.fillStyle = backgroundColor; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(image, 0, 0);
+            output = await canvasBlob(canvas, 'image/png');
+          }
+          onApplyImage(output, backgroundMode === 'color' ? 'background-color' : 'transparent-cutout', item.id);
+        }
+        setProgress(Math.round(((index + 1) / targets.length) * 100));
+      }
+      setStatus(targets.length === 1 ? 'Background removal complete. Review the cutout, then apply it.' : `Background removal complete for ${targets.length} layers.`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Background removal failed.'); }
+    finally { setBusy(false); }
+  };
 
   const applyCutout = (withColor: boolean) => run(async () => {
     if (!cutoutBlob) throw new Error('Remove the background first.');
     if (!withColor) {
-      onApplyImage(cutoutBlob, 'transparent-cutout');
+      onApplyImage(cutoutBlob, 'transparent-cutout', selected!.id);
     } else {
       const image = await loadImage(cutoutUrl);
       const canvas = document.createElement('canvas');
@@ -96,7 +128,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
       if (!ctx) throw new Error('Canvas is unavailable.');
       ctx.fillStyle = backgroundColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(image, 0, 0);
-      onApplyImage(await canvasBlob(canvas, 'image/png'), 'new-background');
+      onApplyImage(await canvasBlob(canvas, 'image/png'), 'new-background', selected!.id);
     }
     setStatus(withColor ? 'New background applied as a separate layer.' : 'Transparent PNG cutout applied as a separate layer.');
   });
@@ -104,7 +136,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const applyRetouch = () => run(async () => {
     const image = await loadImage(selected!.url);
     const canvas = await retouchFaceSkinLocally(image, retouch);
-    onApplyImage(await canvasBlob(canvas, 'image/jpeg'), 'retouched');
+    onApplyImage(await canvasBlob(canvas, 'image/jpeg'), 'retouched', selected!.id);
     setStatus('Face-skin retouch applied. Original photo remains available as a separate layer.');
   });
 
@@ -122,7 +154,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     const cropScale=Math.max(1,signatureCropZoom/100),sourceW=sign.naturalWidth/cropScale,sourceH=sign.naturalHeight/cropScale;
     const sourceX=(sign.naturalWidth-sourceW)*signatureCropX/100,sourceY=(sign.naturalHeight-sourceH)*signatureCropY/100;
     ctx.drawImage(sign,sourceX,sourceY,sourceW,sourceH,canvas.width * signatureX / 100 - targetW / 2, canvas.height * signatureY / 100 - targetH / 2, targetW, targetH);
-    onApplyImage(await canvasBlob(canvas, 'image/png'), 'signature');
+    onApplyImage(await canvasBlob(canvas, 'image/png'), 'signature', selected!.id);
     setStatus('Signature placed on the selected photo.');
   });
 
@@ -179,7 +211,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     if (!file) return;
     if (!file.type.startsWith('image/')) { setStatus('Choose a signature image.'); return; }
     const data = await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('Read failed'));reader.onerror=()=>reject(new Error('Read failed'));reader.readAsDataURL(file);});
-    setSignature(data); setSignatureName(file.name); setStatus('Signature loaded. Adjust placement, then apply.');
+    setSignature(data); setSignatureName(file.name); onAddSignature(file); setStatus('Signature uploaded as a new layer. Select it in Layers to place it on a print sheet, or position it on the selected photo below.');
   };
 
   React.useEffect(() => () => { if (cutoutUrl) URL.revokeObjectURL(cutoutUrl); }, [cutoutUrl]);
@@ -245,10 +277,18 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
         <button disabled={disabled} onClick={applyAdjustments} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Check size={13}/> Apply adjustments</button>
       </>}
       {section==='background' && <>
-        <p className="text-[10px] leading-4 studio-muted">AI background removal runs in your browser. The original photo is preserved; the cutout is added as a new layer.</p>
+        <p className="text-[10px] leading-4 studio-muted">Select one or more image layers, including signatures, then remove their backgrounds. Original layers remain available.</p>
+        <div className="flex items-center justify-between text-[10px] studio-muted"><span>Image layers</span><button type="button" disabled={!photos.length||busy} onClick={()=>setBackgroundSelection(backgroundSelection.length===photos.length?[]:photos.map(photo=>photo.id))} className="font-semibold text-[#D9DEE2] hover:text-white">{backgroundSelection.length===photos.length?'Clear all':'Select All'}</button></div>
+        <div className="max-h-32 space-y-1 overflow-y-auto rounded border studio-line p-2">{photos.map(photo=><label key={photo.id} className="flex cursor-pointer items-center gap-2 text-[9px] studio-muted"><input type="checkbox" checked={backgroundSelection.includes(photo.id)} onChange={event=>setBackgroundSelection(current=>event.target.checked?[...current,photo.id]:current.filter(id=>id!==photo.id))} className="accent-[#D0D7DE]"/><span className="min-w-0 flex-1 truncate">{photo.file.name}</span><span>{photo.kind==='signature'?'Signature':'Photo'}</span></label>)}</div>
+        <div className="flex items-center justify-between text-[10px] studio-muted"><span>Background output</span><div className="flex gap-1"><button type="button" onClick={()=>setBackgroundMode('transparent')} className={`studio-control px-2 py-1 ${backgroundMode==='transparent'?'border-[#AEB8C2] text-white':''}`}>Transparent</button><button type="button" onClick={()=>setBackgroundMode('color')} className={`studio-control px-2 py-1 ${backgroundMode==='color'?'border-[#AEB8C2] text-white':''}`}>Color</button></div></div>
         <label className="flex items-center justify-between text-[10px] studio-muted">Background color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label>
         <div className="flex flex-wrap gap-1.5">{['#FFFFFF','#F4F1EA','#D9E2EA','#CBD5D0','#D9D3CB','#AAB6C2','#E8D8C6','#DDE7F2'].map(color=><button type="button" key={color} aria-label={`Set background color ${color}`} onClick={()=>setBackgroundColor(color)} className="h-6 w-6 rounded border border-white/15" style={{backgroundColor:color}}/>)}</div>
-        <button disabled={disabled} onClick={removeBg} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Eraser size={13}/> Remove background</button>
+        {backgroundMode==='color'&&<><label className="flex items-center justify-between text-[10px] studio-muted">Custom background color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label><div className="flex flex-wrap gap-1.5">{['#FFFFFF','#F4F1EA','#D9E2EA','#CBD5D0','#D9D3CB','#AAB6C2','#E8D8C6','#DDE7F2'].map(color=><button type="button" key={color} aria-label={`Set background color ${color}`} onClick={()=>setBackgroundColor(color)} className="h-6 w-6 rounded border border-white/15" style={{backgroundColor:color}}/>)}</div></>}
+        <button disabled={!backgroundSelection.length||busy} onClick={()=>void removeBg()} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Eraser size={13}/> Remove background</button>
+        {busy&&<div className="space-y-1"><div className="flex justify-between text-[9px] studio-muted"><span>Processing</span><span>{progress}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-[#343A42]"><div className="h-full rounded-full bg-[#D0D7DE] transition-all" style={{width:`${progress}%`}}/></div></div>}
+        <input ref={signatureInput} type="file" accept="image/*" className="hidden" onChange={e=>{void signatureFileChanged(e.target.files?.[0]);e.currentTarget.value='';}}/>
+        <button type="button" onClick={()=>signatureInput.current?.click()} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px]"><ImagePlus size={13}/> Upload signature</button>
+        {signature&&<><p className="truncate text-[9px] studio-muted">{signatureName}</p><div className="rounded border studio-line p-2"><img src={signature} alt="Signature preview" className="mx-auto max-h-16 max-w-full object-contain"/></div><button type="button" onClick={()=>void cleanSignature()} className="studio-control w-full py-2 text-[10px]">Clean signature background</button><label className="block text-[10px] studio-muted">Signature size · {signatureScale}%<input type="range" min="5" max="70" value={signatureScale} onChange={e=>setSignatureScale(Number(e.target.value))} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Signature horizontal position · {signatureX}%<input type="range" min="0" max="100" value={signatureX} onChange={e=>setSignatureX(Number(e.target.value))} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Signature vertical position · {signatureY}%<input type="range" min="0" max="100" value={signatureY} onChange={e=>setSignatureY(Number(e.target.value))} className="mt-1 w-full"/></label><button disabled={disabled} onClick={applySignature} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><PenTool size={13}/> Apply signature to photo</button></>}
         {cutoutUrl && <>
           <div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'16px 16px',backgroundPosition:'0 0,0 8px,8px -8px,-8px 0'}}><canvas ref={brushCanvasRef} aria-label="Background cutout brush editor" className="mx-auto block max-h-52 max-w-full touch-none object-contain" style={{width:'100%',height:'auto'}} onPointerDown={event=>{event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);brushLastPointRef.current=null;paintBackgroundBrush(event);}} onPointerMove={event=>{if(event.buttons===1)paintBackgroundBrush(event);}} onPointerUp={event=>{commitBackgroundBrush();if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={commitBackgroundBrush}/></div>
           <div className="grid grid-cols-2 gap-1.5"><button type="button" onClick={()=>setBrushMode('erase')} className={`studio-control py-2 text-[10px] ${brushMode==='erase'?'border-[#8B949E] bg-[#30373E] text-white':''}`}>Brush Erase</button><button type="button" onClick={()=>setBrushMode('restore')} className={`studio-control py-2 text-[10px] ${brushMode==='restore'?'border-[#8B949E] bg-[#30373E] text-white':''}`}>Brush Restore</button></div>
@@ -262,15 +302,6 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
         <p className="text-[10px] leading-4 studio-muted">Conservative face-skin cleanup. Eyes, brows, lips, hair and background are excluded by the segmentation mask.</p>
         <label className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>Retouch strength</span><span>{retouch}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min="0" max="100" value={retouch} onChange={e=>setRetouch(Number(e.target.value))}/></label>
         <button disabled={disabled} onClick={applyRetouch} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><ScanFace size={13}/> Apply face retouch</button>
-      </>}
-      {section==='signature' && <>
-        <input ref={signatureInput} type="file" accept="image/*" className="hidden" onChange={e=>{void signatureFileChanged(e.target.files?.[0]);e.currentTarget.value='';}}/>
-        <button onClick={()=>signatureInput.current?.click()} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px]"><ImagePlus size={13}/> Upload signature</button>
-        {signature && <><div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'12px 12px'}}><img src={signature} alt="Independent signature crop preview" className="mx-auto max-h-20 max-w-full object-contain" style={{transform:`scale(${signatureCropZoom/100})`,objectPosition:`${signatureCropX}% ${signatureCropY}%`}}/></div><p className="truncate text-[9px] studio-muted">{signatureName}</p>
-          <button type="button" onClick={()=>void cleanSignature()} className="studio-control w-full py-2 text-[10px]">Clean white background & crop ink</button>
-          <label className="block text-[10px] studio-muted">Cleanup threshold · {signatureCleanThreshold}<input type="range" min="170" max="250" value={signatureCleanThreshold} onChange={e=>setSignatureCleanThreshold(Number(e.target.value))} className="mt-1 w-full"/></label>
-          {([['Size',signatureScale,setSignatureScale,5,70],['Placement X',signatureX,setSignatureX,0,100],['Placement Y',signatureY,setSignatureY,0,100],['Crop zoom',signatureCropZoom,setSignatureCropZoom,100,300],['Crop horizontal',signatureCropX,setSignatureCropX,0,100],['Crop vertical',signatureCropY,setSignatureCropY,0,100]] as const).map(([label,value,setter,min,max])=><label key={label} className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min={min} max={max} value={value} onChange={e=>setter(Number(e.target.value))}/></label>)}
-          <button disabled={disabled} onClick={applySignature} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><PenTool size={13}/> Apply signature to photo</button></>}
       </>}
       {section==='print' && <>
         <label className="block text-[10px] studio-muted">Paper size<select className="studio-control mt-1 h-8 w-full px-2 text-[10px]" value={paper} onChange={e=>setPaper(e.target.value as typeof paper)}><option value="single">Single photo</option><option value="4x6">4 × 6 inch</option><option value="a4">A4</option></select></label>
