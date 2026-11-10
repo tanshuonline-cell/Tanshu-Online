@@ -3,7 +3,8 @@ import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getR
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
-interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; }
+import { cashfreeApiBase } from './_cashfree';
+interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 
 const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -210,7 +211,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (prior?.booking_reference) return json({ success: true, bookingReference: prior.booking_reference, existing: true });
 
     if (paymentMode === 'AUTO_PAY') {
-      if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree Sandbox verification is not configured.' }, 503);
+      if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree verification is not configured for this environment.' }, 503);
       const quote = getAutoPaymentQuote(serviceId)!;
       const checkoutOrder = await env.DIGITAL_SEVA_DB.prepare(
         'SELECT order_id, service_id, customer_phone, amount, currency, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
@@ -226,7 +227,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           Math.round(Number(checkoutOrder.amount) * 100) !== quote.totalAmount * 100) {
         return json({ success: false, error: 'The payment order does not match this service, customer or approved total.' }, 409);
       }
-      const cashfreeResponse = await fetch(`https://sandbox.cashfree.com/pg/orders/${encodeURIComponent(paymentOrderId)}`, {
+      const cashfreeResponse = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(paymentOrderId)}`, {
         headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
       });
       const verifiedOrder = await cashfreeResponse.json().catch(() => ({})) as any;
