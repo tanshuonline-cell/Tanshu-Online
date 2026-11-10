@@ -1,4 +1,12 @@
-const BUCKET = 'digital-seva-preview-docs';
+const PREVIEW_BUCKET = 'digital-seva-preview-docs';
+function bucketName(env: { DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string }): string {
+  const configured = String(env.DIGITAL_SEVA_STORAGE_BUCKET || '').trim();
+  if (configured) return configured;
+  if (String(env.CF_PAGES_BRANCH || '').toLowerCase() === 'main') {
+    throw new Error('Production Digital Seva document storage bucket is not configured.');
+  }
+  return PREVIEW_BUCKET;
+}
 
 export interface StoredDocument {
   id: string;
@@ -11,7 +19,7 @@ export interface StoredDocument {
   sha256: string;
 }
 
-function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string }) {
+function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string }) {
   const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = String(env.SUPABASE_SECRET_KEY || '');
   if (!base || !key) throw new Error('Preview document storage is not configured.');
@@ -19,22 +27,22 @@ function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: strin
   if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
     throw new Error('Preview document storage URL is invalid.');
   }
-  return { base, key };
+  return { base, key, bucket: bucketName(env) };
 }
 
-function objectUrl(base: string, objectKey: string) {
+function objectUrl(base: string, bucket: string, objectKey: string) {
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
-  return `${base}/storage/v1/object/${BUCKET}/${path}`;
+  return `${base}/storage/v1/object/${bucket}/${path}`;
 }
 
 export async function uploadPrivateDocument(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
+  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string },
   objectKey: string,
   bytes: ArrayBuffer,
   contentType: string
 ): Promise<void> {
-  const { base, key } = storageConfig(env);
-  const response = await fetch(objectUrl(base, objectKey), {
+  const { base, key, bucket } = storageConfig(env);
+  const response = await fetch(objectUrl(base, bucket, objectKey), {
     method: 'POST',
     headers: { apikey: key, 'Content-Type': contentType, 'x-upsert': 'false', 'Cache-Control': 'no-store' },
     body: bytes
@@ -68,7 +76,7 @@ export async function createPrivateDocumentUrl(
 ): Promise<string> {
   const { base, key } = storageConfig(env);
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
-  const response = await fetch(`${base}/storage/v1/object/sign/${BUCKET}/${path}`, {
+  const response = await fetch(`${base}/storage/v1/object/sign/${bucket}/${path}`, {
     method: 'POST',
     headers: { apikey: key, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     body: JSON.stringify({ expiresIn, ...(downloadName ? { download: downloadName } : {}) })
@@ -82,4 +90,4 @@ export async function createPrivateDocumentUrl(
   return data.signedURL.startsWith('http') ? data.signedURL : `${base}/storage/v1${data.signedURL.startsWith('/') ? data.signedURL : `/${data.signedURL}`}`;
 }
 
-export const DOCUMENT_BUCKET_NAME = BUCKET;
+export const DOCUMENT_BUCKET_NAME = PREVIEW_BUCKET;
