@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { StudioAdvancedPanel } from './StudioAdvancedPanel';
 import {
   ArrowLeft, ChevronDown, Search, Download, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
@@ -28,6 +29,28 @@ const toolItems = [
 
 const swatches = ['#F4F1EA', '#D9E2EA', '#CBD5D0', '#D9D3CB', '#AAB6C2'];
 
+const STUDIO_DB = 'tanshu-studio-shell';
+const STUDIO_STORE = 'workspace';
+const STUDIO_KEY = 'active-project';
+const openStudioDb = () => new Promise<IDBDatabase>((resolve, reject) => {
+  const request = indexedDB.open(STUDIO_DB, 1);
+  request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains(STUDIO_STORE)) request.result.createObjectStore(STUDIO_STORE); };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+});
+const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not save image'));
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(file);
+});
+const dataUrlToFile = async (data: string, name: string) => {
+  const response = await fetch(data);
+  const blob = await response.blob();
+  return new File([blob], name, { type: blob.type || 'image/jpeg' });
+};
+
+
 export const AdvancedPhotoStudioShell: React.FC = () => {
   const [photos, setPhotos] = useState<StudioPhoto[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -39,6 +62,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [customWidthMm, setCustomWidthMm] = useState(35);
   const [customHeightMm, setCustomHeightMm] = useState(45);
   const [sizeUnit, setSizeUnit] = useState<StudioUnit>('mm');
+  const [restoreReady, setRestoreReady] = useState(false);
+  const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const documentSize = useMemo(() => {
     const widthMm = preset === 'custom' ? Math.max(1, customWidthMm) : STUDIO_PRESETS[preset].widthMm;
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
@@ -48,6 +73,64 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const selected = photos.find(photo => photo.id === selectedId) || photos[0] || null;
+
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const db = await openStudioDb();
+        const saved = await new Promise<any>((resolve, reject) => {
+          const request = db.transaction(STUDIO_STORE, 'readonly').objectStore(STUDIO_STORE).get(STUDIO_KEY);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+        });
+        db.close();
+        if (!active) return;
+        if (saved?.photos?.length) {
+          const restored = await Promise.all(saved.photos.map(async (item: any) => {
+            const file = await dataUrlToFile(item.data, item.name);
+            return { id: item.id, file, url: URL.createObjectURL(file), width: item.width || 0, height: item.height || 0 };
+          }));
+          if (!active) { restored.forEach(photo => URL.revokeObjectURL(photo.url)); return; }
+          setPhotos(restored);
+          setSelectedId(saved.selectedId || restored[0]?.id || '');
+          setPreset(saved.preset || 'india');
+          setCustomWidthMm(saved.customWidthMm || 35);
+          setCustomHeightMm(saved.customHeightMm || 45);
+          setSizeUnit(saved.sizeUnit || 'mm');
+          setCropZoom(saved.cropZoom || 100);
+          setPositionX(saved.positionX ?? 50);
+          setPositionY(saved.positionY ?? 50);
+        }
+        setSaveState('saved');
+      } catch { if (active) setSaveState('error'); }
+      finally { if (active) setRestoreReady(true); }
+    })();
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    if (!restoreReady) return;
+    setSaveState('saving');
+    const timer = window.setTimeout(async () => {
+      try {
+        const storedPhotos = await Promise.all(photos.map(async photo => ({
+          id: photo.id, name: photo.file.name, data: await fileToDataUrl(photo.file), width: photo.width, height: photo.height
+        })));
+        const db = await openStudioDb();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STUDIO_STORE, 'readwrite');
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, savedAt: Date.now() }, STUDIO_KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
+        });
+        db.close();
+        setSaveState('saved');
+      } catch { setSaveState('error'); }
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
@@ -77,6 +160,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       setSelectedId(next[0]?.id || '');
       return next;
     });
+  };
+
+  const applyProcessedImage = (blob: Blob, suffix: string) => {
+    if (!selected) return;
+    const extension = blob.type === 'image/png' ? 'png' : 'jpg';
+    const file = new File([blob], selected.file.name.replace(/\\.[^.]+$/, '') + '-' + suffix + '.' + extension, { type: blob.type || 'image/jpeg' });
+    const url = URL.createObjectURL(file);
+    URL.revokeObjectURL(selected.url);
+    setPhotos(current => current.map(photo => photo.id === selected.id ? { ...photo, file, url, width: 0, height: 0 } : photo));
   };
 
   const updateDimensions = (id: string, width: number, height: number) => {
@@ -150,7 +242,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="mr-2 flex items-center gap-1.5 text-[11px] studio-muted"><span className="h-1.5 w-1.5 rounded-full bg-[#82978B]"/> Draft workspace</span>
+            <span className="mr-2 flex items-center gap-1.5 text-[11px] studio-muted"><span className="h-1.5 w-1.5 rounded-full bg-[#82978B]"/> {saveState==='saved'?'Auto-saved locally':saveState==='saving'?'Saving project…':saveState==='error'?'Local save issue':'Restoring project…'}</span>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><span className="studio-muted">Untitled project</span><ChevronDown size={13}/></div>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><LockKeyhole size={12}/> Saved locally</div>
             <div className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#343B42] text-xs font-semibold text-[#DCE1E5]">T</div>
@@ -239,7 +331,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </main>
 
           <aside className="studio-panel flex w-[286px] shrink-0 flex-col border-y-0 border-r-0">
-            <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">Properties</div><PanelRightClose size={15} className="studio-muted"/></div>
+            <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">Properties</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
             <div className="border-b studio-line p-4">
               <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">DOCUMENT SETUP</span><MoreHorizontal size={15} className="studio-muted"/></div>
               <label className="mb-3 block text-[10px] studio-muted">Photo size preset
@@ -262,6 +354,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Color profile</span><span className="text-[#D5DADF]">sRGB</span></div>
             </div>
+            <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage}/>
             <div className="border-b studio-line p-4">
               <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
               <div className="mb-3"><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-crop-zoom" className="studio-muted">Crop zoom</label><span className="text-[#D5DADF]">{cropZoom}%</span></div><input id="studio-crop-zoom" aria-label="Crop zoom" type="range" min="100" max="250" step="1" value={cropZoom} onChange={event => setCropZoom(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
