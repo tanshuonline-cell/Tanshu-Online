@@ -38,6 +38,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const [progress, setProgress] = useState(0);
   const [cutoutUrl, setCutoutUrl] = useState('');
   const [cutoutBlob, setCutoutBlob] = useState<Blob | null>(null);
+  const [cutoutSourceId, setCutoutSourceId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [signature, setSignature] = useState('');
@@ -99,6 +100,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
           const previewUrl = URL.createObjectURL(cutout);
           setCutoutUrl(current => { if (current) URL.revokeObjectURL(current); return previewUrl; });
           setCutoutBlob(cutout);
+          setCutoutSourceId(item.id);
         } else {
           let output = cutout;
           if (backgroundMode === 'color') {
@@ -120,7 +122,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const applyCutout = (withColor: boolean) => run(async () => {
     if (!cutoutBlob) throw new Error('Remove the background first.');
     if (!withColor) {
-      onApplyImage(cutoutBlob, 'transparent-cutout', selected!.id);
+      onApplyImage(cutoutBlob, 'transparent-cutout', cutoutSourceId || selected!.id);
     } else {
       const image = await loadImage(cutoutUrl);
       const canvas = document.createElement('canvas');
@@ -129,7 +131,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
       if (!ctx) throw new Error('Canvas is unavailable.');
       ctx.fillStyle = backgroundColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(image, 0, 0);
-      onApplyImage(await canvasBlob(canvas, 'image/png'), 'new-background', selected!.id);
+      onApplyImage(await canvasBlob(canvas, 'image/png'), 'new-background', cutoutSourceId || selected!.id);
     }
     setStatus(withColor ? 'New background applied as a separate layer.' : 'Transparent PNG cutout applied as a separate layer.');
   });
