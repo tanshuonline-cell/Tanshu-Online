@@ -12,6 +12,7 @@ type StudioPhoto = { id: string; file: File; url: string; width: number; height:
 type StudioPreset = 'india' | 'stamp' | 'pan' | 'custom';
 type StudioUnit = 'mm' | 'cm' | 'in';
 type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number };
+type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: 'single'|'4x6'|'a4'; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
 const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; widthMm: number; heightMm: number }> = {
   india: { label: 'India Passport / Exam', widthMm: 35, heightMm: 45 },
   stamp: { label: 'Stamp Photo', widthMm: 25, heightMm: 30 },
@@ -77,8 +78,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [cropDialogDrag, setCropDialogDrag] = useState<{x:number;y:number;left:number;top:number}|null>(null);
   const [slotDrag, setSlotDrag] = useState<{id:string;px:number;py:number;sx:number;sy:number}|null>(null);
   const [menuOpen, setMenuOpen] = useState<string|null>(null);
-  const [deleteMode, setDeleteMode] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string|null>(null);
+  const [canUndo, setCanUndo] = useState(false); const [canRedo, setCanRedo] = useState(false);
+  const undoStackRef = useRef<EditorSnapshot[]>([]); const redoStackRef = useRef<EditorSnapshot[]>([]);
+  const lastSnapshotRef = useRef<EditorSnapshot|null>(null); const applyingHistoryRef = useRef(false);
+  const menuAreaRef = useRef<HTMLDivElement>(null);
   const [borderEnabled, setBorderEnabled] = useState(false);
   const [borderWidthMm, setBorderWidthMm] = useState(0.5);
   const [borderColor, setBorderColor] = useState('#000000');
@@ -100,7 +104,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const selected = photos.find(photo => photo.id === selectedId) || photos[0] || null;
-
+  const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
+  const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
+  const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>[p.id,p.width,p.height]),selectedId:v.selectedId,zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
+  const undo = () => { const v=undoStackRef.current.pop();if(!v)return;redoStackRef.current.push(captureSnapshot());applyingHistoryRef.current=true;applySnapshot(v);setCanUndo(undoStackRef.current.length>0);setCanRedo(true); };
+  const redo = () => { const v=redoStackRef.current.pop();if(!v)return;undoStackRef.current.push(captureSnapshot());applyingHistoryRef.current=true;applySnapshot(v);setCanUndo(true);setCanRedo(redoStackRef.current.length>0); };
 
   useEffect(() => {
     let active = true;
@@ -168,7 +176,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor]);
 
+  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => { if(!menuOpen)return;const close=(event:PointerEvent)=>{if(event.target instanceof Node&&!menuAreaRef.current?.contains(event.target))setMenuOpen(null);};document.addEventListener('pointerdown',close,true);return()=>document.removeEventListener('pointerdown',close,true); }, [menuOpen]);
   useEffect(() => {
     if (sheetMode === 'single' || !photos.length) { setSheetSlots([]); return; }
     setSheetSlots(current => {
@@ -328,12 +338,14 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         </header>
 
         <nav className="flex h-[48px] shrink-0 items-center justify-between border-b studio-line bg-[#1B1F23] px-5">
-          <div className="relative flex items-center gap-1 text-[12px]">
+          <div ref={menuAreaRef} className="relative flex items-center gap-1 text-[12px]">
             {['File','Edit','Image','Canvas','Arrange','View','Help'].map(item=><div key={item} className="relative">
               <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-3 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>
               {menuOpen===item && <div className="absolute left-0 top-10 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
-                {(item==='File'?['Import photo','Export JPG','Export PNG','Export PDF']:item==='Edit'?['Delete selected photo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 inch sheet','A4 sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" onClick={()=>{
-                  if(action==='Import photo')uploadRef.current?.click();
+                {(item==='File'?['Import photo','Export JPG','Export PNG','Export PDF']:item==='Edit'?['Undo','Redo','Delete selected photo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 inch sheet','A4 sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" onClick={()=>{
+                  if(action==='Undo')undo();
+                  else if(action==='Redo')redo();
+                  else if(action==='Import photo')uploadRef.current?.click();
                   else if(action==='Export JPG')void(sheetMode==='single'?exportSelectedPhoto('jpg'):exportPrintSheet('jpg'));
                   else if(action==='Export PNG')void(sheetMode==='single'?exportSelectedPhoto('png'):exportPrintSheet('png'));
                   else if(action==='Export PDF')void(sheetMode==='single'?exportSelectedPhoto('pdf'):exportPrintSheet('pdf'));
@@ -351,7 +363,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   else if(action==='Zoom out')setZoom(value=>Math.max(25,value-25));
                   else if(action==='Reset zoom')setZoom(100);
                   else if(action==='How to move photos')window.alert('On a 4×6 or A4 sheet, press and hold any photo, then drag it to the required position.');
-                  else if(action==='How to delete a photo')window.alert('Click the red X icon on the photo you want to remove from the sheet.');
+                  else if(action==='How to delete a photo')window.alert('Select a photo on the sheet, then click its red trash icon to remove only that copy.');
                   else if(action==='How to crop manually'){setActiveTool('Crop');setCropDialogOpen(true);}
                   setMenuOpen(null);
                 }} className="block w-full rounded px-3 py-2 text-left text-[11px] text-[#C9CFD5] hover:bg-[#30373E]">{action}</button>)}
@@ -360,8 +372,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px]"><Search size={13} className="studio-muted"/> Search tools and actions <span className="ml-5 rounded border border-[#3B424A] px-1.5 py-0.5 text-[9px] studio-muted">⌘ K</span></div>
-            <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Undo2 size={14}/> Undo</div>
-            <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Redo2 size={14}/> Redo</div>
+            <button type="button" onClick={undo} disabled={!canUndo} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"><Undo2 size={14}/> Undo</button>
+            <button type="button" onClick={redo} disabled={!canRedo} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"><Redo2 size={14}/> Redo</button>
             <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-8 items-center gap-2 rounded-md bg-[#D9DEE2] px-3 text-[11px] font-semibold text-[#20252A] hover:bg-[#E5E8EA]"><Upload size={14}/> Import photo</button>
             <div className="flex items-center gap-1 rounded-md border border-[#343A42] p-1">
               <button type="button" disabled={!selected} onClick={() => void (sheetMode === 'single' ? exportSelectedPhoto('jpg') : exportPrintSheet('jpg'))} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-40"><Download size={12}/> JPG</button>
@@ -400,14 +412,13 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="flex max-h-full max-w-full flex-col items-center gap-3" style={{transform:`scale(${zoom / 100})`}}>
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetMode === '4x6' ? '4 × 6 INCH SHEET' : 'A4 PRINT SHEET'} · {visibleCopies} / {sheetCopies} COPIES · {sheetCapacity} MAX FIT</div>
                   <div className="relative overflow-hidden border border-white/20 bg-white shadow-2xl" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552}}>
-                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerDown={event=>{event.stopPropagation();if(deleteMode){setSelectedSlotId(slot.id);setSelectedId(photo.id);return;}event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSlotDrag({id:slot.id,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{if(deleteMode||!slotDrag||slotDrag.id!==slot.id)return;const rect=event.currentTarget.parentElement!.getBoundingClientRect();const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>current.map(item=>item.id===slot.id?{...item,x:Math.max(0,Math.min(pageW-item.width,slotDrag.sx+dx)),y:Math.max(0,Math.min(pageH-item.height,slotDrag.sy+dy))}:item));}} onPointerUp={event=>{setSlotDrag(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>setSlotDrag(null)} className={'absolute select-none bg-[#F3F3F3] '+(deleteMode?'cursor-pointer':'cursor-move')} style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'1px dashed #AEB7C0',outline:deleteMode&&isChosen?'2px solid #EF4444':deleteMode?'1px dashed #E35D5D':'none',outlineOffset:'1px'}}>
+                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>{event.stopPropagation();setSelectedSlotId(slot.id);setSelectedId(photo.id);}} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSlotDrag({id:slot.id,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{if(!slotDrag||slotDrag.id!==slot.id)return;const rect=event.currentTarget.parentElement!.getBoundingClientRect();const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>current.map(item=>item.id===slot.id?{...item,x:Math.max(0,Math.min(pageW-item.width,slotDrag.sx+dx)),y:Math.max(0,Math.min(pageH-item.height,slotDrag.sy+dy))}:item));}} onPointerUp={event=>{setSlotDrag(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>setSlotDrag(null)} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'1px dashed #AEB7C0',outline:isChosen?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{objectPosition:positionX+'% '+positionY+'%',transform:'scale('+(cropZoom/100)+')'}}/>
-                      {deleteMode&&isChosen&&<button type="button" aria-label={'Confirm delete photo '+(i+1)} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500"><Trash2 size={15} className="origin-top-right transition-transform duration-150 group-hover:-rotate-12"/></button>}
+                      {isChosen&&<button type="button" aria-label={'Confirm delete photo '+(i+1)} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500"><Trash2 size={15} className="origin-top-right transition-transform duration-150 group-hover:-rotate-12"/></button>}
                       <span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
                     </div>})}
                   </div>
                   <div className="flex items-center justify-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2">
-                    <button type="button" onClick={()=>{setDeleteMode(value=>!value);setSelectedSlotId(null);}} className={'flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] '+(deleteMode?'rounded-md border border-red-500/70 bg-red-950/50 text-red-300':'studio-control text-[#C9CFD5]')}><Trash2 size={12}/> {deleteMode?'Exit delete mode':'Delete'}</button>
                     <button type="button" onClick={()=>{const pageW=sheetMode==='4x6'?101.6:210;const cols=Math.max(1,Math.floor((pageW-sheetMargin*2+sheetGap)/(documentSize.widthMm+sheetGap)));const i=sheetSlots.length;const source=selected||photos[0];if(!source)return;setSheetSlots(current=>[...current,{id:'slot-'+Date.now(),photoId:source.id,x:sheetMargin+(i%cols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/cols)*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm}]);setSheetCopies(current=>Math.min(60,current+1));}} disabled={sheetSlots.length>=sheetCapacity||sheetSlots.length>=60} className="studio-control flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] disabled:opacity-40"><Plus size={12}/> Add photo</button>
                     <button type="button" onClick={()=>setSheetSlots(current=>current.map((slot,i)=>({...slot,x:sheetMargin+(i%sheetCols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/sheetCols)*(documentSize.heightMm+sheetGap)})))} className="studio-control px-2.5 py-1.5 text-[10px]">Auto arrange</button>
                   </div>
