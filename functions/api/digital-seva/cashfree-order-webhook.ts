@@ -1,7 +1,7 @@
+import { cashfreeApiBase } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-order-webhook
 // Cashfree Sandbox order webhook. Verify signature, then independently fetch the order before marking it paid.
-interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; }
-const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
+interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
@@ -44,7 +44,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!local) return json({ success: true, ignored: true });
     if (local.status === 'CLAIMED' || local.status === 'PAID') return json({ success: true, duplicate: true });
 
-    const response = await fetch(`${CASHFREE_API}/orders/${encodeURIComponent(orderId)}`, {
+    const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}`, {
       headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
     });
     const verified = await response.json().catch(() => ({})) as any;
