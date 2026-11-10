@@ -11,6 +11,7 @@ type Props = {
   widthPx: number;
   heightPx: number;
   onApplyImage: (blob: Blob, suffix: string) => void;
+  activeSection?: 'adjust'|'background'|'portrait'|'signature'|'print';
 };
 
 const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
@@ -21,8 +22,9 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 });
 const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
-export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage }) => {
-  const [section, setSection] = useState<'adjust'|'background'|'portrait'|'signature'|'print'>('adjust');
+export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, activeSection }) => {
+  const [section, setSection] = useState<'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
+  React.useEffect(() => { if (activeSection) setSection(activeSection); }, [activeSection]);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [saturation, setSaturation] = useState(100);
@@ -93,7 +95,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     const image = await loadImage(selected!.url);
     const canvas = await retouchFaceSkinLocally(image, retouch);
     onApplyImage(await canvasBlob(canvas, 'image/jpeg'), 'retouched');
-    setStatus('Face-skin retouch applied. Original layer is still available in history only if separately saved.');
+    setStatus('Face-skin retouch applied. Original photo remains available as a separate layer.');
   });
 
   const applySignature = () => run(async () => {
@@ -112,7 +114,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     setStatus('Signature placed on the selected photo.');
   });
 
-  const exportSheet = async (asPdf: boolean) => run(async () => {
+  const exportSheet = async (format: 'jpg'|'png'|'pdf') => run(async () => {
     const list = photos.length ? photos : [selected!];
     const images = await Promise.all(list.map(item => loadImage(item.url)));
     const photoW = widthPx, photoH = heightPx;
@@ -135,18 +137,19 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
       const y = paper === 'single' ? 0 : inset + Math.floor(i/cols)*(photoH+spacing);
       if (x+photoW <= pageW && y+photoH <= pageH) ctx.drawImage(image,x,y,photoW,photoH);
     }
-    if (asPdf) {
+    if (format === 'pdf') {
       const format = paper === 'single' ? [photoW*25.4/300, photoH*25.4/300] : paper === '4x6' ? [4,6] : 'a4';
       const doc = new jsPDF({orientation:'portrait',unit:paper==='single'?'mm':'in',format});
       doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,paper==='single'?photoW*25.4/300:paper==='4x6'?4:8.27,paper==='single'?photoH*25.4/300:paper==='4x6'?6:11.69);
       doc.save(`tanshu-studio-${paper}-print.pdf`);
     } else {
-      const blob = await canvasBlob(canvas,'image/jpeg',0.96);
+      const mime = format === 'png' ? 'image/png' : 'image/jpeg';
+      const blob = await canvasBlob(canvas,mime,0.96);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download=`tanshu-studio-${paper}-print.jpg`; a.click();
+      const a = document.createElement('a'); a.href=url; a.download=`tanshu-studio-${paper}-print.${format}`; a.click();
       window.setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
-    setStatus(`${paper.toUpperCase()} print sheet exported.`);
+    setStatus(`${paper.toUpperCase()} print sheet exported as ${format.toUpperCase()}.`);
   });
 
   const signatureFileChanged = async (file?: File) => {
@@ -155,6 +158,8 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     const data = await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('Read failed'));reader.onerror=()=>reject(new Error('Read failed'));reader.readAsDataURL(file);});
     setSignature(data); setSignatureName(file.name); setStatus('Signature loaded. Adjust placement, then apply.');
   };
+
+  React.useEffect(() => () => { if (cutoutUrl) URL.revokeObjectURL(cutoutUrl); }, [cutoutUrl]);
 
   const disabled = !selected || busy;
   return <div className="border-b studio-line p-3">
@@ -200,8 +205,11 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
         <label className="block text-[10px] studio-muted">Photo copies<input className="studio-control mt-1 h-8 w-full px-2 text-[10px]" type="number" min="1" max="60" value={copies} onChange={e=>setCopies(Math.max(1,Math.min(60,Number(e.target.value)||1)))}/></label>
         <div className="grid grid-cols-2 gap-2"><label className="text-[10px] studio-muted">Margin (mm)<input className="studio-control mt-1 h-8 w-full px-2 text-[10px]" type="number" min="0" max="20" value={margin} onChange={e=>setMargin(Math.max(0,Math.min(20,Number(e.target.value)||0)))}/></label><label className="text-[10px] studio-muted">Gap (mm)<input className="studio-control mt-1 h-8 w-full px-2 text-[10px]" type="number" min="0" max="15" value={gap} onChange={e=>setGap(Math.max(0,Math.min(15,Number(e.target.value)||0)))}/></label></div>
         <p className="text-[9px] studio-muted">Sheet uses uploaded layers in order and repeats them to fill the selected copy count.</p>
-        <button disabled={disabled} onClick={()=>void exportSheet(false)} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Download size={13}/> Export print JPG</button>
-        <button disabled={disabled} onClick={()=>void exportSheet(true)} className="flex w-full items-center justify-center gap-2 rounded-md bg-[#D9DEE2] py-2 text-[10px] font-semibold text-[#20252A] disabled:opacity-40"><Download size={13}/> Export print PDF</button>
+        <div className="grid grid-cols-3 gap-1.5">
+          <button disabled={disabled} onClick={()=>void exportSheet('jpg')} className="studio-control py-2 text-[10px] disabled:opacity-40">JPG</button>
+          <button disabled={disabled} onClick={()=>void exportSheet('png')} className="studio-control py-2 text-[10px] disabled:opacity-40">PNG</button>
+          <button disabled={disabled} onClick={()=>void exportSheet('pdf')} className="rounded-md bg-[#D9DEE2] py-2 text-[10px] font-semibold text-[#20252A] disabled:opacity-40">PDF</button>
+        </div>
       </>}
     </div>}
     {status && <p className="mt-2 break-words text-[9px] leading-4 studio-muted" role="status">{status}</p>}
