@@ -15,9 +15,17 @@ type StudioUnit = 'mm' | 'cm' | 'in';
 type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number; locked?: boolean; mergeSources?: SheetSlot[] };
 type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: 'single'|'4x6'|'a4'; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
 const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; widthMm: number; heightMm: number }> = {
-  india: { label: 'India Passport / Exam', widthMm: 35, heightMm: 45 },
+  india: { label: 'India Passport / General form', widthMm: 35, heightMm: 45 },
+  pan: { label: 'PAN card print', widthMm: 25, heightMm: 35 },
   stamp: { label: 'Stamp Photo', widthMm: 25, heightMm: 30 },
-  pan: { label: 'PAN Photo', widthMm: 25, heightMm: 35 }
+  'passport-35x35': { label: 'Passport / Consular square', widthMm: 35, heightMm: 35 },
+  'square-51': { label: '2 × 2 inch Visa photo', widthMm: 50.8, heightMm: 50.8 },
+  'oci-51': { label: 'OCI card photo', widthMm: 51, heightMm: 51 },
+  'pcc-35x35': { label: 'PCC / Birth certificate', widthMm: 35, heightMm: 35 },
+  'frro-35x35': { label: 'FRRO / Consular form', widthMm: 35, heightMm: 35 },
+  'dl-35x45': { label: 'Driving licence photo', widthMm: 35, heightMm: 45 },
+  'voter-35x45': { label: 'Voter ID / Form photo', widthMm: 35, heightMm: 45 },
+  'exam-35x45': { label: 'Exam form · common print', widthMm: 35, heightMm: 45 }
 };
 const mmToUnit = (value: number, unit: StudioUnit) => value / (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
