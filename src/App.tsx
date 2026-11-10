@@ -490,6 +490,9 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
+        {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
+        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
+
         {/* Extra breathing room after the category strip, then Connect With Us. */}
         <div className="pt-8">
           <SocialStrip />
@@ -556,8 +559,7 @@ export default function App() {
         {/* Ready-to-use studios and active tools appear immediately after the hero. */}
         <ReadyToUseTools onOpenTool={handleOpenTool} />
 
-        {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
-        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
+
 
         {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
         <CategoryNavigationSection
