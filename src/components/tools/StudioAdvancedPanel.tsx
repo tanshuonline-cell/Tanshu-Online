@@ -45,6 +45,11 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const [gap, setGap] = useState(2);
   const [margin, setMargin] = useState(5);
   const signatureInput = useRef<HTMLInputElement>(null);
+  const brushCanvasRef = useRef<HTMLCanvasElement>(null);
+  const brushOriginalRef = useRef<HTMLImageElement|null>(null);
+  const brushLastPointRef = useRef<{x:number;y:number}|null>(null);
+  const [brushMode, setBrushMode] = useState<'erase'|'restore'>('erase');
+  const [brushSize, setBrushSize] = useState(28);
 
   const tabClass = (key: typeof section) => `flex items-center gap-2 rounded-md border px-2 py-2 text-[10px] transition ${section===key?'border-[#59636D] bg-[#30373E] text-[#F0F2F4]':'border-[#343A42] bg-[#202429] text-[#AAB2BA] hover:bg-[#292F35]'}`;
   const run = async (task: () => Promise<void>) => {
@@ -162,6 +167,45 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
 
   React.useEffect(() => () => { if (cutoutUrl) URL.revokeObjectURL(cutoutUrl); }, [cutoutUrl]);
 
+  React.useEffect(() => {
+    if (!selected?.url) { brushOriginalRef.current = null; return; }
+    const original = new Image(); original.onload = () => { brushOriginalRef.current = original; }; original.src = selected.url;
+  }, [selected?.url]);
+
+  React.useEffect(() => {
+    if (!cutoutUrl) return;
+    const canvas = brushCanvasRef.current; if (!canvas) return;
+    const image = new Image();
+    image.onload = () => { canvas.width = image.naturalWidth; canvas.height = image.naturalHeight; const ctx = canvas.getContext('2d'); if (ctx) ctx.drawImage(image,0,0); };
+    image.src = cutoutUrl;
+  }, [cutoutUrl]);
+
+  const paintBackgroundBrush = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = brushCanvasRef.current, ctx = canvas?.getContext('2d'); if (!canvas || !ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const point = {x:(event.clientX-rect.left)*canvas.width/rect.width,y:(event.clientY-rect.top)*canvas.height/rect.height};
+    const previous = brushLastPointRef.current || point;
+    const width = Math.max(2,brushSize*canvas.width/Math.max(1,rect.width));
+    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=width;
+    ctx.beginPath(); ctx.moveTo(previous.x,previous.y); ctx.lineTo(point.x,point.y);
+    if (brushMode === 'erase') { ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; ctx.stroke(); }
+    else if (brushOriginalRef.current) {
+      const mask=document.createElement('canvas'); mask.width=canvas.width; mask.height=canvas.height;
+      const maskCtx=mask.getContext('2d');
+      if(maskCtx){maskCtx.lineCap='round';maskCtx.lineJoin='round';maskCtx.lineWidth=width;maskCtx.strokeStyle='#fff';maskCtx.beginPath();maskCtx.moveTo(previous.x,previous.y);maskCtx.lineTo(point.x,point.y);maskCtx.stroke();
+        const patch=document.createElement('canvas');patch.width=canvas.width;patch.height=canvas.height;const patchCtx=patch.getContext('2d');
+        if(patchCtx){patchCtx.drawImage(brushOriginalRef.current,0,0,canvas.width,canvas.height);patchCtx.globalCompositeOperation='destination-in';patchCtx.drawImage(mask,0,0);ctx.globalCompositeOperation='source-over';ctx.drawImage(patch,0,0);}
+      }
+    }
+    ctx.restore(); brushLastPointRef.current=point;
+  };
+
+  const commitBackgroundBrush = () => {
+    brushLastPointRef.current=null;
+    const canvas=brushCanvasRef.current;if(!canvas)return;
+    canvas.toBlob(blob=>{if(blob)setCutoutBlob(blob);},'image/png');
+  };
+
   const disabled = !selected || busy;
   return <div className="border-b studio-line p-3">
     {!hideTabs && <>
@@ -188,7 +232,10 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
         <div className="flex flex-wrap gap-1.5">{['#FFFFFF','#F4F1EA','#D9E2EA','#CBD5D0','#D9D3CB','#AAB6C2','#E8D8C6','#DDE7F2'].map(color=><button type="button" key={color} aria-label={`Set background color ${color}`} onClick={()=>setBackgroundColor(color)} className="h-6 w-6 rounded border border-white/15" style={{backgroundColor:color}}/>)}</div>
         <button disabled={disabled} onClick={removeBg} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Eraser size={13}/> Remove background</button>
         {cutoutUrl && <>
-          <div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'16px 16px',backgroundPosition:'0 0,0 8px,8px -8px,-8px 0'}}><img src={cutoutUrl} alt="Transparent background removal preview" className="mx-auto max-h-40 max-w-full object-contain"/></div>
+          <div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'16px 16px',backgroundPosition:'0 0,0 8px,8px -8px,-8px 0'}}><canvas ref={brushCanvasRef} aria-label="Background cutout brush editor" className="mx-auto block max-h-52 max-w-full touch-none object-contain" style={{width:'100%',height:'auto'}} onPointerDown={event=>{event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);brushLastPointRef.current=null;paintBackgroundBrush(event);}} onPointerMove={event=>{if(event.buttons===1)paintBackgroundBrush(event);}} onPointerUp={event=>{commitBackgroundBrush();if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={commitBackgroundBrush}/></div>
+          <div className="grid grid-cols-2 gap-1.5"><button type="button" onClick={()=>setBrushMode('erase')} className={`studio-control py-2 text-[10px] ${brushMode==='erase'?'border-[#8B949E] bg-[#30373E] text-white':''}`}>Brush Erase</button><button type="button" onClick={()=>setBrushMode('restore')} className={`studio-control py-2 text-[10px] ${brushMode==='restore'?'border-[#8B949E] bg-[#30373E] text-white':''}`}>Brush Restore</button></div>
+          <label className="block text-[10px] studio-muted">Brush size · {brushSize}px<input type="range" min="5" max="100" value={brushSize} onChange={event=>setBrushSize(Number(event.target.value))} className="mt-1 w-full"/></label>
+          <p className="text-[9px] studio-muted">Erase removes pixels; Restore paints the matching area from the original photo. Brush edits are included when you apply the cutout.</p>
           <button disabled={disabled} onClick={()=>applyCutout(false)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply transparent PNG as new layer</button>
           <button disabled={disabled} onClick={()=>applyCutout(true)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply color background as new layer</button>
         </>}
