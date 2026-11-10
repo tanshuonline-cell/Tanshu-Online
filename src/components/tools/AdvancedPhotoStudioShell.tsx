@@ -7,6 +7,7 @@ import {
   MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { StudioQuickPrintSetup } from './StudioQuickPrintSetup';
 
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number };
 type StudioPreset = 'india' | 'stamp' | 'pan' | 'custom';
@@ -95,6 +96,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [sheetMargin, setSheetMargin] = useState(5);
   const [sheetGap, setSheetGap] = useState(2);
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
+  const [quickPrintLayout, setQuickPrintLayout] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
@@ -245,11 +247,13 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const count = Math.min(visibleCopies, sheetCapacity, 60);
       const result = current.slice(0, count).map(slot => ({...slot, photoId: photos.some(p => p.id === slot.photoId) ? slot.photoId : photos[0].id}));
       const pageW = sheetMode === '4x6' ? 101.6 : 210;
-      const cols = Math.max(1, Math.floor((pageW - sheetMargin * 2 + sheetGap) / (documentSize.widthMm + sheetGap)));
+      const maxCols = Math.max(1, Math.floor((pageW - sheetMargin * 2 + sheetGap) / (documentSize.widthMm + sheetGap)));
+      const pageH = sheetMode === '4x6' ? 152.4 : 297;
+      const cols = quickPrintLayout ? Math.max(1, Math.min(maxCols, Math.ceil(Math.sqrt(count * pageW / pageH)))) : maxCols;
       while (result.length < count) { const i=result.length; result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:photos[i%photos.length].id,x:sheetMargin+(i%cols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/cols)*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
       return result;
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, photos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap]);
+  }, [sheetMode, visibleCopies, sheetCapacity, photos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
@@ -688,6 +692,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           <aside className="studio-panel flex w-[286px] shrink-0 flex-col border-y-0 border-r-0">
             <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">{activeTool === 'Move' ? 'Move Settings' : `${activeTool} Settings`}</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
             <div className="min-h-0 flex-1 overflow-y-auto">
+              <StudioQuickPrintSetup sheetMode={sheetMode} preset={preset} sizeUnit={sizeUnit} customWidthMm={customWidthMm} customHeightMm={customHeightMm} sheetCopies={sheetCopies} sheetCapacity={sheetCapacity} hasPhoto={!!selected} onSheetModeChange={value=>{setSheetMode(value);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} onPresetChange={value=>{setPreset(value);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} onSizeUnitChange={setSizeUnit} onCustomWidthMmChange={value=>{setCustomWidthMm(value);setSheetSlots([]);setQuickPrintLayout(true);}} onCustomHeightMmChange={value=>{setCustomHeightMm(value);setSheetSlots([]);setQuickPrintLayout(true);}} onSheetCopiesChange={value=>{setSheetCopies(value);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} onPrint={()=>void printActualSize()} />
               {activeTool === 'Crop' && <div className="border-b studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => updateActiveCrop({cropZoom:100,positionX:50,positionY:50})} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset selected crop</button></div>
                 {([['Crop zoom',activeCropZoom,'cropZoom',100,300],['Horizontal position',activePositionX,'positionX',0,100],['Vertical position',activePositionY,'positionY',0,100]] as const).map(([label,value,key,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>updateActiveCrop({[key]:Number(event.target.value)})} className="w-full accent-[#AEB8C2]"/></label>)}
