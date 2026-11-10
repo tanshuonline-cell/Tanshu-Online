@@ -490,6 +490,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const removed = photos.find(photo => photo.id === layerId);
     if (!removed) return;
     setPhotos(current => current.filter(photo => photo.id !== layerId));
+    setSheetSlots(current => current.filter(slot => slot.photoId !== layerId));
     if (selectedId === layerId) {
       const nextPhoto = photos.find(photo => photo.id !== layerId && photo.kind !== 'signature');
       setSelectedId(nextPhoto?.id || '');
@@ -498,7 +499,6 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       setSignatureSelected(false);
       const remainingSignature = photos.some(photo => photo.id !== layerId && photo.kind === 'signature');
       if (!remainingSignature) setSignaturePlacement(null);
-      setSheetSlots(current => current.filter(slot => slot.photoId !== layerId));
     }
   };
 
@@ -538,7 +538,6 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (source.kind === 'signature') {
       setPhotos(current => current.map(photo => photo.id === source.id ? processedLayer : photo));
       // Keep the cleaned signature in its layer; the user places it by dragging the layer onto the preview.
-
     } else {
       setPhotos(current => [...current, processedLayer]);
       setSelectedId(processedLayer.id);
