@@ -4,6 +4,7 @@ import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
+import { ReadyToUseTools } from './components/ReadyToUseTools';
 import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
 import { GovernmentSchemes } from './components/GovernmentSchemes';
@@ -465,13 +466,13 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
-        {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
-        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
+        {/* Ready-to-use studios and active tools appear immediately after the hero. */}
+        <ReadyToUseTools onOpenTool={handleOpenTool} />
 
-        {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
-        <SocialStrip />
+        {/* TANSHU DIGITAL CENTER appears directly below the active tools. */}
+        <DigitalCenterBanner />
 
-        {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
+        {/* Browse by Government Category follows the Digital Center banner. */}
         <CategoryNavigationSection
           onOpenAllTools={() => {
             setDirectoryCategory('all');
@@ -481,18 +482,19 @@ export default function App() {
           onScrollToTop={() => scrollToSection('home')}
         />
 
-        {/* Animated Tanshu Digital Center CTA between category navigation and featured content */}
-        <DigitalCenterBanner />
-
-        {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
+        {/* Video Learning Center remains directly below Government Categories. */}
         <VideoLearningCenter
           videos={catalogVideos}
           onOpenCatalog={() => navigateTo('videos', '/videos')}
           onSelectVideo={navigateToVideoDetail}
         />
 
-        {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
+        {/* Existing Future / Featured Tools section is preserved below Video Learning Center. */}
         <FeaturedTools onOpenTool={handleOpenTool} />
+
+        {/* Existing quick category shortcuts and social links remain available. */}
+        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
+        <SocialStrip />
 
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
         <AllToolsDirectory
