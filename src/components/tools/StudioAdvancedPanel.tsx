@@ -245,10 +245,14 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     if (!file) return;
     if (!file.type.startsWith('image/')) { setStatus('Choose a signature image.'); return; }
     const data = await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('Read failed'));reader.onerror=()=>reject(new Error('Read failed'));reader.readAsDataURL(file);});
-    setSignature(data); setSignatureName(file.name); onAddSignature(file); setStatus('Signature uploaded as a new layer. Select it in Layers to place it on a print sheet, or position it on the selected photo below.');
+    setSignature(data); setSignatureName(file.name); onAddSignature(file); setStatus('Signature uploaded as a layer. Crop it, remove the background, then drag its layer onto the preview or sheet.');
   };
 
   React.useEffect(() => () => { if (cutoutUrl) URL.revokeObjectURL(cutoutUrl); }, [cutoutUrl]);
+
+  React.useEffect(() => {
+    setBackgroundSelection(current => current.filter(id => photos.some(photo => photo.id === id)));
+  }, [photos]);
 
   React.useEffect(() => {
     if (!selected?.url) { brushOriginalRef.current = null; return; }
