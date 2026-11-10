@@ -707,7 +707,6 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                     <option value="frro-35x35">FRRO / Consular form · 35 × 35 mm</option>
                   </optgroup>
                   <option value="custom">Custom Size</option></select>
-}
                 <div className="studio-control flex h-7 items-center px-3 text-[10px]">{documentSize.widthMm.toFixed(1)} × {documentSize.heightMm.toFixed(1)} mm</div>
                 <label className="ml-1 flex items-center gap-1.5 text-[10px] studio-muted">
                   <span className="whitespace-nowrap">Number of photos</span>
