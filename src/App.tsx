@@ -490,7 +490,7 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
-        {/* Extra breathing room after Explore Tools / Preview Scenes, then Connect With Us. */}
+        {/* Extra breathing room after the category strip, then Connect With Us. */}
         <div className="pt-8">
           <SocialStrip />
         </div>
