@@ -10,12 +10,12 @@ export async function removeBackgroundAI(
 ): Promise<Blob> {
   const response = await fetch(source);
   if (!response.ok) {
-    throw new Error('चुनी गई फोटो पढ़ी नहीं जा सकी। कृपया दोबारा अपलोड करें।');
+    throw new Error('The selected image could not be read. Please upload it again.');
   }
 
   const input = await response.blob();
   if (!input.type.startsWith('image/')) {
-    throw new Error('कृपया JPG, PNG या WEBP फोटो चुनें।');
+    throw new Error('Please choose a JPG, PNG, or WEBP image.');
   }
 
   try {
@@ -25,7 +25,7 @@ export async function removeBackgroundAI(
         const percent = typeof progress === 'number'
           ? ` ${Math.round(progress * 100)}%`
           : '';
-        onProgress?.(`AI प्रोसेसिंग चल रही है…${percent}`);
+        onProgress?.(`Processing background removal…${percent}`);
       }
     });
     return result.blob;
