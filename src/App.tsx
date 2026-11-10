@@ -8,6 +8,7 @@ import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
 import { GovernmentSchemes } from './components/GovernmentSchemes';
 import { CategoryNavigationSection } from './components/CategoryNavigationSection';
+import { DigitalCenterBanner } from './components/DigitalCenterBanner';
 import { LatestVideos } from './components/LatestVideos';
 import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
@@ -479,6 +480,9 @@ export default function App() {
           }}
           onScrollToTop={() => scrollToSection('home')}
         />
+
+        {/* Animated Tanshu Digital Center CTA between category navigation and featured content */}
+        <DigitalCenterBanner />
 
         {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
         <VideoLearningCenter
