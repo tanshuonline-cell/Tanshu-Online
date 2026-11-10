@@ -9,7 +9,6 @@ interface Props {
 }
 
 const ACTIVE_TOOL_IDS = [
-  'advanced-passport-photo-studio',
   'photo-signature-resizer',
   'auto-document-cropper',
   'document-scanner-image-rectifier',
@@ -43,6 +42,12 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
     .map((id) => CONFIRMED_TOOLS.find((tool) => tool.id === id))
     .filter((tool): tool is ToolItem => Boolean(tool));
 
+  const professionalStudioPreview = getToolPreviewImage(
+    'advanced-passport-photo-studio',
+    'Professional Photo & Signature Studio',
+    'Photo & Signature',
+  );
+
   const pvcPreview = getToolPreviewImage(
     'id-card-front-back-print-layout-maker',
     'PVC Card Studio',
@@ -70,6 +75,22 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-b from-rose-50/80 via-white to-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-rose-400 hover:shadow-xl">
+            <div className="aspect-[4/3] overflow-hidden bg-slate-100">
+              <img src={professionalStudioPreview} alt="Professional Photo & Signature Studio preview" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+            </div>
+            <div className="flex flex-1 flex-col p-3.5">
+              <div className="mb-2 flex items-center gap-2 text-rose-700">
+                <Camera className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-wide">New Professional Studio</span>
+              </div>
+              <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">Professional Photo &amp; Signature Studio</h3>
+              <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Professional photo editing, smart positioning and print-ready photo sheets.</p>
+              <a href="/advanced-photo-studio-preview" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-rose-900">
+                Open Studio <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </article>
           {activeTools.map((tool) => {
             const details = TOOL_DETAILS[tool.id];
             const preview = getToolPreviewImage(tool.id, tool.name, tool.categoryLabel);
