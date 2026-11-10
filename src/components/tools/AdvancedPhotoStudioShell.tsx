@@ -812,11 +812,33 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         .studio-root:fullscreen { width:100vw; height:100vh; background:#101214; }
         .studio-shell * { box-sizing: border-box; }
         .studio-shell { min-width: 1100px; height:100%; }
-        .studio-panel { background:#181B1F; border:1px solid #2A2F35; }
-        .studio-muted { color:#858D96; }
-        .studio-line { border-color:#2A2F35; }
-        .studio-control { border:1px solid #343A42; background:#202429; color:#C9CFD5; border-radius:7px; }
-        .studio-control:hover { background:#292F35; }
+        .studio-panel { background:#181B1F; border:1px solid #302C27; }
+        .studio-muted { color:#96918A; }
+        .studio-line { border-color:#302C27; }
+        .studio-control { border:1px solid #40382F; background:#211F1C; color:#DED7CC; border-radius:7px; transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s; }
+        .studio-control:hover { background-color:#30271E; border-color:#8A6238; color:#FFF2DE; box-shadow:0 0 0 1px rgba(202,143,70,.12),0 4px 18px rgba(190,125,48,.09); }
+        .studio-shell button:not(:disabled) { transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s,transform .2s; }
+        .studio-shell button:not(:disabled):hover { background-image:radial-gradient(circle at 50% 50%,rgba(229,170,91,.17) 0%,rgba(229,170,91,.07) 34%,transparent 72%); background-size:180% 180%; animation:studio-water-ripple .72s ease-out; }
+        .studio-shell button:not(:disabled):active { transform:translateY(1px); }
+        .studio-shell button:focus-visible,.studio-shell input:focus-visible,.studio-shell select:focus-visible { outline:2px solid rgba(211,151,75,.72); outline-offset:2px; }
+        .studio-shell input[type="checkbox"] { accent-color:#C8893E; cursor:pointer; }
+        .studio-shell #studio-delete-mode { accent-color:#A94736; }
+        .studio-tool-button[data-tool="move"] svg { color:#78C8E8; }
+        .studio-tool-button[data-tool="crop"] svg { color:#A6A4F4; }
+        .studio-tool-button[data-tool="portrait"] svg { color:#D99BCB; }
+        .studio-tool-button[data-tool="retouch"] svg { color:#E8B65F; }
+        .studio-tool-button[data-tool="background"] svg { color:#83C69B; }
+        .studio-tool-button[data-tool="layout"] svg { color:#69C9C4; }
+        .studio-tool-button[data-tool="move"].is-active { background:rgba(79,157,190,.16); color:#D8F3FF; box-shadow:inset 0 0 0 1px rgba(105,190,220,.3); }
+        .studio-tool-button[data-tool="crop"].is-active { background:rgba(126,116,207,.16); color:#E3E0FF; box-shadow:inset 0 0 0 1px rgba(154,145,230,.3); }
+        .studio-tool-button[data-tool="portrait"].is-active { background:rgba(180,104,158,.16); color:#FFE5F5; box-shadow:inset 0 0 0 1px rgba(208,139,185,.3); }
+        .studio-tool-button[data-tool="retouch"].is-active { background:rgba(190,137,52,.17); color:#FFEBC5; box-shadow:inset 0 0 0 1px rgba(220,169,91,.3); }
+        .studio-tool-button[data-tool="background"].is-active { background:rgba(75,145,99,.17); color:#DFFFE7; box-shadow:inset 0 0 0 1px rgba(119,190,139,.3); }
+        .studio-tool-button[data-tool="layout"].is-active { background:rgba(55,147,145,.17); color:#D8FFFC; box-shadow:inset 0 0 0 1px rgba(101,195,190,.3); }
+        .studio-tool-group svg { color:#C99A60; }
+        .studio-tool-group.is-expanded { background:rgba(191,133,65,.14); color:#F5D7AD; box-shadow:inset 0 0 0 1px rgba(201,145,76,.28); }
+        @keyframes studio-water-ripple { 0% { background-size:45% 45%; } 100% { background-size:180% 180%; } }
+        @media (prefers-reduced-motion:reduce) { .studio-shell *, .studio-shell *::before, .studio-shell *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
         .studio-stage {
           background-color:#202429;
           background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
@@ -935,7 +957,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
             <div className="mb-1 w-full border-b border-[#343A42] pb-2">
-              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>setActiveTool(label as typeof activeTool)} className={`mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
+              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>setActiveTool(label as typeof activeTool)} data-tool={label.toLowerCase()} className={`studio-tool-button mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'is-active':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
               <label htmlFor="studio-delete-mode" title="Delete mode" className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg py-2 text-[9px] ${deleteModeEnabled?'bg-red-500/15 text-red-300':'studio-muted hover:bg-[#252B31]'}`}>
                 <Trash2 size={17}/><input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3 w-3 accent-red-500"/><span>Delete</span>
               </label>
@@ -945,7 +967,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               const GroupIcon=group.icon;
               const expanded=openToolGroup===group.id;
               return <div key={group.id} className="w-full">
-                <button type="button" aria-expanded={expanded} title={group.label} onClick={()=>setOpenToolGroup(expanded?null:group.id)} className={`flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-2 text-center transition ${expanded?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}>
+                <button type="button" aria-expanded={expanded} title={group.label} onClick={()=>setOpenToolGroup(expanded?null:group.id)} className={`studio-tool-group flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-2 text-center transition ${expanded?'is-expanded':'studio-muted hover:bg-[#252B31]'}`}>
                   <GroupIcon size={16} strokeWidth={1.7}/><span className="w-full text-[8px] leading-tight">{group.label}</span><ChevronDown size={11} className={`transition-transform ${expanded?'rotate-180':''}`}/>
                 </button>
                 {expanded&&<div className="my-1 rounded-md border border-[#343A42] bg-[#1A1E22] p-1">
