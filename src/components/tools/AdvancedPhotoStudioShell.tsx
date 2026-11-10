@@ -594,10 +594,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
         </header>
 
-        <nav className="flex h-[48px] shrink-0 items-center justify-between border-b studio-line bg-[#1B1F23] px-5">
-          <div ref={menuAreaRef} className="relative flex items-center gap-1 text-[12px]">
+        <nav ref={menuAreaRef} className="flex h-[48px] shrink-0 items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3">
+          <div className="relative flex items-center gap-1 text-[12px]">
             {['File','Edit','Image','Canvas','Arrange','Merge','View','Help'].map(item=><div key={item} className="relative">
-              <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-3 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>
+              <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>
               {menuOpen===item && <div className="absolute left-0 top-10 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
                 {(item==='File'?['Import File']:item==='Edit'?['Undo','Redo','Delete selected photo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 Sheet','A4 Sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo']:item==='Merge'?['Merge Selected','Merge All','Unmerge']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" disabled={(action==='Merge Selected'&&selectedSlotIds.length<2)||(action==='Merge All'&&sheetSlots.length<2)||(action==='Unmerge'&&!selectedSheetSlot?.mergeSources?.length)} onClick={()=>{
                   if(action==='Undo')undo();
@@ -636,9 +636,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <button type="button" title="Copy selected row" disabled={!selectedSlotId||sheetSlots.length>=sheetCapacity||sheetSlots.length>=60} onClick={duplicateSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Copy Row</button>
             <button type="button" title="Delete selected row" disabled={!selectedSlotId} onClick={deleteSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Delete Row</button>
             <button type="button" title="Automatically arrange sheet photos" disabled={!selected||sheetMode==='single'} onClick={autoArrangeSheet} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Auto Arrange</button>
-            <div className="studio-control flex h-8 items-center gap-2 px-2 text-[10px]"><Search size={12} className="studio-muted"/> Search <span className="rounded border border-[#3B424A] px-1 py-0.5 text-[9px] studio-muted">⌘ K</span></div>
-            <button type="button" onClick={undo} disabled={!canUndo} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"><Undo2 size={14}/> Undo</button>
-            <button type="button" onClick={redo} disabled={!canRedo} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"><Redo2 size={14}/> Redo</button>
+            <button type="button" title="Undo" aria-label="Undo" onClick={undo} disabled={!canUndo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Undo2 size={13}/></button>
+            <button type="button" title="Redo" aria-label="Redo" onClick={redo} disabled={!canRedo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Redo2 size={13}/></button>
             <button type="button" onClick={() => uploadRef.current?.click()} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] hover:text-white"><Upload size={12}/> Import File</button>
             <label className="studio-control flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[10px]" title="Lock or unlock selected sheet photos"><input type="checkbox" checked={!!selectedSlotId && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).length>0 && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).every(slot=>slot.locked)} disabled={!selectedSlotId} onChange={toggleSelectedSlotsLock} className="accent-[#D0D7DE]"/> Lock Selected</label>
             <div className="relative">
