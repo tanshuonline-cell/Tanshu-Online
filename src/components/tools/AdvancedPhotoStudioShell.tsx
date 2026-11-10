@@ -66,11 +66,23 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
+  const [sheetMode, setSheetMode] = useState<'single'|'4x6'|'a4'>('single');
+  const [sheetCopies, setSheetCopies] = useState(8);
+  const [sheetMargin, setSheetMargin] = useState(5);
+  const [sheetGap, setSheetGap] = useState(2);
   const documentSize = useMemo(() => {
     const widthMm = preset === 'custom' ? Math.max(1, customWidthMm) : STUDIO_PRESETS[preset].widthMm;
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
     return { widthMm, heightMm, widthPx: Math.round(widthMm * 300 / 25.4), heightPx: Math.round(heightMm * 300 / 25.4) };
   }, [preset, customWidthMm, customHeightMm]);
+  const sheetWidthPx = sheetMode === 'single' ? documentSize.widthPx : sheetMode === '4x6' ? 1200 : 2480;
+  const sheetHeightPx = sheetMode === 'single' ? documentSize.heightPx : sheetMode === '4x6' ? 1800 : 3508;
+  const marginPx = sheetMode === 'single' ? 0 : sheetMargin * 300 / 25.4;
+  const gapPx = sheetMode === 'single' ? 0 : sheetGap * 300 / 25.4;
+  const sheetCols = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetWidthPx - marginPx * 2 + gapPx) / (documentSize.widthPx + gapPx)));
+  const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + gapPx) / (documentSize.heightPx + gapPx)));
+  const sheetCapacity = sheetCols * sheetRows;
+  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, sheetCapacity);
   const uploadRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
@@ -104,6 +116,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           setCropZoom(saved.cropZoom || 100);
           setPositionX(saved.positionX ?? 50);
           setPositionY(saved.positionY ?? 50);
+          setSheetMode(saved.sheetMode || 'single');
+          setSheetCopies(saved.sheetCopies || 8);
+          setSheetMargin(saved.sheetMargin ?? 5);
+          setSheetGap(saved.sheetGap ?? 2);
         }
         setSaveState('saved');
       } catch { if (active) setSaveState('error'); }
@@ -122,7 +138,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(STUDIO_STORE, 'readwrite');
-          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, savedAt: Date.now() }, STUDIO_KEY);
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetCopies, sheetMargin, sheetGap, savedAt: Date.now() }, STUDIO_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
           tx.onabort = () => reject(tx.error);
@@ -132,7 +148,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       } catch { setSaveState('error'); }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY]);
+  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetCopies, sheetMargin, sheetGap]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
@@ -182,6 +198,25 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const updateDimensions = (id: string, width: number, height: number) => {
     setPhotos(current => current.map(photo => photo.id === id ? { ...photo, width, height } : photo));
+  };
+
+  const exportPrintSheet = async (format: 'jpg'|'png'|'pdf') => {
+    if (!selected) return;
+    const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const image = new Image(); image.src = selected.url;
+    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('Photo could not be loaded for sheet export.')); });
+    const ratio = documentSize.widthPx / documentSize.heightPx;
+    const baseWidth = Math.min(image.naturalWidth, image.naturalHeight * ratio), baseHeight = baseWidth / ratio;
+    const scale = Math.max(1, cropZoom / 100), sourceWidth = baseWidth / scale, sourceHeight = baseHeight / scale;
+    const sourceX = Math.max(0, Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*positionX/100));
+    const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*positionY/100));
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    for (let i = 0; i < visibleCopies; i++) { const x = sheetMode === 'single' ? 0 : marginPx + (i % sheetCols) * (documentSize.widthPx + gapPx); const y = sheetMode === 'single' ? 0 : marginPx + Math.floor(i / sheetCols) * (documentSize.heightPx + gapPx); ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, documentSize.widthPx, documentSize.heightPx); }
+    const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + `-${sheetMode}-print`;
+    if (format === 'pdf') { const pageFormat = sheetMode === 'single' ? [documentSize.widthMm, documentSize.heightMm] : sheetMode === '4x6' ? [4, 6] : 'a4'; const doc = new jsPDF({orientation:'portrait', unit:sheetMode === 'single' ? 'mm' : 'in', format:pageFormat as any}); doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,sheetMode === 'single' ? documentSize.widthMm : sheetMode === '4x6' ? 4 : 8.27,sheetMode === 'single' ? documentSize.heightMm : sheetMode === '4x6' ? 6 : 11.69); doc.save(baseName+'.pdf'); return; }
+    const mime = format === 'png' ? 'image/png' : 'image/jpeg'; const blob = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Sheet export failed.')),mime,0.96)); const url=URL.createObjectURL(blob), anchor=document.createElement('a'); anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click(); window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
@@ -266,9 +301,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Redo2 size={14}/> Redo</div>
             <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-8 items-center gap-2 rounded-md bg-[#D9DEE2] px-3 text-[11px] font-semibold text-[#20252A] hover:bg-[#E5E8EA]"><Upload size={14}/> Import photo</button>
             <div className="flex items-center gap-1 rounded-md border border-[#343A42] p-1">
-              <button type="button" disabled={!selected} onClick={() => void exportSelectedPhoto('jpg')} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-40"><Download size={12}/> JPG</button>
-              <button type="button" disabled={!selected} onClick={() => void exportSelectedPhoto('png')} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PNG</button>
-              <button type="button" disabled={!selected} onClick={() => void exportSelectedPhoto('pdf')} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PDF</button>
+              <button type="button" disabled={!selected} onClick={() => void (sheetMode === 'single' ? exportSelectedPhoto('jpg') : exportPrintSheet('jpg'))} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-40"><Download size={12}/> JPG</button>
+              <button type="button" disabled={!selected} onClick={() => void (sheetMode === 'single' ? exportSelectedPhoto('png') : exportPrintSheet('png'))} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PNG</button>
+              <button type="button" disabled={!selected} onClick={() => void (sheetMode === 'single' ? exportSelectedPhoto('pdf') : exportPrintSheet('pdf'))} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PDF</button>
             </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
           </div>
@@ -283,7 +318,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="flex h-[52px] shrink-0 items-center justify-between border-b studio-line px-5">
               <div className="flex items-center gap-3"><span className="text-[12px] font-medium text-[#E1E5E8]">Canvas</span><span className="text-[11px] studio-muted">/</span><span className="text-[11px] studio-muted">{selected ? selected.file.name : 'Portrait workspace'}</span></div>
               <div className="flex items-center gap-2">
-                <span className="mr-1 text-[10px] studio-muted">DOCUMENT</span>
+                <span className="mr-1 text-[10px] studio-muted">SHEET</span>
+                <select aria-label="Print sheet size" value={sheetMode} onChange={event => setSheetMode(event.target.value as typeof sheetMode)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch</option><option value="a4">A4 Sheet</option></select>
+                <span className="mr-1 text-[10px] studio-muted">PHOTO</span>
                 <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="india">India Passport / Exam</option><option value="pan">PAN Photo</option><option value="stamp">Stamp Photo</option><option value="custom">Custom size</option></select>
                 <div className="studio-control flex h-7 items-center px-3 text-[10px]">{documentSize.widthMm.toFixed(1)} × {documentSize.heightMm.toFixed(1)} mm</div>
                 <div className="mx-1 h-5 w-px bg-[#30363D]"/>
@@ -296,7 +333,14 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="studio-stage relative flex min-h-[520px] flex-1 items-center justify-center overflow-hidden p-10">
               <div className="absolute left-5 top-5 flex items-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted"><MousePointer2 size={13}/> Move tool <span className="ml-2 text-[#626B74]">V</span></div>
               <div className="absolute right-5 top-5 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>
-              {selected ? (
+              {selected && sheetMode !== 'single' ? (
+                <div className="flex max-h-full max-w-full flex-col items-center gap-3" style={{transform:`scale(${zoom / 100})`}}>
+                  <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetMode === '4x6' ? '4 × 6 INCH SHEET' : 'A4 PRINT SHEET'} · {visibleCopies} / {sheetCopies} COPIES · {sheetCapacity} MAX FIT</div>
+                  <div className="grid content-start justify-center overflow-hidden border border-white/20 bg-white shadow-2xl" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552,gridTemplateColumns:`repeat(${sheetCols},minmax(0,1fr))`,gridAutoRows:`${(sheetMode === '4x6' ? 450 : 552) * documentSize.heightMm / (sheetMode === '4x6' ? 152.4 : 297)}px`,gap:`${Math.max(1,sheetGap/2)}px`,padding:`${Math.max(2,sheetMargin/2)}px`}}>
+                    {Array.from({length:visibleCopies},(_,i)=><div key={i} className="relative overflow-hidden border border-dashed border-[#C9C9C9] bg-[#F3F3F3]"><img src={selected.url} alt={`Print copy ${i+1}`} className="h-full w-full object-cover" style={{objectPosition:`${positionX}% ${positionY}%`,transform:`scale(${cropZoom/100})`}}/><span className="absolute bottom-0 right-0 bg-black/60 px-1 text-[8px] text-white">{i+1}</span></div>)}
+                  </div>
+                </div>
+              ) : selected ? (
                 <div
                   className="relative max-h-full max-w-full overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl cursor-grab active:cursor-grabbing"
                   style={{ transform: `scale(${zoom / 100})`, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: Math.min(560, 420 * documentSize.widthMm / documentSize.heightMm), maxWidth: "55vw", maxHeight: 420, touchAction: "none" }}
@@ -353,6 +397,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control mt-1.5 h-8 w-full px-2 text-[11px] outline-none"><option value="india">India Passport / Exam · 35 × 45 mm</option><option value="pan">PAN Photo · 25 × 35 mm</option><option value="stamp">Stamp Photo · 25 × 30 mm</option><option value="custom">Custom dimensions</option></select>
                 </label>
                 {preset === 'custom' && <div className="mb-3"><div className="mb-2 flex items-center justify-between"><span className="text-[10px] studio-muted">Measurement unit</span><select aria-label="Custom size unit" value={sizeUnit} onChange={event => setSizeUnit(event.target.value as StudioUnit)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="mm">mm</option><option value="cm">cm</option><option value="in">in</option></select></div><div className="grid grid-cols-2 gap-2"><label className="text-[9px] studio-muted">Width ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customWidthMm, sizeUnit).toFixed(2))} onChange={event => setCustomWidthMm(unitToMm(Math.max(0.1, Number(event.target.value) || 0.1), sizeUnit))} className="studio-control mt-1 h-8 w-full px-2 text-[11px] outline-none"/></label><label className="text-[9px] studio-muted">Height ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customHeightMm, sizeUnit).toFixed(2))} onChange={event => setCustomHeightMm(unitToMm(Math.max(0.1, Number(event.target.value) || 0.1), sizeUnit))} className="studio-control mt-1 h-8 w-full px-2 text-[11px] outline-none"/></label></div></div>}
+                {sheetMode !== 'single' && <div className="mt-3 space-y-3 border-t studio-line pt-3"><label className="block text-[10px] studio-muted">Photo copies <span className="float-right text-[#D5DADF]">{sheetCopies}</span><input type="range" min="1" max="60" value={sheetCopies} onChange={event=>setSheetCopies(Number(event.target.value))} className="mt-2 w-full accent-[#AEB8C2]"/></label><div className="grid grid-cols-2 gap-2"><label className="text-[9px] studio-muted">Margin (mm)<input type="number" min="0" max="20" value={sheetMargin} onChange={event=>setSheetMargin(Math.max(0,Math.min(20,Number(event.target.value)||0)))} className="studio-control mt-1 h-8 w-full px-2 text-[11px]"/></label><label className="text-[9px] studio-muted">Cut gap (mm)<input type="number" min="0" max="15" value={sheetGap} onChange={event=>setSheetGap(Math.max(0,Math.min(15,Number(event.target.value)||0)))} className="studio-control mt-1 h-8 w-full px-2 text-[11px]"/></label></div><p className="text-[9px] studio-muted">Select the sheet before importing. Copies are arranged using your selected photo size at 300 DPI.</p></div>}
                 <div className="flex items-center justify-between py-2 text-[11px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
                 <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               </div>
