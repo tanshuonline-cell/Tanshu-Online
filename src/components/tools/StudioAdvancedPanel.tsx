@@ -28,6 +28,8 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const [saturation, setSaturation] = useState(100);
   const [retouch, setRetouch] = useState(22);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [cutoutUrl, setCutoutUrl] = useState('');
+  const [cutoutBlob, setCutoutBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [signature, setSignature] = useState('');
@@ -64,15 +66,27 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
 
   const removeBg = () => run(async () => {
     const cutout = await removeBackgroundAI(selected!.url, message => setStatus(message));
-    const image = await loadImage(URL.createObjectURL(cutout));
-    const canvas = document.createElement('canvas');
-    canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas is unavailable.');
-    ctx.fillStyle = backgroundColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0);
-    onApplyImage(await canvasBlob(canvas, 'image/png'), 'background');
-    setStatus('Background removed and selected color applied.');
+    const previewUrl = URL.createObjectURL(cutout);
+    setCutoutUrl(current => { if (current) URL.revokeObjectURL(current); return previewUrl; });
+    setCutoutBlob(cutout);
+    setStatus('Transparent cutout ready. Original photo remains untouched; choose how to apply it.');
+  });
+
+  const applyCutout = (withColor: boolean) => run(async () => {
+    if (!cutoutBlob) throw new Error('Remove the background first.');
+    if (!withColor) {
+      onApplyImage(cutoutBlob, 'transparent-cutout');
+    } else {
+      const image = await loadImage(cutoutUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas is unavailable.');
+      ctx.fillStyle = backgroundColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0);
+      onApplyImage(await canvasBlob(canvas, 'image/png'), 'new-background');
+    }
+    setStatus(withColor ? 'New background applied as a separate layer.' : 'Transparent PNG cutout applied as a separate layer.');
   });
 
   const applyRetouch = () => run(async () => {
@@ -160,10 +174,15 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
         <button disabled={disabled} onClick={applyAdjustments} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Check size={13}/> Apply adjustments</button>
       </>}
       {section==='background' && <>
-        <p className="text-[10px] leading-4 studio-muted">AI background removal runs in the browser. Choose the replacement background color.</p>
-        <label className="flex items-center justify-between text-[10px] studio-muted">Background color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label>
+        <p className="text-[10px] leading-4 studio-muted">AI background removal runs in your browser. The original photo is preserved; the cutout is added as a new layer.</p>
         <button disabled={disabled} onClick={removeBg} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Eraser size={13}/> Remove background</button>
-      </>}
+        {cutoutUrl && <>
+          <div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'16px 16px',backgroundPosition:'0 0,0 8px,8px -8px,-8px 0'}}><img src={cutoutUrl} alt="Transparent background removal preview" className="mx-auto max-h-40 max-w-full object-contain"/></div>
+          <button disabled={disabled} onClick={()=>applyCutout(false)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply transparent PNG as new layer</button>
+          <label className="flex items-center justify-between text-[10px] studio-muted">Replacement color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label>
+          <button disabled={disabled} onClick={()=>applyCutout(true)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply color background as new layer</button>
+        </>}
+      </>
       {section==='portrait' && <>
         <p className="text-[10px] leading-4 studio-muted">Conservative face-skin cleanup. Eyes, brows, lips, hair and background are excluded by the segmentation mask.</p>
         <label className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>Retouch strength</span><span>{retouch}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min="0" max="100" value={retouch} onChange={e=>setRetouch(Number(e.target.value))}/></label>
