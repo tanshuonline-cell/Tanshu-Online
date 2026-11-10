@@ -23,20 +23,25 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
     'advanced-passport-photo-studio',
+    'pdf-to-pvc-card-auto-cropper',
     'photo-signature-resizer',
+    'pdf-ocr-text-extractor',
     'auto-document-cropper',
     'document-scanner-image-rectifier',
-    'pdf-to-pvc-card-auto-cropper',
     'id-card-front-back-print-layout-maker',
     'invoice-generator',
   ];
   const featuredTools = CONFIRMED_TOOLS
     .filter((tool) => tool.isFeatured)
     .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
-    .slice(0, 7);
+    .slice(0, 8);
 
   const getToolImage = (id: string) => {
     switch (id) {
+      case 'multiple-id-cards-print':
+        return getToolPreviewImage('multiple-id-cards-print', 'Multiple ID Cards Print on A4 (5-in-1)', 'ID Card & Print');
+      case 'pdf-ocr-text-extractor':
+        return getToolPreviewImage('pdf-ocr-text-extractor', 'PDF OCR & Text Extractor (Hindi & Eng)', 'PDF Tools');
       case 'photo-signature-resizer':
         return getToolPreviewImage('photo-signature-resizer', 'Photo & Signature Resizer', 'Photo & Signature');
       case 'advanced-passport-photo-studio':
@@ -84,6 +89,12 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
               'Popular tools for photo resizing, photo printing, smart card preparation, document scanning, and retail billing.'
             )}
           </p>
+          <a
+            href="https://52868321.tanshu-online.pages.dev/digital-seva"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#C62828]/20 bg-white px-3 py-2 text-xs font-bold text-[#C62828] shadow-sm transition-colors hover:bg-red-50 whitespace-nowrap"
+          >
+            Tanshu Digital Center <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
         </div>
 
         {/* Featured tools; the new Photo & Signature Resizer appears first. */}
@@ -91,7 +102,9 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
           {featuredTools.map((tool) => {
             const previewImg = getToolImage(tool.id);
             const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
-            const displayName = hindiCopy?.name || tool.name;
+            const displayName = tool.id === 'pdf-to-pvc-card-auto-cropper'
+              ? 'Multi-Printer Auto Print'
+              : (hindiCopy?.name || tool.name);
             const displayDescription = hindiCopy?.description || tool.description;
             const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer';
             return (
