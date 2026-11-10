@@ -41,7 +41,7 @@ function validOrigin(request: Request): boolean {
   const origin = request.headers.get('Origin');
   return Boolean(origin) && origin === new URL(request.url).origin;
 }
-async function cancelCashfreeLink(linkId: string, appId: string, secret: string): Promise<boolean> {
+async function cancelCashfreeLink(linkId: string, appId: string, secret: string, env: Env): Promise<boolean> {
   try {
     const response = await fetch(`${cashfreeApiBase(env)}/links/${encodeURIComponent(linkId)}/cancel`, {
       method: 'POST',
@@ -55,7 +55,7 @@ async function cancelCashfreeLink(linkId: string, appId: string, secret: string)
     if (response.ok) return true;
     // A previous retry may already have cancelled this link. Confirm the remote state
     // rather than treating every non-2xx cancellation response as an active link.
-    const statusResponse = await fetch(`${CASHFREE_API}/links/${encodeURIComponent(linkId)}`, {
+    const statusResponse = await fetch(`${cashfreeApiBase(env)}/links/${encodeURIComponent(linkId)}`, {
       headers: { 'x-client-id': appId, 'x-client-secret': secret, 'x-api-version': '2022-09-01' }
     });
     if (!statusResponse.ok) return false;
@@ -109,7 +109,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const failedLinkIds: string[] = [];
     for (const oldLink of olderLinks.results || []) {
       const oldLinkId = String(oldLink.cashfree_link_id);
-      if (await cancelCashfreeLink(oldLinkId, appId, secret)) cancelledRows.push(oldLink);
+      if (await cancelCashfreeLink(oldLinkId, appId, secret, env)) cancelledRows.push(oldLink);
       else failedLinkIds.push(oldLinkId);
     }
     if (cancelledRows.length) {
@@ -170,7 +170,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ success: true, paymentId, amount, status: 'PENDING', linkId: createdCashfreeLinkId, linkUrl: result.link_url });
   } catch (error) {
     if (createdCashfreeLinkId) {
-      try { await cancelCashfreeLink(createdCashfreeLinkId, appId, secret); }
+      try { await cancelCashfreeLink(createdCashfreeLinkId, appId, secret, env); }
       catch (cancelError) { console.error('Could not cancel an unrecorded Cashfree link:', cancelError); }
     }
     console.error('Digital Seva Cashfree link creation failed:', error);
