@@ -436,6 +436,7 @@ export const InvoiceGeneratorTool: React.FC = () => {
               <div className="col-span-2"><label className="text-xs text-slate-600 block mb-1">Terms & Conditions (Optional)</label><textarea value={data.terms} onChange={(e) => setData({ ...data, terms: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Payment terms..." /></div>
             </div>
           </div>
+          </div>
 
           {/* Line Items Table */}
           <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-5 space-y-4">
