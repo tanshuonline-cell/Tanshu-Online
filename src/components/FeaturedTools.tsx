@@ -103,12 +103,12 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
             const previewImg = getToolImage(tool.id);
             const hindiCopy = isHindi ? TOOL_HINDI_TRANSLATIONS[tool.id] : undefined;
             const displayName = tool.id === 'advanced-passport-photo-studio'
-              ? 'Advanced Passport Photo Studio · Mobile Edition'
+              ? (isHindi ? 'एडवांस्ड पासपोर्ट फोटो स्टूडियो · मोबाइल संस्करण' : 'Advanced Passport Photo Studio · Mobile Edition')
               : tool.id === 'pdf-to-pvc-card-auto-cropper'
                 ? 'Multi-Printer Auto Print'
                 : (hindiCopy?.name || tool.name);
             const displayDescription = tool.id === 'advanced-passport-photo-studio'
-              ? 'The original passport photo editor, kept separately with a phone-friendly, step-by-step layout.'
+              ? (isHindi ? 'पुराना पासपोर्ट फोटो एडिटर, मोबाइल पर आसान स्टेप-बाय-स्टेप लेआउट के साथ।' : 'The original passport photo editor, kept separately with a phone-friendly, step-by-step layout.')
               : (hindiCopy?.description || tool.description);
             const isActiveFutureTool = tool.id === 'advanced-passport-photo-studio' || tool.id === 'photo-signature-resizer';
             return (
