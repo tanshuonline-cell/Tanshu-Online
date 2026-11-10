@@ -182,7 +182,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
           <label className="flex items-center justify-between text-[10px] studio-muted">Replacement color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label>
           <button disabled={disabled} onClick={()=>applyCutout(true)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply color background as new layer</button>
         </>}
-      </>
+      </>}
       {section==='portrait' && <>
         <p className="text-[10px] leading-4 studio-muted">Conservative face-skin cleanup. Eyes, brows, lips, hair and background are excluded by the segmentation mask.</p>
         <label className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>Retouch strength</span><span>{retouch}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min="0" max="100" value={retouch} onChange={e=>setRetouch(Number(e.target.value))}/></label>
