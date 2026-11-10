@@ -279,6 +279,36 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     setSheetCopies(current=>Math.max(1,current-chosen.length+1)); setSelectedId(photo.id); setSelectedSlotId(mergedSlot.id); setSelectedSlotIds([mergedSlot.id]);
   };
 
+
+  const duplicateSelectedSlot = () => {
+    const source = sheetSlots.find(slot => slot.id === selectedSlotId);
+    if (!source || sheetSlots.length >= sheetCapacity || sheetSlots.length >= 60) return;
+    const pageW = sheetMode === '4x6' ? 101.6 : 210;
+    const pageH = sheetMode === '4x6' ? 152.4 : 297;
+    const position = getSmartSheetPosition(source.x + source.width + sheetGap, source.y, source, sheetSlots.filter(slot => slot.id !== source.id), pageW, pageH, sheetMargin, sheetGap);
+    const copy = { ...source, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
+    setSheetSlots(current => [...current, copy]);
+    setSheetCopies(current => Math.min(60, sheetCapacity, current + 1));
+    setSelectedSlotId(copy.id); setSelectedSlotIds([copy.id]);
+  };
+
+  const handleSheetKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+    const ids = selectedSlotIds.length ? selectedSlotIds : selectedSlotId ? [selectedSlotId] : [];
+    if (!ids.length) return;
+    event.preventDefault();
+    const step = event.shiftKey ? 5 : event.altKey ? 0.2 : 1;
+    const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+    const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+    const pageW = sheetMode === '4x6' ? 101.6 : 210;
+    const pageH = sheetMode === '4x6' ? 152.4 : 297;
+    setSheetSlots(current => current.map(slot => ids.includes(slot.id) ? {
+      ...slot,
+      x: Math.max(sheetMargin, Math.min(pageW - sheetMargin - slot.width, slot.x + dx)),
+      y: Math.max(sheetMargin, Math.min(pageH - sheetMargin - slot.height, slot.y + dy))
+    } : slot));
+  };
+
   const removeSelected = () => {
     if (!selected) return;
     setPhotos(current => {
@@ -488,7 +518,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               {selected && sheetMode !== 'single' ? (
                 <div className="flex max-h-full max-w-full flex-col items-center gap-3" style={{transform:`scale(${zoom / 100})`}}>
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetMode === '4x6' ? '4 × 6 INCH SHEET' : 'A4 PRINT SHEET'} · {visibleCopies} / {sheetCopies} COPIES · {sheetCapacity} MAX FIT</div>
-                  <div className="relative overflow-hidden border border-white/20 bg-white shadow-2xl" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552}}>
+                  <div tabIndex={0} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552}}>
                     {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>{event.stopPropagation();if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<sheetCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;if(wantsCopy&&canCopy){setSheetSlots(current=>[...current,{...slot,id:dragId}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);}setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{if(!slotDrag)return;const rect=event.currentTarget.parentElement!.getBoundingClientRect();const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const others=current.filter(item=>item.id!==slotDrag.id);const position=getSmartSheetPosition(slotDrag.sx+dx,slotDrag.sy+dy,moving,others,pageW,pageH,sheetMargin,sheetGap);return current.map(item=>item.id===slotDrag.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>setSlotDrag(null)} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'none',outline:(selectedSlotIds.includes(slot.id)||isChosen)?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{objectPosition:positionX+'% '+positionY+'%',transform:'scale('+(cropZoom/100)+')'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={'Delete photo '+(i+1)+' from sheet'} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotIds(current=>current.filter(id=>id!==slot.id));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
@@ -497,7 +527,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2">
                     <button type="button" onClick={()=>{const pageW=sheetMode==='4x6'?101.6:210;const cols=Math.max(1,Math.floor((pageW-sheetMargin*2+sheetGap)/(documentSize.widthMm+sheetGap)));const i=sheetSlots.length;const source=selected||photos[0];if(!source)return;setSheetSlots(current=>[...current,{id:'slot-'+Date.now(),photoId:source.id,x:sheetMargin+(i%cols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/cols)*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm}]);setSheetCopies(current=>Math.min(60,current+1));}} disabled={sheetSlots.length>=sheetCapacity||sheetSlots.length>=60} className="studio-control flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] disabled:opacity-40"><Plus size={12}/> Add photo</button>
-                    <button type="button" onClick={autoArrangeSheet} className="studio-control px-2.5 py-1.5 text-[10px]">Auto arrange</button><button type="button" onClick={()=>void mergeSheetPhotos(false)} disabled={selectedSlotIds.length<2} title="Ctrl-click photos to select 2 or more" className="studio-control px-2.5 py-1.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-35">Merge selected</button><button type="button" onClick={()=>void mergeSheetPhotos(true)} disabled={sheetSlots.length<2} className="studio-control px-2.5 py-1.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-35">Merge all</button>
+                    <button type="button" onClick={duplicateSelectedSlot} disabled={!selectedSlotId||sheetSlots.length>=sheetCapacity||sheetSlots.length>=60} className="studio-control px-2.5 py-1.5 text-[10px] disabled:opacity-35">Duplicate</button><button type="button" onClick={autoArrangeSheet} className="studio-control px-2.5 py-1.5 text-[10px]">Auto arrange</button><button type="button" onClick={()=>void mergeSheetPhotos(false)} disabled={selectedSlotIds.length<2} title="Ctrl-click photos to select 2 or more" className="studio-control px-2.5 py-1.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-35">Merge selected</button><button type="button" onClick={()=>void mergeSheetPhotos(true)} disabled={sheetSlots.length<2} className="studio-control px-2.5 py-1.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-35">Merge all</button>
                   </div>
                 </div>
               ) : selected ? (
