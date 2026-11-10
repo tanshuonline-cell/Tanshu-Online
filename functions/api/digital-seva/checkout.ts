@@ -1,3 +1,4 @@
+import { cashfreeApiBase } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/checkout
 // Creates a Cashfree Sandbox order for the approved fixed-price Digital Seva services.
 // A booking is NOT written until the customer has paid and /bookings verifies this order.
@@ -7,8 +8,8 @@ interface Env {
   DIGITAL_SEVA_DB?: any;
   CASHFREE_APP_ID?: string;
   CASHFREE_SECRET_KEY?: string;
+  CASHFREE_ENVIRONMENT?: string;
 }
-const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
 const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
 const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -31,7 +32,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ success: false, error: 'A JSON checkout request is required.' }, 415);
   }
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
-  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree Sandbox credentials are not configured in this Preview.' }, 503);
+  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured for this environment.' }, 503);
 
   let body: any;
   try {
@@ -71,7 +72,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     const orderId = `ds_${idempotencyKey.replace(/-/g, '')}`;
     const origin = new URL(request.url).origin;
-    const cashfreeResponse = await fetch(`${CASHFREE_API}/orders`, {
+    const cashfreeResponse = await fetch(`${cashfreeApiBase(env)}/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,7 +101,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     });
     const result = await cashfreeResponse.json().catch(() => ({})) as any;
     if (!cashfreeResponse.ok || !result.payment_session_id || String(result.order_id || '') !== orderId) {
-      console.error('Cashfree Sandbox order creation failed:', cashfreeResponse.status, result);
+      console.error('Cashfree order creation failed:', cashfreeResponse.status, result);
       return json({ success: false, error: 'Cashfree could not start the secure checkout. Please try again later.' }, 502);
     }
 
