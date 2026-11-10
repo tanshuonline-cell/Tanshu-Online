@@ -134,6 +134,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           setSheetMargin(saved.sheetMargin ?? 5);
           setSheetGap(saved.sheetGap ?? 2);
           setSheetSlots(Array.isArray(saved.sheetSlots) ? saved.sheetSlots : []);
+          setBorderEnabled(saved.borderEnabled ?? false);
+          setBorderWidthMm(saved.borderWidthMm ?? 0.5);
+          setBorderColor(saved.borderColor || '#000000');
+          setCustomBorderColor(saved.customBorderColor || '#000000');
         }
         setSaveState('saved');
       } catch { if (active) setSaveState('error'); }
@@ -152,7 +156,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(STUDIO_STORE, 'readwrite');
-          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, savedAt: Date.now() }, STUDIO_KEY);
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
           tx.onabort = () => reject(tx.error);
