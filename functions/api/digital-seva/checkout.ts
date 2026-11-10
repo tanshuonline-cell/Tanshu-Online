@@ -1,6 +1,6 @@
 import { cashfreeApiBase } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/checkout
-// Creates a Cashfree Sandbox order for the approved fixed-price Digital Seva services.
+// Creates a Cashfree order using the environment-specific API endpoint.
 // A booking is NOT written until the customer has paid and /bookings verifies this order.
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
 
