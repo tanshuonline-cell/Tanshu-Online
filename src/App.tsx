@@ -479,7 +479,11 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
-        {/* Ready-to-use studios and active tools appear immediately after the hero. */}
+        {/* Restore the original quick category shortcuts and social links directly below the Hero actions. */}
+        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
+        <SocialStrip />
+
+        {/* Ready-to-use studios and active tools remain unchanged below the shortcuts and social links. */}
         <ReadyToUseTools onOpenTool={handleOpenTool} />
 
         {/* TANSHU DIGITAL CENTER appears directly below the active tools. */}
@@ -504,10 +508,6 @@ export default function App() {
 
         {/* Existing Future / Featured Tools section is preserved below Video Learning Center. */}
         <FeaturedTools onOpenTool={handleOpenTool} />
-
-        {/* Existing quick category shortcuts and social links remain available. */}
-        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
-        <SocialStrip />
 
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
         <AllToolsDirectory
