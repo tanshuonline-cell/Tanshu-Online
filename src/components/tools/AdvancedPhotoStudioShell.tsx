@@ -10,7 +10,7 @@ import { jsPDF } from 'jspdf';
 import { StudioQuickPrintSetup } from './StudioQuickPrintSetup';
 
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number };
-type StudioPreset = 'india' | 'stamp' | 'pan' | 'custom';
+type StudioPreset = 'india' | 'pan' | 'stamp' | 'passport-35x35' | 'square-51' | 'oci-51' | 'pcc-35x35' | 'frro-35x35' | 'dl-35x45' | 'voter-35x45' | 'exam-35x45' | 'custom';
 type StudioUnit = 'mm' | 'cm' | 'in';
 type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number; locked?: boolean; mergeSources?: SheetSlot[] };
 type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: 'single'|'4x6'|'a4'; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
@@ -621,7 +621,22 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <span className="mr-1 text-[10px] studio-muted">SHEET</span>
                 <select aria-label="Print sheet size" value={sheetMode} onChange={event => setSheetMode(event.target.value as typeof sheetMode)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="single">Single Photo</option><option value="4x6">4 × 6 inch</option><option value="a4">A4 Sheet</option></select>
                 <span className="mr-1 text-[10px] studio-muted">PHOTO</span>
-                <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="india">India Passport / Exam</option><option value="pan">PAN Photo</option><option value="stamp">Stamp Photo</option><option value="custom">Custom size</option></select>
+                <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control h-7 px-2 text-[10px] outline-none"><optgroup label="Common India print sizes">
+                    <option value="india">Passport / General form · 35 × 45 mm</option>
+                    <option value="pan">PAN card print · 25 × 35 mm</option>
+                    <option value="voter-35x45">Voter ID / Form · 35 × 45 mm</option>
+                    <option value="dl-35x45">Driving licence · 35 × 45 mm</option>
+                    <option value="exam-35x45">Exam form common · 35 × 45 mm*</option>
+                    <option value="stamp">Stamp photo · 25 × 30 mm</option>
+                  </optgroup>
+                  <optgroup label="Visa & consular sizes">
+                    <option value="square-51">Visa photo · 2 × 2 inch (50.8 × 50.8 mm)</option>
+                    <option value="oci-51">OCI photo · 51 × 51 mm</option>
+                    <option value="passport-35x35">Passport / consular square · 35 × 35 mm</option>
+                    <option value="pcc-35x35">PCC / Birth certificate · 35 × 35 mm</option>
+                    <option value="frro-35x35">FRRO / Consular form · 35 × 35 mm</option>
+                  </optgroup>
+                  <option value="custom">Custom size — enter your own</option></select>
                 <div className="studio-control flex h-7 items-center px-3 text-[10px]">{documentSize.widthMm.toFixed(1)} × {documentSize.heightMm.toFixed(1)} mm</div>
                 <div className="mx-1 h-5 w-px bg-[#30363D]"/>
                 <button type="button" aria-label="Zoom out" onClick={() => setZoom(value => Math.max(25, value - 25))} className="studio-control flex h-7 w-7 items-center justify-center"><ZoomOut size={13}/></button>
