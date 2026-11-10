@@ -142,6 +142,18 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [signaturePlacement, setSignaturePlacement] = useState<{x:number;y:number;width:number}|null>(null);
   const [signatureSelected, setSignatureSelected] = useState(false);
   const signaturePointerRef = useRef<{pointerId:number;mode:'move'|'resize';corner?:'nw'|'ne'|'sw'|'se';px:number;py:number;rect:{left:number;top:number;width:number;height:number};start:{x:number;y:number;width:number}}|null>(null);
+  useEffect(() => {
+    if (!signatureSelected) return;
+    const confirmSignature = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter') return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+      event.preventDefault();
+      setSignatureSelected(false);
+    };
+    window.addEventListener('keydown', confirmSignature);
+    return () => window.removeEventListener('keydown', confirmSignature);
+  }, [signatureSelected]);
   const [canUndo, setCanUndo] = useState(false); const [canRedo, setCanRedo] = useState(false);
   const undoStackRef = useRef<EditorSnapshot[]>([]); const redoStackRef = useRef<EditorSnapshot[]>([]);
   const lastSnapshotRef = useRef<EditorSnapshot|null>(null); const applyingHistoryRef = useRef(false);
@@ -685,17 +697,18 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         return;
       }
       const corner=drag.corner||'se';
-      const horizontal=corner.endsWith('w')?-dx:dx;
-      const vertical=(corner.startsWith('n')?-dy:dy)*pageHeightMm/(pageWidthMm*aspect);
-      const delta=Math.abs(horizontal)>=Math.abs(vertical)?horizontal:vertical;
-      const minWidth=0.025;
-      const maxWidth=0.9;
-      const width=Math.max(minWidth,Math.min(maxWidth,drag.start.width+delta));
-      const height=heightForWidth(width);
       const startHeight=heightForWidth(drag.start.width);
-      const x=corner.endsWith('w')?drag.start.x+drag.start.width-width:drag.start.x;
-      const y=corner.startsWith('n')?drag.start.y+startHeight-height:drag.start.y;
-      setSignaturePlacement({x:Math.max(0,Math.min(1-width,x)),y:Math.max(0,Math.min(1-height,y)),width});
+      // Combine both pointer axes so diagonal resizing stays proportional without sudden jumps.
+      const horizontal=(corner.endsWith('w')?-dx:dx);
+      const vertical=(corner.startsWith('n')?-dy:dy)*pageHeightMm/(pageWidthMm*aspect);
+      const anchorX=corner.endsWith('w')?drag.start.x+drag.start.width:drag.start.x;
+      const anchorY=corner.startsWith('n')?drag.start.y+startHeight:drag.start.y;
+      const maxWidth=Math.max(0.025,Math.min(0.9,corner.endsWith('w')?anchorX:1-anchorX,(corner.startsWith('n')?anchorY:1-anchorY)*pageHeightMm/(pageWidthMm*aspect)));
+      const width=Math.max(0.025,Math.min(maxWidth,drag.start.width+(horizontal+vertical)/2));
+      const height=heightForWidth(width);
+      const x=corner.endsWith('w')?anchorX-width:anchorX;
+      const y=corner.startsWith('n')?anchorY-height:anchorY;
+      setSignaturePlacement({x,y,width});
     };
     const beginPointer=(event:React.PointerEvent<HTMLDivElement>,mode:'move'|'resize',corner?:'nw'|'ne'|'sw'|'se')=>{
       event.preventDefault();
@@ -709,8 +722,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     };
     return <div onClick={event=>{event.stopPropagation();setSignatureSelected(true);onSelect?.();}} onPointerDown={event=>beginPointer(event,'move')} onPointerMove={updatePointer} onPointerUp={event=>{signaturePointerRef.current=null;if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{signaturePointerRef.current=null;}} className="absolute z-40 cursor-move select-none" style={{left:(signaturePlacement.x*100)+'%',top:(signaturePlacement.y*100)+'%',width:(signaturePlacement.width*100)+'%',height:(heightForWidth(signaturePlacement.width)*100)+'%',touchAction:'none',outline:signatureSelected&&showControls?'2px solid #2684FF':'none',outlineOffset:'2px'}}>
       <img src={signaturePhoto.url} alt="Signature overlay" draggable={false} className="pointer-events-none h-full w-full object-fill"/>
-      {signatureSelected&&showControls&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize signature '+corner} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;const rect=parent.getBoundingClientRect();parent.setPointerCapture(event.pointerId);signaturePointerRef.current={pointerId:event.pointerId,mode:'resize',corner,px:event.clientX,py:event.clientY,rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},start:{...signaturePlacement}};}} className={'absolute z-50 h-3.5 w-3.5 rounded-sm border border-blue-900 bg-white shadow '+(corner==='nw'?'left-[-7px] top-[-7px]':corner==='ne'?'right-[-7px] top-[-7px]':corner==='sw'?'bottom-[-7px] left-[-7px]':'bottom-[-7px] right-[-7px]')}/>)}
-      {signatureSelected&&showControls&&<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSignatureSelected(false);}} className="absolute -top-8 right-0 rounded bg-[#1677D2] px-3 py-1 text-[11px] font-semibold text-white shadow-lg">Save to Photo</button>}
+      {signatureSelected&&showControls&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize signature '+corner} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const overlay=event.currentTarget.parentElement as HTMLDivElement;const page=overlay.parentElement; if(!page)return;const rect=page.getBoundingClientRect();overlay.setPointerCapture(event.pointerId);signaturePointerRef.current={pointerId:event.pointerId,mode:'resize',corner,px:event.clientX,py:event.clientY,rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},start:{...signaturePlacement}};}} className={'absolute z-50 h-3.5 w-3.5 rounded-sm border border-blue-900 bg-white shadow '+(corner==='nw'?'left-[-7px] top-[-7px]':corner==='ne'?'right-[-7px] top-[-7px]':corner==='sw'?'bottom-[-7px] left-[-7px]':'bottom-[-7px] right-[-7px]')}/>)}
+      {signatureSelected&&showControls&&<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSignatureSelected(false);}} className="absolute left-1/2 top-full z-[60] mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#1677D2] px-4 py-1.5 text-[11px] font-semibold text-white shadow-lg ring-2 ring-white/80 hover:bg-[#2589E8]">OK · Enter</button>}
     </div>;
   };
 
