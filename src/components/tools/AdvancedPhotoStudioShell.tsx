@@ -340,7 +340,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       file,
       url,
       width: 0,
-      height: 0
+      height: 0,
+      cropZoom: 100,
+      positionX: 50,
+      positionY: 50
     };
     setPhotos(current => [...current, processedLayer]);
     setSelectedId(processedLayer.id);
@@ -549,7 +552,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   onPointerDown={event => {
                     event.preventDefault();
                     event.currentTarget.setPointerCapture(event.pointerId);
-                    cropDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, positionX, positionY };
+                    cropDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, positionX:activePositionX, positionY:activePositionY };
                   }}
                   onPointerMove={event => {
                     const drag = cropDragRef.current;
@@ -557,8 +560,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                     const rect = event.currentTarget.getBoundingClientRect();
                     const dx = (event.clientX - drag.x) / rect.width * 100;
                     const dy = (event.clientY - drag.y) / rect.height * 100;
-                    setPositionX(Math.max(0, Math.min(100, drag.positionX - dx)));
-                    setPositionY(Math.max(0, Math.min(100, drag.positionY - dy)));
+                    updateActiveCrop({positionX:Math.max(0, Math.min(100, drag.positionX - dx)),positionY:Math.max(0, Math.min(100, drag.positionY - dy))});
                   }}
                   onPointerUp={event => {
                     cropDragRef.current = null;
