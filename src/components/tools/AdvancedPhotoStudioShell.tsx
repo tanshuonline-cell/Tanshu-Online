@@ -344,6 +344,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <div className="grid content-start justify-center overflow-hidden border border-white/20 bg-white shadow-2xl" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552,gridTemplateColumns:`repeat(${sheetCols},minmax(0,1fr))`,gridAutoRows:`${(sheetMode === '4x6' ? 450 : 552) * documentSize.heightMm / (sheetMode === '4x6' ? 152.4 : 297)}px`,gap:`${Math.max(1,sheetGap/2)}px`,padding:`${Math.max(2,sheetMargin/2)}px`}}>
                     {Array.from({length:visibleCopies},(_,i)=><div key={i} className="relative overflow-hidden border border-dashed border-[#C9C9C9] bg-[#F3F3F3]"><img src={photos[i % photos.length]?.url || selected.url} alt={`Print copy ${i+1}`} className="h-full w-full object-cover" style={{objectPosition:`${positionX}% ${positionY}%`,transform:`scale(${cropZoom/100})`}}/><span className="absolute bottom-0 right-0 bg-black/60 px-1 text-[8px] text-white">{i+1}</span></div>)}
                   </div>
+                  <div className="flex items-center justify-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2">
+                    <button type="button" onClick={() => setSheetCopies(value => Math.min(sheetCapacity, 60, value + 1))} disabled={visibleCopies >= sheetCapacity || visibleCopies >= 60} className="studio-control flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] disabled:opacity-40"><Plus size={12}/> Duplicate photo</button>
+                    <button type="button" onClick={() => setSheetCopies(value => Math.max(1, value - 1))} disabled={sheetCopies <= 1} className="studio-control flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] disabled:opacity-40"><X size={12}/> Delete last photo</button>
+                  </div>
                 </div>
               ) : selected ? (
                 <div
