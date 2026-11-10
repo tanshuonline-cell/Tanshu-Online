@@ -58,7 +58,7 @@ export async function deletePrivateDocument(
   objectKey: string
 ): Promise<void> {
   const { base, key, bucket } = storageConfig(env);
-  const response = await fetch(objectUrl(base, objectKey), {
+  const response = await fetch(objectUrl(base, bucket, objectKey), {
     method: 'DELETE',
     headers: { apikey: key, 'Cache-Control': 'no-store' }
   });
