@@ -101,6 +101,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [slotDrag, setSlotDrag] = useState<{id:string;px:number;py:number;sx:number;sy:number}|null>(null);
   const [menuOpen, setMenuOpen] = useState<string|null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string|null>(null);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
   const [deleteModeEnabled, setDeleteModeEnabled] = useState(false);
   const [canUndo, setCanUndo] = useState(false); const [canRedo, setCanRedo] = useState(false);
   const undoStackRef = useRef<EditorSnapshot[]>([]); const redoStackRef = useRef<EditorSnapshot[]>([]);
@@ -232,6 +233,52 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (uploadRef.current) uploadRef.current.value = '';
   };
 
+
+  const autoArrangeSheet = () => {
+    if (!sheetSlots.length) return;
+    const topY = Math.min(...sheetSlots.map(slot => slot.y));
+    const topRow = sheetSlots.filter(slot => Math.abs(slot.y - topY) <= Math.max(1, documentSize.heightMm * 0.35)).sort((a,b) => a.x - b.x);
+    const rowYs = [...new Set(sheetSlots.map(slot => Math.round(slot.y * 10) / 10))].sort((a,b) => a-b);
+    const measuredSteps = rowYs.slice(1).map((value,index) => value - rowYs[index]).filter(value => value >= documentSize.heightMm);
+    const rowStep = measuredSteps.length ? measuredSteps[0] : documentSize.heightMm + sheetGap;
+    const anchors = topRow.length ? topRow : [sheetSlots[0]];
+    const pageW = sheetMode === '4x6' ? 101.6 : 210;
+    const pageH = sheetMode === '4x6' ? 152.4 : 297;
+    setSheetSlots(current => current.map((slot,index) => {
+      const anchor = anchors[index % anchors.length];
+      const row = Math.floor(index / anchors.length);
+      return { ...slot, x: Math.max(sheetMargin, Math.min(pageW - sheetMargin - slot.width, anchor.x)), y: Math.max(sheetMargin, Math.min(pageH - sheetMargin - slot.height, topY + row * rowStep)) };
+    }));
+  };
+
+  const mergeSheetPhotos = async (mergeAll = false) => {
+    const chosenIds = mergeAll ? sheetSlots.map(slot => slot.id) : selectedSlotIds;
+    const chosen = sheetSlots.filter(slot => chosenIds.includes(slot.id));
+    if (chosen.length < 2) return;
+    const left = Math.min(...chosen.map(slot => slot.x)), top = Math.min(...chosen.map(slot => slot.y));
+    const right = Math.max(...chosen.map(slot => slot.x + slot.width)), bottom = Math.max(...chosen.map(slot => slot.y + slot.height));
+    const scale = 300 / 25.4, canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round((right-left)*scale)); canvas.height = Math.max(1, Math.round((bottom-top)*scale));
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    for (const slot of chosen) {
+      const photo = photos.find(item => item.id === slot.photoId); if (!photo) continue;
+      const image = await new Promise<HTMLImageElement>((resolve,reject) => { const img = new Image(); img.onload=()=>resolve(img); img.onerror=()=>reject(new Error('A photo could not be loaded for merging.')); img.src=photo.url; });
+      const ratio=documentSize.widthPx/documentSize.heightPx, baseWidth=Math.min(image.naturalWidth,image.naturalHeight*ratio), baseHeight=baseWidth/ratio;
+      const cropScale=Math.max(1,cropZoom/100), sourceWidth=baseWidth/cropScale, sourceHeight=baseHeight/cropScale;
+      const sourceX=Math.max(0,Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*positionX/100));
+      const sourceY=Math.max(0,Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*positionY/100));
+      const dx=(slot.x-left)*scale, dy=(slot.y-top)*scale, dw=slot.width*scale, dh=slot.height*scale;
+      ctx.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,dx,dy,dw,dh);
+      if(borderEnabled&&borderWidthMm>0){ctx.save();ctx.strokeStyle=borderColor;ctx.lineWidth=borderWidthMm*scale;ctx.strokeRect(dx+ctx.lineWidth/2,dy+ctx.lineWidth/2,Math.max(0,dw-ctx.lineWidth),Math.max(0,dh-ctx.lineWidth));ctx.restore();}
+    }
+    const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Merged image export failed.')),'image/png'));
+    const file=new File([blob],'tanshu-studio-merged.png',{type:'image/png'});
+    const photo={id:'merged-'+Date.now()+'-'+Math.random().toString(36).slice(2),file,url:URL.createObjectURL(file),width:canvas.width,height:canvas.height};
+    const mergedSlot={id:'slot-merged-'+Date.now(),photoId:photo.id,x:left,y:top,width:right-left,height:bottom-top};
+    setPhotos(current=>[...current,photo]); setSheetSlots(current=>[...current.filter(slot=>!chosenIds.includes(slot.id)),mergedSlot]);
+    setSheetCopies(current=>Math.max(1,current-chosen.length+1)); setSelectedId(photo.id); setSelectedSlotId(mergedSlot.id); setSelectedSlotIds([mergedSlot.id]);
+  };
+
   const removeSelected = () => {
     if (!selected) return;
     setPhotos(current => {
@@ -340,6 +387,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         .studio-avatar { background:linear-gradient(180deg,#E8D8C6 0%,#C8B19B 100%); }
         .studio-hair { background:#55504B; }
         .studio-accent { color:#B6C0CA; }
+        .studio-trash-lid { transform-origin: right bottom; }
+        .group:hover .studio-trash-lid, .group:focus-visible .studio-trash-lid { transform: rotate(-58deg) translate(-3px,-4px) scaleX(1.12); }
       `}</style>
       <div className="studio-shell flex min-h-screen flex-col">
         <header className="flex h-[58px] shrink-0 items-center justify-between border-b studio-line bg-[#171A1D] px-5">
@@ -379,7 +428,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   else if(action==='4 × 6 inch sheet')setSheetMode('4x6');
                   else if(action==='A4 sheet')setSheetMode('a4');
                   else if(action==='Custom photo size')setPreset('custom');
-                  else if(action==='Auto arrange photos')setSheetSlots(current=>current.map((slot,i)=>({...slot,x:sheetMargin+(i%sheetCols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/sheetCols)*(documentSize.heightMm+sheetGap)})));
+                  else if(action==='Auto arrange photos')autoArrangeSheet();
                   else if(action==='Center selected photo')setSheetSlots(current=>current.map(slot=>slot.photoId===selected?.id?{...slot,x:((sheetMode==='4x6'?101.6:210)-slot.width)/2,y:((sheetMode==='4x6'?152.4:297)-slot.height)/2}:slot));
                   else if(action==='Zoom in')setZoom(value=>Math.min(200,value+25));
                   else if(action==='Zoom out')setZoom(value=>Math.max(25,value-25));
@@ -440,15 +489,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="flex max-h-full max-w-full flex-col items-center gap-3" style={{transform:`scale(${zoom / 100})`}}>
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetMode === '4x6' ? '4 × 6 INCH SHEET' : 'A4 PRINT SHEET'} · {visibleCopies} / {sheetCopies} COPIES · {sheetCapacity} MAX FIT</div>
                   <div className="relative overflow-hidden border border-white/20 bg-white shadow-2xl" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552}}>
-                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSelectedSlotId(slot.id);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<sheetCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;if(wantsCopy&&canCopy){setSheetSlots(current=>[...current,{...slot,id:dragId}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);}setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{if(!slotDrag)return;const rect=event.currentTarget.parentElement!.getBoundingClientRect();const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const others=current.filter(item=>item.id!==slotDrag.id);const position=getSmartSheetPosition(slotDrag.sx+dx,slotDrag.sy+dy,moving,others,pageW,pageH,sheetMargin,sheetGap);return current.map(item=>item.id===slotDrag.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>setSlotDrag(null)} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'1px dashed #AEB7C0',outline:isChosen?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
+                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>{event.stopPropagation();if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<sheetCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;if(wantsCopy&&canCopy){setSheetSlots(current=>[...current,{...slot,id:dragId}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);}setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{if(!slotDrag)return;const rect=event.currentTarget.parentElement!.getBoundingClientRect();const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const others=current.filter(item=>item.id!==slotDrag.id);const position=getSmartSheetPosition(slotDrag.sx+dx,slotDrag.sy+dy,moving,others,pageW,pageH,sheetMargin,sheetGap);return current.map(item=>item.id===slotDrag.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>setSlotDrag(null)} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'none',outline:(selectedSlotIds.includes(slot.id)||isChosen)?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{objectPosition:positionX+'% '+positionY+'%',transform:'scale('+(cropZoom/100)+')'}}/>
-                      {isChosen&&deleteModeEnabled&&<button type="button" aria-label={'Delete photo '+(i+1)+' from sheet'} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="pointer-events-none absolute -top-[3px] h-[3px] w-3 rounded-t bg-white/90 transition-transform duration-200 origin-bottom group-hover:-rotate-[28deg] group-hover:-translate-y-[2px]"/><Trash2 size={15} className="origin-top transition-transform duration-200 group-hover:rotate-[-10deg]"/></button>}
+                      {isChosen&&deleteModeEnabled&&<button type="button" aria-label={'Delete photo '+(i+1)+' from sheet'} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
                       <span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
                     </div>})}
                   </div>
                   <div className="flex items-center justify-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2">
                     <button type="button" onClick={()=>{const pageW=sheetMode==='4x6'?101.6:210;const cols=Math.max(1,Math.floor((pageW-sheetMargin*2+sheetGap)/(documentSize.widthMm+sheetGap)));const i=sheetSlots.length;const source=selected||photos[0];if(!source)return;setSheetSlots(current=>[...current,{id:'slot-'+Date.now(),photoId:source.id,x:sheetMargin+(i%cols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/cols)*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm}]);setSheetCopies(current=>Math.min(60,current+1));}} disabled={sheetSlots.length>=sheetCapacity||sheetSlots.length>=60} className="studio-control flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] disabled:opacity-40"><Plus size={12}/> Add photo</button>
-                    <button type="button" onClick={()=>setSheetSlots(current=>current.map((slot,i)=>({...slot,x:sheetMargin+(i%sheetCols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/sheetCols)*(documentSize.heightMm+sheetGap)})))} className="studio-control px-2.5 py-1.5 text-[10px]">Auto arrange</button>
+                    <button type="button" onClick={autoArrangeSheet} className="studio-control px-2.5 py-1.5 text-[10px]">Auto arrange</button><button type="button" onClick={()=>void mergeSheetPhotos(false)} disabled={selectedSlotIds.length<2} className="studio-control px-2.5 py-1.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-35">Merge selected</button><button type="button" onClick={()=>void mergeSheetPhotos(true)} disabled={sheetSlots.length<2} className="studio-control px-2.5 py-1.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-35">Merge all</button>
                   </div>
                 </div>
               ) : selected ? (
