@@ -11,7 +11,7 @@ import { jsPDF } from 'jspdf';
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number };
 type StudioPreset = 'india' | 'stamp' | 'pan' | 'custom';
 type StudioUnit = 'mm' | 'cm' | 'in';
-type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number };
+type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number };
 type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: 'single'|'4x6'|'a4'; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
 const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; widthMm: number; heightMm: number }> = {
   india: { label: 'India Passport / Exam', widthMm: 35, heightMm: 45 },
@@ -128,6 +128,18 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const selected = photos.find(photo => photo.id === selectedId) || photos[0] || null;
+  const selectedSheetSlot = sheetSlots.find(slot => slot.id === selectedSlotId) || null;
+  const activeCropZoom = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.cropZoom ?? 100) : cropZoom;
+  const activePositionX = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionX ?? 50) : positionX;
+  const activePositionY = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionY ?? 50) : positionY;
+  const updateActiveCrop = (patch: Partial<Pick<SheetSlot, 'cropZoom'|'positionX'|'positionY'>>) => {
+    if (sheetMode !== 'single' && selectedSheetSlot) setSheetSlots(current => current.map(slot => slot.id === selectedSheetSlot.id ? { ...slot, ...patch } : slot));
+    else {
+      if (patch.cropZoom !== undefined) setCropZoom(patch.cropZoom);
+      if (patch.positionX !== undefined) setPositionX(patch.positionX);
+      if (patch.positionY !== undefined) setPositionY(patch.positionY);
+    }
+  };
   const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
   const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
   const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>p.id),zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
@@ -210,7 +222,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const result = current.slice(0, count).map(slot => ({...slot, photoId: photos.some(p => p.id === slot.photoId) ? slot.photoId : photos[0].id}));
       const pageW = sheetMode === '4x6' ? 101.6 : 210;
       const cols = Math.max(1, Math.floor((pageW - sheetMargin * 2 + sheetGap) / (documentSize.widthMm + sheetGap)));
-      while (result.length < count) { const i=result.length; result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:photos[i%photos.length].id,x:sheetMargin+(i%cols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/cols)*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm}); }
+      while (result.length < count) { const i=result.length; result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:photos[i%photos.length].id,x:sheetMargin+(i%cols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/cols)*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
       return result;
     });
   }, [sheetMode, visibleCopies, sheetCapacity, photos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap]);
@@ -264,9 +276,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const photo = photos.find(item => item.id === slot.photoId); if (!photo) continue;
       const image = await new Promise<HTMLImageElement>((resolve,reject) => { const img = new Image(); img.onload=()=>resolve(img); img.onerror=()=>reject(new Error('A photo could not be loaded for merging.')); img.src=photo.url; });
       const ratio=documentSize.widthPx/documentSize.heightPx, baseWidth=Math.min(image.naturalWidth,image.naturalHeight*ratio), baseHeight=baseWidth/ratio;
-      const cropScale=Math.max(1,cropZoom/100), sourceWidth=baseWidth/cropScale, sourceHeight=baseHeight/cropScale;
-      const sourceX=Math.max(0,Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*positionX/100));
-      const sourceY=Math.max(0,Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*positionY/100));
+      const cropScale=Math.max(1,(slot.cropZoom ?? 100)/100), sourceWidth=baseWidth/cropScale, sourceHeight=baseHeight/cropScale;
+      const sourceX=Math.max(0,Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*(slot.positionX ?? 50)/100));
+      const sourceY=Math.max(0,Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*(slot.positionY ?? 50)/100));
       const dx=(slot.x-left)*scale, dy=(slot.y-top)*scale, dw=slot.width*scale, dh=slot.height*scale;
       ctx.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,dx,dy,dw,dh);
       if(borderEnabled&&borderWidthMm>0){ctx.save();ctx.strokeStyle=borderColor;ctx.lineWidth=borderWidthMm*scale;ctx.strokeRect(dx+ctx.lineWidth/2,dy+ctx.lineWidth/2,Math.max(0,dw-ctx.lineWidth),Math.max(0,dh-ctx.lineWidth));ctx.restore();}
@@ -352,9 +364,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const image = images[Math.max(0, sourcePhotos.findIndex(photo => photo.id === slot.photoId))] || images[0];
       const ratio = documentSize.widthPx / documentSize.heightPx;
       const baseWidth = Math.min(image.naturalWidth, image.naturalHeight * ratio), baseHeight = baseWidth / ratio;
-      const scale = Math.max(1, cropZoom / 100), sourceWidth = baseWidth / scale, sourceHeight = baseHeight / scale;
-      const sourceX = Math.max(0, Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*positionX/100));
-      const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*positionY/100));
+      const scale = Math.max(1, (slot.cropZoom ?? 100) / 100), sourceWidth = baseWidth / scale, sourceHeight = baseHeight / scale;
+      const sourceX = Math.max(0, Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*(slot.positionX ?? 50)/100));
+      const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*(slot.positionY ?? 50)/100));
       const destX=slot.x*300/25.4, destY=slot.y*300/25.4, destW=slot.width*300/25.4, destH=slot.height*300/25.4;
       ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, destX, destY, destW, destH);
       if (borderEnabled && borderWidthMm > 0) { ctx.save(); ctx.strokeStyle=borderColor; ctx.lineWidth=borderWidthMm*300/25.4; ctx.strokeRect(destX+ctx.lineWidth/2,destY+ctx.lineWidth/2,Math.max(0,destW-ctx.lineWidth),Math.max(0,destH-ctx.lineWidth)); ctx.restore(); }
@@ -451,9 +463,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   else if(action==='Export PNG')void(sheetMode==='single'?exportSelectedPhoto('png'):exportPrintSheet('png'));
                   else if(action==='Export PDF')void(sheetMode==='single'?exportSelectedPhoto('pdf'):exportPrintSheet('pdf'));
                   else if(action==='Delete selected photo')removeSelected();
-                  else if(action==='Reset crop'){setCropZoom(100);setPositionX(50);setPositionY(50);}
+                  else if(action==='Reset crop'){updateActiveCrop({cropZoom:100,positionX:50,positionY:50});}
                   else if(action==='Open manual crop studio'){setActiveTool('Crop');setCropDialogOpen(true);}
-                  else if(action==='Center crop'){setPositionX(50);setPositionY(50);}
+                  else if(action==='Center crop'){updateActiveCrop({positionX:50,positionY:50});}
                   else if(action==='Single Photo')setSheetMode('single');
                   else if(action==='4 × 6 inch sheet')setSheetMode('4x6');
                   else if(action==='A4 sheet')setSheetMode('a4');
@@ -520,7 +532,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetMode === '4x6' ? '4 × 6 INCH SHEET' : 'A4 PRINT SHEET'} · {visibleCopies} / {sheetCopies} COPIES · {sheetCapacity} MAX FIT</div>
                   <div tabIndex={0} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552}}>
                     {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>{event.stopPropagation();if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<sheetCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;if(wantsCopy&&canCopy){setSheetSlots(current=>[...current,{...slot,id:dragId}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);}setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{if(!slotDrag)return;const rect=event.currentTarget.parentElement!.getBoundingClientRect();const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const others=current.filter(item=>item.id!==slotDrag.id);const position=getSmartSheetPosition(slotDrag.sx+dx,slotDrag.sy+dy,moving,others,pageW,pageH,sheetMargin,sheetGap);return current.map(item=>item.id===slotDrag.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>setSlotDrag(null)} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'none',outline:(selectedSlotIds.includes(slot.id)||isChosen)?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
-                      <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{objectPosition:positionX+'% '+positionY+'%',transform:'scale('+(cropZoom/100)+')'}}/>
+                      <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:'scale('+((slot.cropZoom ?? 100)/100)+')'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={'Delete photo '+(i+1)+' from sheet'} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotIds(current=>current.filter(id=>id!==slot.id));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
                       <span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
                     </div>})}
@@ -576,9 +588,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">{activeTool === 'Move' ? 'Move Settings' : `${activeTool} Settings`}</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {activeTool === 'Crop' && <div className="border-b studio-line p-4">
-                <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
-                {([['Crop zoom',cropZoom,setCropZoom,100,300],['Horizontal position',positionX,setPositionX,0,100],['Vertical position',positionY,setPositionY,0,100]] as const).map(([label,value,setter,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>setter(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></label>)}
-                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>setPositionX(50)} className="studio-control py-1.5 text-[9px]">Center X</button><button type="button" onClick={()=>setPositionY(50)} className="studio-control py-1.5 text-[9px]">Center Y</button></div>
+                <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => updateActiveCrop({cropZoom:100,positionX:50,positionY:50})} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset selected crop</button></div>
+                {([['Crop zoom',activeCropZoom,'cropZoom',100,300],['Horizontal position',activePositionX,'positionX',0,100],['Vertical position',activePositionY,'positionY',0,100]] as const).map(([label,value,key,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>updateActiveCrop({[key]:Number(event.target.value)})} className="w-full accent-[#AEB8C2]"/></label>)}
+                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>updateActiveCrop({positionX:50})} className="studio-control py-1.5 text-[9px]">Center X</button><button type="button" onClick={()=>updateActiveCrop({positionY:50})} className="studio-control py-1.5 text-[9px]">Center Y</button></div>
                 <button type="button" onClick={()=>setCropDialogOpen(true)} className="studio-control mt-3 flex w-full items-center justify-center gap-2 py-2 text-[10px]"><Crop size={13}/> Open manual crop studio</button>
               </div>}
               <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'print':'adjust'} hideTabs />
