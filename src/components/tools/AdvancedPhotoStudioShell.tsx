@@ -171,8 +171,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const handlePreviewWheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
-      const step = event.deltaY < 0 ? 10 : -10;
-      const zoomStep = current => current < 200 ? 10 : current < 500 ? 25 : 50;
+      const zoomStep = (current: number) => current < 200 ? 10 : current < 500 ? 25 : 50;
       setZoom(current => Math.max(10, Math.min(1600, current + (event.deltaY < 0 ? zoomStep(current) : -zoomStep(current)))));
     };
     element.addEventListener('wheel', handlePreviewWheel, { passive: false });
