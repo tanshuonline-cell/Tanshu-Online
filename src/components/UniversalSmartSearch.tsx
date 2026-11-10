@@ -3,6 +3,7 @@ import { Search, X, ArrowRight, Wrench, Building2, Award, Play, ChevronRight, Sp
 import { searchUniversal, SearchResultItem } from '../utils/searchIndex';
 import { ToolItem, GovernmentService, GovernmentScheme, VideoGuide } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { TOOL_HINDI_TRANSLATIONS } from '../data/toolTranslations';
 
 interface Props {
   onSelectTool: (tool: ToolItem) => void;
@@ -131,6 +132,24 @@ export const UniversalSmartSearch: React.FC<Props> = ({
     setSelectedIndex(-1);
   };
 
+  const getDisplayTitle = (item: SearchResultItem): string => {
+    if (!isHindi) return item.title;
+    if (item.type === 'tool') return TOOL_HINDI_TRANSLATIONS[item.id]?.name || item.title;
+    if (item.type === 'service') return (item.rawItem as GovernmentService).hindiTitle || item.title;
+    if (item.type === 'scheme') return (item.rawItem as GovernmentScheme).hindiName || item.title;
+    if (item.type === 'video') return (item.rawItem as VideoGuide).hindiTitle || item.title;
+    return item.title;
+  };
+
+  const getDisplaySubtitle = (item: SearchResultItem): string => {
+    if (!isHindi) return item.subtitle;
+    if (item.type === 'tool') return TOOL_HINDI_TRANSLATIONS[item.id]?.description || item.subtitle;
+    if (item.type === 'service') return (item.rawItem as GovernmentService).hindiSummary || item.subtitle;
+    if (item.type === 'scheme') return (item.rawItem as GovernmentScheme).hindiSummary || item.subtitle;
+    if (item.type === 'video') return (item.rawItem as VideoGuide).hindiDescription || item.subtitle;
+    return item.subtitle;
+  };
+
   const getItemBadge = (item: SearchResultItem) => {
     switch (item.type) {
       case 'tool':
@@ -212,7 +231,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || defaultPlaceholder}
-          aria-label="Universal Search"
+          aria-label={isHindi ? "सभी सेवाओं में खोजें" : "Universal Search"}
           autoComplete="off"
           spellCheck="false"
           className="flex-1 w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none px-1 py-1 font-medium"
@@ -223,7 +242,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
             type="button"
             onClick={handleClear}
             className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
-            aria-label="Clear Search"
+            aria-label={isHindi ? "खोज साफ़ करें" : "Clear Search"}
             title={isHindi ? 'खोज साफ़ करें' : 'Clear search'}
           >
             <X className="w-4 h-4" />
@@ -235,7 +254,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
             type="button"
             onClick={() => setIsOpen(false)}
             className="hidden sm:inline-flex px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-            title="Close results"
+            title={isHindi ? "परिणाम बंद करें" : "Close results"}
           >
             {isHindi ? 'बंद करें' : 'Close'}
           </button>
@@ -264,7 +283,7 @@ export const UniversalSmartSearch: React.FC<Props> = ({
               type="button"
               onClick={() => setIsOpen(false)}
               className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200/60 cursor-pointer"
-              title="Close search"
+              title={isHindi ? "खोज बंद करें" : "Close search"}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -288,17 +307,12 @@ export const UniversalSmartSearch: React.FC<Props> = ({
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             {getItemBadge(item)}
-                            {item.hindiTitle && (
-                              <span className="text-xs font-semibold text-slate-500 font-sans">
-                                {item.hindiTitle}
-                              </span>
-                            )}
                           </div>
                           <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-1">
-                            {item.title}
+                            {getDisplayTitle(item)}
                           </div>
                           <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                            {item.subtitle}
+                            {getDisplaySubtitle(item)}
                           </div>
                         </div>
 

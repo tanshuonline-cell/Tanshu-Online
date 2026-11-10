@@ -153,14 +153,14 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/70 text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-2">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Sarkari Navigation Hub · श्रेणी अनुसार सेवाएं</span>
+              <span>{t('catNav.kicker', 'Sarkari Navigation Hub · Centralized Citizen Directory')}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Browse by Government Category
+              {t('catNav.title', 'Browse by Government Category')}
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
-            Direct access to verified Bihar state portals, Central citizen services, DBT welfare subsidies, and 89 online cyber cafe utility tools.
+            {t('catNav.desc', 'Direct access to verified government services, schemes, and online utility tools.')}
           </p>
         </div>
 
@@ -182,21 +182,21 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     <Building2 className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-black text-indigo-900 bg-indigo-100/90 px-3 py-1 rounded-full border border-indigo-200/80 tabular-nums shadow-2xs">
-                    {biharServices.length} Services
+                    {biharServices.length} {isHindi ? 'सेवाएँ' : 'Services'}
                   </span>
                 </div>
 
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-950 transition-colors tracking-tight leading-snug mb-1">
-                  Bihar Govt Services
+                  {isHindi ? 'बिहार सरकारी सेवाएँ' : 'Bihar Govt Services'}
                 </h3>
                 <p className="text-xs font-semibold text-indigo-700 mb-2">बिहार सरकारी सेवाएं</p>
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                  RTPS Caste, Income, Residence, Bihar Bhumi Dakhil-Kharij, Jamabandi, LPC &amp; EPDS Ration Card.
+                  {isHindi ? 'RTPS जाति, आय और निवास प्रमाण पत्र, बिहार भूमि दाखिल-खारिज, जमाबंदी, LPC और राशन कार्ड।' : 'RTPS Caste, Income, Residence, Bihar Bhumi Dakhil-Kharij, Jamabandi, LPC & EPDS Ration Card.'}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-indigo-100/80 flex items-center justify-between text-xs font-bold text-indigo-700 group-hover:text-indigo-950">
-                <span>Explore Bihar Services</span>
+                <span>{isHindi ? 'बिहार सेवाएँ देखें' : 'Explore Bihar Services'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
               </div>
             </div>
@@ -214,21 +214,21 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     <Landmark className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-black text-blue-900 bg-blue-100/90 px-3 py-1 rounded-full border border-blue-200/80 tabular-nums shadow-2xs">
-                    {centralServices.length} Services
+                    {centralServices.length} {isHindi ? 'सेवाएँ' : 'Services'}
                   </span>
                 </div>
 
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-blue-950 transition-colors tracking-tight leading-snug mb-1">
-                  Central Govt Services
+                  {isHindi ? 'केंद्रीय सरकारी सेवाएँ' : 'Central Govt Services'}
                 </h3>
                 <p className="text-xs font-semibold text-blue-700 mb-2">केंद्रीय सरकारी सेवाएं</p>
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                  Aadhaar PVC &amp; Updates, PAN Verification, Voter Portal, Parivahan Driving License &amp; Passport Seva.
+                  {isHindi ? 'आधार PVC और अपडेट, PAN सत्यापन, वोटर पोर्टल, परिवहन ड्राइविंग लाइसेंस और पासपोर्ट सेवा।' : 'Aadhaar PVC & Updates, PAN Verification, Voter Portal, Parivahan Driving License & Passport Seva.'}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-blue-100/80 flex items-center justify-between text-xs font-bold text-blue-700 group-hover:text-blue-950">
-                <span>Explore Central Services</span>
+                <span>{isHindi ? 'केंद्रीय सेवाएँ देखें' : 'Explore Central Services'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
               </div>
             </div>
@@ -246,21 +246,21 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     <GraduationCap className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-black text-emerald-900 bg-emerald-100/90 px-3 py-1 rounded-full border border-emerald-200/80 tabular-nums shadow-2xs">
-                    {biharSchemes.length} Schemes
+                    {biharSchemes.length} {isHindi ? 'योजनाएँ' : 'Schemes'}
                   </span>
                 </div>
 
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-950 transition-colors tracking-tight leading-snug mb-1">
-                  Bihar Govt Schemes
+                  {isHindi ? 'बिहार सरकारी योजनाएँ' : 'Bihar Govt Schemes'}
                 </h3>
                 <p className="text-xs font-semibold text-emerald-700 mb-2">बिहार सरकारी योजनाएं</p>
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                  Mukhyamantri Udyami Yojana (₹10 Lakh), Student Credit Card, Kanya Utthan, KYP &amp; Diesel Anudan.
+                  {isHindi ? 'मुख्यमंत्री उद्यमी योजना (₹10 लाख), स्टूडेंट क्रेडिट कार्ड, कन्या उत्थान, KYP और डीज़ल अनुदान।' : 'Mukhyamantri Udyami Yojana (₹10 Lakh), Student Credit Card, Kanya Utthan, KYP & Diesel Anudan.'}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-emerald-100/80 flex items-center justify-between text-xs font-bold text-emerald-700 group-hover:text-emerald-950">
-                <span>Explore Bihar Schemes</span>
+                <span>{isHindi ? 'बिहार योजनाएँ देखें' : 'Explore Bihar Schemes'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
               </div>
             </div>
@@ -278,21 +278,21 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-black text-amber-900 bg-amber-100/90 px-3 py-1 rounded-full border border-amber-200/80 tabular-nums shadow-2xs">
-                    {centralSchemes.length} Schemes
+                    {centralSchemes.length} {isHindi ? 'योजनाएँ' : 'Schemes'}
                   </span>
                 </div>
 
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-amber-950 transition-colors tracking-tight leading-snug mb-1">
-                  Central Govt Schemes
+                  {isHindi ? 'केंद्रीय सरकारी योजनाएँ' : 'Central Govt Schemes'}
                 </h3>
                 <p className="text-xs font-semibold text-amber-700 mb-2">केंद्रीय सरकारी योजनाएं</p>
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                  PM Kisan Samman Nidhi DBT, Ayushman Bharat (₹5 Lakh), PM Awas Yojana &amp; PM Vishwakarma.
+                  {isHindi ? 'पीएम किसान सम्मान निधि, आयुष्मान भारत (₹5 लाख), पीएम आवास योजना और पीएम विश्वकर्मा योजना।' : 'PM Kisan Samman Nidhi DBT, Ayushman Bharat (₹5 Lakh), PM Awas Yojana & PM Vishwakarma.'}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-amber-100/80 flex items-center justify-between text-xs font-bold text-amber-800 group-hover:text-amber-950">
-                <span>Explore Central Schemes</span>
+                <span>{isHindi ? 'केंद्रीय योजनाएँ देखें' : 'Explore Central Schemes'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
               </div>
             </div>
@@ -310,21 +310,21 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     <Wrench className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-black text-purple-900 bg-purple-100/90 px-3 py-1 rounded-full border border-purple-200/80 tabular-nums shadow-2xs">
-                    {allToolsCount} Tools
+                    {allToolsCount} {isHindi ? 'टूल्स' : 'Tools'}
                   </span>
                 </div>
 
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-purple-950 transition-colors tracking-tight leading-snug mb-1">
-                  All Online Tools
+                  {isHindi ? 'सभी ऑनलाइन टूल्स' : 'All Online Tools'}
                 </h3>
                 <p className="text-xs font-semibold text-purple-700 mb-2">सभी ऑनलाइन टूल्स</p>
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                  Passport photo maker, PVC card layout, PDF compress, Hindi typing &amp; cyber cafe utilities.
+                  {isHindi ? 'पासपोर्ट फोटो, PVC कार्ड लेआउट, PDF कंप्रेस, हिंदी टाइपिंग और साइबर कैफ़े के टूल्स।' : 'Passport photo maker, PVC card layout, PDF compress, Hindi typing & cyber cafe utilities.'}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-purple-100/80 flex items-center justify-between text-xs font-bold text-purple-700 group-hover:text-purple-950">
-                <span>Explore All 89 Tools</span>
+                <span>{isHindi ? 'सभी 89 टूल्स देखें' : 'Explore All 89 Tools'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
               </div>
             </div>
@@ -350,20 +350,20 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-2xs hover:border-slate-300 cursor-pointer active:scale-95"
                 >
                   <ArrowLeft className="w-4 h-4 text-slate-600" />
-                  <span>Back to Categories</span>
+                  <span>{isHindi ? 'श्रेणियों पर वापस जाएँ' : 'Back to Categories'}</span>
                 </button>
 
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    {activeCategory === 'bihar-services' && 'Bihar Government Services (बिहार सरकारी सेवाएं)'}
-                    {activeCategory === 'central-services' && 'Central Government Services (केंद्रीय सरकारी सेवाएं)'}
-                    {activeCategory === 'bihar-schemes' && 'Bihar Government Schemes (बिहार सरकारी योजनाएं)'}
-                    {activeCategory === 'central-schemes' && 'Central Government Schemes (केंद्रीय सरकारी योजनाएं)'}
+                    {activeCategory === 'bihar-services' && (isHindi ? 'बिहार सरकारी सेवाएँ' : 'Bihar Government Services')}
+                    {activeCategory === 'central-services' && (isHindi ? 'केंद्रीय सरकारी सेवाएँ' : 'Central Government Services')}
+                    {activeCategory === 'bihar-schemes' && (isHindi ? 'बिहार सरकारी योजनाएँ' : 'Bihar Government Schemes')}
+                    {activeCategory === 'central-schemes' && (isHindi ? 'केंद्रीय सरकारी योजनाएँ' : 'Central Government Schemes')}
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">
                     {activeCategory.includes('services') 
-                      ? `Showing ${displayedServices.length} of ${activeCategory === 'bihar-services' ? biharServices.length : centralServices.length} official services with full application guides`
-                      : `Showing ${displayedSchemes.length} of ${activeCategory === 'bihar-schemes' ? biharSchemes.length : centralSchemes.length} national & state welfare schemes`}
+                      ? (isHindi ? `${displayedServices.length} में से ${activeCategory === 'bihar-services' ? biharServices.length : centralServices.length} सरकारी सेवाएँ उपलब्ध हैं` : `Showing ${displayedServices.length} of ${activeCategory === 'bihar-services' ? biharServices.length : centralServices.length} official services with full application guides`)
+                      : (isHindi ? `${displayedSchemes.length} में से ${activeCategory === 'bihar-schemes' ? biharSchemes.length : centralSchemes.length} सरकारी योजनाएँ उपलब्ध हैं` : `Showing ${displayedSchemes.length} of ${activeCategory === 'bihar-schemes' ? biharSchemes.length : centralSchemes.length} national & state welfare schemes`)}
                   </p>
                 </div>
               </div>
@@ -378,7 +378,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Bihar Services ({biharServices.length})
+                  {isHindi ? `बिहार सेवाएँ (${biharServices.length})` : `Bihar Services (${biharServices.length})`}
                 </button>
                 <button
                   onClick={() => handleSelectCategory('central-services')}
@@ -388,7 +388,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Central Services ({centralServices.length})
+                  {isHindi ? `केंद्रीय सेवाएँ (${centralServices.length})` : `Central Services (${centralServices.length})`}
                 </button>
                 <button
                   onClick={() => handleSelectCategory('bihar-schemes')}
@@ -398,7 +398,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Bihar Schemes ({biharSchemes.length})
+                  {isHindi ? `बिहार योजनाएँ (${biharSchemes.length})` : `Bihar Schemes (${biharSchemes.length})`}
                 </button>
                 <button
                   onClick={() => handleSelectCategory('central-schemes')}
@@ -408,13 +408,13 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                       : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 font-medium'
                   }`}
                 >
-                  Central Schemes ({centralSchemes.length})
+                  {isHindi ? `केंद्रीय योजनाएँ (${centralSchemes.length})` : `Central Schemes (${centralSchemes.length})`}
                 </button>
                 <button
                   onClick={onOpenAllTools}
                   className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 rounded-lg hover:bg-white/60 transition-colors cursor-pointer"
                 >
-                  Tools ({allToolsCount})
+                  {isHindi ? `टूल्स (${allToolsCount})` : `Tools (${allToolsCount})`}
                 </button>
               </div>
 
@@ -428,7 +428,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   type="text"
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
-                  placeholder={`Search in ${activeCategory.replace('-', ' ')}...`}
+                  placeholder={isHindi ? `${activeCategory.replace('-', ' ')} में खोजें...` : `Search in ${activeCategory.replace('-', ' ')}...`}
                   className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-colors text-slate-800 placeholder-slate-400"
                 />
                 {filterQuery && (
@@ -436,7 +436,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                     onClick={() => setFilterQuery('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
                   >
-                    Clear
+                    {isHindi ? 'साफ़ करें' : 'Clear'}
                   </button>
                 )}
               </div>
@@ -447,9 +447,9 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
               <div className="p-4 sm:p-6 space-y-3.5">
                 {displayedServices.length === 0 ? (
                   <div className="py-12 text-center text-slate-500 text-xs">
-                    No services matched "{filterQuery}". Try a different keyword or{' '}
+                    {isHindi ? `"${filterQuery}" से मेल खाती कोई सेवा नहीं मिली। दूसरा शब्द खोजें या ` : `No services matched "${filterQuery}". Try a different keyword or `}{' '}
                     <button onClick={() => setFilterQuery('')} className="text-blue-600 underline font-semibold">
-                      clear filter
+                      {isHindi ? 'फ़िल्टर साफ़ करें' : 'clear filter'}
                     </button>.
                   </div>
                 ) : (
@@ -523,7 +523,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                               onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors border border-blue-200/60"
                             >
-                              <span>{isHindi ? 'पोर्टल (Portal)' : 'Official Portal'}</span>
+                              <span>{isHindi ? 'आधिकारिक पोर्टल' : 'Official Portal'}</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
                             <button
@@ -640,9 +640,9 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
               <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {displayedSchemes.length === 0 ? (
                   <div className="col-span-full py-12 text-center text-slate-500 text-xs">
-                    No schemes matched "{filterQuery}". Try a different keyword or{' '}
+                    {isHindi ? `"${filterQuery}" से मेल खाती कोई योजना नहीं मिली। दूसरा शब्द खोजें या ` : `No schemes matched "${filterQuery}". Try a different keyword or `}{' '}
                     <button onClick={() => setFilterQuery('')} className="text-blue-600 underline font-semibold">
-                      clear filter
+                      {isHindi ? 'फ़िल्टर साफ़ करें' : 'clear filter'}
                     </button>.
                   </div>
                 ) : (
@@ -691,7 +691,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
 
                           <div className="p-2.5 bg-emerald-50/70 border border-emerald-100 rounded-lg text-xs text-emerald-950 mb-3 space-y-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
-                              {isHindi ? 'सीधा वित्तीय लाभ (Benefit)' : 'Financial Benefit'}
+                              {isHindi ? 'सीधा वित्तीय लाभ' : 'Financial Benefit'}
                             </span>
                             <BilingualText
                               en={scheme.financialBenefit}
@@ -738,7 +738,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Official Portal"
+                            title={isHindi ? 'आधिकारिक पोर्टल' : 'Official Portal'}
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
@@ -757,7 +757,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                 className="inline-flex items-center gap-1.5 text-slate-700 hover:text-blue-700 font-semibold cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Return to 5 Category Cards</span>
+                <span>{isHindi ? '5 श्रेणी कार्ड पर वापस जाएँ' : 'Return to 5 Category Cards'}</span>
               </button>
 
               <div className="flex items-center gap-4">
@@ -765,14 +765,14 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                   onClick={onOpenAllTools}
                   className="text-blue-700 hover:underline font-semibold cursor-pointer"
                 >
-                  View All {allToolsCount} Tools Directory →
+                  {isHindi ? `सभी ${allToolsCount} टूल्स की डायरेक्टरी देखें →` : `View All ${allToolsCount} Tools Directory →`}
                 </button>
                 {onScrollToTop && (
                   <button
                     onClick={onScrollToTop}
                     className="text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
-                    Top of Page ↑
+                    {isHindi ? 'पेज के शीर्ष पर जाएँ ↑' : 'Top of Page ↑'}
                   </button>
                 )}
               </div>
@@ -892,7 +892,7 @@ export const CategoryNavigationSection: React.FC<Props> = ({ onOpenAllTools, onS
                 onClick={() => setSelectedSchemeModal(null)}
                 className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
               >
-                {isHindi ? 'बंद करें (Close)' : 'Close'}
+                {isHindi ? 'बंद करें' : 'Close'}
               </button>
               <a
                 href={selectedSchemeModal.officialPortal}
