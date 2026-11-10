@@ -1,14 +1,14 @@
+import { cashfreeApiBase } from '../_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/admin/payment
 // Admin-only creation of one-time Cashfree Payment Links for manually priced requests.
-// This branch is deliberately Sandbox-only. Live credentials/endpoints must not be enabled here.
 interface Env {
   DIGITAL_SEVA_DB?: any;
   ADMIN_SECRET_TOKEN?: string;
   CASHFREE_APP_ID?: string;
   CASHFREE_SECRET_KEY?: string;
+  CASHFREE_ENVIRONMENT?: string;
 }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
-const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
 const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
 const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
 function json(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status, headers }); }
@@ -43,7 +43,7 @@ function validOrigin(request: Request): boolean {
 }
 async function cancelCashfreeLink(linkId: string, appId: string, secret: string): Promise<boolean> {
   try {
-    const response = await fetch(`${CASHFREE_API}/links/${encodeURIComponent(linkId)}/cancel`, {
+    const response = await fetch(`${cashfreeApiBase(env)}/links/${encodeURIComponent(linkId)}/cancel`, {
       method: 'POST',
       headers: {
         'x-client-id': appId,
@@ -73,7 +73,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
   const appId = env.CASHFREE_APP_ID;
   const secret = env.CASHFREE_SECRET_KEY;
-  if (!appId || !secret) return json({ success: false, error: 'Cashfree Sandbox credentials are not configured in this Preview environment yet.' }, 503);
+  if (!appId || !secret) return json({ success: false, error: 'Cashfree credentials are not configured for this environment.' }, 503);
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The payment request is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
@@ -158,7 +158,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const result = await cashfreeResponse.json().catch(() => ({})) as any;
     if (!cashfreeResponse.ok || !result.link_url || !result.link_id) {
       console.error('Cashfree link creation failed:', cashfreeResponse.status, result);
-      return json({ success: false, error: 'Cashfree could not create the payment link. Check Sandbox credentials and Cashfree API access.' }, 502);
+      return json({ success: false, error: 'Cashfree could not create the payment link. Check the configured Cashfree credentials and API access.' }, 502);
     }
     createdCashfreeLinkId = String(result.link_id);
     const paymentId = crypto.randomUUID();
