@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import { removeBackgroundAI } from './backgroundRemovalAI';
 import { retouchFaceSkinLocally } from './skinRetouch';
 
-type PhotoItem = { id: string; file: File; url: string; width: number; height: number };
+type PhotoItem = { id: string; file: File; url: string; width: number; height: number; kind?: 'photo'|'signature' };
 type Props = {
   selected: PhotoItem | null;
   photos: PhotoItem[];
