@@ -316,8 +316,35 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         </header>
 
         <nav className="flex h-[48px] shrink-0 items-center justify-between border-b studio-line bg-[#1B1F23] px-5">
-          <div className="flex items-center gap-1 text-[12px]">
-            {['File','Edit','Image','Canvas','Arrange','View','Help'].map((item, index) => <span key={item} className={`rounded px-3 py-2 ${index===0?'text-[#E0E4E8]':'studio-muted'}`}>{item}</span>)}
+          <div className="relative flex items-center gap-1 text-[12px]">
+            {['File','Edit','Image','Canvas','Arrange','View','Help'].map(item=><div key={item} className="relative">
+              <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-3 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>
+              {menuOpen===item && <div className="absolute left-0 top-10 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
+                {(item==='File'?['Import photo','Export JPG','Export PNG','Export PDF']:item==='Edit'?['Delete selected photo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 inch sheet','A4 sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" onClick={()=>{
+                  if(action==='Import photo')uploadRef.current?.click();
+                  else if(action==='Export JPG')void(sheetMode==='single'?exportSelectedPhoto('jpg'):exportPrintSheet('jpg'));
+                  else if(action==='Export PNG')void(sheetMode==='single'?exportSelectedPhoto('png'):exportPrintSheet('png'));
+                  else if(action==='Export PDF')void(sheetMode==='single'?exportSelectedPhoto('pdf'):exportPrintSheet('pdf'));
+                  else if(action==='Delete selected photo')removeSelected();
+                  else if(action==='Reset crop'){setCropZoom(100);setPositionX(50);setPositionY(50);}
+                  else if(action==='Open manual crop studio'){setActiveTool('Crop');setCropDialogOpen(true);}
+                  else if(action==='Center crop'){setPositionX(50);setPositionY(50);}
+                  else if(action==='Single Photo')setSheetMode('single');
+                  else if(action==='4 × 6 inch sheet')setSheetMode('4x6');
+                  else if(action==='A4 sheet')setSheetMode('a4');
+                  else if(action==='Custom photo size')setPreset('custom');
+                  else if(action==='Auto arrange photos')setSheetSlots(current=>current.map((slot,i)=>({...slot,x:sheetMargin+(i%sheetCols)*(documentSize.widthMm+sheetGap),y:sheetMargin+Math.floor(i/sheetCols)*(documentSize.heightMm+sheetGap)})));
+                  else if(action==='Center selected photo')setSheetSlots(current=>current.map(slot=>slot.photoId===selected?.id?{...slot,x:((sheetMode==='4x6'?101.6:210)-slot.width)/2,y:((sheetMode==='4x6'?152.4:297)-slot.height)/2}:slot));
+                  else if(action==='Zoom in')setZoom(value=>Math.min(200,value+25));
+                  else if(action==='Zoom out')setZoom(value=>Math.max(25,value-25));
+                  else if(action==='Reset zoom')setZoom(100);
+                  else if(action==='How to move photos')window.alert('On a 4×6 or A4 sheet, press and hold any photo, then drag it to the required position.');
+                  else if(action==='How to delete a photo')window.alert('Click the red X icon on the photo you want to remove from the sheet.');
+                  else if(action==='How to crop manually'){setActiveTool('Crop');setCropDialogOpen(true);}
+                  setMenuOpen(null);
+                }} className="block w-full rounded px-3 py-2 text-left text-[11px] text-[#C9CFD5] hover:bg-[#30373E]">{action}</button>)}
+              </div>}
+            </div>)}
           </div>
           <div className="flex items-center gap-2">
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px]"><Search size={13} className="studio-muted"/> Search tools and actions <span className="ml-5 rounded border border-[#3B424A] px-1.5 py-0.5 text-[9px] studio-muted">⌘ K</span></div>
