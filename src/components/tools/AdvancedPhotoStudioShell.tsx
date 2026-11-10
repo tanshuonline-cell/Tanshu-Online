@@ -537,8 +537,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     processedImage.src = url;
     if (source.kind === 'signature') {
       setPhotos(current => current.map(photo => photo.id === source.id ? processedLayer : photo));
-      setSignaturePlacement(current => current || { x: 0.34, y: 0.72, width: 0.32 });
-      setSignatureSelected(true);
+      // Keep the cleaned signature in its layer; the user places it by dragging the layer onto the preview.
+
     } else {
       setPhotos(current => [...current, processedLayer]);
       setSelectedId(processedLayer.id);
@@ -551,7 +551,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const layer: StudioPhoto = { id: `signature-${Date.now()}-${Math.random().toString(36).slice(2)}`, file, url, width: 0, height: 0, kind: 'signature', cropZoom: 100, positionX: 50, positionY: 50 };
     const image = new Image(); image.onload = () => setPhotos(current => current.map(item => item.id === layer.id ? { ...item, width: image.naturalWidth, height: image.naturalHeight } : item)); image.src = url;
     setPhotos(current => [...current.filter(item=>item.kind!=='signature'), layer]);
-    setSignaturePlacement({x:0.34,y:0.72,width:0.32});setSignatureSelected(true);
+    setSignaturePlacement(null);setSignatureSelected(false);
   };
 
   const updateDimensions = (id: string, width: number, height: number) => {
@@ -653,7 +653,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const handleSignatureDrop = (event: React.DragEvent<HTMLDivElement>, pageWidthMm:number, pageHeightMm:number) => {
     const layerId = event.dataTransfer.getData('application/x-tanshu-signature-layer');
-    if (!layerId || !signaturePhoto || signaturePhoto.id !== layerId) return;
+    if (!layerId || !signaturePhoto || signaturePhoto.id !== layerId || !signaturePhoto.width || !signaturePhoto.height) return;
     event.preventDefault();
     const rect = event.currentTarget.getBoundingClientRect();
     const width = signaturePlacement?.width ?? 0.32;
@@ -955,7 +955,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="mt-2 flex items-center justify-between border-t studio-line pt-2 text-[10px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
                 <div className="flex items-center justify-between border-t studio-line py-2 text-[10px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               </div>
-              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>setSignatureSelected(true)} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
+              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>{setSignaturePlacement(current=>current||{x:0.34,y:0.72,width:0.32});setSignatureSelected(true);}} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
               <div className="border-t studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
                 {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} draggable={photo.kind==='signature'} onDragStart={event=>{if(photo.kind!=='signature')return;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-tanshu-signature-layer',photo.id);}} className={`flex items-center gap-2 rounded-md border p-2 ${selectedId === photo.id || (photo.kind==='signature' && signatureSelected) ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'} ${photo.kind==='signature'?'cursor-grab active:cursor-grabbing':''}`}><button type="button" onClick={() => {if(photo.kind==='signature'){setSignatureSelected(true);}else{setSelectedId(photo.id);}}} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">{photo.kind==='signature'?'Signature layer · Drag to preview':'Image · '+(photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions')}</span></span></button><button type="button" aria-label={'Delete '+(photo.kind==='signature'?'signature':'photo')+' layer'} title="Delete layer" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();removeLayer(photo.id);}} className="rounded p-1 text-[#9AA3AD] hover:bg-red-500/15 hover:text-red-400"><X size={14}/></button></div>)}
