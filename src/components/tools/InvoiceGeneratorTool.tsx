@@ -3,6 +3,14 @@ import { jsPDF } from 'jspdf';
 import { Plus, Trash2, Printer, Download, Receipt, Building, User, IndianRupee } from 'lucide-react';
 import { InvoiceData, InvoiceItem } from '../../types';
 
+// Use local calendar dates so Indian users never get a previous-day invoice date.
+function toLocalDateInput(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Convert number to Indian currency words
 function numberToIndianWords(num: number): string {
   const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
@@ -44,27 +52,14 @@ function numberToIndianWords(num: number): string {
 export const InvoiceGeneratorTool: React.FC = () => {
   const [data, setData] = useState<InvoiceData>({
     invoiceNumber: `TSO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    invoiceDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    businessName: 'TANSHU DIGITAL SEVA & CYBER KENDRA',
-    businessGstin: '07AABCT1234Q1Z5',
-    businessAddress: 'Main Market Road, Near SBI Bank, Ward No. 4',
-    businessPhone: '+91 98765 43210',
-    businessEmail: 'tanshuonline@gmail.com',
-    customerName: 'Ramesh Kumar',
-    customerPhone: '+91 98111 22334',
-    customerAddress: 'Village Post Rampur, District Sadar',
-    customerGstin: '',
-    items: [
-      { id: '1', description: 'PVC Smart ID Card Printing (CR80 Both Sides)', quantity: 2, unitPrice: 70, gstRate: 18 },
-      { id: '2', description: 'Passport Size Photos (Sheet of 8 Pcs on Glossy Paper)', quantity: 1, unitPrice: 50, gstRate: 0 },
-      { id: '3', description: 'Online Govt Form Submission & e-KYC Verification', quantity: 1, unitPrice: 100, gstRate: 18 },
-      { id: '4', description: 'Document Scanning & Color Printout', quantity: 4, unitPrice: 10, gstRate: 18 }
-    ],
-    notes: 'Thank you for choosing TANSHU Digital Seva! Keep this invoice for any service warranty.',
-    terms: 'Computer generated bill. No physical signature required. All digital submissions are subject to government verification guidelines.',
-    paymentMode: 'UPI',
-    upiId: 'tanshuonline@upi'
+    invoiceDate: toLocalDateInput(),
+    dueDate: toLocalDateInput(new Date(Date.now() + 7 * 86400000)),
+    businessName: '', businessGstin: '', businessAddress: '', businessPhone: '', businessEmail: '',
+    customerName: '', customerPhone: '', customerAddress: '', customerGstin: '',
+    items: [{ id: '1', description: '', quantity: 1, unitPrice: 0, gstRate: 0 }],
+    notes: 'Thank you for your business.',
+    terms: 'This is a computer-generated invoice.',
+    paymentMode: 'Cash', upiId: ''
   });
 
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
@@ -94,10 +89,10 @@ export const InvoiceGeneratorTool: React.FC = () => {
   const handleAddItem = () => {
     const newItem: InvoiceItem = {
       id: Date.now().toString(),
-      description: 'New Digital Service',
+      description: '',
       quantity: 1,
-      unitPrice: 50,
-      gstRate: 18
+      unitPrice: 0,
+      gstRate: 0
     };
     setData({ ...data, items: [...data.items, newItem] });
   };
@@ -115,6 +110,11 @@ export const InvoiceGeneratorTool: React.FC = () => {
   };
 
   const handlePrint = () => {
+    if (activeTab !== 'preview') {
+      setActiveTab('preview');
+      window.setTimeout(() => window.print(), 180);
+      return;
+    }
     window.print();
   };
 
@@ -134,8 +134,9 @@ export const InvoiceGeneratorTool: React.FC = () => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(71, 85, 105);
-    doc.text(data.businessAddress, 14, 26);
-    doc.text(`Phone: ${data.businessPhone} | Email: ${data.businessEmail}`, 14, 31);
+    if (data.businessAddress) doc.text(data.businessAddress, 14, 26);
+    const businessContact = [data.businessPhone && `Phone: ${data.businessPhone}`, data.businessEmail && `Email: ${data.businessEmail}`].filter(Boolean).join(' | ');
+    if (businessContact) doc.text(businessContact, 14, 31);
     if (data.businessGstin) {
       doc.text(`GSTIN: ${data.businessGstin}`, 14, 36);
     }
@@ -149,27 +150,28 @@ export const InvoiceGeneratorTool: React.FC = () => {
     doc.setFontSize(9);
     doc.text(`Invoice No: ${data.invoiceNumber}`, 196, 26, { align: 'right' });
     doc.text(`Date: ${data.invoiceDate}`, 196, 31, { align: 'right' });
-    doc.text(`Payment: ${data.paymentMode}`, 196, 36, { align: 'right' });
+    if (data.dueDate) doc.text(`Due: ${data.dueDate}`, 196, 36, { align: 'right' });
+    doc.text(`Payment: ${data.paymentMode}`, 196, 41, { align: 'right' });
 
     // Divider line
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.5);
-    doc.line(14, 42, 196, 42);
+    doc.line(14, 48, 196, 48);
 
     // Bill To
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(30, 41, 59);
-    doc.text('BILLED TO:', 14, 50);
+    doc.text('BILLED TO:', 14, 56);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(`Name: ${data.customerName}`, 14, 56);
-    doc.text(`Phone: ${data.customerPhone}`, 14, 61);
-    doc.text(`Address: ${data.customerAddress}`, 14, 66);
-    if (data.customerGstin) doc.text(`GSTIN: ${data.customerGstin}`, 14, 71);
+    if (data.customerName) doc.text(`Name: ${data.customerName}`, 14, 62);
+    if (data.customerPhone) doc.text(`Phone: ${data.customerPhone}`, 14, 67);
+    if (data.customerAddress) doc.text(`Address: ${data.customerAddress}`, 14, 72);
+    if (data.customerGstin) doc.text(`GSTIN: ${data.customerGstin}`, 14, 77);
 
     // Table Header
-    let y = 80;
+    let y = 86;
     doc.setFillColor(241, 245, 249);
     doc.rect(14, y, 182, 8, 'F');
     doc.setFont('helvetica', 'bold');
@@ -186,16 +188,24 @@ export const InvoiceGeneratorTool: React.FC = () => {
     doc.setFont('helvetica', 'normal');
     data.items.forEach((item, index) => {
       const lineTotal = item.quantity * item.unitPrice;
-      doc.text(`${index + 1}`, 16, y + 4);
-      doc.text(item.description, 26, y + 4);
-      doc.text(`${item.quantity}`, 125, y + 4, { align: 'right' });
-      doc.text(item.unitPrice.toFixed(2), 150, y + 4, { align: 'right' });
-      doc.text(lineTotal.toFixed(2), 194, y + 4, { align: 'right' });
-      
-      doc.setDrawColor(241, 245, 249);
-      doc.line(14, y + 7, 196, y + 7);
-      y += 8;
+      const descriptionLines = doc.splitTextToSize(item.description || '—', 92);
+      const rowHeight = Math.max(8, descriptionLines.length * 4.5 + 3);
+      if (y + rowHeight > 265) {
+        doc.addPage(); y = 20;
+        doc.setFillColor(241, 245, 249); doc.rect(14, y, 182, 8, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+        doc.text('SL', 16, y + 5.5); doc.text('DESCRIPTION OF GOODS / SERVICES', 26, y + 5.5);
+        doc.text('QTY', 125, y + 5.5, { align: 'right' }); doc.text('RATE (Rs)', 150, y + 5.5, { align: 'right' });
+        doc.text('AMOUNT (Rs)', 194, y + 5.5, { align: 'right' }); y += 9; doc.setFont('helvetica', 'normal');
+      }
+      doc.text(`${index + 1}`, 16, y + 4); doc.text(descriptionLines, 26, y + 4);
+      doc.text(`${item.quantity}`, 125, y + 4, { align: 'right' }); doc.text(item.unitPrice.toFixed(2), 150, y + 4, { align: 'right' });
+      doc.text(lineTotal.toFixed(2), 194, y + 4, { align: 'right' }); doc.setDrawColor(241, 245, 249);
+      doc.line(14, y + rowHeight, 196, y + rowHeight); y += rowHeight;
     });
+
+    // Keep totals together on a fresh page when the item list is long.
+    if (y > 235) { doc.addPage(); y = 22; }
 
     // Totals Block
     y += 4;
@@ -231,14 +241,16 @@ export const InvoiceGeneratorTool: React.FC = () => {
     // Bank / UPI details
     y += 10;
     doc.setFont('helvetica', 'normal');
-    doc.text(`Payment UPI VPA: ${data.upiId}`, 14, y);
-    doc.text(`Terms: ${data.terms}`, 14, y + 6);
+    if (data.upiId) doc.text(`Payment UPI VPA: ${data.upiId}`, 14, y);
+    if (data.terms) doc.text(`Terms: ${data.terms}`, 14, y + 6);
+    if (data.notes) doc.text(doc.splitTextToSize(`Notes: ${data.notes}`, 180), 14, y + (data.terms ? 12 : 6));
 
     doc.save(`invoice_${data.invoiceNumber}.pdf`);
   };
 
   return (
     <div className="space-y-6">
+      <style>{`@media print { @page { size: A4; margin: 10mm; } body * { visibility: hidden !important; } .invoice-print-area, .invoice-print-area * { visibility: visible !important; } .invoice-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; } }`}</style>
       {/* Tab Switcher */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div className="flex gap-2">
@@ -323,7 +335,11 @@ export const InvoiceGeneratorTool: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-600 block mb-1">UPI ID (For QR Code Payments)</label>
+                <label className="text-xs text-slate-600 block mb-1">Business Email (Optional)</label>
+                <input type="email" value={data.businessEmail} onChange={(e) => setData({ ...data, businessEmail: e.target.value })} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-blue-600" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-600 block mb-1">UPI ID (Optional — for QR payments)</label>
                 <input
                   type="text"
                   value={data.upiId}
@@ -390,7 +406,16 @@ export const InvoiceGeneratorTool: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-600 block mb-1">Payment Method</label>
+                <label className="text-xs text-slate-600 block mb-1">Customer GSTIN (Optional)</label>
+                <input type="text" value={data.customerGstin} onChange={(e) => setData({ ...data, customerGstin: e.target.value.toUpperCase() })} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 font-mono uppercase" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-600 block mb-1">Due Date (Optional)</label>
+                  <input type="date" value={data.dueDate} onChange={(e) => setData({ ...data, dueDate: e.target.value })} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 block mb-1">Payment Method</label>
                 <select
                   value={data.paymentMode}
                   onChange={(e) => setData({ ...data, paymentMode: e.target.value as any })}
@@ -402,6 +427,8 @@ export const InvoiceGeneratorTool: React.FC = () => {
                   <option value="Card">Debit / Credit Card</option>
                 </select>
               </div>
+              <div><label className="text-xs text-slate-600 block mb-1">Invoice Notes (Optional)</label><textarea value={data.notes} onChange={(e) => setData({ ...data, notes: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Thank you for your business..." /></div>
+              <div><label className="text-xs text-slate-600 block mb-1">Terms & Conditions (Optional)</label><textarea value={data.terms} onChange={(e) => setData({ ...data, terms: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Payment terms..." /></div>
             </div>
           </div>
 
@@ -500,7 +527,7 @@ export const InvoiceGeneratorTool: React.FC = () => {
         </div>
       ) : (
         /* Printable Bill View */
-        <div ref={printAreaRef} className="max-w-3xl mx-auto bg-white border border-slate-300 rounded-lg p-8 shadow-sm text-slate-800">
+        <div ref={printAreaRef} className="invoice-print-area max-w-3xl mx-auto bg-white border border-slate-300 rounded-lg p-8 shadow-sm text-slate-800">
           {/* Top Brand Banner */}
           <div className="flex justify-between items-start border-b-2 border-blue-900 pb-5">
             <div>
@@ -516,6 +543,7 @@ export const InvoiceGeneratorTool: React.FC = () => {
               <div className="text-xs uppercase tracking-wider text-slate-500">Invoice Number</div>
               <div className="text-sm font-mono font-bold text-slate-900">{data.invoiceNumber}</div>
               <div className="text-xs text-slate-500 mt-1">Date: <span className="font-medium text-slate-700">{data.invoiceDate}</span></div>
+              {data.dueDate && <div className="text-xs text-slate-500">Due: <span className="font-medium text-slate-700">{data.dueDate}</span></div>}
               <div className="text-xs text-slate-500">Payment: <span className="font-medium text-emerald-700">{data.paymentMode}</span></div>
             </div>
           </div>
@@ -526,7 +554,8 @@ export const InvoiceGeneratorTool: React.FC = () => {
               <span className="font-semibold text-slate-900 block mb-1">Customer Details:</span>
               <p className="font-medium text-slate-800">{data.customerName}</p>
               <p className="text-slate-600">{data.customerAddress}</p>
-              <p className="text-slate-600">Contact: {data.customerPhone}</p>
+              {data.customerPhone && <p className="text-slate-600">Contact: {data.customerPhone}</p>}
+              {data.customerGstin && <p className="text-slate-600">GSTIN: {data.customerGstin}</p>}
             </div>
             <div className="flex flex-col items-end justify-center">
               {data.upiId && (
@@ -579,7 +608,8 @@ export const InvoiceGeneratorTool: React.FC = () => {
               <p className="text-slate-600 italic bg-slate-50 p-2 rounded border border-slate-200">
                 {numberToIndianWords(grandTotal)}
               </p>
-              <p className="text-[10px] text-slate-500 pt-2">{data.terms}</p>
+              {data.terms && <p className="text-[10px] text-slate-500 pt-2">{data.terms}</p>}
+              {data.notes && <p className="text-[10px] text-slate-500 pt-1">{data.notes}</p>}
             </div>
 
             <div className="w-64 space-y-1.5 text-right font-mono">
