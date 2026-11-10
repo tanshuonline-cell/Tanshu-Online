@@ -63,7 +63,6 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
                 { id: 'schemes', label: t('footer.nav.schemes', 'Government Schemes') },
                 { id: 'videos', label: t('footer.nav.videos', 'Latest Videos') },
                 { id: 'about', label: t('footer.nav.about', 'About Us') },
-                { id: 'digital-center', label: isHindi ? 'Tanshu Digital Center' : 'Tanshu Digital Center' },
               ].map((item) => (
                 <li key={item.id}>
                   <button
@@ -75,6 +74,9 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
                 </li>
               ))}
             </ul>
+            <a href="/digital-seva" className="inline-flex items-center gap-1.5 pt-2 font-bold text-cyan-300 hover:text-white transition-colors">
+              Tanshu Digital Center <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
 
           {/* Col 3: Key Tools */}
