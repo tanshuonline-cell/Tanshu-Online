@@ -11,7 +11,7 @@ type Props = {
   widthPx: number;
   heightPx: number;
   onApplyImage: (blob: Blob, suffix: string) => void;
-  activeSection?: 'adjust'|'background'|'portrait'|'signature'|'print';
+  activeSection?: 'move'|'adjust'|'background'|'portrait'|'signature'|'print';
   hideTabs?: boolean;
 };
 
@@ -24,7 +24,7 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
 export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, activeSection, hideTabs = false }) => {
-  const [section, setSection] = useState<'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
+  const [section, setSection] = useState<'move'|'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
   React.useEffect(() => { if (activeSection) setSection(activeSection); }, [activeSection]);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
@@ -177,6 +177,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     </>}
 
     {!selected ? <p className="mt-3 text-[10px] studio-muted">Import a photo to enable editing tools.</p> : <div className="mt-3 space-y-3">
+      {section==='move' && <p className="text-[10px] leading-5 studio-muted">Drag the photo directly on the canvas to reposition it. Use the zoom controls above the canvas to adjust the view.</p>}
       {section==='adjust' && <>
         {([['Brightness',brightness,setBrightness],['Contrast',contrast,setContrast],['Saturation',saturation,setSaturation]] as const).map(([label,value,setter])=><label key={label} className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min="0" max="200" value={value} onChange={e=>setter(Number(e.target.value))}/></label>)}
         <button disabled={disabled} onClick={applyAdjustments} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Check size={13}/> Apply adjustments</button>
