@@ -103,9 +103,14 @@ export const InvoiceGeneratorTool: React.FC = () => {
   };
 
   const handleItemChange = (id: string, field: keyof InvoiceItem, value: any) => {
+    const safeValue = field === 'quantity'
+      ? Math.max(1, Number(value) || 1)
+      : field === 'unitPrice'
+        ? Math.max(0, Number(value) || 0)
+        : value;
     setData({
       ...data,
-      items: data.items.map(item => item.id === id ? { ...item, [field]: value } : item)
+      items: data.items.map(item => item.id === id ? { ...item, [field]: safeValue } : item)
     });
   };
 
@@ -427,8 +432,8 @@ export const InvoiceGeneratorTool: React.FC = () => {
                   <option value="Card">Debit / Credit Card</option>
                 </select>
               </div>
-              <div><label className="text-xs text-slate-600 block mb-1">Invoice Notes (Optional)</label><textarea value={data.notes} onChange={(e) => setData({ ...data, notes: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Thank you for your business..." /></div>
-              <div><label className="text-xs text-slate-600 block mb-1">Terms & Conditions (Optional)</label><textarea value={data.terms} onChange={(e) => setData({ ...data, terms: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Payment terms..." /></div>
+              <div className="col-span-2"><label className="text-xs text-slate-600 block mb-1">Invoice Notes (Optional)</label><textarea value={data.notes} onChange={(e) => setData({ ...data, notes: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Thank you for your business..." /></div>
+              <div className="col-span-2"><label className="text-xs text-slate-600 block mb-1">Terms & Conditions (Optional)</label><textarea value={data.terms} onChange={(e) => setData({ ...data, terms: e.target.value })} rows={2} className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800" placeholder="Payment terms..." /></div>
             </div>
           </div>
 
