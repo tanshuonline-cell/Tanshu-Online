@@ -4,7 +4,12 @@ import {
   ArrowLeft, ChevronDown, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
   Layers3, Palette, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
-  MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer
+  MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer,
+  Maximize2, Minimize2,
+  Move, MousePointer, Lasso, SquareDashedMousePointer, RotateCw, FlipHorizontal,
+  Ruler, Paintbrush, Stamp, Eraser, Pipette, Sun, Contrast, SlidersHorizontal,
+  Type, PenTool, Shapes, Hand, Download, Sparkles, ScanSearch, UserRound,
+  Highlighter, Eye, CircleHelp, Blend, Wand, CircleDot, Focus, ScanLine, Search
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -81,6 +86,52 @@ const toolItems = [
   { icon: Grid2X2, label: 'Layout' },
 ];
 
+const toolGroups: { id: string; label: string; icon: typeof MousePointer; tools: [string, typeof MousePointer][] }[] = [
+  { id: 'selection', label: 'Move & Selection', icon: MousePointer, tools: [
+    ['Move Selection', Move], ['Object Select', ScanSearch], ['Magic Select', Wand],
+    ['Lasso Select', Lasso], ['Marquee Select', SquareDashedMousePointer], ['Brush Select', Paintbrush],
+    ['Quick Select', MousePointer2], ['Subject Select', UserRound],
+  ]},
+  { id: 'transform', label: 'Crop & Transform', icon: Crop, tools: [
+    ['Crop', Crop], ['Rotate', RotateCw], ['Straighten', Ruler], ['Resize', Focus],
+    ['Perspective', ScanLine], ['Flip', FlipHorizontal],
+  ]},
+  { id: 'measure', label: 'Measurement', icon: Ruler, tools: [
+    ['Ruler', Ruler], ['Measure Distance', Move], ['Color Sampler', Pipette],
+  ]},
+  { id: 'retouch', label: 'Retouch & Repair', icon: WandSparkles, tools: [
+    ['Healing Brush', Blend], ['Spot Remover', CircleDot], ['Clone Stamp', Stamp],
+    ['Red Eye Remover', Eye], ['Blur', Focus], ['Sharpen', Highlighter],
+  ]},
+  { id: 'painting', label: 'Painting & Background', icon: Paintbrush, tools: [
+    ['Brush', Paintbrush], ['Eraser', Eraser], ['Background Eraser', Eraser],
+    ['Magic Background', WandSparkles], ['Replace Background', ImageIcon], ['Gradient', Blend],
+    ['Color Picker', Pipette],
+  ]},
+  { id: 'color', label: 'Light & Color', icon: SlidersHorizontal, tools: [
+    ['Brightness', Sun], ['Contrast', Contrast], ['Exposure', Focus], ['Curves', SlidersHorizontal],
+    ['Levels', Ruler], ['Saturation', Palette], ['Temperature', Sun], ['Black & White', CircleDot],
+    ['Selective Color', Pipette],
+  ]},
+  { id: 'drawing', label: 'Drawing & Type', icon: Type, tools: [
+    ['Text', Type], ['Signature', PenTool], ['Line', Move], ['Shapes', Shapes],
+    ['Pen', PenTool], ['Watermark', Stamp],
+  ]},
+  { id: 'navigation', label: 'Navigation & History', icon: Hand, tools: [
+    ['Zoom In', ZoomIn], ['Zoom Out', ZoomOut], ['Hand', Hand], ['Fit to Screen', Focus],
+    ['Undo', CircleHelp], ['Redo', CircleHelp], ['Before / After', Eye], ['Reset View', RotateCw],
+  ]},
+  { id: 'export', label: 'Export & Print', icon: Download, tools: [
+    ['Save Project', Download], ['Export JPG / PNG / WEBP', Download],
+    ['Print Preview', Printer], ['Photo Size Presets', Ruler], ['4 × 6 Sheet', Grid2X2], ['A4 Layout', Grid2X2],
+  ]},
+  { id: 'ai', label: 'AI Studio', icon: Sparkles, tools: [
+    ['AI Object Select', ScanSearch], ['Smart Face Enhance', UserRound], ['AI Skin Smooth', Sparkles],
+    ['AI Color Fix', WandSparkles], ['Smart Eraser', Eraser], ['AI Background', ImageIcon],
+    ['AI Photo Align', Focus], ['AI Shadow Control', Blend], ['AI Document Clean', ScanLine],
+  ]},
+];
+
 const swatches = ['#F4F1EA', '#D9E2EA', '#CBD5D0', '#D9D3CB', '#AAB6C2'];
 
 const STUDIO_DB = 'tanshu-studio-shell';
@@ -106,6 +157,22 @@ const dataUrlToFile = async (data: string, name: string) => {
 
 
 export const AdvancedPhotoStudioShell: React.FC = () => {
+  const studioRootRef = useRef<HTMLDivElement>(null);
+  const [isStudioFullscreen, setIsStudioFullscreen] = useState(false);
+  useEffect(() => {
+    const syncFullscreenState = () => setIsStudioFullscreen(document.fullscreenElement === studioRootRef.current);
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    syncFullscreenState();
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
+  const toggleStudioFullscreen = async () => {
+    try {
+      if (document.fullscreenElement === studioRootRef.current) await document.exitFullscreen();
+      else if (!document.fullscreenElement && studioRootRef.current?.requestFullscreen) await studioRootRef.current.requestFullscreen();
+    } catch {
+      // Keep the editor state untouched if the browser blocks fullscreen mode.
+    }
+  };
   const [photos, setPhotos] = useState<StudioPhoto[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [zoom, setZoom] = useState(100);
@@ -119,6 +186,18 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
+  const [openToolGroup, setOpenToolGroup] = useState<string | null>(null);
+  const [studioSearchQuery, setStudioSearchQuery] = useState('');
+  const [studioSearchOpen, setStudioSearchOpen] = useState(false);
+  const studioSearchInputRef = useRef<HTMLInputElement>(null);
+  const studioSearchResults = useMemo(() => {
+    const query = studioSearchQuery.trim().toLowerCase();
+    if (!query) return [];
+    return toolGroups.flatMap(group => group.tools
+      .filter(([label]) => label.toLowerCase().includes(query) || group.label.toLowerCase().includes(query))
+      .map(([label, Icon]) => ({ label, groupId: group.id, groupLabel: group.label, Icon }))
+    ).slice(0, 8);
+  }, [studioSearchQuery]);
   const [sheetMode, setSheetMode] = useState<SheetMode>('single');
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
@@ -214,6 +293,28 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   }, []);
 
   const uploadRef = useRef<HTMLInputElement>(null);
+  const restoreFullscreenAfterUploadRef = useRef(false);
+  const restoreStudioFullscreenAfterPicker = () => {
+    if (!restoreFullscreenAfterUploadRef.current) return;
+    if (document.fullscreenElement === studioRootRef.current) {
+      restoreFullscreenAfterUploadRef.current = false;
+      return;
+    }
+    const studioRoot = studioRootRef.current;
+    if (!studioRoot?.requestFullscreen) return;
+    void studioRoot.requestFullscreen().then(() => {
+      restoreFullscreenAfterUploadRef.current = false;
+    }).catch(() => {
+      // Keep the restore request pending; the file-input change handler can retry.
+    });
+  };
+  const openUploadPicker = () => {
+    restoreFullscreenAfterUploadRef.current = document.fullscreenElement === studioRootRef.current;
+    if (restoreFullscreenAfterUploadRef.current) {
+      window.addEventListener('focus', restoreStudioFullscreenAfterPicker, { once: true });
+    }
+    uploadRef.current?.click();
+  };
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const suppressSlotClickRef = useRef(false);
@@ -384,6 +485,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       setSelectedId(current => current || additions[0].id);
     }
     if (uploadRef.current) uploadRef.current.value = '';
+    restoreStudioFullscreenAfterPicker();
   };
 
 
@@ -555,6 +657,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       // Keep the cleaned signature in its layer; the user places it by dragging the layer onto the preview.
     } else {
       setPhotos(current => [...current, processedLayer]);
+      // When a sheet slot already uses this photo, point that slot at the processed layer
+      // so the cleaned/edited result appears on the 4x6, A4, or other print-sheet preview.
+      setSheetSlots(current => current.map(slot => slot.photoId === source.id
+        ? { ...slot, photoId: processedLayer.id }
+        : slot));
       setSelectedId(processedLayer.id);
     }
   };
@@ -728,15 +835,40 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#101214] text-[#D9DDE1] font-sans antialiased">
+    <div ref={studioRootRef} className="studio-root h-screen overflow-hidden bg-[#101214] text-[#D9DDE1] font-sans antialiased">
       <style>{`
+        .studio-root:fullscreen { width:100vw; height:100vh; background:#101214; }
         .studio-shell * { box-sizing: border-box; }
         .studio-shell { min-width: 1100px; height:100%; }
-        .studio-panel { background:#181B1F; border:1px solid #2A2F35; }
-        .studio-muted { color:#858D96; }
-        .studio-line { border-color:#2A2F35; }
-        .studio-control { border:1px solid #343A42; background:#202429; color:#C9CFD5; border-radius:7px; }
-        .studio-control:hover { background:#292F35; }
+        .studio-panel { background:#181B1F; border:1px solid #302C27; }
+        .studio-muted { color:#96918A; }
+        .studio-line { border-color:#302C27; }
+        .studio-control { border:1px solid #40382F; background:#211F1C; color:#DED7CC; border-radius:7px; transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s; }
+        .studio-control:hover { background-color:#30271E; border-color:#8A6238; color:#FFF2DE; box-shadow:0 0 0 1px rgba(202,143,70,.12),0 4px 18px rgba(190,125,48,.09); }
+        .studio-shell button:not(:disabled) { transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s,transform .2s; }
+        .studio-shell button:not(:disabled):hover { background-image:radial-gradient(circle at 50% 50%,rgba(229,170,91,.17) 0%,rgba(229,170,91,.07) 34%,transparent 72%); background-size:180% 180%; animation:studio-water-ripple .72s ease-out; }
+        .studio-shell button:not(:disabled):active { transform:translateY(1px); }
+        .studio-shell button:focus-visible,.studio-shell input:focus-visible,.studio-shell select:focus-visible { outline:2px solid rgba(211,151,75,.72); outline-offset:2px; }
+        .studio-shell .studio-photo-resize-handle:hover { background-image:none; animation:none; background-color:rgba(201,149,85,.10); box-shadow:0 0 10px rgba(201,149,85,.18); }
+        .studio-shell .studio-photo-resize-handle:focus-visible { outline:none; }
+        .studio-shell input[type="checkbox"] { accent-color:#C8893E; cursor:pointer; }
+        .studio-shell #studio-delete-mode { accent-color:#A94736; }
+        .studio-tool-button[data-tool="move"] svg { color:#78C8E8; }
+        .studio-tool-button[data-tool="crop"] svg { color:#A6A4F4; }
+        .studio-tool-button[data-tool="portrait"] svg { color:#D99BCB; }
+        .studio-tool-button[data-tool="retouch"] svg { color:#E8B65F; }
+        .studio-tool-button[data-tool="background"] svg { color:#83C69B; }
+        .studio-tool-button[data-tool="layout"] svg { color:#69C9C4; }
+        .studio-tool-button[data-tool="move"].is-active { background:rgba(79,157,190,.16); color:#D8F3FF; box-shadow:inset 0 0 0 1px rgba(105,190,220,.3); }
+        .studio-tool-button[data-tool="crop"].is-active { background:rgba(126,116,207,.16); color:#E3E0FF; box-shadow:inset 0 0 0 1px rgba(154,145,230,.3); }
+        .studio-tool-button[data-tool="portrait"].is-active { background:rgba(180,104,158,.16); color:#FFE5F5; box-shadow:inset 0 0 0 1px rgba(208,139,185,.3); }
+        .studio-tool-button[data-tool="retouch"].is-active { background:rgba(190,137,52,.17); color:#FFEBC5; box-shadow:inset 0 0 0 1px rgba(220,169,91,.3); }
+        .studio-tool-button[data-tool="background"].is-active { background:rgba(75,145,99,.17); color:#DFFFE7; box-shadow:inset 0 0 0 1px rgba(119,190,139,.3); }
+        .studio-tool-button[data-tool="layout"].is-active { background:rgba(55,147,145,.17); color:#D8FFFC; box-shadow:inset 0 0 0 1px rgba(101,195,190,.3); }
+        .studio-tool-group svg { color:#C99A60; }
+        .studio-tool-group.is-expanded { background:rgba(191,133,65,.14); color:#F5D7AD; box-shadow:inset 0 0 0 1px rgba(201,145,76,.28); }
+        @keyframes studio-water-ripple { 0% { background-size:45% 45%; } 100% { background-size:180% 180%; } }
+        @media (prefers-reduced-motion:reduce) { .studio-shell *, .studio-shell *::before, .studio-shell *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
         .studio-stage {
           background-color:#202429;
           background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
@@ -766,12 +898,26 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="text-[10px] tracking-[.16em] studio-muted">PHOTO, EDITING & PASSPORT STUDIO</div>
             </div>
           </div>
+          <div className="relative mx-5 flex min-w-0 flex-1 justify-center">
+            <form onSubmit={event => { event.preventDefault(); setStudioSearchOpen(true); }} className="flex h-7 w-full max-w-[340px] items-center gap-2 rounded-full border border-[#3A424A] bg-[#20252A] px-3 shadow-[inset_0_1px_2px_rgba(0,0,0,.22),0_2px_10px_rgba(0,0,0,.12)] transition-[border-color,box-shadow] duration-200 focus-within:border-[#C99555] focus-within:shadow-[0_2px_12px_rgba(201,149,85,.08)]">
+              <Search size={13} className="shrink-0 text-[#9DAAB6]" />
+              <input ref={studioSearchInputRef} value={studioSearchQuery} onChange={event => { setStudioSearchQuery(event.target.value); setStudioSearchOpen(true); }} onFocus={() => { if (studioSearchQuery) setStudioSearchOpen(true); }} placeholder="Search tools, text, fonts..." aria-label="Search studio tools, text and fonts" className="h-full min-w-0 flex-1 bg-transparent text-[10px] text-[#E0E5EA] outline-none placeholder:text-[#7F8993]" />
+              <button type="submit" aria-label="Search" title="Search" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#B8C4CE] transition hover:bg-[#35404A] hover:text-white"><Search size={12}/></button>
+            </form>
+            {studioSearchOpen && studioSearchQuery.trim() && <div className="absolute left-1/2 top-9 z-[80] w-full max-w-[340px] -translate-x-1/2 overflow-hidden rounded-xl border border-[#3A424A] bg-[#20252A] shadow-[0_16px_42px_rgba(0,0,0,.48)]">
+              <div className="flex items-center justify-between border-b border-[#343B43] px-3 py-2"><span className="text-[9px] font-semibold tracking-[.12em] text-[#8F9BA6]">STUDIO SEARCH</span><button type="button" onClick={() => setStudioSearchOpen(false)} className="text-[9px] text-[#8F9BA6] hover:text-white">Close</button></div>
+              {studioSearchResults.length ? <div className="max-h-64 overflow-y-auto p-1">{studioSearchResults.map((result, index) => <button key={result.groupId+'-'+result.label+'-'+index} type="button" onClick={() => { setOpenToolGroup(result.groupId); setStudioSearchOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition hover:bg-[#303840]"><result.Icon size={13} className="shrink-0 text-[#AAB7C3]"/><span className="min-w-0 flex-1"><span className="block text-[10px] text-[#E0E5EA]">{result.label}</span><span className="block text-[8px] text-[#87939E]">{result.groupLabel}</span></span><span className="text-[8px] text-[#7F8B96]">Coming soon</span></button>)}</div> : <div className="px-3 py-4 text-center text-[9px] text-[#929DA7]">No matching tools yet. Text and font libraries can be added here as they become available.</div>}
+            </div>}
+          </div>
           <div className="flex items-center gap-2">
             <div className="mr-3 flex items-center gap-1.5 rounded-md border border-[#343A42] bg-[#202429] px-2 py-1">
               <button type="button" aria-label="Zoom out" title="Zoom out" onClick={() => setZoom(value => Math.max(10, value - (value > 500 ? 50 : 25)))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomOut size={13}/></button>
               <span className="w-10 text-center text-[10px] tabular-nums text-[#C9CFD5]">{zoom}%</span>
               <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom(value => Math.min(1600, value + (value >= 500 ? 50 : 25)))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomIn size={13}/></button>
             </div>
+            <button type="button" onClick={() => void toggleStudioFullscreen()} aria-label={isStudioFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} title={isStudioFullscreen ? 'Exit fullscreen (Esc)' : 'Expand studio to fullscreen'} className="studio-control flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:text-white">
+              {isStudioFullscreen ? <Minimize2 size={14}/> : <Maximize2 size={14}/>}
+            </button>
             <span className="mr-2 flex items-center gap-1.5 text-[11px] studio-muted"><span className="h-1.5 w-1.5 rounded-full bg-[#82978B]"/> {saveState==='saved'?'Auto-saved locally':saveState==='saving'?'Saving project…':saveState==='error'?'Local save issue':'Restoring project…'}</span>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><span className="studio-muted">Untitled project</span><ChevronDown size={13}/></div>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><LockKeyhole size={12}/> Saved locally</div>
@@ -787,7 +933,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 {(item==='File'?['Import File']:item==='Edit'?['Undo','Redo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 Sheet','A4 Sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo','Unmerge']:item==='Merge'?['Merge Selected','Merge All']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" disabled={(action==='Merge Selected'&&selectedSlotIds.length<2)||(action==='Merge All'&&sheetSlots.length<2)||(action==='Unmerge'&&!selectedSheetSlot?.mergeSources?.length)} onClick={()=>{
                   if(action==='Undo')undo();
                   else if(action==='Redo')redo();
-                  else if(action==='Import File')uploadRef.current?.click();
+                  else if(action==='Import File')openUploadPicker();
                   else if(action==='Export JPG')void(sheetMode==='single'?exportSelectedPhoto('jpg'):exportPrintSheet('jpg'));
                   else if(action==='Export PNG')void(sheetMode==='single'?exportSelectedPhoto('png'):exportPrintSheet('png'));
                   else if(action==='Export PDF')void(sheetMode==='single'?exportSelectedPhoto('pdf'):exportPrintSheet('pdf'));
@@ -823,7 +969,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <button type="button" title="Automatically arrange sheet photos" disabled={!selected||sheetMode==='single'} onClick={autoArrangeSheet} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Auto Arrange</button>
             <button type="button" title="Undo" aria-label="Undo" onClick={undo} disabled={!canUndo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Undo2 size={13}/></button>
             <button type="button" title="Redo" aria-label="Redo" onClick={redo} disabled={!canRedo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Redo2 size={13}/></button>
-            <button type="button" onClick={() => uploadRef.current?.click()} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] hover:text-white"><Upload size={12}/> Import File</button>
+            <button type="button" onClick={openUploadPicker} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] hover:text-white"><Upload size={12}/> Import File</button>
             <div className="relative">
               <button type="button" disabled={!selected} onClick={()=>setMenuOpen(menuOpen==='print-export'?null:'print-export')} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] disabled:opacity-40"><Printer size={12}/> Print Actual Size <ChevronDown size={11}/></button>
               {menuOpen==='print-export'&&<div className="absolute right-0 top-9 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
@@ -839,15 +985,29 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         </nav>
 
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <aside className="studio-panel flex w-[72px] min-h-0 shrink-0 flex-col items-center gap-2 overflow-y-auto overscroll-contain border-y-0 border-l-0 py-4">
-            {toolItems.map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
-            <div className="mt-3 flex w-[58px] flex-col items-center gap-1 rounded-lg border border-[#343A42] bg-[#202429] px-1 py-2">
-              <label htmlFor="studio-delete-mode" className="flex cursor-pointer flex-col items-center gap-1 text-[9px] text-[#C9CFD5]" title="Show delete control on selected sheet photo">
-                <input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3.5 w-3.5 accent-red-500"/>
-                <span>Delete</span>
+          <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
+            <div className="mb-1 w-full border-b border-[#343A42] pb-2">
+              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>setActiveTool(label as typeof activeTool)} data-tool={label.toLowerCase()} className={`studio-tool-button mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'is-active':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
+              <label htmlFor="studio-delete-mode" title="Delete mode" className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg py-2 text-[9px] ${deleteModeEnabled?'bg-red-500/15 text-red-300':'studio-muted hover:bg-[#252B31]'}`}>
+                <Trash2 size={17}/><input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3 w-3 accent-red-500"/><span>Delete</span>
               </label>
             </div>
-            <div className="mt-auto flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><MoreHorizontal size={19}/><span className="text-[9px]">More</span></div>
+            <div className="w-full pb-2 text-center text-[8px] font-semibold tracking-[.12em] text-[#7F8993]">TOOL GROUPS</div>
+            {toolGroups.map(group=>{
+              const GroupIcon=group.icon;
+              const expanded=openToolGroup===group.id;
+              return <div key={group.id} className="w-full">
+                <button type="button" aria-expanded={expanded} title={group.label} onClick={()=>setOpenToolGroup(expanded?null:group.id)} className={`studio-tool-group flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-2 text-center transition ${expanded?'is-expanded':'studio-muted hover:bg-[#252B31]'}`}>
+                  <GroupIcon size={16} strokeWidth={1.7}/><span className="w-full text-[8px] leading-tight">{group.label}</span><ChevronDown size={11} className={`transition-transform ${expanded?'rotate-180':''}`}/>
+                </button>
+                {expanded&&<div className="my-1 rounded-md border border-[#343A42] bg-[#1A1E22] p-1">
+                  {group.tools.map(([toolLabel,ToolIcon])=><button key={toolLabel} type="button" disabled title={toolLabel+" · Coming soon"} className="flex w-full cursor-not-allowed items-center gap-1.5 rounded px-1 py-1.5 text-left text-[8px] text-[#727D87] opacity-80">
+                    <ToolIcon size={13} strokeWidth={1.7}/><span className="min-w-0 leading-tight">{toolLabel}</span>
+                  </button>)}
+                </div>}
+              </div>;
+            })}
+            <div className="mt-auto flex w-full flex-col items-center gap-1 py-2 text-[#77818B]" title="More tools coming soon"><MoreHorizontal size={17}/><span className="text-[8px]">More</span></div>
           </aside>
           <main className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#14171A]">
             <div className="flex h-[52px] min-w-0 shrink-0 items-center justify-between gap-3 overflow-hidden border-b studio-line px-5">
@@ -890,10 +1050,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="mx-auto flex w-max flex-col items-center gap-3">
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetDimensions.label.toUpperCase()} · {visibleCopies} / {sheetCopies} COPIES · {anchoredCapacity} MAX FIT</div>
                   <div tabIndex={0} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}} onDrop={event=>handleSignatureDrop(event,sheetDimensions.widthMm,sheetDimensions.heightMm)} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
-                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,sheetGap,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>sheetMargin-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-sheetMargin-item.width));const minDy=Math.max(...groupBounds.map(item=>sheetMargin-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-sheetMargin-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=current[0]?.id===moving.id?0:sheetMargin;const targetX=Math.max(0,Math.min(pageW-moving.width,slotDrag.sx+dx));const targetY=Math.max(0,Math.min(pageH-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
+                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,sheetGap,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>sheetMargin-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-sheetMargin-item.width));const minDy=Math.max(...groupBounds.map(item=>sheetMargin-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-sheetMargin-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=current[0]?.id===moving.id?0:sheetMargin;const targetX=Math.max(0,Math.min(pageW-moving.width,slotDrag.sx+dx));const targetY=Math.max(0,Math.min(pageH-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:[borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'',isChosen?'0 0 0 1px rgba(201,149,85,.55), 0 5px 16px rgba(0,0,0,.22)':''].filter(Boolean).join(', ')||'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className={'pointer-events-none h-full w-full '+(photo.kind==='signature'?'object-contain':'object-cover')} style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:photo.kind==='signature'?'none':'scale('+((slot.cropZoom ?? 100)/100)+')'}}/>{photo.kind!=='signature'&&renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm,selectedSlotId===slot.id,()=>setSelectedSlotId(slot.id))}<div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/pageW*previewPageWidth)}px solid ${borderColor}`:'none'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={selectAllMode?'Delete all photos from sheet':'Delete photo '+(i+1)+' from sheet'} title={selectAllMode?'Delete all photos from sheet':'Delete this photo'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();const ids=selectAllMode?sheetSlots.map(item=>item.id):[slot.id];const removedCount=sheetSlots.filter(item=>ids.includes(item.id)).length;setSheetSlots(current=>current.filter(item=>!ids.includes(item.id)));if(removedCount)setSheetCopies(count=>Math.max(0,count-removedCount));setSelectedSlotIds([]);setSelectedSlotId(null);setSelectAllMode(false);}} style={{transform:`scale(${100/zoom})`,transformOrigin:'top right'}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
-                      {(isChosen)&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`absolute z-30 h-3 w-3 rounded-sm border border-[#1D2935] bg-white shadow ${corner==='nw'?'left-[-5px] top-[-5px]':corner==='ne'?'right-[-5px] top-[-5px]':corner==='sw'?'bottom-[-5px] left-[-5px]':'bottom-[-5px] right-[-5px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
+                      {(isChosen)&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`studio-photo-resize-handle absolute z-30 h-4 w-4 rounded-sm border-0 bg-transparent shadow-none focus:outline-none focus-visible:outline-none ${corner==='nw'?'left-[-6px] top-[-6px]':corner==='ne'?'right-[-6px] top-[-6px]':corner==='sw'?'bottom-[-6px] left-[-6px]':'bottom-[-6px] right-[-6px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
                     </div>})}
 
                   </div>
@@ -927,7 +1087,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className={'pointer-events-none block h-full w-full select-none '+(selected.kind==='signature'?'object-contain':'object-cover')} style={{ objectPosition: `${activePositionX}% ${activePositionY}%`, transform: selected.kind==='signature'?'none':`scale(${activeCropZoom / 100})` }}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/documentSize.widthMm*previewPageWidth)}px solid ${borderColor}`:'none'}}/>{renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm)}
                 </div>
               ) : (
-                <button type="button" onClick={() => uploadRef.current?.click()} className="group flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
+                <button type="button" onClick={openUploadPicker} className="group m-auto flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#3A4148] bg-[#252B31] text-[#B6C0CA]"><Upload size={20}/></div>
                   <div><div className="text-[13px] font-medium text-[#DDE1E5]">Import a file to begin</div><div className="mt-2 text-[10px] studio-muted">Choose JPG, PNG or WEBP · Multiple files supported</div></div>
                   <span className="studio-control flex items-center gap-2 px-3 py-2 text-[10px]"><Plus size={13}/> Browse files</span>
@@ -977,8 +1137,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>{setSignaturePlacement(current=>current||{x:0.34,y:0.72,width:0.32});setSignatureSelected(true);}} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
               <div className="border-t studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
-                {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} draggable={photo.kind==='signature'} onDragStart={event=>{if(photo.kind!=='signature')return;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-tanshu-signature-layer',photo.id);}} className={`flex items-center gap-2 rounded-md border p-2 ${selectedId === photo.id || (photo.kind==='signature' && signatureSelected) ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'} ${photo.kind==='signature'?'cursor-grab active:cursor-grabbing':''}`}><button type="button" onClick={() => {if(photo.kind==='signature'){setSignatureSelected(true);}else{setSelectedId(photo.id);}}} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">{photo.kind==='signature'?'Signature layer · Drag to preview':'Image · '+(photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions')}</span></span></button><button type="button" aria-label={'Delete '+(photo.kind==='signature'?'signature':'photo')+' layer'} title="Delete layer" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();removeLayer(photo.id);}} className="rounded p-1 text-[#9AA3AD] hover:bg-red-500/15 hover:text-red-400"><X size={14}/></button></div>)}
-                  <button type="button" onClick={() => uploadRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed studio-line py-2 text-[10px] studio-muted hover:text-[#D9DDE1]"><Plus size={13}/> Add photos</button></div> : <div className="rounded-md border border-dashed studio-line p-4 text-center text-[10px] studio-muted">No image layers yet</div>}
+                {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} draggable={photo.kind==='signature'} onDragStart={event=>{if(photo.kind!=='signature')return;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-tanshu-signature-layer',photo.id);}} className={`flex items-center gap-2 rounded-md border p-2 ${selectedId === photo.id || (photo.kind==='signature' && signatureSelected) ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'} ${photo.kind==='signature'?'cursor-grab active:cursor-grabbing':''}`}><button type="button" onClick={() => {if(photo.kind==='signature'){setSignatureSelected(true);}else{setSelectedId(photo.id);}}} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">{photo.kind==='signature'?'Signature layer · Drag to preview':'Image · '+(photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions')}</span></span></button><button type="button" aria-label={'Delete '+(photo.kind==='signature'?'signature':'photo')+' layer'} title="Delete layer" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();removeLayer(photo.id);}} className="rounded p-1 text-[#9AA3AD] hover:bg-red-500/15 hover:text-red-400"><Trash2 size={14}/></button></div>)}
+                  <button type="button" onClick={openUploadPicker} className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed studio-line py-2 text-[10px] studio-muted hover:text-[#D9DDE1]"><Plus size={13}/> Add photos</button></div> : <div className="rounded-md border border-dashed studio-line p-4 text-center text-[10px] studio-muted">No image layers yet</div>}
               </div>
             </div>
           </aside>
