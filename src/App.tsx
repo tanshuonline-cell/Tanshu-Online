@@ -490,8 +490,10 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
-        {/* Connect With Us appears directly below the Hero actions. */}
-        <SocialStrip />
+        {/* Extra breathing room after Explore Tools / Preview Scenes, then Connect With Us. */}
+        <div className="pt-8">
+          <SocialStrip />
+        </div>
 
         {/* Digital Seva entry card: immediately above Ready-to-Use Tools & Studios */}
         <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Digital Seva Center">
