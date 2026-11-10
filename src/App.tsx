@@ -490,7 +490,10 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
-        {/* Digital Seva entry card: placed between Government Category and Video Learning Center */}
+        {/* Connect With Us appears directly below the Hero actions. */}
+        <SocialStrip />
+
+        {/* Digital Seva entry card: immediately above Ready-to-Use Tools & Studios */}
         <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Digital Seva Center">
           <style>{`
             @property --digital-seva-angle {
@@ -553,9 +556,6 @@ export default function App() {
 
         {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
         <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
-
-        {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
-        <SocialStrip />
 
         {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
         <CategoryNavigationSection
