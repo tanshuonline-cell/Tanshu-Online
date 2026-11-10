@@ -1,43 +1,63 @@
 import React from 'react';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
+import { TANSHU_PROFILE_PHOTO } from './Header';
+
+const DIGITAL_SEVA_URL = 'https://52868321.tanshu-online.pages.dev/digital-seva';
 
 export const DigitalCenterBanner: React.FC = () => (
-  <section className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 py-8 sm:py-11">
+  <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Tanshu Digital Center">
     <style>{`
-      @keyframes digital-center-orbit {
-        0% { background-position: 0% 50%; transform: rotate(0deg); }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; transform: rotate(360deg); }
+      @property --digital-seva-angle {
+        syntax: "<angle>";
+        inherits: false;
+        initial-value: 0deg;
       }
-      @keyframes digital-center-wave {
-        0%, 100% { transform: translateX(-2%) scaleY(.92); opacity: .55; }
-        50% { transform: translateX(2%) scaleY(1.08); opacity: .95; }
+      @keyframes digital-seva-border-rotate {
+        to { --digital-seva-angle: 360deg; }
       }
-      .digital-center-frame { position: relative; isolation: isolate; border-radius: 26px; padding: 2px; background: conic-gradient(from 0deg, #22d3ee, #6366f1, #c084fc, #f472b6, #22d3ee); background-size: 200% 200%; animation: digital-center-orbit 9s linear infinite; box-shadow: 0 10px 34px rgba(59,130,246,.14), 0 0 24px rgba(34,211,238,.13); }
-      .digital-center-inner { position: relative; overflow: hidden; border-radius: 24px; background: radial-gradient(ellipse at 10% 0%, rgba(34,211,238,.12), transparent 42%), radial-gradient(ellipse at 90% 100%, rgba(192,132,252,.14), transparent 45%), linear-gradient(115deg,#08172f,#102b50 55%,#111b3d); }
-      .digital-center-inner::before { content: ""; position: absolute; inset: -60% -20%; pointer-events: none; background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.10) 49%, transparent 56%); animation: digital-center-wave 5s ease-in-out infinite; }
-      .digital-center-inner::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(90deg,rgba(34,211,238,.08),transparent 30%,transparent 70%,rgba(192,132,252,.08)); }
-      @media (prefers-reduced-motion: reduce) { .digital-center-frame, .digital-center-inner::before { animation: none; } }
+      .digital-seva-entry-card {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        border: 1px solid #e5d5b5;
+        box-shadow: 0 18px 34px -18px rgba(15,23,42,.34), 0 5px 12px rgba(167,124,52,.12);
+        transition: box-shadow .25s ease, border-color .25s ease;
+      }
+      .digital-seva-entry-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        padding: 2px;
+        border-radius: inherit;
+        background: conic-gradient(from var(--digital-seva-angle), transparent 0 62%, #c79a43 72%, #fff0b8 79%, #9c6b24 86%, transparent 96%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        animation: digital-seva-border-rotate 4.4s linear infinite;
+      }
+      .digital-seva-entry-card > div,
+      .digital-seva-entry-card > span { position: relative; z-index: 1; }
+      .digital-seva-entry-card:hover {
+        border-color: #c79a43;
+        box-shadow: 0 22px 40px -17px rgba(15,23,42,.38), 0 7px 18px rgba(167,124,52,.18);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .digital-seva-entry-card::before { animation: none; }
+        .digital-seva-entry-card { transition: none; }
+      }
     `}</style>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <a href="/digital-seva" aria-label="Open Tanshu Digital Center" className="digital-center-frame block group focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/60">
-        <div className="digital-center-inner px-5 py-7 sm:px-9 sm:py-9 text-center">
-          <div className="relative z-10 flex flex-col items-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/30 bg-white/10 px-3 py-1 text-[10px] sm:text-xs font-bold tracking-[.2em] text-cyan-100 uppercase">
-              <Sparkles className="h-3.5 w-3.5" /> One Stop Digital Services
-            </span>
-            <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-              TANSHU <span className="text-cyan-300">DIGITAL CENTER</span>
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm sm:text-base font-medium leading-relaxed text-blue-100">
-              काम Tanshu Digital सेवाओं से करवाइए — सरकारी सेवाएँ, योजनाएँ और रोज़मर्रा के डिजिटल काम एक ही जगह।
-            </p>
-            <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-xs sm:text-sm font-extrabold text-slate-900 shadow-lg transition-transform duration-300 group-hover:-translate-y-1">
-              Digital Center खोलें <ArrowUpRight className="h-4 w-4" />
-            </span>
-          </div>
+    <a href={DIGITAL_SEVA_URL} className="digital-seva-entry-card group flex flex-col gap-4 rounded-2xl bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+      <div className="flex items-start gap-4">
+        <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-14 w-14 shrink-0 rounded-full border-2 border-amber-300 object-cover object-center shadow-md" />
+        <div>
+          <span className="mb-1 inline-block text-xs font-bold uppercase tracking-widest text-rose-800">Independent Digital Assistance</span>
+          <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">TANSHU DIGITAL CENTER</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Get government service and document work done through Tanshu Digital Seva assistance. Choose a service, submit your request and required documents, and our team will guide the process.</p>
+          <p className="mt-1 text-sm font-medium text-slate-500">सरकारी सेवा या दस्तावेज़ संबंधी काम Tanshu Digital सेवाओं से करवाइए। सेवा चुनें और अनुरोध के साथ ज़रूरी दस्तावेज़ जमा करें। हमारी टीम आगे की प्रक्रिया में आपकी सहायता करेगी।</p>
         </div>
-      </a>
-    </div>
+      </div>
+      <span className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-rose-900 px-5 py-3 text-sm font-bold text-white transition-colors group-hover:bg-rose-800 sm:self-center">Digital Seva Center खोलें <span aria-hidden="true">→</span></span>
+    </a>
   </section>
 );
