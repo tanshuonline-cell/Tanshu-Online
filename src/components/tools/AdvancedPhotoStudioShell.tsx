@@ -206,7 +206,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const suppressSlotClickRef = useRef(false);
   const selected = photos.find(photo => photo.id === selectedId && photo.kind!=='signature') || photos.find(photo=>photo.kind!=='signature') || null;
-  const signaturePhoto = photos.find(photo=>photo.kind==='signature') || null;
+  const signaturePhoto = photos.filter(photo=>photo.kind==='signature').slice(-1)[0] || null;
   const selectedSheetSlot = sheetSlots.find(slot => slot.id === selectedSlotId) || null;
   const activeCropZoom = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.cropZoom ?? 100) : (selected?.cropZoom ?? cropZoom);
   const activePositionX = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionX ?? 50) : (selected?.positionX ?? positionX);
