@@ -4,7 +4,7 @@ import {
   ArrowLeft, ChevronDown, Search, Download, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
   Layers3, Palette, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
-  MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2
+  MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -432,6 +432,38 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const mime = format === 'png' ? 'image/png' : 'image/jpeg'; const blob = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Sheet export failed.')),mime,0.96)); const url=URL.createObjectURL(blob), anchor=document.createElement('a'); anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click(); window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 
+  const printActualSize = async () => {
+    if(!selected)return;
+    const printWindow=window.open('','_blank','width=900,height=700');
+    if(!printWindow){window.alert('Please allow pop-ups to print at actual size.');return;}
+    try {
+      const canvas=document.createElement('canvas');canvas.width=sheetWidthPx;canvas.height=sheetHeightPx;
+      const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Print canvas is unavailable.');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+      const sourcePhotos=photos.length?photos:[selected];
+      const images=await Promise.all(sourcePhotos.map(photo=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('A photo could not be loaded for printing.'));image.src=photo.url;})));
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      const slots:SheetSlot[]=sheetMode==='single'?[{id:'print-single',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}]:sheetSlots;
+      for(const slot of slots){
+        const image=images[Math.max(0,sourcePhotos.findIndex(photo=>photo.id===slot.photoId))]||images[0];if(!image)continue;
+        const ratio=documentSize.widthPx/documentSize.heightPx,baseWidth=Math.min(image.naturalWidth,image.naturalHeight*ratio),baseHeight=baseWidth/ratio;
+        const scale=Math.max(1,(slot.cropZoom??100)/100),sourceWidth=baseWidth/scale,sourceHeight=baseHeight/scale;
+        const sourceX=Math.max(0,Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*(slot.positionX??50)/100));
+        const sourceY=Math.max(0,Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*(slot.positionY??50)/100));
+        const dx=slot.x*300/25.4,dy=slot.y*300/25.4,dw=slot.width*300/25.4,dh=slot.height*300/25.4;
+        ctx.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,dx,dy,dw,dh);
+        if(borderEnabled&&borderWidthMm>0){ctx.save();ctx.strokeStyle=borderColor;ctx.lineWidth=borderWidthMm*300/25.4;ctx.strokeRect(dx+ctx.lineWidth/2,dy+ctx.lineWidth/2,Math.max(0,dw-ctx.lineWidth),Math.max(0,dh-ctx.lineWidth));ctx.restore();}
+      }
+      const pageW=sheetMode==='single'?documentSize.widthMm:sheetMode==='4x6'?101.6:210;
+      const pageH=sheetMode==='single'?documentSize.heightMm:sheetMode==='4x6'?152.4:297;
+      const pageSize=sheetMode==='4x6'?'4in 6in':sheetMode==='a4'?'210mm 297mm':`${pageW}mm ${pageH}mm`;
+      const dataUrl=canvas.toDataURL('image/png');
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html><html><head><title>TANSHU STUDIO · Actual Size Print</title><style>@page{size:${pageSize};margin:0}html,body{width:${pageW}mm;height:${pageH}mm;margin:0;padding:0;overflow:hidden}img{display:block;width:${pageW}mm;height:${pageH}mm;object-fit:fill}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body><img src="${dataUrl}" alt="Actual size print sheet" onload="window.focus();window.print()"></body></html>`);
+      printWindow.document.close();
+    } catch(error){printWindow.close();window.alert(error instanceof Error?error.message:'Could not prepare the print sheet.');}
+  };
+
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
     if (!selected) return;
     const image = new Image();
@@ -544,6 +576,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <button type="button" onClick={undo} disabled={!canUndo} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"><Undo2 size={14}/> Undo</button>
             <button type="button" onClick={redo} disabled={!canRedo} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"><Redo2 size={14}/> Redo</button>
             <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-8 items-center gap-2 rounded-md bg-[#D9DEE2] px-3 text-[11px] font-semibold text-[#20252A] hover:bg-[#E5E8EA]"><Upload size={14}/> Import photo</button>
+            <button type="button" disabled={!selected} onClick={() => void printActualSize()} className="studio-control flex h-8 items-center gap-1.5 px-2.5 text-[10px] disabled:opacity-40"><Printer size={12}/> Print actual size</button>
             <div className="flex items-center gap-1 rounded-md border border-[#343A42] p-1">
               <button type="button" disabled={!selected} onClick={() => void (sheetMode === 'single' ? exportSelectedPhoto('jpg') : exportPrintSheet('jpg'))} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-40"><Download size={12}/> JPG</button>
               <button type="button" disabled={!selected} onClick={() => void (sheetMode === 'single' ? exportSelectedPhoto('png') : exportPrintSheet('png'))} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PNG</button>
