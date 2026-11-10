@@ -25,7 +25,7 @@ const toolItems = [
   { icon: ScanFace, label: 'Portrait' },
   { icon: WandSparkles, label: 'Retouch' },
   { icon: Palette, label: 'Background' },
-  { icon: Ruler, label: 'Measure' },
+  { icon: Grid2X2, label: 'Layout' },
 ];
 
 const swatches = ['#F4F1EA', '#D9E2EA', '#CBD5D0', '#D9D3CB', '#AAB6C2'];
@@ -276,19 +276,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
         <div className="flex min-h-0 flex-1">
           <aside className="studio-panel flex w-[72px] shrink-0 flex-col items-center gap-2 border-y-0 border-l-0 py-4">
-            {toolItems.filter(item=>item.label!=='Measure').map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
-            <div className="my-2 h-px w-8 bg-[#30363D]"/>
-            <button type="button" onClick={()=>setActiveTool('Layout')} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 ${activeTool==='Layout'?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Grid2X2 size={18}/><span className="text-[9px]">Layout</span></button>
+            {toolItems.map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
             <div className="mt-auto flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><MoreHorizontal size={19}/><span className="text-[9px]">More</span></div>
           </aside>
-          <aside className="studio-panel w-[286px] shrink-0 overflow-y-auto border-y-0 border-l-0">
-            <div className="border-b studio-line px-3 py-3"><div className="text-[10px] font-semibold tracking-[.12em] text-[#D8DDE2]">{activeTool==='Move'?'QUICK EDIT':activeTool==='Layout'?'PRINT LAYOUT':activeTool.toUpperCase()+' SETTINGS'}</div><p className="mt-1 text-[9px] leading-4 studio-muted">{activeTool==='Crop'?'Fine-tune framing, zoom and subject position.':activeTool==='Background'?'Remove the background or apply a clean replacement color.':activeTool==='Retouch'?'Clean up face skin with adjustable strength.':activeTool==='Portrait'?'Adjust portrait brightness, contrast and color.':activeTool==='Layout'?'Arrange passport photos and export print sheets.':'Select a tool to edit your photo.'}</p></div>
-            {activeTool==='Crop' && <div className="border-b studio-line p-3"><div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold studio-muted">ADVANCED CROP</span><button type="button" onClick={()=>{setCropZoom(100);setPositionX(50);setPositionY(50);}} className="text-[10px] studio-muted hover:text-white">Reset</button></div>
-              {([['Crop zoom',cropZoom,setCropZoom,100,300],['Horizontal position',positionX,setPositionX,0,100],['Vertical position',positionY,setPositionY,0,100]] as const).map(([label,value,setter,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>setter(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></label>)}
-              <div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>setPositionX(50)} className="studio-control py-1.5 text-[9px]">Center X</button><button type="button" onClick={()=>setPositionY(50)} className="studio-control py-1.5 text-[9px]">Center Y</button></div></div>}
-            <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} activeSection={activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'print':'adjust'}/>
-          </aside>
-
           <main className="flex min-w-0 flex-1 flex-col bg-[#14171A]">
             <div className="flex h-[52px] shrink-0 items-center justify-between border-b studio-line px-5">
               <div className="flex items-center gap-3"><span className="text-[12px] font-medium text-[#E1E5E8]">Canvas</span><span className="text-[11px] studio-muted">/</span><span className="text-[11px] studio-muted">{selected ? selected.file.name : 'Portrait workspace'}</span></div>
@@ -350,53 +340,28 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
           <aside className="studio-panel flex w-[286px] shrink-0 flex-col border-y-0 border-r-0">
             <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">Properties</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
-            <div className="border-b studio-line p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">DOCUMENT SETUP</span><MoreHorizontal size={15} className="studio-muted"/></div>
-              <label className="mb-3 block text-[10px] studio-muted">Photo size preset
-                <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control mt-1.5 h-8 w-full px-2 text-[11px] outline-none">
-                  <option value="india">India Passport / Exam · 35 × 45 mm</option><option value="pan">PAN Photo · 25 × 35 mm</option><option value="stamp">Stamp Photo · 25 × 30 mm</option><option value="custom">Custom dimensions</option>
-                </select>
-              </label>
-              {preset === 'custom' && <div className="mb-3">
-                <div className="mb-2 flex items-center justify-between"><span className="text-[10px] studio-muted">Measurement unit</span><select aria-label="Custom size unit" value={sizeUnit} onChange={event => setSizeUnit(event.target.value as StudioUnit)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="mm">mm</option><option value="cm">cm</option><option value="in">in</option></select></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="text-[9px] studio-muted">Width ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customWidthMm, sizeUnit).toFixed(2))} onChange={event => setCustomWidthMm(unitToMm(Math.max(0.1, Number(event.target.value) || 0.1), sizeUnit))} className="studio-control mt-1 h-8 w-full px-2 text-[11px] outline-none"/></label>
-                  <label className="text-[9px] studio-muted">Height ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customHeightMm, sizeUnit).toFixed(2))} onChange={event => setCustomHeightMm(unitToMm(Math.max(0.1, Number(event.target.value) || 0.1), sizeUnit))} className="studio-control mt-1 h-8 w-full px-2 text-[11px] outline-none"/></label>
-                </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {activeTool === 'Crop' && <div className="border-b studio-line p-4">
+                <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
+                {([['Crop zoom',cropZoom,setCropZoom,100,300],['Horizontal position',positionX,setPositionX,0,100],['Vertical position',positionY,setPositionY,0,100]] as const).map(([label,value,setter,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>setter(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></label>)}
+                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>setPositionX(50)} className="studio-control py-1.5 text-[9px]">Center X</button><button type="button" onClick={()=>setPositionY(50)} className="studio-control py-1.5 text-[9px]">Center Y</button></div>
               </div>}
-              <div className="mb-3 grid grid-cols-2 gap-2">
-                <div className="rounded-md border studio-line bg-[#202429] p-2.5"><div className="text-[9px] studio-muted">Width</div><div className="mt-1 text-[12px] text-[#DDE1E5]">{documentSize.widthMm.toFixed(1)} <span className="text-[9px] studio-muted">mm</span></div></div>
-                <div className="rounded-md border studio-line bg-[#202429] p-2.5"><div className="text-[9px] studio-muted">Height</div><div className="mt-1 text-[12px] text-[#DDE1E5]">{documentSize.heightMm.toFixed(1)} <span className="text-[9px] studio-muted">mm</span></div></div>
+              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} activeSection={activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'print':'adjust'} hideTabs />
+              <div className="border-t studio-line p-4">
+                <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">DOCUMENT SETUP</span><MoreHorizontal size={15} className="studio-muted"/></div>
+                <label className="mb-3 block text-[10px] studio-muted">Photo size preset
+                  <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control mt-1.5 h-8 w-full px-2 text-[11px] outline-none"><option value="india">India Passport / Exam · 35 × 45 mm</option><option value="pan">PAN Photo · 25 × 35 mm</option><option value="stamp">Stamp Photo · 25 × 30 mm</option><option value="custom">Custom dimensions</option></select>
+                </label>
+                {preset === 'custom' && <div className="mb-3"><div className="mb-2 flex items-center justify-between"><span className="text-[10px] studio-muted">Measurement unit</span><select aria-label="Custom size unit" value={sizeUnit} onChange={event => setSizeUnit(event.target.value as StudioUnit)} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="mm">mm</option><option value="cm">cm</option><option value="in">in</option></select></div><div className="grid grid-cols-2 gap-2"><label className="text-[9px] studio-muted">Width ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customWidthMm, sizeUnit).toFixed(2))} onChange={event => setCustomWidthMm(unitToMm(Math.max(0.1, Number(event.target.value) || 0.1), sizeUnit))} className="studio-control mt-1 h-8 w-full px-2 text-[11px] outline-none"/></label><label className="text-[9px] studio-muted">Height ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customHeightMm, sizeUnit).toFixed(2))} onChange={event => setCustomHeightMm(unitToMm(Math.max(0.1, Number(event.target.value) || 0.1), sizeUnit))} className="studio-control mt-1 h-8 w-full px-2 text-[11px] outline-none"/></label></div></div>}
+                <div className="flex items-center justify-between py-2 text-[11px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
+                <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               </div>
-              <div className="flex items-center justify-between py-2 text-[11px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
-              <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
-              <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Color profile</span><span className="text-[#D5DADF]">sRGB</span></div>
+              <div className="border-t studio-line p-4">
+                <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
+                {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} className={`flex items-center gap-2 rounded-md border p-2 ${selected?.id === photo.id ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'}`}><button type="button" onClick={() => setSelectedId(photo.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className="h-9 w-8 rounded object-cover bg-[#30363D]"/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">Image · {photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions'}</span></span></button>{selected?.id === photo.id && <button type="button" aria-label="Remove selected photo" onClick={removeSelected} className="rounded p-1 studio-muted hover:text-[#E1E5E8]"><X size={13}/></button>}{selected?.id === photo.id && <Check size={12} className="studio-muted"/>}</div>)}
+                  <button type="button" onClick={() => uploadRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed studio-line py-2 text-[10px] studio-muted hover:text-[#D9DDE1]"><Plus size={13}/> Add photos</button></div> : <div className="rounded-md border border-dashed studio-line p-4 text-center text-[10px] studio-muted">No image layers yet</div>}
+              </div>
             </div>
-            <div className="border-b studio-line p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
-              <div className="mb-3"><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-crop-zoom" className="studio-muted">Crop zoom</label><span className="text-[#D5DADF]">{cropZoom}%</span></div><input id="studio-crop-zoom" aria-label="Crop zoom" type="range" min="100" max="250" step="1" value={cropZoom} onChange={event => setCropZoom(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
-              <div className="mb-3"><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-position-x" className="studio-muted">Horizontal position</label><span className="text-[#D5DADF]">{positionX}%</span></div><input id="studio-position-x" aria-label="Horizontal position" type="range" min="0" max="100" value={positionX} onChange={event => setPositionX(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
-              <div><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-position-y" className="studio-muted">Vertical position</label><span className="text-[#D5DADF]">{positionY}%</span></div><input id="studio-position-y" aria-label="Vertical position" type="range" min="0" max="100" value={positionY} onChange={event => setPositionY(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
-            </div>
-            <div className="border-b studio-line p-4">
-              <div className="mb-3 text-[10px] font-semibold tracking-[.12em] studio-muted">APPEARANCE</div>
-              <div className="mb-2 text-[11px] studio-muted">Background color</div>
-              <div className="flex items-center gap-2">{swatches.map(color=><div key={color} className="h-7 w-7 rounded-md border border-white/10" style={{backgroundColor:color}}/>)}<div className="flex h-7 w-7 items-center justify-center rounded-md border studio-line text-[13px] studio-muted">+</div></div>
-              <div className="mt-4 flex items-center justify-between text-[11px]"><span className="studio-muted">Border</span><span className="text-[#D5DADF]">Off</span></div>
-            </div>
-            <div className="min-h-0 flex-1 p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
-              {photos.length ? <div className="space-y-2">
-                {photos.map(photo => <div key={photo.id} className={`flex items-center gap-2 rounded-md border p-2 ${selected?.id === photo.id ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'}`}>
-                  <button type="button" onClick={() => setSelectedId(photo.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className="h-9 w-8 rounded object-cover bg-[#30363D]"/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">Image · {photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions'}</span></span></button>
-                  {selected?.id === photo.id && <button type="button" aria-label="Remove selected photo" onClick={removeSelected} className="rounded p-1 studio-muted hover:text-[#E1E5E8]"><X size={13}/></button>}
-                  {selected?.id === photo.id && <Check size={12} className="studio-muted"/>}
-                </div>)}
-                <button type="button" onClick={() => uploadRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed studio-line py-2 text-[10px] studio-muted hover:text-[#D9DDE1]"><Plus size={13}/> Add photos</button>
-              </div> : <div className="rounded-md border border-dashed studio-line p-4 text-center text-[10px] studio-muted">No image layers yet</div>}
-              <div className="mt-3 flex items-center gap-2 text-[10px] studio-muted"><Layers3 size={13}/> Layer structure</div>
-            </div>
-            <div className="border-t studio-line p-4"><div className="flex items-center justify-between text-[10px]"><span className="studio-muted">Workspace status</span><span className="flex items-center gap-1.5 text-[#9EADA4]"><span className="h-1.5 w-1.5 rounded-full bg-[#82978B]"/>{selected ? 'Photo loaded' : 'Ready for import'}</span></div></div>
           </aside>
         </div>
         <footer className="flex h-[34px] shrink-0 items-center justify-between border-t studio-line bg-[#171A1D] px-5 text-[9px] studio-muted"><span>TANSHU STUDIO · DOCUMENT PRESETS</span><span className="flex items-center gap-4"><span>Import and layer selection enabled</span><span>© TANSHU ONLINE</span></span></footer>
