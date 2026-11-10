@@ -8,7 +8,7 @@ import {
   Move, MousePointer, Lasso, SquareDashedMousePointer, RotateCw, FlipHorizontal,
   Ruler, Paintbrush, Stamp, Eraser, Pipette, Sun, Contrast, SlidersHorizontal,
   Type, PenTool, Shapes, Hand, Download, Sparkles, ScanSearch, UserRound,
-  Highlighter, Eye, CircleHelp, Blend, Wand, CircleDot, Focus, ScanLine
+  Highlighter, Eye, CircleHelp, Blend, Wand, CircleDot, Focus, ScanLine, Search
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -170,6 +170,17 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
   const [openToolGroup, setOpenToolGroup] = useState<string | null>(null);
+  const [studioSearchQuery, setStudioSearchQuery] = useState('');
+  const [studioSearchOpen, setStudioSearchOpen] = useState(false);
+  const studioSearchInputRef = useRef<HTMLInputElement>(null);
+  const studioSearchResults = useMemo(() => {
+    const query = studioSearchQuery.trim().toLowerCase();
+    if (!query) return [];
+    return toolGroups.flatMap(group => group.tools
+      .filter(([label]) => label.toLowerCase().includes(query) || group.label.toLowerCase().includes(query))
+      .map(([label, Icon]) => ({ label, groupId: group.id, groupLabel: group.label, Icon }))
+    ).slice(0, 8);
+  }, [studioSearchQuery]);
   const [sheetMode, setSheetMode] = useState<SheetMode>('single');
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
@@ -816,6 +827,17 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="text-[13px] font-semibold tracking-wide text-[#E4E7EA]">TANSHU STUDIO</div>
               <div className="text-[10px] tracking-[.16em] studio-muted">PHOTO, EDITING & PASSPORT STUDIO</div>
             </div>
+          </div>
+          <div className="relative mx-5 flex min-w-0 flex-1 justify-center">
+            <form onSubmit={event => { event.preventDefault(); setStudioSearchOpen(true); }} className="flex h-7 w-full max-w-[340px] items-center gap-2 rounded-full border border-[#3A424A] bg-[#20252A] px-3 shadow-[inset_0_1px_2px_rgba(0,0,0,.22),0_2px_10px_rgba(0,0,0,.12)] transition focus-within:border-[#718092] focus-within:shadow-[0_0_0_2px_rgba(145,163,181,.10)]">
+              <Search size={13} className="shrink-0 text-[#9DAAB6]" />
+              <input ref={studioSearchInputRef} value={studioSearchQuery} onChange={event => { setStudioSearchQuery(event.target.value); setStudioSearchOpen(true); }} onFocus={() => { if (studioSearchQuery) setStudioSearchOpen(true); }} placeholder="Search tools, text, fonts..." aria-label="Search studio tools, text and fonts" className="h-full min-w-0 flex-1 bg-transparent text-[10px] text-[#E0E5EA] outline-none placeholder:text-[#7F8993]" />
+              <button type="submit" aria-label="Search" title="Search" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#B8C4CE] transition hover:bg-[#35404A] hover:text-white"><Search size={12}/></button>
+            </form>
+            {studioSearchOpen && studioSearchQuery.trim() && <div className="absolute left-1/2 top-9 z-[80] w-full max-w-[340px] -translate-x-1/2 overflow-hidden rounded-xl border border-[#3A424A] bg-[#20252A] shadow-[0_16px_42px_rgba(0,0,0,.48)]">
+              <div className="flex items-center justify-between border-b border-[#343B43] px-3 py-2"><span className="text-[9px] font-semibold tracking-[.12em] text-[#8F9BA6]">STUDIO SEARCH</span><button type="button" onClick={() => setStudioSearchOpen(false)} className="text-[9px] text-[#8F9BA6] hover:text-white">Close</button></div>
+              {studioSearchResults.length ? <div className="max-h-64 overflow-y-auto p-1">{studioSearchResults.map((result, index) => <button key={result.groupId+'-'+result.label+'-'+index} type="button" onClick={() => { setOpenToolGroup(result.groupId); setStudioSearchOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition hover:bg-[#303840]"><result.Icon size={13} className="shrink-0 text-[#AAB7C3]"/><span className="min-w-0 flex-1"><span className="block text-[10px] text-[#E0E5EA]">{result.label}</span><span className="block text-[8px] text-[#87939E]">{result.groupLabel}</span></span><span className="text-[8px] text-[#7F8B96]">Coming soon</span></button>)}</div> : <div className="px-3 py-4 text-center text-[9px] text-[#929DA7]">No matching tools yet. Text and font libraries can be added here as they become available.</div>}
+            </div>}
           </div>
           <div className="flex items-center gap-2">
             <div className="mr-3 flex items-center gap-1.5 rounded-md border border-[#343A42] bg-[#202429] px-2 py-1">
