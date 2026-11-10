@@ -5,6 +5,7 @@ import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
+import { ReadyToUseTools } from './components/ReadyToUseTools';
 import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
 import { GovernmentSchemes } from './components/GovernmentSchemes';
@@ -488,6 +489,9 @@ export default function App() {
           onSelectScheme={handleSelectSchemeFromSearch}
           onSelectVideo={handleSelectVideoFromSearch}
         />
+
+        {/* Ready-to-use studios and active tools appear immediately after the hero. */}
+        <ReadyToUseTools onOpenTool={handleOpenTool} />
 
         {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
         <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
