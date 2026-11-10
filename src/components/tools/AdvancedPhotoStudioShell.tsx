@@ -167,8 +167,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const extension = blob.type === 'image/png' ? 'png' : 'jpg';
     const file = new File([blob], selected.file.name.replace(/\\.[^.]+$/, '') + '-' + suffix + '.' + extension, { type: blob.type || 'image/jpeg' });
     const url = URL.createObjectURL(file);
-    URL.revokeObjectURL(selected.url);
-    setPhotos(current => current.map(photo => photo.id === selected.id ? { ...photo, file, url, width: 0, height: 0 } : photo));
+    const processedLayer: StudioPhoto = {
+      id: `processed-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      file,
+      url,
+      width: 0,
+      height: 0
+    };
+    setPhotos(current => [...current, processedLayer]);
+    setSelectedId(processedLayer.id);
   };
 
   const updateDimensions = (id: string, width: number, height: number) => {
