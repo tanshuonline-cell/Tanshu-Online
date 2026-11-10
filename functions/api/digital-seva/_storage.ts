@@ -22,10 +22,10 @@ export interface StoredDocument {
 function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string }) {
   const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = String(env.SUPABASE_SECRET_KEY || '');
-  if (!base || !key) throw new Error('Preview document storage is not configured.');
+  if (!base || !key) throw new Error('Private document storage is not configured.');
   const parsed = new URL(base);
   if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
-    throw new Error('Preview document storage URL is invalid.');
+    throw new Error('Private document storage URL is invalid.');
   }
   return { base, key, bucket: bucketName(env) };
 }
@@ -54,10 +54,10 @@ export async function uploadPrivateDocument(
 }
 
 export async function deletePrivateDocument(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
+  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string },
   objectKey: string
 ): Promise<void> {
-  const { base, key } = storageConfig(env);
+  const { base, key, bucket } = storageConfig(env);
   const response = await fetch(objectUrl(base, objectKey), {
     method: 'DELETE',
     headers: { apikey: key, 'Cache-Control': 'no-store' }
@@ -69,7 +69,7 @@ export async function deletePrivateDocument(
 }
 
 export async function createPrivateDocumentUrl(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string },
+  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string },
   objectKey: string,
   expiresIn = 60,
   downloadName?: string
