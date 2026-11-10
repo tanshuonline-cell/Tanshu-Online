@@ -598,7 +598,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*(selected.positionY ?? positionY)/100));
     context.imageSmoothingEnabled = true; context.imageSmoothingQuality = 'high';
     if (format !== 'png') { context.fillStyle='#fff'; context.fillRect(0,0,output.width,output.height); }
-    context.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,0,0,output.width,output.height);
+    if (selected.kind === 'signature') { const fit=Math.min(output.width/image.naturalWidth,output.height/image.naturalHeight); const fitW=image.naturalWidth*fit,fitH=image.naturalHeight*fit; context.drawImage(image,(output.width-fitW)/2,(output.height-fitH)/2,fitW,fitH); } else { context.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,0,0,output.width,output.height); }
     if (borderEnabled && borderWidthMm > 0) { context.save(); context.strokeStyle = borderColor; context.lineWidth = borderWidthMm * 300 / 25.4; context.strokeRect(context.lineWidth / 2, context.lineWidth / 2, Math.max(0, output.width - context.lineWidth), Math.max(0, output.height - context.lineWidth)); context.restore(); }
     const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + '-tanshu-studio';
     if (format === 'pdf') {
