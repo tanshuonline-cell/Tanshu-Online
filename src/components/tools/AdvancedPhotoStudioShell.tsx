@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
-type StudioPhoto = { id: string; file: File; url: string; width: number; height: number };
+type StudioPhoto = { id: string; file: File; url: string; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number };
 type StudioPreset = 'india' | 'stamp' | 'pan' | 'custom';
 type StudioUnit = 'mm' | 'cm' | 'in';
 type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number };
@@ -130,16 +130,12 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const selected = photos.find(photo => photo.id === selectedId) || photos[0] || null;
   const selectedSheetSlot = sheetSlots.find(slot => slot.id === selectedSlotId) || null;
-  const activeCropZoom = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.cropZoom ?? 100) : cropZoom;
-  const activePositionX = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionX ?? 50) : positionX;
-  const activePositionY = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionY ?? 50) : positionY;
+  const activeCropZoom = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.cropZoom ?? 100) : (selected?.cropZoom ?? cropZoom);
+  const activePositionX = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionX ?? 50) : (selected?.positionX ?? positionX);
+  const activePositionY = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.positionY ?? 50) : (selected?.positionY ?? positionY);
   const updateActiveCrop = (patch: Partial<Pick<SheetSlot, 'cropZoom'|'positionX'|'positionY'>>) => {
     if (sheetMode !== 'single' && selectedSheetSlot) setSheetSlots(current => current.map(slot => slot.id === selectedSheetSlot.id ? { ...slot, ...patch } : slot));
-    else {
-      if (patch.cropZoom !== undefined) setCropZoom(patch.cropZoom);
-      if (patch.positionX !== undefined) setPositionX(patch.positionX);
-      if (patch.positionY !== undefined) setPositionY(patch.positionY);
-    }
+    else if (selected) setPhotos(current => current.map(photo => photo.id === selected.id ? { ...photo, ...patch } : photo));
   };
   const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
   const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
@@ -162,7 +158,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         if (saved?.photos?.length) {
           const restored = await Promise.all(saved.photos.map(async (item: any) => {
             const file = await dataUrlToFile(item.data, item.name);
-            return { id: item.id, file, url: URL.createObjectURL(file), width: item.width || 0, height: item.height || 0 };
+            return { id: item.id, file, url: URL.createObjectURL(file), width: item.width || 0, height: item.height || 0, cropZoom:item.cropZoom ?? 100, positionX:item.positionX ?? 50, positionY:item.positionY ?? 50 };
           }));
           if (!active) { restored.forEach(photo => URL.revokeObjectURL(photo.url)); return; }
           setPhotos(restored);
@@ -196,7 +192,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const timer = window.setTimeout(async () => {
       try {
         const storedPhotos = await Promise.all(photos.map(async photo => ({
-          id: photo.id, name: photo.file.name, data: await fileToDataUrl(photo.file), width: photo.width, height: photo.height
+          id: photo.id, name: photo.file.name, data: await fileToDataUrl(photo.file), width: photo.width, height: photo.height, cropZoom:photo.cropZoom, positionX:photo.positionX, positionY:photo.positionY
         })));
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
@@ -237,7 +233,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       file,
       url: URL.createObjectURL(file),
       width: 0,
-      height: 0
+      height: 0,
+      cropZoom: 100,
+      positionX: 50,
+      positionY: 50
     }));
     if (additions.length) {
       setPhotos(current => [...current, ...additions]);
@@ -388,10 +387,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const ratio = output.width / output.height;
     const baseWidth = Math.min(image.naturalWidth, image.naturalHeight * ratio);
     const baseHeight = baseWidth / ratio;
-    const scale = Math.max(1, cropZoom / 100);
+    const scale = Math.max(1, (selected.cropZoom ?? cropZoom) / 100);
     const sourceWidth = baseWidth / scale, sourceHeight = baseHeight / scale;
-    const sourceX = Math.max(0, Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*positionX/100));
-    const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*positionY/100));
+    const sourceX = Math.max(0, Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*(selected.positionX ?? positionX)/100));
+    const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*(selected.positionY ?? positionY)/100));
     context.imageSmoothingEnabled = true; context.imageSmoothingQuality = 'high';
     if (format !== 'png') { context.fillStyle='#fff'; context.fillRect(0,0,output.width,output.height); }
     context.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,0,0,output.width,output.height);
@@ -532,7 +531,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="flex max-h-full max-w-full flex-col items-center gap-3" style={{transform:`scale(${zoom / 100})`}}>
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetMode === '4x6' ? '4 × 6 INCH SHEET' : 'A4 PRINT SHEET'} · {visibleCopies} / {sheetCopies} COPIES · {sheetCapacity} MAX FIT</div>
                   <div tabIndex={0} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:sheetMode === '4x6' ? 300 : 390,height:sheetMode === '4x6' ? 450 : 552}}>
-                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>{event.stopPropagation();if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<sheetCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;if(wantsCopy&&canCopy){setSheetSlots(current=>[...current,{...slot,id:dragId}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);}setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((pageW-sheetMargin-(slotResize.corner.endsWith('w')?0:slotResize.x+slotResize.width))/slotResize.width,(pageH-sheetMargin-(slotResize.corner.startsWith('n')?0:slotResize.y+slotResize.height))/slotResize.height);factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const others=current.filter(item=>item.id!==slotDrag.id);const position=getSmartSheetPosition(slotDrag.sx+dx,slotDrag.sy+dy,moving,others,pageW,pageH,sheetMargin,sheetGap);return current.map(item=>item.id===slotDrag.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'none',outline:(selectedSlotIds.includes(slot.id)||isChosen)?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
+                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetMode==='4x6'?101.6:210;const pageH=sheetMode==='4x6'?152.4:297;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onClick={event=>{event.stopPropagation();if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<sheetCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;if(wantsCopy&&canCopy){setSheetSlots(current=>[...current,{...slot,id:dragId}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);}setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:slot.x,sy:slot.y});}} onPointerMove={event=>{const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const others=current.filter(item=>item.id!==slotDrag.id);const position=getSmartSheetPosition(slotDrag.sx+dx,slotDrag.sy+dy,moving,others,pageW,pageH,sheetMargin,sheetGap);return current.map(item=>item.id===slotDrag.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:borderEnabled?Math.max(1,borderWidthMm/pageW*390)+'px solid '+borderColor:'none',outline:(selectedSlotIds.includes(slot.id)||isChosen)?'2px solid #EF4444':'none',outlineOffset:'1px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:'scale('+((slot.cropZoom ?? 100)/100)+')'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={'Delete photo '+(i+1)+' from sheet'} title="Delete this photo" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSheetSlots(current=>current.filter(item=>item.id!==slot.id));setSheetCopies(current=>Math.max(0,current-1));setSelectedSlotIds(current=>current.filter(id=>id!==slot.id));setSelectedSlotId(null);}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
                       {isChosen&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`absolute z-30 h-3 w-3 rounded-sm border border-[#1D2935] bg-white shadow ${corner==='nw'?'left-[-5px] top-[-5px]':corner==='ne'?'right-[-5px] top-[-5px]':corner==='sw'?'bottom-[-5px] left-[-5px]':'bottom-[-5px] right-[-5px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
@@ -567,7 +566,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   }}
                   onPointerCancel={() => { cropDragRef.current = null; }}
                 >
-                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="pointer-events-none block h-full w-full object-cover select-none" style={{ objectPosition: `${positionX}% ${positionY}%`, transform: `scale(${cropZoom / 100})` }}/>
+                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className="pointer-events-none block h-full w-full object-cover select-none" style={{ objectPosition: `${activePositionX}% ${activePositionY}%`, transform: `scale(${activeCropZoom / 100})` }}/>
                 </div>
               ) : (
                 <button type="button" onClick={() => uploadRef.current?.click()} className="group flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
