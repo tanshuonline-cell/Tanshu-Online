@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { Header, TANSHU_PROFILE_PHOTO } from './components/Header';
 import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
+import { ReadyToUseTools } from './components/ReadyToUseTools';
 import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
 import { GovernmentSchemes } from './components/GovernmentSchemes';
@@ -389,6 +391,11 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
+  // Dedicated Instant Passport Photo Studio preview route.
+  if (window.location.pathname === '/advanced-photo-studio-preview') {
+    return <AdvancedPhotoStudioShell />;
+  }
+
   // ROUTE 1: ADMIN PANEL
   if (currentPage === 'admin') {
     if (adminUser) {
@@ -486,20 +493,12 @@ export default function App() {
         {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
         <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
 
-        {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
-        <SocialStrip />
+        {/* Extra breathing room after the category strip, then Connect With Us. */}
+        <div className="pt-8">
+          <SocialStrip />
+        </div>
 
-        {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
-        <CategoryNavigationSection
-          onOpenAllTools={() => {
-            setDirectoryCategory('all');
-            setSearchQuery('');
-            scrollToSection('all-tools');
-          }}
-          onScrollToTop={() => scrollToSection('home')}
-        />
-
-        {/* Digital Seva entry card: placed between Government Category and Video Learning Center */}
+        {/* Digital Seva entry card: immediately above Ready-to-Use Tools & Studios */}
         <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Digital Seva Center">
           <style>{`
             @property --digital-seva-angle {
@@ -556,6 +555,23 @@ export default function App() {
             <span className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-rose-900 px-5 py-3 text-sm font-bold text-white transition-colors group-hover:bg-rose-800 sm:self-center">Explore Digital Seva <span aria-hidden="true">→</span></span>
           </a>
         </section>
+
+        {/* Ready-to-use studios and active tools appear immediately after the hero. */}
+        <ReadyToUseTools onOpenTool={handleOpenTool} />
+
+
+
+        {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
+        <CategoryNavigationSection
+          onOpenAllTools={() => {
+            setDirectoryCategory('all');
+            setSearchQuery('');
+            scrollToSection('all-tools');
+          }}
+          onScrollToTop={() => scrollToSection('home')}
+        />
+
+
 
         {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
         <VideoLearningCenter
