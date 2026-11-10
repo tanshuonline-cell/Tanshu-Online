@@ -414,7 +414,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const sourcePhotos = photos.length ? photos : [selected];
     const images = await Promise.all(sourcePhotos.map(photo => new Promise<HTMLImageElement>((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = () => reject(new Error('A photo could not be loaded for sheet export.')); image.src = photo.url; })));
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    const slots = sheetMode === 'single' ? [{photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm}] : sheetSlots;
+    const slots: SheetSlot[] = sheetMode === 'single' ? [{id:'single-export',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}] : sheetSlots;
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i];
       const image = images[Math.max(0, sourcePhotos.findIndex(photo => photo.id === slot.photoId))] || images[0];
