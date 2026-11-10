@@ -3,7 +3,7 @@ import { StudioAdvancedPanel } from './StudioAdvancedPanel';
 import {
   ArrowLeft, ChevronDown, Search, Download, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
-  Layers3, Palette, Ruler, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
+  Layers3, Palette, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
   MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -339,7 +339,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </main>
 
           <aside className="studio-panel flex w-[286px] shrink-0 flex-col border-y-0 border-r-0">
-            <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">Properties</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
+            <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">{activeTool === 'Move' ? 'Move Settings' : `${activeTool} Settings`}</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {activeTool === 'Crop' && <div className="border-b studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
