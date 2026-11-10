@@ -139,13 +139,17 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
                 </div>
 
                 {/* Open Tool Button — Strictly preserved text, black default, blue hover */}
-                <button
-                  onClick={() => onOpenTool(tool)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-[#C62828] hover:bg-[#A61F2A] text-white rounded-xl text-xs font-semibold tracking-wide transition-colors cursor-pointer mt-auto shadow-2xs"
-                >
-                  <span>{t('common.openTool', 'Open Tool')}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
+                {tool.id === 'advanced-passport-photo-studio' ? (
+                  <a href="/advanced-passport-photo-studio-mobile" className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-[#C62828] hover:bg-[#A61F2A] text-white rounded-xl text-xs font-semibold tracking-wide transition-colors mt-auto shadow-2xs">
+                    <span>{t('common.openTool', 'Open Tool')}</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <button onClick={() => onOpenTool(tool)} className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-[#C62828] hover:bg-[#A61F2A] text-white rounded-xl text-xs font-semibold tracking-wide transition-colors cursor-pointer mt-auto shadow-2xs">
+                    <span>{t('common.openTool', 'Open Tool')}</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
