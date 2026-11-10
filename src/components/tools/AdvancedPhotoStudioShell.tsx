@@ -205,7 +205,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
   const suppressSlotClickRef = useRef(false);
-  const selected = photos.find(photo => photo.id === selectedId && photo.kind!=='signature') || photos.find(photo=>photo.kind!=='signature') || null;
+  const printablePhotos = useMemo(() => photos.filter(photo => photo.kind !== 'signature'), [photos]);
+  const selected = printablePhotos.find(photo => photo.id === selectedId) || printablePhotos[0] || null;
   const signaturePhoto = photos.filter(photo=>photo.kind==='signature').slice(-1)[0] || null;
   const selectedSheetSlot = sheetSlots.find(slot => slot.id === selectedSlotId) || null;
   const activeCropZoom = sheetMode !== 'single' && selectedSheetSlot ? (selectedSheetSlot.cropZoom ?? 100) : (selected?.cropZoom ?? cropZoom);
@@ -339,16 +340,18 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     return () => window.removeEventListener('keydown', handleDeleteKey);
   }, [sheetMode, selectedSlotId, selectAllMode, sheetSlots]);
   useEffect(() => {
-    if (sheetMode === 'single' || !photos.length) { setSheetSlots([]); return; }
+    if (sheetMode === 'single' || !printablePhotos.length) { setSheetSlots([]); return; }
     setSheetSlots(current => {
       const count = Math.min(visibleCopies, sheetCapacity, 60);
-      const result = current.slice(0, count).map(slot => ({...slot, photoId: photos.some(p => p.id === slot.photoId) ? slot.photoId : photos[0].id}));
+      // Signature artwork is an overlay layer, never a printable photo slot.
+      // Also discard legacy slots that may have been created from a signature layer.
+      const result = current.filter(slot => printablePhotos.some(photo => photo.id === slot.photoId)).slice(0, count).map(slot => ({...slot, photoId: printablePhotos.some(p => p.id === slot.photoId) ? slot.photoId : printablePhotos[0].id}));
       const pageW = sheetDimensions.widthMm;
       
-      while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:photos[i%photos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
+      while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:printablePhotos[i%printablePhotos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
       return result;
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, photos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, quickPrintLayout]);
+  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
@@ -562,10 +565,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const sourcePhotos = photos.length ? photos : [selected];
+    const sourcePhotos = printablePhotos.length ? printablePhotos : [selected];
     const images = await Promise.all(sourcePhotos.map(photo => new Promise<HTMLImageElement>((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = () => reject(new Error('A photo could not be loaded for sheet export.')); image.src = photo.url; })));
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    const slots: SheetSlot[] = sheetMode === 'single' ? [{id:'single-export',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}] : sheetSlots;
+    const slots: SheetSlot[] = sheetMode === 'single' ? [{id:'single-export',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}] : sheetSlots.filter(slot => sourcePhotos.some(photo => photo.id === slot.photoId));
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i];
       const image = images[Math.max(0, sourcePhotos.findIndex(photo => photo.id === slot.photoId))] || images[0];
@@ -592,10 +595,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const canvas=document.createElement('canvas');canvas.width=sheetWidthPx;canvas.height=sheetHeightPx;
       const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Print canvas is unavailable.');
       ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
-      const sourcePhotos=photos.length?photos:[selected];
+      const sourcePhotos=printablePhotos.length?printablePhotos:[selected];
       const images=await Promise.all(sourcePhotos.map(photo=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('A photo could not be loaded for printing.'));image.src=photo.url;})));
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-      const slots:SheetSlot[]=sheetMode==='single'?[{id:'print-single',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}]:sheetSlots;
+      const slots:SheetSlot[]=sheetMode==='single'?[{id:'print-single',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}]:sheetSlots.filter(slot=>sourcePhotos.some(photo=>photo.id===slot.photoId));
       for(const slot of slots){
         const photo=sourcePhotos.find(item=>item.id===slot.photoId);const image=images[Math.max(0,sourcePhotos.findIndex(item=>item.id===slot.photoId))]||images[0];if(!image)continue;
         const ratio=documentSize.widthPx/documentSize.heightPx,baseWidth=Math.min(image.naturalWidth,image.naturalHeight*ratio),baseHeight=baseWidth/ratio;
