@@ -172,7 +172,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const step = event.deltaY < 0 ? 10 : -10;
-      setZoom(current => Math.max(25, Math.min(200, current + step)));
+      const zoomStep = current => current < 200 ? 10 : current < 500 ? 25 : 50;
+      setZoom(current => Math.max(10, Math.min(1600, current + (event.deltaY < 0 ? zoomStep(current) : -zoomStep(current)))));
     };
     element.addEventListener('wheel', handlePreviewWheel, { passive: false });
     return () => element.removeEventListener('wheel', handlePreviewWheel);
@@ -601,9 +602,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="mr-3 flex items-center gap-1.5 rounded-md border border-[#343A42] bg-[#202429] px-2 py-1">
-              <button type="button" aria-label="Zoom out" title="Zoom out" onClick={() => setZoom(value => Math.max(25, value - 25))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomOut size={13}/></button>
+              <button type="button" aria-label="Zoom out" title="Zoom out" onClick={() => setZoom(value => Math.max(10, value - (value > 500 ? 50 : 25)))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomOut size={13}/></button>
               <span className="w-10 text-center text-[10px] tabular-nums text-[#C9CFD5]">{zoom}%</span>
-              <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom(value => Math.min(200, value + 25))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomIn size={13}/></button>
+              <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom(value => Math.min(1600, value + (value >= 500 ? 50 : 25)))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomIn size={13}/></button>
             </div>
             <span className="mr-2 flex items-center gap-1.5 text-[11px] studio-muted"><span className="h-1.5 w-1.5 rounded-full bg-[#82978B]"/> {saveState==='saved'?'Auto-saved locally':saveState==='saving'?'Saving project…':saveState==='error'?'Local save issue':'Restoring project…'}</span>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><span className="studio-muted">Untitled project</span><ChevronDown size={13}/></div>
@@ -637,8 +638,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   else if(action==='Merge All')void mergeSheetPhotos(true);
                   else if(action==='Unmerge')unmergeSelectedSlot();
                   else if(action==='Center selected photo')setSheetSlots(current=>current.map(slot=>slot.photoId===selected?.id?{...slot,x:((sheetDimensions.widthMm)-slot.width)/2,y:((sheetDimensions.heightMm)-slot.height)/2}:slot));
-                  else if(action==='Zoom in')setZoom(value=>Math.min(200,value+25));
-                  else if(action==='Zoom out')setZoom(value=>Math.max(25,value-25));
+                  else if(action==='Zoom in')setZoom(value=>Math.min(1600,value+(value>=500?50:25)));
+                  else if(action==='Zoom out')setZoom(value=>Math.max(10,value-(value>500?50:25)));
                   else if(action==='Reset zoom')setZoom(100);
                   else if(action==='How to move photos')window.alert('On a 4×6 or A4 sheet, press and hold any photo, then drag it to the required position.');
                   else if(action==='How to delete a photo')window.alert('Select a photo on the sheet, then click its red trash icon to remove only that copy.');
@@ -791,10 +792,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 text-[10px] font-semibold tracking-[.12em] studio-muted">SHEET SPACING & COPIES</div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <label className="text-[9px] studio-muted">Margin ({sizeUnit})<input aria-label="Sheet margin" type="number" min="0" max="50" step="0.5" value={Number(mmToUnit(sheetMargin,sizeUnit).toFixed(2))} onChange={event=>setSheetMargin(Math.max(0,Math.min(50,unitToMm(Number(event.target.value)||0,sizeUnit))))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Cut gap ({sizeUnit})<input aria-label="Photo cut gap" type="number" min="0" max="30" step="0.5" value={Number(mmToUnit(sheetGap,sizeUnit).toFixed(2))} onChange={event=>setSheetGap(Math.max(0,Math.min(30,unitToMm(Number(event.target.value)||0,sizeUnit))))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Photos<select aria-label="Number of photos in sheet" value={sheetCopies} onChange={event=>{setSheetCopies(Number(event.target.value));setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-8 w-full px-1 text-[10px]">{Array.from({length:60},(_,index)=>index+1).map(count=><option key={count} value={count} disabled={count>1&&(sheetMode==='single'||count>sheetCapacity)}>{count}</option>)}</select></label>
+                  <label className="text-[9px] studio-muted">Photo Gap (mm)<input aria-label="Photo gap in millimetres" type="number" min="0" max="30" step="1" value={Number(sheetGap.toFixed(1))} onChange={event=>setSheetGap(Math.max(0,Math.min(30,Number(event.target.value)||0)))} onWheel={event=>{event.preventDefault();setSheetGap(value=>Math.max(0,Math.min(30,Number((value+(event.deltaY<0?1:-1)).toFixed(1)))));}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted col-span-2">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,sheetCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,sheetCapacity,Number(event.target.value)||1));setSheetCopies(count);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,sheetCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                 </div>
               </div>
               <div className="border-b studio-line p-3">
