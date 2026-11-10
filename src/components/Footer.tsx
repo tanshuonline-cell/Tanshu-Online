@@ -63,6 +63,7 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
                 { id: 'schemes', label: t('footer.nav.schemes', 'Government Schemes') },
                 { id: 'videos', label: t('footer.nav.videos', 'Latest Videos') },
                 { id: 'about', label: t('footer.nav.about', 'About Us') },
+                { id: 'digital-center', label: isHindi ? 'Tanshu Digital Center' : 'Tanshu Digital Center' },
               ].map((item) => (
                 <li key={item.id}>
                   <button
