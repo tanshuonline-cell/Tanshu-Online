@@ -4,7 +4,11 @@ import {
   ArrowLeft, ChevronDown, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
   Layers3, Palette, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
-  MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer
+  MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer,
+  Move, MousePointer, Lasso, SquareDashedMousePointer, RotateCw, FlipHorizontal,
+  Ruler, Paintbrush, Stamp, Eraser, Pipette, Sun, Contrast, SlidersHorizontal,
+  Type, PenTool, Shapes, Hand, Download, Sparkles, ScanSearch, UserRound,
+  Highlighter, Eye, CircleHelp, Blend, Wand, CircleDot, Focus, ScanLine
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -81,6 +85,52 @@ const toolItems = [
   { icon: Grid2X2, label: 'Layout' },
 ];
 
+const toolGroups = [
+  { id: 'selection', label: 'Move & Selection', icon: MousePointer, tools: [
+    ['Move Selection', Move], ['Object Select', ScanSearch], ['Magic Select', Wand],
+    ['Lasso Select', Lasso], ['Marquee Select', SquareDashedMousePointer], ['Brush Select', Paintbrush],
+    ['Quick Select', MousePointer2], ['Subject Select', UserRound],
+  ]},
+  { id: 'transform', label: 'Crop & Transform', icon: Crop, tools: [
+    ['Crop', Crop], ['Rotate', RotateCw], ['Straighten', Ruler], ['Resize', Focus],
+    ['Perspective', ScanLine], ['Flip', FlipHorizontal],
+  ]},
+  { id: 'measure', label: 'Measurement', icon: Ruler, tools: [
+    ['Ruler', Ruler], ['Measure Distance', Move], ['Color Sampler', Pipette],
+  ]},
+  { id: 'retouch', label: 'Retouch & Repair', icon: WandSparkles, tools: [
+    ['Healing Brush', Blend], ['Spot Remover', CircleDot], ['Clone Stamp', Stamp],
+    ['Red Eye Remover', Eye], ['Blur', Focus], ['Sharpen', Highlighter],
+  ]},
+  { id: 'painting', label: 'Painting & Background', icon: Paintbrush, tools: [
+    ['Brush', Paintbrush], ['Eraser', Eraser], ['Background Eraser', Eraser],
+    ['Magic Background', WandSparkles], ['Replace Background', ImageIcon], ['Gradient', Blend],
+    ['Color Picker', Pipette],
+  ]},
+  { id: 'color', label: 'Light & Color', icon: SlidersHorizontal, tools: [
+    ['Brightness', Sun], ['Contrast', Contrast], ['Exposure', Focus], ['Curves', SlidersHorizontal],
+    ['Levels', Ruler], ['Saturation', Palette], ['Temperature', Sun], ['Black & White', CircleDot],
+    ['Selective Color', Pipette],
+  ]},
+  { id: 'drawing', label: 'Drawing & Type', icon: Type, tools: [
+    ['Text', Type], ['Signature', PenTool], ['Line', Move], ['Shapes', Shapes],
+    ['Pen', PenTool], ['Watermark', Stamp],
+  ]},
+  { id: 'navigation', label: 'Navigation & History', icon: Hand, tools: [
+    ['Zoom In', ZoomIn], ['Zoom Out', ZoomOut], ['Hand', Hand], ['Fit to Screen', Focus],
+    ['Undo', CircleHelp], ['Redo', CircleHelp], ['Before / After', Eye], ['Reset View', RotateCw],
+  ]},
+  { id: 'export', label: 'Export & Print', icon: Download, tools: [
+    ['Save Project', Download], ['Export JPG / PNG / WEBP', Download],
+    ['Print Preview', Printer], ['Photo Size Presets', Ruler], ['4 × 6 Sheet', Grid2X2], ['A4 Layout', Grid2X2],
+  ]},
+  { id: 'ai', label: 'AI Studio', icon: Sparkles, tools: [
+    ['AI Object Select', ScanSearch], ['Smart Face Enhance', UserRound], ['AI Skin Smooth', Sparkles],
+    ['AI Color Fix', WandSparkles], ['Smart Eraser', Eraser], ['AI Background', ImageIcon],
+    ['AI Photo Align', Focus], ['AI Shadow Control', Blend], ['AI Document Clean', ScanLine],
+  ]},
+];
+
 const swatches = ['#F4F1EA', '#D9E2EA', '#CBD5D0', '#D9D3CB', '#AAB6C2'];
 
 const STUDIO_DB = 'tanshu-studio-shell';
@@ -119,6 +169,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
+  const [openToolGroup, setOpenToolGroup] = useState<string | null>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode>('single');
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
@@ -839,15 +890,29 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         </nav>
 
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <aside className="studio-panel flex w-[72px] min-h-0 shrink-0 flex-col items-center gap-2 overflow-y-auto overscroll-contain border-y-0 border-l-0 py-4">
-            {toolItems.map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
-            <div className="mt-3 flex w-[58px] flex-col items-center gap-1 rounded-lg border border-[#343A42] bg-[#202429] px-1 py-2">
-              <label htmlFor="studio-delete-mode" className="flex cursor-pointer flex-col items-center gap-1 text-[9px] text-[#C9CFD5]" title="Show delete control on selected sheet photo">
-                <input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3.5 w-3.5 accent-red-500"/>
-                <span>Delete</span>
+          <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
+            <div className="mb-1 w-full border-b border-[#343A42] pb-2">
+              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>setActiveTool(label as typeof activeTool)} className={`mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
+              <label htmlFor="studio-delete-mode" title="Delete mode" className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg py-2 text-[9px] ${deleteModeEnabled?'bg-red-500/15 text-red-300':'studio-muted hover:bg-[#252B31]'}`}>
+                <Trash2 size={17}/><input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3 w-3 accent-red-500"/><span>Delete</span>
               </label>
             </div>
-            <div className="mt-auto flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><MoreHorizontal size={19}/><span className="text-[9px]">More</span></div>
+            <div className="w-full pb-2 text-center text-[8px] font-semibold tracking-[.12em] text-[#7F8993]">TOOL GROUPS</div>
+            {toolGroups.map(group=>{
+              const GroupIcon=group.icon;
+              const expanded=openToolGroup===group.id;
+              return <div key={group.id} className="w-full">
+                <button type="button" aria-expanded={expanded} title={group.label} onClick={()=>setOpenToolGroup(expanded?null:group.id)} className={`flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-2 text-center transition ${expanded?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}>
+                  <GroupIcon size={16} strokeWidth={1.7}/><span className="w-full text-[8px] leading-tight">{group.label}</span><ChevronDown size={11} className={`transition-transform ${expanded?'rotate-180':''}`}/>
+                </button>
+                {expanded&&<div className="my-1 rounded-md border border-[#343A42] bg-[#1A1E22] p-1">
+                  {group.tools.map(([toolLabel,ToolIcon])=><button key={toolLabel} type="button" disabled title={toolLabel+" · Coming soon"} className="flex w-full cursor-not-allowed items-center gap-1.5 rounded px-1 py-1.5 text-left text-[8px] text-[#727D87] opacity-80">
+                    <ToolIcon size={13} strokeWidth={1.7}/><span className="min-w-0 leading-tight">{toolLabel}</span>
+                  </button>)}
+                </div>}
+              </div>;
+            })}
+            <div className="mt-auto flex w-full flex-col items-center gap-1 py-2 text-[#77818B]" title="More tools coming soon"><MoreHorizontal size={17}/><span className="text-[8px]">More</span></div>
           </aside>
           <main className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#14171A]">
             <div className="flex h-[52px] min-w-0 shrink-0 items-center justify-between gap-3 overflow-hidden border-b studio-line px-5">
