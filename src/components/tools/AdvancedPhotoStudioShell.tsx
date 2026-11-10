@@ -5,6 +5,7 @@ import {
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
   Layers3, Palette, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
   MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer,
+  Maximize2, Minimize2,
   Move, MousePointer, Lasso, SquareDashedMousePointer, RotateCw, FlipHorizontal,
   Ruler, Paintbrush, Stamp, Eraser, Pipette, Sun, Contrast, SlidersHorizontal,
   Type, PenTool, Shapes, Hand, Download, Sparkles, ScanSearch, UserRound,
@@ -156,6 +157,22 @@ const dataUrlToFile = async (data: string, name: string) => {
 
 
 export const AdvancedPhotoStudioShell: React.FC = () => {
+  const studioRootRef = useRef<HTMLDivElement>(null);
+  const [isStudioFullscreen, setIsStudioFullscreen] = useState(false);
+  useEffect(() => {
+    const syncFullscreenState = () => setIsStudioFullscreen(document.fullscreenElement === studioRootRef.current);
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    syncFullscreenState();
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
+  const toggleStudioFullscreen = async () => {
+    try {
+      if (document.fullscreenElement === studioRootRef.current) await document.exitFullscreen();
+      else if (!document.fullscreenElement && studioRootRef.current?.requestFullscreen) await studioRootRef.current.requestFullscreen();
+    } catch {
+      // Keep the editor state untouched if the browser blocks fullscreen mode.
+    }
+  };
   const [photos, setPhotos] = useState<StudioPhoto[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [zoom, setZoom] = useState(100);
@@ -790,8 +807,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#101214] text-[#D9DDE1] font-sans antialiased">
+    <div ref={studioRootRef} className="studio-root h-screen overflow-hidden bg-[#101214] text-[#D9DDE1] font-sans antialiased">
       <style>{`
+        .studio-root:fullscreen { width:100vw; height:100vh; background:#101214; }
         .studio-shell * { box-sizing: border-box; }
         .studio-shell { min-width: 1100px; height:100%; }
         .studio-panel { background:#181B1F; border:1px solid #2A2F35; }
@@ -845,6 +863,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <span className="w-10 text-center text-[10px] tabular-nums text-[#C9CFD5]">{zoom}%</span>
               <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom(value => Math.min(1600, value + (value >= 500 ? 50 : 25)))} className="flex h-6 w-6 items-center justify-center rounded hover:bg-[#30373E]"><ZoomIn size={13}/></button>
             </div>
+            <button type="button" onClick={() => void toggleStudioFullscreen()} aria-label={isStudioFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} title={isStudioFullscreen ? 'Exit fullscreen (Esc)' : 'Expand studio to fullscreen'} className="studio-control flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:text-white">
+              {isStudioFullscreen ? <Minimize2 size={14}/> : <Maximize2 size={14}/>}
+            </button>
             <span className="mr-2 flex items-center gap-1.5 text-[11px] studio-muted"><span className="h-1.5 w-1.5 rounded-full bg-[#82978B]"/> {saveState==='saved'?'Auto-saved locally':saveState==='saving'?'Saving project…':saveState==='error'?'Local save issue':'Restoring project…'}</span>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><span className="studio-muted">Untitled project</span><ChevronDown size={13}/></div>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-xs"><LockKeyhole size={12}/> Saved locally</div>
