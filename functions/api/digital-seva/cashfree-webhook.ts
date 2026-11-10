@@ -1,8 +1,8 @@
-import { cashfreeApiBase } from './_cashfree';
+import { cashfreeApiBase, cashfreeWebhookSecret } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-webhook
 // Public Cashfree callback. Verifies the signed raw payload, fetches the link from Cashfree,
 // and updates only the matching, current PENDING payment for the exact INR amount.
-interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
+interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; CASHFREE_WEBHOOK_SECRET?: string; }
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
@@ -22,14 +22,14 @@ function toPaise(value: unknown): number {
   return Number.isFinite(amount) ? Math.round(amount * 100) : -1;
 }
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
-  if (!env.DIGITAL_SEVA_DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false }, 503);
+  if (!env.DIGITAL_SEVA_DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || !cashfreeWebhookSecret(env)) return json({ success: false }, 503);
   const signature = request.headers.get('x-webhook-signature') || '';
   const timestamp = request.headers.get('x-webhook-timestamp') || '';
   if (!signature || !timestamp || timestamp.length > 40) return json({ success: false, error: 'Missing webhook signature.' }, 400);
   const rawBody = await request.text();
   if (rawBody.length > 65536) return json({ success: false }, 413);
   try {
-    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.CASHFREE_SECRET_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(cashfreeWebhookSecret(env)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const signed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(timestamp + rawBody));
     const expected = toBase64(new Uint8Array(signed));
     if (!constantTimeEqual(signature, expected)) return json({ success: false, error: 'Invalid webhook signature.' }, 401);
