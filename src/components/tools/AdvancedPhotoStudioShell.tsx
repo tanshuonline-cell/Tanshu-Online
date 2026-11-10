@@ -166,8 +166,14 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const sheetCols = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetWidthPx - marginPx * 2 + gapPx) / (documentSize.widthPx + gapPx)));
   const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + gapPx) / (documentSize.heightPx + gapPx)));
   const sheetCapacity = sheetCols * sheetRows;
-  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, sheetCapacity);
-  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > sheetCapacity) setSheetCopies(sheetCapacity); }, [sheetMode, sheetCapacity, sheetCopies]);
+  const sheetAnchor = sheetSlots[0];
+  const anchorX = sheetAnchor?.x ?? sheetMargin;
+  const anchorY = sheetAnchor?.y ?? sheetMargin;
+  const anchoredCols = Math.max(1, Math.floor((sheetDimensions.widthMm - anchorX + sheetGap) / (documentSize.widthMm + sheetGap)));
+  const anchoredRows = Math.max(1, Math.floor((sheetDimensions.heightMm - anchorY + sheetGap) / (documentSize.heightMm + sheetGap)));
+  const anchoredCapacity = Math.min(sheetCapacity, anchoredCols * anchoredRows);
+  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, anchoredCapacity);
+  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > anchoredCapacity) setSheetCopies(anchoredCapacity); }, [sheetMode, anchoredCapacity, sheetCopies]);
   useEffect(() => {
     const element = previewStageRef.current;
     if (!element) return;
@@ -808,7 +814,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-[9px] studio-muted">Margin ({sizeUnit})<input aria-label="Sheet margin" type="number" min="0" max="50" step="0.5" value={Number(mmToUnit(sheetMargin,sizeUnit).toFixed(2))} onChange={event=>setSheetMargin(Math.max(0,Math.min(50,unitToMm(Number(event.target.value)||0,sizeUnit))))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                   <label className="text-[9px] studio-muted">Photo Gap (mm)<input aria-label="Photo gap in millimetres" type="number" min="0" max="30" step="1" value={Number(sheetGap.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGap(next);setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+next)/(documentSize.widthMm+next)));return current.map((slot,index)=>index===0?slot:{...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+next),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+next)});});}} onWheel={event=>{event.preventDefault();setSheetGap(value=>{const next=Math.max(0,Math.min(30,Number((value+(event.deltaY<0?1:-1)).toFixed(1))));setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+next)/(documentSize.widthMm+next)));return current.map((slot,index)=>index===0?slot:{...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+next),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+next)});});return next;});}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted col-span-2">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,sheetCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,sheetCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,sheetCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted col-span-2">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                 </div>
               </div>
               <div className="border-b studio-line p-3">
