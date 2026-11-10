@@ -40,6 +40,10 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   const [signatureScale, setSignatureScale] = useState(28);
   const [signatureX, setSignatureX] = useState(58);
   const [signatureY, setSignatureY] = useState(80);
+  const [signatureCropZoom, setSignatureCropZoom] = useState(100);
+  const [signatureCropX, setSignatureCropX] = useState(50);
+  const [signatureCropY, setSignatureCropY] = useState(50);
+  const [signatureCleanThreshold, setSignatureCleanThreshold] = useState(230);
   const [paper, setPaper] = useState<'single'|'4x6'|'a4'>('4x6');
   const [copies, setCopies] = useState(8);
   const [gap, setGap] = useState(2);
@@ -115,7 +119,9 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     ctx.drawImage(image, 0, 0);
     const targetW = canvas.width * signatureScale / 100;
     const targetH = targetW * sign.naturalHeight / sign.naturalWidth;
-    ctx.drawImage(sign, canvas.width * signatureX / 100 - targetW / 2, canvas.height * signatureY / 100 - targetH / 2, targetW, targetH);
+    const cropScale=Math.max(1,signatureCropZoom/100),sourceW=sign.naturalWidth/cropScale,sourceH=sign.naturalHeight/cropScale;
+    const sourceX=(sign.naturalWidth-sourceW)*signatureCropX/100,sourceY=(sign.naturalHeight-sourceH)*signatureCropY/100;
+    ctx.drawImage(sign,sourceX,sourceY,sourceW,sourceH,canvas.width * signatureX / 100 - targetW / 2, canvas.height * signatureY / 100 - targetH / 2, targetW, targetH);
     onApplyImage(await canvasBlob(canvas, 'image/png'), 'signature');
     setStatus('Signature placed on the selected photo.');
   });
@@ -157,6 +163,17 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     }
     setStatus(`${paper.toUpperCase()} print sheet exported as ${format.toUpperCase()}.`);
   });
+
+  const cleanSignature = async () => {
+    if(!signature)return;
+    const image=await loadImage(signature);const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas is unavailable.');ctx.drawImage(image,0,0);
+    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;let left=canvas.width,top=canvas.height,right=0,bottom=0,found=false;
+    for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;const luminance=.299*data[i]+.587*data[i+1]+.114*data[i+2];const alpha=luminance>=signatureCleanThreshold?0:Math.round((signatureCleanThreshold-luminance)/Math.max(1,signatureCleanThreshold-80)*255);data[i+3]=Math.min(data[i+3],alpha);if(data[i+3]>8){found=true;left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}}
+    if(!found)throw new Error('No dark signature strokes found. Lower the cleanup threshold or use a clearer image.');
+    ctx.putImageData(pixels,0,0);const width=right-left+1,height=bottom-top+1;const cropped=document.createElement('canvas');cropped.width=width;cropped.height=height;cropped.getContext('2d')?.drawImage(canvas,left,top,width,height,0,0,width,height);
+    setSignature(cropped.toDataURL('image/png'));setSignatureName(name=>name.replace(/\\.[^.]+$/,'')+'-cleaned.png');setStatus('Signature cleaned and tightly cropped with a transparent background.');
+  };
 
   const signatureFileChanged = async (file?: File) => {
     if (!file) return;
@@ -248,8 +265,10 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
       {section==='signature' && <>
         <input ref={signatureInput} type="file" accept="image/*" className="hidden" onChange={e=>{void signatureFileChanged(e.target.files?.[0]);e.currentTarget.value='';}}/>
         <button onClick={()=>signatureInput.current?.click()} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px]"><ImagePlus size={13}/> Upload signature</button>
-        {signature && <><div className="rounded border studio-line bg-white p-2"><img src={signature} alt="Signature preview" className="max-h-16 max-w-full object-contain"/></div><p className="truncate text-[9px] studio-muted">{signatureName}</p>
-          {([['Size',signatureScale,setSignatureScale],['Horizontal',signatureX,setSignatureX],['Vertical',signatureY,setSignatureY]] as const).map(([label,value,setter])=><label key={label} className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min={label==='Size'?5:0} max={label==='Size'?70:100} value={value} onChange={e=>setter(Number(e.target.value))}/></label>)}
+        {signature && <><div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'12px 12px'}}><img src={signature} alt="Independent signature crop preview" className="mx-auto max-h-20 max-w-full object-contain" style={{transform:`scale(${signatureCropZoom/100})`,objectPosition:`${signatureCropX}% ${signatureCropY}%`}}/></div><p className="truncate text-[9px] studio-muted">{signatureName}</p>
+          <button type="button" onClick={()=>void cleanSignature()} className="studio-control w-full py-2 text-[10px]">Clean white background & crop ink</button>
+          <label className="block text-[10px] studio-muted">Cleanup threshold · {signatureCleanThreshold}<input type="range" min="170" max="250" value={signatureCleanThreshold} onChange={e=>setSignatureCleanThreshold(Number(e.target.value))} className="mt-1 w-full"/></label>
+          {([['Size',signatureScale,setSignatureScale,5,70],['Placement X',signatureX,setSignatureX,0,100],['Placement Y',signatureY,setSignatureY,0,100],['Crop zoom',signatureCropZoom,setSignatureCropZoom,100,300],['Crop horizontal',signatureCropX,setSignatureCropX,0,100],['Crop vertical',signatureCropY,setSignatureCropY,0,100]] as const).map(([label,value,setter,min,max])=><label key={label} className="block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input className="w-full accent-[#AEB8C2]" type="range" min={min} max={max} value={value} onChange={e=>setter(Number(e.target.value))}/></label>)}
           <button disabled={disabled} onClick={applySignature} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><PenTool size={13}/> Apply signature to photo</button></>}
       </>}
       {section==='print' && <>
