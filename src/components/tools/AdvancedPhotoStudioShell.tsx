@@ -512,6 +512,14 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       positionX: 50,
       positionY: 50
     };
+    // Processed signature layers must have real dimensions before the overlay renderer can show them.
+    const processedImage = new Image();
+    processedImage.onload = () => {
+      setPhotos(current => current.map(photo => photo.id === processedLayer.id
+        ? { ...photo, width: processedImage.naturalWidth, height: processedImage.naturalHeight }
+        : photo));
+    };
+    processedImage.src = url;
     setPhotos(current => [...current, processedLayer]);
     // Processing a signature must not replace the active photo layer.
     if (source.kind !== 'signature') setSelectedId(processedLayer.id);
