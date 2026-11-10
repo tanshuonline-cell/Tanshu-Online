@@ -14,6 +14,7 @@ import { LatestVideos } from './components/LatestVideos';
 import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
+import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
@@ -25,7 +26,7 @@ import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'studio-shell'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -66,6 +67,7 @@ export default function App() {
   useEffect(() => {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
+    const isStudioPreview = pathname === '/advanced-photo-studio-preview';
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const video = isVideoDetail
@@ -73,12 +75,16 @@ export default function App() {
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
       : null;
 
-    const title = isVideoCatalog
+    const title = isStudioPreview
+      ? 'Professional Photo & Signature Studio | TANSHU ONLINE'
+      : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
         ? `${video.title} | TANSHU ONLINE`
         : 'TANSHU ONLINE | Online Tools, Government Services & Video Guides';
-    const description = isVideoCatalog
+    const description = isStudioPreview
+      ? 'Professional Photo & Signature Studio by TANSHU ONLINE. Create and arrange print-ready photo sheets.'
+      : isVideoCatalog
       ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
       : video
         ? (video.description || video.title).slice(0, 300)
@@ -145,7 +151,9 @@ export default function App() {
       const pathname = window.location.pathname;
       const hash = window.location.hash;
 
-      if (pathname === '/admin' || hash === '#admin') {
+      if (pathname === '/advanced-photo-studio-preview') {
+        setCurrentPage('studio-shell');
+      } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
         setCurrentPage('videos');
@@ -442,6 +450,11 @@ export default function App() {
         />
       </div>
     );
+  }
+
+  // ROUTE 4: DEDICATED NEW PROFESSIONAL PHOTO & SIGNATURE STUDIO
+  if (currentPage === 'studio-shell') {
+    return <AdvancedPhotoStudioShell />;
   }
 
   // ROUTE 4: STANDARD HOMEPAGE
