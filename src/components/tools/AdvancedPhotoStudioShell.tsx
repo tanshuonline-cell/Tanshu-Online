@@ -96,6 +96,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [sheetGap, setSheetGap] = useState(2);
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
   const [cropDialogDrag, setCropDialogDrag] = useState<{x:number;y:number;left:number;top:number}|null>(null);
   const [slotDrag, setSlotDrag] = useState<{id:string;px:number;py:number;sx:number;sy:number;group?:{id:string;x:number;y:number}[]}|null>(null);
@@ -137,6 +138,32 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (sheetMode !== 'single' && selectedSheetSlot) setSheetSlots(current => current.map(slot => slot.id === selectedSheetSlot.id ? { ...slot, ...patch } : slot));
     else if (selected) setPhotos(current => current.map(photo => photo.id === selected.id ? { ...photo, ...patch } : photo));
   };
+  const detectFaceAndSuggestCrop = async () => {
+    if(!selected)return;
+    setFaceDetectionStatus('Detecting face…');
+    let detector:any;
+    try {
+      const moduleUrl='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/+esm';
+      const {FaceDetector,FilesetResolver}=await import(/* @vite-ignore */ moduleUrl) as any;
+      const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm');
+      detector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite'},runningMode:'IMAGE'});
+      const image=await new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Photo could not be loaded.'));img.src=selected.url;});
+      const result=detector.detect(image);const face=result.detections?.[0]?.boundingBox;
+      if(!face)throw new Error('No clear face detected. Try a front-facing, well-lit photo.');
+      const ratio=documentSize.widthPx/documentSize.heightPx;
+      const baseWidth=Math.min(image.naturalWidth,image.naturalHeight*ratio),baseHeight=baseWidth/ratio;
+      const zoom=Math.max(100,Math.min(300,(baseHeight*0.55/Math.max(1,face.height))*100));
+      const sourceWidth=baseWidth/(zoom/100),sourceHeight=baseHeight/(zoom/100);
+      const centerX=face.originX+face.width/2,centerY=face.originY+face.height/2;
+      const maxX=Math.max(1,image.naturalWidth-sourceWidth),maxY=Math.max(1,image.naturalHeight-sourceHeight);
+      const sourceX=Math.max(0,Math.min(maxX,centerX-sourceWidth/2));
+      const sourceY=Math.max(0,Math.min(maxY,centerY-sourceHeight*0.42));
+      updateActiveCrop({cropZoom:Math.round(zoom),positionX:Math.round(sourceX/maxX*100),positionY:Math.round(sourceY/maxY*100)});
+      setFaceDetectionStatus('Face detected. Suggested passport framing applied to the selected photo only.');
+    } catch(error) { setFaceDetectionStatus(error instanceof Error?error.message:'Face detection could not run.'); }
+    finally { detector?.close?.(); }
+  };
+
   const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
   const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
   const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>p.id),zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
@@ -619,7 +646,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => updateActiveCrop({cropZoom:100,positionX:50,positionY:50})} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset selected crop</button></div>
                 {([['Crop zoom',activeCropZoom,'cropZoom',100,300],['Horizontal position',activePositionX,'positionX',0,100],['Vertical position',activePositionY,'positionY',0,100]] as const).map(([label,value,key,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>updateActiveCrop({[key]:Number(event.target.value)})} className="w-full accent-[#AEB8C2]"/></label>)}
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>updateActiveCrop({positionX:50})} className="studio-control py-1.5 text-[9px]">Center X</button><button type="button" onClick={()=>updateActiveCrop({positionY:50})} className="studio-control py-1.5 text-[9px]">Center Y</button></div>
-                <button type="button" onClick={()=>setCropDialogOpen(true)} className="studio-control mt-3 flex w-full items-center justify-center gap-2 py-2 text-[10px]"><Crop size={13}/> Open manual crop studio</button>
+                <button type="button" onClick={()=>void detectFaceAndSuggestCrop()} className="studio-control mt-3 flex w-full items-center justify-center gap-2 py-2 text-[10px]"><ScanFace size={13}/> Detect face & suggest crop</button>{faceDetectionStatus&&<p className="mt-2 text-[9px] leading-4 studio-muted" role="status">{faceDetectionStatus}</p>}<button type="button" onClick={()=>setCropDialogOpen(true)} className="studio-control mt-2 flex w-full items-center justify-center gap-2 py-2 text-[10px]"><Crop size={13}/> Open manual crop studio</button>
               </div>}
               <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'print':'adjust'} hideTabs />
               <div className="border-t studio-line p-4">
