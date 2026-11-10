@@ -719,7 +719,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
       const slots:SheetSlot[]=sheetMode==='single'?[{id:'print-single',photoId:selected.id,x:0,y:0,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:selected.cropZoom??cropZoom,positionX:selected.positionX??positionX,positionY:selected.positionY??positionY}]:sheetSlots.filter(slot=>sourcePhotos.some(photo=>photo.id===slot.photoId));
       for(const slot of slots){
-        const photo=sourcePhotos.find(item=>item.id===slot.photoId);const image=images[Math.max(0,sourcePhotos.findIndex(item=>item.id===slot.photoId))]||images[0];if(!image)continue;
+        const photo=sourcePhotos.find(item=>item.id===slot.photoId);const image=images[Math.max(0,sourcePhotos.findIndex(item=>item.id===slot.photoId))]||images[0];if(!photo||!image)continue;
         const ratio=documentSize.widthPx/documentSize.heightPx,baseWidth=Math.min(image.naturalWidth,image.naturalHeight*ratio),baseHeight=baseWidth/ratio;
         const scale=Math.max(1,(slot.cropZoom??100)/100),sourceWidth=baseWidth/scale,sourceHeight=baseHeight/scale;
         const sourceX=Math.max(0,Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*(slot.positionX??50)/100));
