@@ -1,7 +1,7 @@
 import React from 'react';
 
 type SheetMode = 'single' | '4x6' | 'a4';
-type PhotoPreset = 'india' | 'stamp' | 'pan' | 'custom';
+type PhotoPreset = 'india' | 'stamp' | 'pan' | 'passport-35x35' | 'square-51' | 'oci-51' | 'pcc-35x35' | 'frro-35x35' | 'dl-35x45' | 'voter-35x45' | 'exam-35x45' | 'custom';
 type Unit = 'mm' | 'cm' | 'in';
 
 type Props = {
@@ -63,10 +63,22 @@ export const StudioQuickPrintSetup: React.FC<Props> = ({
         </label>
         <label className="text-[9px] studio-muted">Passport photo size
           <select aria-label="Quick print photo size" value={preset} onChange={event => onPresetChange(event.target.value as PhotoPreset)} className={control + ' mt-1'}>
-            <option value="india">Passport · 35 × 45 mm</option>
-            <option value="pan">PAN · 25 × 35 mm</option>
-            <option value="stamp">Stamp · 25 × 30 mm</option>
-            <option value="custom">Custom size</option>
+            <optgroup label="Common India print sizes">
+              <option value="india">Passport / General form · 35 × 45 mm</option>
+              <option value="pan">PAN card print · 25 × 35 mm</option>
+              <option value="voter-35x45">Voter ID / Form · 35 × 45 mm</option>
+              <option value="dl-35x45">Driving licence · 35 × 45 mm</option>
+              <option value="exam-35x45">Exam form common · 35 × 45 mm*</option>
+              <option value="stamp">Stamp photo · 25 × 30 mm</option>
+            </optgroup>
+            <optgroup label="Visa & consular sizes">
+              <option value="square-51">Visa photo · 2 × 2 inch (50.8 × 50.8 mm)</option>
+              <option value="oci-51">OCI photo · 51 × 51 mm</option>
+              <option value="passport-35x35">Passport / consular square · 35 × 35 mm</option>
+              <option value="pcc-35x35">PCC / Birth certificate · 35 × 35 mm</option>
+              <option value="frro-35x35">FRRO / Consular form · 35 × 35 mm</option>
+            </optgroup>
+            <option value="custom">Custom size — enter your own</option>
           </select>
         </label>
       </div>
@@ -107,7 +119,7 @@ export const StudioQuickPrintSetup: React.FC<Props> = ({
       <button type="button" disabled={!hasPhoto || sheetMode === 'single'} onClick={onPrint} className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#D9DEE2] px-3 text-[10px] font-bold text-[#20252A] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-35">
         <span>🖨️</span> Prepare sheet & Print
       </button>
-      <p className="mt-2 text-[9px] leading-4 studio-muted">Print at 100% / Actual Size. Turn off “Fit to page”. Keep the printer’s supported paper size selected. Edge-to-edge printing depends on the printer’s borderless capability.</p>
+      <p className="mt-2 text-[9px] leading-4 studio-muted">*Exam and department requirements vary by notification; verify the latest form instructions before printing. State-wise photo dimensions are not one universal standard. Print at 100% / Actual Size. Turn off “Fit to page”. Keep the printer’s supported paper size selected. Edge-to-edge printing depends on the printer’s borderless capability.</p>
     </section>
   );
 };
