@@ -627,6 +627,13 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <button type="button" aria-label="Zoom out" onClick={() => setZoom(value => Math.max(25, value - 25))} className="studio-control flex h-7 w-7 items-center justify-center"><ZoomOut size={13}/></button>
                 <span className="w-10 text-center text-[10px] studio-muted">{zoom}%</span>
                 <button type="button" aria-label="Zoom in" onClick={() => setZoom(value => Math.min(200, value + 25))} className="studio-control flex h-7 w-7 items-center justify-center"><ZoomIn size={13}/></button>
+                <label className="ml-1 flex items-center gap-1.5 text-[10px] studio-muted">
+                  <span className="whitespace-nowrap">Number of photos</span>
+                  <select aria-label="Number of photos" title="Select number of photos" value={sheetCopies} onChange={event => { const count = Number(event.target.value); setSheetCopies(count); setSheetSlots([]); setSelectedSlotId(null); setSelectedSlotIds([]); setQuickPrintLayout(true); }} className="studio-control h-7 min-w-[104px] px-2 text-[10px] outline-none" disabled={!selected}>
+                    {[1,2,4,5,6,7,8,10,12,16,20,24,30].map(count => <option key={count} value={count} disabled={count > 1 && (sheetMode === 'single' || count > sheetCapacity)}>{count === 1 ? '1 Photo' : `${count} Photos`}{count > 1 && count > sheetCapacity ? ' · over capacity' : ''}</option>)}
+                    {!([1,2,4,5,6,7,8,10,12,16,20,24,30].includes(sheetCopies)) && <option value={sheetCopies}>{sheetCopies} Photos · Custom</option>}
+                  </select>
+                </label>
               </div>
             </div>
 
