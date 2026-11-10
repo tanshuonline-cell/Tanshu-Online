@@ -490,25 +490,6 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
-        {/* Ready-to-use studios and active tools appear immediately after the hero. */}
-        <ReadyToUseTools onOpenTool={handleOpenTool} />
-
-        {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
-        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
-
-        {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
-        <SocialStrip />
-
-        {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
-        <CategoryNavigationSection
-          onOpenAllTools={() => {
-            setDirectoryCategory('all');
-            setSearchQuery('');
-            scrollToSection('all-tools');
-          }}
-          onScrollToTop={() => scrollToSection('home')}
-        />
-
         {/* Digital Seva entry card: placed between Government Category and Video Learning Center */}
         <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Digital Seva Center">
           <style>{`
@@ -566,6 +547,27 @@ export default function App() {
             <span className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-rose-900 px-5 py-3 text-sm font-bold text-white transition-colors group-hover:bg-rose-800 sm:self-center">Explore Digital Seva <span aria-hidden="true">→</span></span>
           </a>
         </section>
+
+        {/* Ready-to-use studios and active tools appear immediately after the hero. */}
+        <ReadyToUseTools onOpenTool={handleOpenTool} />
+
+        {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
+        <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
+
+        {/* 8: Dark Navy Social Media Strip with Verified Links and WhatsApp CTA */}
+        <SocialStrip />
+
+        {/* 1. Browse by Government Category: 5 Premium Coordinated Category Cards */}
+        <CategoryNavigationSection
+          onOpenAllTools={() => {
+            setDirectoryCategory('all');
+            setSearchQuery('');
+            scrollToSection('all-tools');
+          }}
+          onScrollToTop={() => scrollToSection('home')}
+        />
+
+
 
         {/* 2. Video Learning Center (Placed immediately below CategoryNavigationSection and immediately above Future Tools) */}
         <VideoLearningCenter
