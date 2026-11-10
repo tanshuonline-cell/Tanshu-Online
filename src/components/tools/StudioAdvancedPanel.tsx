@@ -180,11 +180,12 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
       </>}
       {section==='background' && <>
         <p className="text-[10px] leading-4 studio-muted">AI background removal runs in your browser. The original photo is preserved; the cutout is added as a new layer.</p>
+        <label className="flex items-center justify-between text-[10px] studio-muted">Background color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label>
+        <div className="flex flex-wrap gap-1.5">{['#FFFFFF','#F4F1EA','#D9E2EA','#CBD5D0','#D9D3CB','#AAB6C2','#E8D8C6','#DDE7F2'].map(color=><button type="button" key={color} aria-label={`Set background color ${color}`} onClick={()=>setBackgroundColor(color)} className="h-6 w-6 rounded border border-white/15" style={{backgroundColor:color}}/>)}</div>
         <button disabled={disabled} onClick={removeBg} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><Eraser size={13}/> Remove background</button>
         {cutoutUrl && <>
           <div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'16px 16px',backgroundPosition:'0 0,0 8px,8px -8px,-8px 0'}}><img src={cutoutUrl} alt="Transparent background removal preview" className="mx-auto max-h-40 max-w-full object-contain"/></div>
           <button disabled={disabled} onClick={()=>applyCutout(false)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply transparent PNG as new layer</button>
-          <label className="flex items-center justify-between text-[10px] studio-muted">Replacement color<input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)} className="h-8 w-12 rounded border border-[#3A4148] bg-transparent"/></label>
           <button disabled={disabled} onClick={()=>applyCutout(true)} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply color background as new layer</button>
         </>}
       </>}
