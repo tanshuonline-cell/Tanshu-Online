@@ -12,6 +12,7 @@ type Props = {
   heightPx: number;
   onApplyImage: (blob: Blob, suffix: string) => void;
   activeSection?: 'adjust'|'background'|'portrait'|'signature'|'print';
+  hideTabs?: boolean;
 };
 
 const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
@@ -22,7 +23,7 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 });
 const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
-export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, activeSection }) => {
+export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, activeSection, hideTabs = false }) => {
   const [section, setSection] = useState<'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
   React.useEffect(() => { if (activeSection) setSection(activeSection); }, [activeSection]);
   const [brightness, setBrightness] = useState(100);
@@ -163,15 +164,17 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
 
   const disabled = !selected || busy;
   return <div className="border-b studio-line p-3">
-    <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">STUDIO TOOLS</span>{busy && <Loader2 size={13} className="animate-spin studio-muted"/>}</div>
-    <div className="grid grid-cols-2 gap-1.5">
-      <button className={tabClass('adjust')} onClick={()=>setSection('adjust')}><SlidersHorizontal size={13}/> Adjust</button>
-      <button className={tabClass('background')} onClick={()=>setSection('background')}><Eraser size={13}/> Background</button>
-      <button className={tabClass('portrait')} onClick={()=>setSection('portrait')}><ScanFace size={13}/> Face Retouch</button>
-      <button className={tabClass('signature')} onClick={()=>setSection('signature')}><PenTool size={13}/> Signature</button>
-      <button className={tabClass('print')} onClick={()=>setSection('print')}><Printer size={13}/> Print Sheet</button>
-      <span className="flex items-center gap-1 px-2 text-[9px] studio-muted"><WandSparkles size={12}/> Browser processing</span>
-    </div>
+    {!hideTabs && <>
+      <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">STUDIO TOOLS</span>{busy && <Loader2 size={13} className="animate-spin studio-muted"/>}</div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <button className={tabClass('adjust')} onClick={()=>setSection('adjust')}><SlidersHorizontal size={13}/> Adjust</button>
+        <button className={tabClass('background')} onClick={()=>setSection('background')}><Eraser size={13}/> Background</button>
+        <button className={tabClass('portrait')} onClick={()=>setSection('portrait')}><ScanFace size={13}/> Face Retouch</button>
+        <button className={tabClass('signature')} onClick={()=>setSection('signature')}><PenTool size={13}/> Signature</button>
+        <button className={tabClass('print')} onClick={()=>setSection('print')}><Printer size={13}/> Print Sheet</button>
+        <span className="flex items-center gap-1 px-2 text-[9px] studio-muted"><WandSparkles size={12}/> Browser processing</span>
+      </div>
+    </>}
 
     {!selected ? <p className="mt-3 text-[10px] studio-muted">Import a photo to enable editing tools.</p> : <div className="mt-3 space-y-3">
       {section==='adjust' && <>
