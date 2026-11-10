@@ -74,7 +74,7 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
                 </li>
               ))}
             </ul>
-            <a href="/digital-seva" className="inline-flex items-center gap-1.5 pt-2 font-bold text-cyan-300 hover:text-white transition-colors">
+            <a href="https://52868321.tanshu-online.pages.dev/digital-seva" className="inline-flex items-center gap-1.5 pt-2 font-bold text-cyan-300 hover:text-white transition-colors">
               Tanshu Digital Center <ExternalLink className="w-3 h-3" />
             </a>
           </div>
