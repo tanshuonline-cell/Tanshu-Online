@@ -21,6 +21,28 @@ const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; w
 const mmToUnit = (value: number, unit: StudioUnit) => value / (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 
+const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gap: number) =>
+  a.x < b.x + b.width + gap - 0.01 && a.x + a.width + gap > b.x + 0.01 &&
+  a.y < b.y + b.height + gap - 0.01 && a.y + a.height + gap > b.y + 0.01;
+
+const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gap: number) => {
+  const maxX = Math.max(margin, pageW - margin - moving.width), maxY = Math.max(margin, pageH - margin - moving.height);
+  const clamp = (value: number, max: number) => Math.max(margin, Math.min(max, value));
+  const target = { ...moving, x: clamp(x, maxX), y: clamp(y, maxY) };
+  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gap));
+  const xEdges = [margin, maxX], yEdges = [margin, maxY];
+  others.forEach(other => { xEdges.push(other.x - moving.width - gap, other.x + other.width + gap); yEdges.push(other.y - moving.height - gap, other.y + other.height + gap); });
+  const candidates: SheetSlot[] = [], seen = new Set<string>();
+  const add = (cx: number, cy: number) => { const candidate = { ...moving, x: clamp(cx, maxX), y: clamp(cy, maxY) }; const key = candidate.x.toFixed(2)+':'+candidate.y.toFixed(2); if (!seen.has(key) && !collides(candidate)) { seen.add(key); candidates.push(candidate); } };
+  xEdges.forEach(cx => yEdges.forEach(cy => add(cx, cy)));
+  const stepX = moving.width + gap, stepY = moving.height + gap;
+  for (let row=0; row*stepY+margin<=maxY+0.01; row++) for (let col=0; col*stepX+margin<=maxX+0.01; col++) add(margin+col*stepX,margin+row*stepY);
+  const nearest = candidates.sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
+  if (!nearest) return { x: target.x, y: target.y };
+  const distance = Math.hypot(nearest.x-target.x,nearest.y-target.y);
+  return collides(target)||distance<=4 ? {x:nearest.x,y:nearest.y} : {x:target.x,y:target.y};
+};
+
 const toolItems = [
   { icon: MousePointer2, label: 'Move', active: true },
   { icon: Crop, label: 'Crop' },
@@ -79,6 +101,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [slotDrag, setSlotDrag] = useState<{id:string;px:number;py:number;sx:number;sy:number}|null>(null);
   const [menuOpen, setMenuOpen] = useState<string|null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string|null>(null);
+  const [deleteModeEnabled, setDeleteModeEnabled] = useState(false);
   const [canUndo, setCanUndo] = useState(false); const [canRedo, setCanRedo] = useState(false);
   const undoStackRef = useRef<EditorSnapshot[]>([]); const redoStackRef = useRef<EditorSnapshot[]>([]);
   const lastSnapshotRef = useRef<EditorSnapshot|null>(null); const applyingHistoryRef = useRef(false);
@@ -386,6 +409,12 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         <div className="flex min-h-0 flex-1">
           <aside className="studio-panel flex w-[72px] shrink-0 flex-col items-center gap-2 border-y-0 border-l-0 py-4">
             {toolItems.map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
+            <div className="mt-3 flex w-[58px] flex-col items-center gap-1 rounded-lg border border-[#343A42] bg-[#202429] px-1 py-2">
+              <label htmlFor="studio-delete-mode" className="flex cursor-pointer flex-col items-center gap-1 text-[9px] text-[#C9CFD5]" title="Show delete control on selected sheet photo">
+                <input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3.5 w-3.5 accent-red-500"/>
+                <span>Delete</span>
+              </label>
+            </div>
             <div className="mt-auto flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><MoreHorizontal size={19}/><span className="text-[9px]">More</span></div>
           </aside>
           <main className="flex min-w-0 flex-1 flex-col bg-[#14171A]">
