@@ -22,7 +22,6 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
   const { t, isHindi } = useLanguage();
   // Exactly the six featured tools from the confirmed tools list
   const featuredOrder = [
-    'advanced-passport-photo-studio',
     'pdf-to-pvc-card-auto-cropper',
     'photo-signature-resizer',
     'pdf-ocr-text-extractor',
@@ -32,7 +31,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
     'invoice-generator',
   ];
   const featuredTools = CONFIRMED_TOOLS
-    .filter((tool) => tool.isFeatured)
+    .filter((tool) => tool.isFeatured && tool.id !== 'advanced-passport-photo-studio')
     .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
     .slice(0, 8);
 

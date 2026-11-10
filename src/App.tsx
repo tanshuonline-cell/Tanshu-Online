@@ -5,6 +5,7 @@ import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
 import { ReadyToUseTools } from './components/ReadyToUseTools';
+import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
 import { GovernmentSchemes } from './components/GovernmentSchemes';
@@ -371,6 +372,11 @@ export default function App() {
   const handleCloseTool = () => {
     setActiveTool(null);
   };
+
+  // Dedicated Instant Passport Photo Studio route.
+  if (window.location.pathname === '/advanced-photo-studio-preview') {
+    return <AdvancedPhotoStudioShell />;
+  }
 
   // ROUTE 1: ADMIN PANEL
   if (currentPage === 'admin') {
