@@ -513,7 +513,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       positionY: 50
     };
     setPhotos(current => [...current, processedLayer]);
-    setSelectedId(processedLayer.id);
+    // Processing a signature must not replace the active photo layer.
+    if (source.kind !== 'signature') setSelectedId(processedLayer.id);
   };
 
   const addSignatureLayer = (file: File) => {
