@@ -535,10 +535,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#101214] text-[#D9DDE1] font-sans antialiased">
+    <div className="h-screen overflow-hidden bg-[#101214] text-[#D9DDE1] font-sans antialiased">
       <style>{`
         .studio-shell * { box-sizing: border-box; }
-        .studio-shell { min-width: 1100px; }
+        .studio-shell { min-width: 1100px; height:100%; }
         .studio-panel { background:#181B1F; border:1px solid #2A2F35; }
         .studio-muted { color:#858D96; }
         .studio-line { border-color:#2A2F35; }
@@ -559,7 +559,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         .studio-trash-lid { transform-origin: right bottom; }
         .group:hover .studio-trash-lid, .group:focus-visible .studio-trash-lid { transform: rotate(-58deg) translate(-3px,-4px) scaleX(1.12); }
       `}</style>
-      <div className="studio-shell flex min-h-screen flex-col">
+      <div className="studio-shell flex h-full min-h-0 flex-col overflow-hidden">
         <header className="flex h-[58px] shrink-0 items-center justify-between border-b studio-line bg-[#171A1D] px-5">
           <div className="flex items-center gap-4">
             <a href="/" className="flex items-center gap-2 text-sm studio-muted hover:text-white"><ArrowLeft size={16}/> TANSHU ONLINE</a>
@@ -626,8 +626,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
         </nav>
 
-        <div className="flex min-h-0 flex-1">
-          <aside className="studio-panel flex w-[72px] shrink-0 flex-col items-center gap-2 border-y-0 border-l-0 py-4">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <aside className="studio-panel flex w-[72px] min-h-0 shrink-0 flex-col items-center gap-2 overflow-y-auto overscroll-contain border-y-0 border-l-0 py-4">
             {toolItems.map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
             <div className="mt-3 flex w-[58px] flex-col items-center gap-1 rounded-lg border border-[#343A42] bg-[#202429] px-1 py-2">
               <label htmlFor="studio-delete-mode" className="flex cursor-pointer flex-col items-center gap-1 text-[9px] text-[#C9CFD5]" title="Show delete control on selected sheet photo">
@@ -637,9 +637,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>
             <div className="mt-auto flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><MoreHorizontal size={19}/><span className="text-[9px]">More</span></div>
           </aside>
-          <main className="flex min-w-0 flex-1 flex-col bg-[#14171A]">
-            <div className="flex h-[52px] shrink-0 items-center justify-between border-b studio-line px-5">
-              <div className="flex items-center gap-3"><span className="text-[12px] font-medium text-[#E1E5E8]">Canvas</span><span className="text-[11px] studio-muted">/</span><span className="text-[11px] studio-muted">{selected ? selected.file.name : 'Portrait workspace'}</span></div>
+          <main className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#14171A]">
+            <div className="flex h-[52px] min-w-0 shrink-0 items-center justify-between gap-3 overflow-hidden border-b studio-line px-5">
+              <div className="flex min-w-0 shrink-0 items-center"><span className="text-[12px] font-medium text-[#E1E5E8]">Canvas</span></div>
               <div className="flex items-center gap-2">
                 <span className="mr-1 text-[10px] studio-muted">SHEET</span>
                 <select aria-label="Print sheet size" value={sheetMode} onChange={event => { setSheetMode(event.target.value as SheetMode); setSheetSlots([]); setSelectedSlotId(null); setSelectedSlotIds([]); setQuickPrintLayout(true); }} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="single">Single Photo</option><optgroup label="Common photo paper"><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select>
@@ -676,7 +676,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               </div>
             </div>
 
-            <div className="studio-stage relative flex min-h-[520px] flex-1 items-center justify-center overflow-hidden p-10">
+            <div className="studio-stage relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-6">
               <div className="absolute left-5 top-5 flex items-center gap-2 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted"><MousePointer2 size={13}/> Move tool <span className="ml-2 text-[#626B74]">V</span></div>
               <div className="absolute right-5 top-5 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>
               {selected && sheetMode !== 'single' ? (
@@ -735,9 +735,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>
           </main>
 
-          <aside className="studio-panel flex w-[286px] shrink-0 flex-col border-y-0 border-r-0">
-            <div className="flex h-[52px] items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">{activeTool === 'Move' ? 'Move Settings' : `${activeTool} Settings`}</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+          <aside className="studio-panel flex w-[286px] min-h-0 shrink-0 flex-col overflow-hidden border-y-0 border-r-0">
+            <div className="flex h-[52px] shrink-0 items-center justify-between border-b studio-line px-4"><div className="text-[12px] font-semibold text-[#E0E4E8]">{activeTool === 'Move' ? 'Move Settings' : `${activeTool} Settings`}</div><span className="text-[9px] studio-muted">{saveState==='saved'?'Auto-saved':saveState==='saving'?'Saving…':saveState==='error'?'Save issue':'Restoring…'}</span></div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                             {activeTool === 'Crop' && <div className="border-b studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => updateActiveCrop({cropZoom:100,positionX:50,positionY:50})} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset selected crop</button></div>
                 {([['Crop zoom',activeCropZoom,'cropZoom',100,300],['Horizontal position',activePositionX,'positionX',0,100],['Vertical position',activePositionY,'positionY',0,100]] as const).map(([label,value,key,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>updateActiveCrop({[key]:Number(event.target.value)})} className="w-full accent-[#AEB8C2]"/></label>)}
