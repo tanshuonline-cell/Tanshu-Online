@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StudioAdvancedPanel } from './StudioAdvancedPanel';
 import {
-  ArrowLeft, ChevronDown, Search, Download, Undo2, Redo2,
+  ArrowLeft, ChevronDown, Download, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
   Layers3, Palette, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
   MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer
