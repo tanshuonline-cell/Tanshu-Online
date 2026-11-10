@@ -1,7 +1,8 @@
+import { cashfreeApiBase } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-webhook
 // Public Cashfree callback. Verifies the signed raw payload, fetches the link from Cashfree,
 // and updates only the matching, current PENDING payment for the exact INR amount.
-interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; }
+interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
@@ -46,8 +47,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({ success: true, ignored: true });
     }
 
-    // This Preview branch is deliberately pinned to Cashfree Sandbox; it cannot charge real money.
-    const apiBase = 'https://sandbox.cashfree.com/pg';
+    const apiBase = cashfreeApiBase(env);
     const verifyResponse = await fetch(`${apiBase}/links/${encodeURIComponent(linkId)}`, {
       headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
     });
