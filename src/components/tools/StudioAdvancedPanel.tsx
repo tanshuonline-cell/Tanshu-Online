@@ -187,20 +187,61 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     setStatus(`${paper.toUpperCase()} print sheet exported as ${format.toUpperCase()}.`);
   });
 
+  const makeSignatureCrop = (image: HTMLImageElement) => {
+    const scale = Math.max(1, signatureCropZoom) / 100;
+    const cropWidth = Math.max(1, Math.round(image.naturalWidth / scale));
+    const cropHeight = Math.max(1, Math.round(image.naturalHeight / scale));
+    const centerX = image.naturalWidth * signatureCropX / 100;
+    const centerY = image.naturalHeight * signatureCropY / 100;
+    const left = Math.max(0, Math.min(image.naturalWidth - cropWidth, centerX - cropWidth / 2));
+    const top = Math.max(0, Math.min(image.naturalHeight - cropHeight, centerY - cropHeight / 2));
+    const canvas = document.createElement('canvas');
+    canvas.width = cropWidth; canvas.height = cropHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas is unavailable.');
+    ctx.drawImage(image, left, top, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    return canvas;
+  };
+
+  const cropSignature = async () => {
+    if (!signature || busy) return;
+    setBusy(true); setProgress(0);
+    try {
+      const image = await loadImage(signature);
+      const cropped = makeSignatureCrop(image);
+      const blob = await canvasBlob(cropped, 'image/png');
+      setSignature(cropped.toDataURL('image/png'));
+      setSignatureName(name => name.replace(/\\.[^.]+$/, '') + '-cropped.png');
+      const signatureLayer = photos.filter(photo => photo.kind === 'signature').slice(-1)[0];
+      if (signatureLayer) onApplyImage(blob, 'signature-cropped', signatureLayer.id);
+      setSignatureCropZoom(100); setSignatureCropX(50); setSignatureCropY(50);
+      setStatus('Signature crop applied. You can now remove its background.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Signature crop failed.');
+    } finally { setBusy(false); }
+  };
+
   const cleanSignature = async () => {
-    if(!signature)return;
-    const image=await loadImage(signature);const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
-    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas is unavailable.');ctx.drawImage(image,0,0);
-    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;let left=canvas.width,top=canvas.height,right=0,bottom=0,found=false;
-    for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;const luminance=.299*data[i]+.587*data[i+1]+.114*data[i+2];const alpha=luminance>=signatureCleanThreshold?0:Math.round((signatureCleanThreshold-luminance)/Math.max(1,signatureCleanThreshold-80)*255);data[i+3]=Math.min(data[i+3],alpha);if(data[i+3]>8){found=true;left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}}
-    if(!found)throw new Error('No dark signature strokes found. Lower the cleanup threshold or use a clearer image.');
-    ctx.putImageData(pixels,0,0);const width=right-left+1,height=bottom-top+1;const cropped=document.createElement('canvas');cropped.width=width;cropped.height=height;cropped.getContext('2d')?.drawImage(canvas,left,top,width,height,0,0,width,height);
-    const blob=await canvasBlob(cropped,'image/png');
-    setSignature(cropped.toDataURL('image/png'));
-    setSignatureName(name=>name.replace(/\\.[^.]+$/,'')+'-cleaned.png');
-    const signatureLayer=photos.filter(photo=>photo.kind==='signature').slice(-1)[0];
-    if(signatureLayer)onApplyImage(blob,'signature-cleaned',signatureLayer.id);
-    setStatus('Signature cleaned and tightly cropped with a transparent background. The cleaned transparent layer is now used on the preview.');
+    if(!signature || busy)return;
+    setBusy(true); setProgress(0);
+    try {
+      const image=await loadImage(signature);
+      const canvas=makeSignatureCrop(image);
+      const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas is unavailable.');
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;let left=canvas.width,top=canvas.height,right=0,bottom=0,found=false;
+      for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;const luminance=.299*data[i]+.587*data[i+1]+.114*data[i+2];const alpha=luminance>=signatureCleanThreshold?0:Math.round((signatureCleanThreshold-luminance)/Math.max(1,signatureCleanThreshold-80)*255);data[i+3]=Math.min(data[i+3],alpha);if(data[i+3]>8){found=true;left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}}
+      if(!found)throw new Error('No dark signature strokes found. Lower the cleanup threshold or use a clearer image.');
+      ctx.putImageData(pixels,0,0);const width=right-left+1,height=bottom-top+1;const trimmed=document.createElement('canvas');trimmed.width=width;trimmed.height=height;trimmed.getContext('2d')?.drawImage(canvas,left,top,width,height,0,0,width,height);
+      const blob=await canvasBlob(trimmed,'image/png');
+      setSignature(trimmed.toDataURL('image/png'));
+      setSignatureName(name=>name.replace(/\\.[^.]+$/,'')+'-cleaned.png');
+      const signatureLayer=photos.filter(photo=>photo.kind==='signature').slice(-1)[0];
+      if(signatureLayer)onApplyImage(blob,'signature-cleaned',signatureLayer.id);
+      setSignatureCropZoom(100); setSignatureCropX(50); setSignatureCropY(50);
+      setStatus('Signature cleaned and tightly cropped with a transparent background. Drag its layer onto the preview to place it.');
+    } catch(error) {
+      setStatus(error instanceof Error ? error.message : 'Signature cleanup failed.');
+    } finally { setBusy(false); }
   };
 
   const signatureFileChanged = async (file?: File) => {
@@ -283,7 +324,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
         {busy&&<div className="space-y-1"><div className="flex justify-between text-[9px] studio-muted"><span>Processing</span><span>{progress}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-[#343A42]"><div className="h-full rounded-full bg-[#D0D7DE] transition-all" style={{width:`${progress}%`}}/></div></div>}
         <input ref={signatureInput} type="file" accept="image/*" className="hidden" onChange={e=>{void signatureFileChanged(e.target.files?.[0]);e.currentTarget.value='';}}/>
         <button type="button" onClick={()=>signatureInput.current?.click()} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px]"><ImagePlus size={13}/> Upload signature</button>
-        {signature&&<><p className="truncate text-[9px] studio-muted">{signatureName}</p><div className="rounded border studio-line p-2"><img src={signature} alt="Signature preview" className="mx-auto max-h-16 max-w-full object-contain"/></div><button type="button" onClick={()=>void cleanSignature()} className="studio-control w-full py-2 text-[10px]">Clean signature background</button><label className="block text-[10px] studio-muted">Signature size · {signatureScale}%<input type="range" min="5" max="70" value={signatureScale} onChange={e=>setSignatureScale(Number(e.target.value))} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Signature horizontal position · {signatureX}%<input type="range" min="0" max="100" value={signatureX} onChange={e=>setSignatureX(Number(e.target.value))} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Signature vertical position · {signatureY}%<input type="range" min="0" max="100" value={signatureY} onChange={e=>setSignatureY(Number(e.target.value))} className="mt-1 w-full"/></label><button disabled={disabled} onClick={applySignature} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><PenTool size={13}/> Apply signature to photo</button></>}
+        {signature&&<><p className="truncate text-[9px] studio-muted">{signatureName}</p><div className="h-20 overflow-hidden rounded border studio-line p-2"><img src={signature} alt="Signature crop preview" className="mx-auto h-full max-w-full object-contain" style={{transform:`scale(${signatureCropZoom/100})`,transformOrigin:`${signatureCropX}% ${signatureCropY}%`}}/></div><label className="block text-[10px] studio-muted">Crop zoom · {signatureCropZoom}%<input type="range" min="100" max="300" step="5" value={signatureCropZoom} onChange={e=>setSignatureCropZoom(Number(e.target.value))} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Crop horizontal · {signatureCropX}%<input type="range" min="0" max="100" value={signatureCropX} onChange={e=>setSignatureCropX(Number(e.target.value))} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Crop vertical · {signatureCropY}%<input type="range" min="0" max="100" value={signatureCropY} onChange={e=>setSignatureCropY(Number(e.target.value))} className="mt-1 w-full"/></label><button type="button" disabled={busy} onClick={()=>void cropSignature()} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Apply signature crop</button><button type="button" disabled={busy} onClick={()=>void cleanSignature()} className="studio-control w-full py-2 text-[10px] disabled:opacity-40">Clean signature background</button><button disabled={disabled} onClick={applySignature} className="studio-control flex w-full items-center justify-center gap-2 py-2 text-[10px] disabled:opacity-40"><PenTool size={13}/> Apply signature to photo</button></>}
         {cutoutUrl && <>
           <div className="rounded border studio-line p-2" style={{backgroundImage:'linear-gradient(45deg,#d7d7d7 25%,transparent 25%),linear-gradient(-45deg,#d7d7d7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7d7d7 75%),linear-gradient(-45deg,transparent 75%,#d7d7d7 75%)',backgroundSize:'16px 16px',backgroundPosition:'0 0,0 8px,8px -8px,-8px 0'}}><canvas ref={brushCanvasRef} aria-label="Background cutout brush editor" className="mx-auto block max-h-52 max-w-full touch-none object-contain" style={{width:'100%',height:'auto'}} onPointerDown={event=>{event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);brushLastPointRef.current=null;paintBackgroundBrush(event);}} onPointerMove={event=>{if(event.buttons===1)paintBackgroundBrush(event);}} onPointerUp={event=>{commitBackgroundBrush();if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={commitBackgroundBrush}/></div>
           <div className="grid grid-cols-2 gap-1.5"><button type="button" onClick={()=>setBrushMode('erase')} className={`studio-control py-2 text-[10px] ${brushMode==='erase'?'border-[#8B949E] bg-[#30373E] text-white':''}`}>Brush Erase</button><button type="button" onClick={()=>setBrushMode('restore')} className={`studio-control py-2 text-[10px] ${brushMode==='restore'?'border-[#8B949E] bg-[#30373E] text-white':''}`}>Brush Restore</button></div>
