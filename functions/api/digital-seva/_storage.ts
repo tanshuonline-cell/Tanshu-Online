@@ -74,7 +74,7 @@ export async function createPrivateDocumentUrl(
   expiresIn = 60,
   downloadName?: string
 ): Promise<string> {
-  const { base, key } = storageConfig(env);
+  const { base, key, bucket } = storageConfig(env);
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
   const response = await fetch(`${base}/storage/v1/object/sign/${bucket}/${path}`, {
     method: 'POST',
