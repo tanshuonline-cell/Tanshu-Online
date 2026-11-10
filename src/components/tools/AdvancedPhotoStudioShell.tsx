@@ -294,8 +294,25 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const uploadRef = useRef<HTMLInputElement>(null);
   const restoreFullscreenAfterUploadRef = useRef(false);
+  const restoreStudioFullscreenAfterPicker = () => {
+    if (!restoreFullscreenAfterUploadRef.current) return;
+    if (document.fullscreenElement === studioRootRef.current) {
+      restoreFullscreenAfterUploadRef.current = false;
+      return;
+    }
+    const studioRoot = studioRootRef.current;
+    if (!studioRoot?.requestFullscreen) return;
+    void studioRoot.requestFullscreen().then(() => {
+      restoreFullscreenAfterUploadRef.current = false;
+    }).catch(() => {
+      // Keep the restore request pending; the file-input change handler can retry.
+    });
+  };
   const openUploadPicker = () => {
     restoreFullscreenAfterUploadRef.current = document.fullscreenElement === studioRootRef.current;
+    if (restoreFullscreenAfterUploadRef.current) {
+      window.addEventListener('focus', restoreStudioFullscreenAfterPicker, { once: true });
+    }
     uploadRef.current?.click();
   };
   const photosRef = useRef<StudioPhoto[]>([]);
@@ -468,14 +485,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       setSelectedId(current => current || additions[0].id);
     }
     if (uploadRef.current) uploadRef.current.value = '';
-    if (restoreFullscreenAfterUploadRef.current) {
-      restoreFullscreenAfterUploadRef.current = false;
-      if (!document.fullscreenElement && studioRootRef.current?.requestFullscreen) {
-        void studioRootRef.current.requestFullscreen().catch(() => {
-          // Keep the editor usable if the browser does not allow fullscreen to resume.
-        });
-      }
-    }
+    restoreStudioFullscreenAfterPicker();
   };
 
 
