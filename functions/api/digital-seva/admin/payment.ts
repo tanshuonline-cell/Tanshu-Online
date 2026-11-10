@@ -126,7 +126,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     const linkId = `ds_${String(booking.booking_reference).replace(/[^A-Za-z0-9_-]/g, '').toLowerCase()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`.slice(0, 50);
     const origin = new URL(request.url).origin;
-    const cashfreeResponse = await fetch(`${CASHFREE_API}/links`, {
+    const cashfreeResponse = await fetch(`${cashfreeApiBase(env)}/links`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
