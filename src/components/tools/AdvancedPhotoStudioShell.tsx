@@ -141,7 +141,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [deleteModeEnabled, setDeleteModeEnabled] = useState(false);
   const [signaturePlacement, setSignaturePlacement] = useState<{x:number;y:number;width:number}|null>(null);
   const [signatureSelected, setSignatureSelected] = useState(false);
-  const signaturePointerRef = useRef<{pointerId:number;mode:'move'|'resize';corner?:'nw'|'ne'|'sw'|'se';px:number;py:number;start:{x:number;y:number;width:number}}|null>(null);
+  const signaturePointerRef = useRef<{pointerId:number;mode:'move'|'resize';corner?:'nw'|'ne'|'sw'|'se';px:number;py:number;rect:{left:number;top:number;width:number;height:number};start:{x:number;y:number;width:number}}|null>(null);
   const [canUndo, setCanUndo] = useState(false); const [canRedo, setCanRedo] = useState(false);
   const undoStackRef = useRef<EditorSnapshot[]>([]); const redoStackRef = useRef<EditorSnapshot[]>([]);
   const lastSnapshotRef = useRef<EditorSnapshot|null>(null); const applyingHistoryRef = useRef(false);
@@ -625,25 +625,43 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const renderSignatureOverlay = (pageWidthMm:number,pageHeightMm:number) => {
     if(!signaturePhoto || !signaturePlacement || !signaturePhoto.width || !signaturePhoto.height) return null;
     const aspect=signaturePhoto.height/signaturePhoto.width;
-    const heightPct=signaturePlacement.width*pageWidthMm*aspect/pageHeightMm;
+    const heightForWidth=(width:number)=>width*pageWidthMm*aspect/pageHeightMm;
     const updatePointer=(event:React.PointerEvent<HTMLDivElement>)=>{
-      const drag=signaturePointerRef.current;if(!drag||drag.pointerId!==event.pointerId)return;
-      const rect=event.currentTarget.parentElement!.getBoundingClientRect();
-      const dx=(event.clientX-drag.px)/rect.width,dy=(event.clientY-drag.py)/rect.height;
-      if(drag.mode==='move') setSignaturePlacement(p=>p?{...p,x:Math.max(0,Math.min(1-p.width,drag.start.x+dx)),y:Math.max(0,Math.min(1-heightPct,drag.start.y+dy))}:p);
-      else {
-        const sx=drag.corner?.endsWith('w')?-1:1,sy=drag.corner?.startsWith('n')?-1:1;
-        const dw=dx*sx,dh=dy*sy*pageHeightMm/pageWidthMm/aspect;
-        const width=Math.max(0.035,Math.min(0.85,drag.start.width+(Math.abs(dw)>=Math.abs(dh)?dw:dh)));
-        const height=width*pageWidthMm*aspect/pageHeightMm;
-        const x=drag.corner?.endsWith('w')?drag.start.x+drag.start.width-width:drag.start.x;
-        const y=drag.corner?.startsWith('n')?drag.start.y+heightPct-height:drag.start.y;
-        setSignaturePlacement({x:Math.max(0,Math.min(1-width,x)),y:Math.max(0,Math.min(1-height,y)),width});
+      const drag=signaturePointerRef.current;
+      if(!drag||drag.pointerId!==event.pointerId)return;
+      const dx=(event.clientX-drag.px)/Math.max(1,drag.rect.width);
+      const dy=(event.clientY-drag.py)/Math.max(1,drag.rect.height);
+      if(drag.mode==='move'){
+        const height=heightForWidth(drag.start.width);
+        setSignaturePlacement({x:Math.max(0,Math.min(1-drag.start.width,drag.start.x+dx)),y:Math.max(0,Math.min(1-height,drag.start.y+dy)),width:drag.start.width});
+        return;
       }
+      const corner=drag.corner||'se';
+      const horizontal=corner.endsWith('w')?-dx:dx;
+      const vertical=(corner.startsWith('n')?-dy:dy)*pageHeightMm/(pageWidthMm*aspect);
+      const delta=Math.abs(horizontal)>=Math.abs(vertical)?horizontal:vertical;
+      const minWidth=0.025;
+      const maxWidth=0.9;
+      const width=Math.max(minWidth,Math.min(maxWidth,drag.start.width+delta));
+      const height=heightForWidth(width);
+      const startHeight=heightForWidth(drag.start.width);
+      const x=corner.endsWith('w')?drag.start.x+drag.start.width-width:drag.start.x;
+      const y=corner.startsWith('n')?drag.start.y+startHeight-height:drag.start.y;
+      setSignaturePlacement({x:Math.max(0,Math.min(1-width,x)),y:Math.max(0,Math.min(1-height,y)),width});
     };
-    return <div onClick={event=>{event.stopPropagation();setSignatureSelected(true);}} onPointerDown={event=>{event.preventDefault();event.stopPropagation();setSignatureSelected(true);event.currentTarget.setPointerCapture(event.pointerId);signaturePointerRef.current={pointerId:event.pointerId,mode:'move',px:event.clientX,py:event.clientY,start:{...signaturePlacement}};}} onPointerMove={updatePointer} onPointerUp={event=>{signaturePointerRef.current=null;if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{signaturePointerRef.current=null;}} className="absolute z-40 cursor-move select-none" style={{left:(signaturePlacement.x*100)+'%',top:(signaturePlacement.y*100)+'%',width:(signaturePlacement.width*100)+'%',height:(heightPct*100)+'%',touchAction:'none',outline:signatureSelected?'2px solid #2684FF':'none',outlineOffset:'2px'}}>
+    const beginPointer=(event:React.PointerEvent<HTMLDivElement>,mode:'move'|'resize',corner?:'nw'|'ne'|'sw'|'se')=>{
+      event.preventDefault();
+      event.stopPropagation();
+      const page=event.currentTarget.parentElement;
+      if(!page)return;
+      const rect=page.getBoundingClientRect();
+      setSignatureSelected(true);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      signaturePointerRef.current={pointerId:event.pointerId,mode,corner,px:event.clientX,py:event.clientY,rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},start:{...signaturePlacement}};
+    };
+    return <div onClick={event=>{event.stopPropagation();setSignatureSelected(true);}} onPointerDown={event=>beginPointer(event,'move')} onPointerMove={updatePointer} onPointerUp={event=>{signaturePointerRef.current=null;if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{signaturePointerRef.current=null;}} className="absolute z-40 cursor-move select-none" style={{left:(signaturePlacement.x*100)+'%',top:(signaturePlacement.y*100)+'%',width:(signaturePlacement.width*100)+'%',height:(heightForWidth(signaturePlacement.width)*100)+'%',touchAction:'none',outline:signatureSelected?'2px solid #2684FF':'none',outlineOffset:'2px'}}>
       <img src={signaturePhoto.url} alt="Signature overlay" draggable={false} className="pointer-events-none h-full w-full object-fill"/>
-      {signatureSelected&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize signature '+corner} onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);signaturePointerRef.current={pointerId:event.pointerId,mode:'resize',corner,px:event.clientX,py:event.clientY,start:{...signaturePlacement}};}} className={'absolute z-50 h-3.5 w-3.5 rounded-sm border border-blue-900 bg-white shadow '+(corner==='nw'?'left-[-7px] top-[-7px]':corner==='ne'?'right-[-7px] top-[-7px]':corner==='sw'?'bottom-[-7px] left-[-7px]':'bottom-[-7px] right-[-7px]')}/>)}
+      {signatureSelected&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize signature '+corner} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;const page=parent.parentElement;if(!page)return;const rect=page.getBoundingClientRect();parent.setPointerCapture(event.pointerId);signaturePointerRef.current={pointerId:event.pointerId,mode:'resize',corner,px:event.clientX,py:event.clientY,rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},start:{...signaturePlacement}};}} className={'absolute z-50 h-3.5 w-3.5 rounded-sm border border-blue-900 bg-white shadow '+(corner==='nw'?'left-[-7px] top-[-7px]':corner==='ne'?'right-[-7px] top-[-7px]':corner==='sw'?'bottom-[-7px] left-[-7px]':'bottom-[-7px] right-[-7px]')}/>)}
       {signatureSelected&&<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();setSignatureSelected(false);}} className="absolute -top-8 right-0 rounded bg-[#1677D2] px-3 py-1 text-[11px] font-semibold text-white shadow-lg">OK</button>}
     </div>;
   };
@@ -889,7 +907,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="mt-2 flex items-center justify-between border-t studio-line pt-2 text-[10px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
                 <div className="flex items-center justify-between border-t studio-line py-2 text-[10px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               </div>
-              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
+              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>setSignatureSelected(true)} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
               <div className="border-t studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
                 {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} className={`flex items-center gap-2 rounded-md border p-2 ${selected?.id === photo.id ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'}`}><button type="button" onClick={() => setSelectedId(photo.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">Image · {photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions'}</span></span></button>{selected?.id === photo.id && <button type="button" aria-label="Remove selected photo" onClick={removeSelected} className="rounded p-1 studio-muted hover:text-[#E1E5E8]"><X size={13}/></button>}{selected?.id === photo.id && <Check size={12} className="studio-muted"/>}</div>)}
