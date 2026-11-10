@@ -85,7 +85,7 @@ const toolItems = [
   { icon: Grid2X2, label: 'Layout' },
 ];
 
-const toolGroups = [
+const toolGroups: { id: string; label: string; icon: typeof MousePointer; tools: [string, typeof MousePointer][] }[] = [
   { id: 'selection', label: 'Move & Selection', icon: MousePointer, tools: [
     ['Move Selection', Move], ['Object Select', ScanSearch], ['Magic Select', Wand],
     ['Lasso Select', Lasso], ['Marquee Select', SquareDashedMousePointer], ['Brush Select', Paintbrush],
