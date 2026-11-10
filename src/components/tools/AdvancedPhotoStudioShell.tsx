@@ -6,6 +6,7 @@ import {
   Layers3, Palette, Ruler, ZoomIn, ZoomOut, Grid2X2, PanelRightClose,
   MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number };
 type StudioPreset = 'india' | 'stamp' | 'pan' | 'custom';
@@ -64,6 +65,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [sizeUnit, setSizeUnit] = useState<StudioUnit>('mm');
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
+  const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
   const documentSize = useMemo(() => {
     const widthMm = preset === 'custom' ? Math.max(1, customWidthMm) : STUDIO_PRESETS[preset].widthMm;
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
@@ -182,37 +184,35 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     setPhotos(current => current.map(photo => photo.id === id ? { ...photo, width, height } : photo));
   };
 
-  const exportSelectedPhoto = () => {
+  const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
     if (!selected) return;
     const image = new Image();
-    image.onload = () => {
-      const output = document.createElement('canvas');
-      output.width = documentSize.widthPx;
-      output.height = documentSize.heightPx;
-      const context = output.getContext('2d');
-      if (!context) return;
-      const ratio = output.width / output.height;
-      const baseWidth = Math.min(image.naturalWidth, image.naturalHeight * ratio);
-      const baseHeight = baseWidth / ratio;
-      const scale = Math.max(1, cropZoom / 100);
-      const sourceWidth = baseWidth / scale;
-      const sourceHeight = baseHeight / scale;
-      const sourceX = Math.max(0, Math.min(image.naturalWidth - sourceWidth, (image.naturalWidth - sourceWidth) * positionX / 100));
-      const sourceY = Math.max(0, Math.min(image.naturalHeight - sourceHeight, (image.naturalHeight - sourceHeight) * positionY / 100));
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, output.width, output.height);
-      output.toBlob(blob => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = selected.file.name.replace(/\\.[^.]+$/, '') + '-tanshu-studio.jpg';
-        anchor.click();
-        URL.revokeObjectURL(url);
-      }, 'image/jpeg', 0.96);
-    };
     image.src = selected.url;
+    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('Photo could not be loaded for export.')); });
+    const output = document.createElement('canvas');
+    output.width = documentSize.widthPx; output.height = documentSize.heightPx;
+    const context = output.getContext('2d'); if (!context) return;
+    const ratio = output.width / output.height;
+    const baseWidth = Math.min(image.naturalWidth, image.naturalHeight * ratio);
+    const baseHeight = baseWidth / ratio;
+    const scale = Math.max(1, cropZoom / 100);
+    const sourceWidth = baseWidth / scale, sourceHeight = baseHeight / scale;
+    const sourceX = Math.max(0, Math.min(image.naturalWidth-sourceWidth,(image.naturalWidth-sourceWidth)*positionX/100));
+    const sourceY = Math.max(0, Math.min(image.naturalHeight-sourceHeight,(image.naturalHeight-sourceHeight)*positionY/100));
+    context.imageSmoothingEnabled = true; context.imageSmoothingQuality = 'high';
+    if (format !== 'png') { context.fillStyle='#fff'; context.fillRect(0,0,output.width,output.height); }
+    context.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,0,0,output.width,output.height);
+    const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + '-tanshu-studio';
+    if (format === 'pdf') {
+      const doc = new jsPDF({orientation:documentSize.widthMm>documentSize.heightMm?'landscape':'portrait',unit:'mm',format:[documentSize.widthMm,documentSize.heightMm]});
+      doc.addImage(output.toDataURL('image/jpeg',0.96),'JPEG',0,0,documentSize.widthMm,documentSize.heightMm);
+      doc.save(baseName+'.pdf'); return;
+    }
+    const mime = format==='png'?'image/png':'image/jpeg';
+    const blob = await new Promise<Blob>((resolve,reject)=>output.toBlob(value=>value?resolve(value):reject(new Error('Image export failed.')),mime,0.96));
+    const url=URL.createObjectURL(blob), anchor=document.createElement('a');
+    anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 
   return (
@@ -265,17 +265,28 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Undo2 size={14}/> Undo</div>
             <div className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] opacity-50"><Redo2 size={14}/> Redo</div>
             <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-8 items-center gap-2 rounded-md bg-[#D9DEE2] px-3 text-[11px] font-semibold text-[#20252A] hover:bg-[#E5E8EA]"><Upload size={14}/> Import photo</button>
-            <button type="button" disabled={!selected} onClick={exportSelectedPhoto} className="studio-control flex h-8 items-center gap-2 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-40"><Download size={14}/> Export JPG</button>
+            <div className="flex items-center gap-1 rounded-md border border-[#343A42] p-1">
+              <button type="button" disabled={!selected} onClick={() => void exportSelectedPhoto('jpg')} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-40"><Download size={12}/> JPG</button>
+              <button type="button" disabled={!selected} onClick={() => void exportSelectedPhoto('png')} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PNG</button>
+              <button type="button" disabled={!selected} onClick={() => void exportSelectedPhoto('pdf')} className="studio-control h-7 px-2 text-[10px] disabled:opacity-40">PDF</button>
+            </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
           </div>
         </nav>
 
         <div className="flex min-h-0 flex-1">
           <aside className="studio-panel flex w-[72px] shrink-0 flex-col items-center gap-2 border-y-0 border-l-0 py-4">
-            {toolItems.map(({icon:Icon,label,active}) => <div key={label} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 ${active?'bg-[#30373E] text-[#F0F2F4]':'studio-muted'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></div>)}
+            {toolItems.filter(item=>item.label!=='Measure').map(({icon:Icon,label})=><button type="button" key={label} onClick={()=>setActiveTool(label as typeof activeTool)} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 transition ${activeTool===label?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Icon size={18} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
             <div className="my-2 h-px w-8 bg-[#30363D]"/>
-            <div className="flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><Grid2X2 size={18}/><span className="text-[9px]">Layout</span></div>
+            <button type="button" onClick={()=>setActiveTool('Layout')} className={`flex w-[54px] flex-col items-center gap-1.5 rounded-lg py-3 ${activeTool==='Layout'?'bg-[#30373E] text-[#F0F2F4]':'studio-muted hover:bg-[#252B31]'}`}><Grid2X2 size={18}/><span className="text-[9px]">Layout</span></button>
             <div className="mt-auto flex w-[54px] flex-col items-center gap-1.5 py-3 studio-muted"><MoreHorizontal size={19}/><span className="text-[9px]">More</span></div>
+          </aside>
+          <aside className="studio-panel w-[286px] shrink-0 overflow-y-auto border-y-0 border-l-0">
+            <div className="border-b studio-line px-3 py-3"><div className="text-[10px] font-semibold tracking-[.12em] text-[#D8DDE2]">{activeTool==='Move'?'QUICK EDIT':activeTool==='Layout'?'PRINT LAYOUT':activeTool.toUpperCase()+' SETTINGS'}</div><p className="mt-1 text-[9px] leading-4 studio-muted">{activeTool==='Crop'?'Fine-tune framing, zoom and subject position.':activeTool==='Background'?'Remove the background or apply a clean replacement color.':activeTool==='Retouch'?'Clean up face skin with adjustable strength.':activeTool==='Portrait'?'Adjust portrait brightness, contrast and color.':activeTool==='Layout'?'Arrange passport photos and export print sheets.':'Select a tool to edit your photo.'}</p></div>
+            {activeTool==='Crop' && <div className="border-b studio-line p-3"><div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold studio-muted">ADVANCED CROP</span><button type="button" onClick={()=>{setCropZoom(100);setPositionX(50);setPositionY(50);}} className="text-[10px] studio-muted hover:text-white">Reset</button></div>
+              {([['Crop zoom',cropZoom,setCropZoom,100,300],['Horizontal position',positionX,setPositionX,0,100],['Vertical position',positionY,setPositionY,0,100]] as const).map(([label,value,setter,min,max])=><label key={label} className="mb-3 block text-[10px] studio-muted"><span className="mb-1 flex justify-between"><span>{label}</span><span>{value}%</span></span><input type="range" min={min} max={max} value={value} onChange={event=>setter(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></label>)}
+              <div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>setPositionX(50)} className="studio-control py-1.5 text-[9px]">Center X</button><button type="button" onClick={()=>setPositionY(50)} className="studio-control py-1.5 text-[9px]">Center Y</button></div></div>}
+            <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} activeSection={activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'print':'adjust'}/>
           </aside>
 
           <main className="flex min-w-0 flex-1 flex-col bg-[#14171A]">
@@ -361,7 +372,6 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               <div className="flex items-center justify-between border-t studio-line py-2 text-[11px]"><span className="studio-muted">Color profile</span><span className="text-[#D5DADF]">sRGB</span></div>
             </div>
-            <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage}/>
             <div className="border-b studio-line p-4">
               <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">CROP & POSITION</span><button type="button" onClick={() => { setCropZoom(100); setPositionX(50); setPositionY(50); }} className="text-[10px] studio-muted hover:text-[#D9DDE1]">Reset</button></div>
               <div className="mb-3"><div className="mb-1.5 flex items-center justify-between text-[10px]"><label htmlFor="studio-crop-zoom" className="studio-muted">Crop zoom</label><span className="text-[#D5DADF]">{cropZoom}%</span></div><input id="studio-crop-zoom" aria-label="Crop zoom" type="range" min="100" max="250" step="1" value={cropZoom} onChange={event => setCropZoom(Number(event.target.value))} className="w-full accent-[#AEB8C2]"/></div>
