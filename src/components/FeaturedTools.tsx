@@ -31,7 +31,7 @@ export const FeaturedTools: React.FC<Props> = ({ onOpenTool }) => {
     'invoice-generator',
   ];
   const featuredTools = CONFIRMED_TOOLS
-    .filter((tool) => tool.isFeatured)
+    .filter((tool) => tool.isFeatured && tool.id !== 'advanced-passport-photo-studio')
     .sort((a, b) => featuredOrder.indexOf(a.id) - featuredOrder.indexOf(b.id))
     .slice(0, 7);
 
