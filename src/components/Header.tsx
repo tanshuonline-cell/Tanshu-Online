@@ -98,6 +98,11 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 </button>
               );
             })}
+            {activeSection !== 'videos' && (
+              <a href="/digital-seva" className="whitespace-nowrap shrink-0 rounded-full border border-amber-300/70 bg-white px-3 py-1.5 text-xs font-bold text-[#7A4B16] shadow-sm transition-colors hover:border-amber-500 hover:bg-amber-50 hover:text-[#8F1725]">
+                {language === 'hi' ? 'डिजिटल सेवा केंद्र' : 'Digital Seva Center'}
+              </a>
+            )}
           </nav>
 
           {/* Left on Mobile / Tablet: Quick section label */}
@@ -189,6 +194,15 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
                 {link.label}
               </button>
             ))}
+            {activeSection !== 'videos' && (
+              <a
+                href="/digital-seva"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full rounded-full border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-[#7A4B16] transition-colors hover:bg-amber-50 hover:text-[#8F1725] block"
+              >
+                {language === 'hi' ? 'डिजिटल सेवा केंद्र' : 'Digital Seva Center'}
+              </a>
+            )}
 
             {/* Mobile Customer Access Trigger */}
             {onOpenCustomerAuth && (
