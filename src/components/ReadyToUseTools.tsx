@@ -81,7 +81,7 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
               <div className="mb-2 flex items-center gap-2 text-amber-700"><CreditCard className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
               <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">PVC Card Studio</h3>
               <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Smart Crop · Front &amp; Back · A4 Sheet · Print Setup</p>
-              <a href="/id-pvc-studio/demo" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-700 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-amber-800">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
+              <a href="/id-pvc-studio/premium-desktop-preview.html" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-700 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-amber-800">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
             </div>
           </article>
           {activeTools.map((tool) => {
