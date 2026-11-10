@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { Header, TANSHU_PROFILE_PHOTO } from './components/Header';
 import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
@@ -387,6 +388,11 @@ export default function App() {
   // ISOLATED DIGITAL SEVA PREVIEW — does not alter existing homepage or legacy routes.
   if (window.location.pathname === '/digital-seva') {
     return <DigitalSevaPage />;
+  }
+
+  // Dedicated Instant Passport Photo Studio preview route.
+  if (window.location.pathname === '/advanced-photo-studio-preview') {
+    return <AdvancedPhotoStudioShell />;
   }
 
   // ROUTE 1: ADMIN PANEL
