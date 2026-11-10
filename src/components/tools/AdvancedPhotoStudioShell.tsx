@@ -7,7 +7,6 @@ import {
   MoreHorizontal, Check, LockKeyhole, ScanFace, Upload, X, Plus, Trash2, Printer
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { StudioQuickPrintSetup } from './StudioQuickPrintSetup';
 
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number };
 type StudioPreset = 'india' | 'pan' | 'stamp' | 'passport-35x35' | 'square-51' | 'oci-51' | 'pcc-35x35' | 'frro-35x35' | 'dl-35x45' | 'voter-35x45' | 'exam-35x45' | 'custom';
@@ -148,6 +147,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + gapPx) / (documentSize.heightPx + gapPx)));
   const sheetCapacity = sheetCols * sheetRows;
   const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, sheetCapacity);
+  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > sheetCapacity) setSheetCopies(sheetCapacity); }, [sheetMode, sheetCapacity, sheetCopies]);
   const uploadRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<StudioPhoto[]>([]);
   const cropDragRef = useRef<{ pointerId: number; x: number; y: number; positionX: number; positionY: number } | null>(null);
@@ -668,7 +668,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <label className="ml-1 flex items-center gap-1.5 text-[10px] studio-muted">
                   <span className="whitespace-nowrap">Number of photos</span>
                   <select aria-label="Number of photos" title="Select number of photos" value={sheetCopies} onChange={event => { const count = Number(event.target.value); setSheetCopies(count); setSheetSlots([]); setSelectedSlotId(null); setSelectedSlotIds([]); setQuickPrintLayout(true); }} className="studio-control h-7 min-w-[104px] px-2 text-[10px] outline-none" disabled={!selected}>
-                    {Array.from({length:Math.min(60,sheetCapacity)},(_,index)=>index+1).map(count => <option key={count} value={count}>{count} {count === 1 ? 'Photo' : 'Photos'}</option>)}
+                    {Array.from({length:60},(_,index)=>index+1).map(count => <option key={count} value={count} disabled={count > 1 && (sheetMode === 'single' || count > sheetCapacity)}>{count} {count === 1 ? 'Photo' : 'Photos'}</option>)}
                   </select>
                 </label>
               </div>
