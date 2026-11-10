@@ -15,6 +15,7 @@ import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
 import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
+import { AdvancedPassportPhotoStudio } from './components/tools/AdvancedPassportPhotoStudio';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
@@ -26,7 +27,7 @@ import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'studio-shell'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'videos' | 'video-detail' | 'admin' | 'studio-shell' | 'legacy-mobile'>('home');
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
@@ -68,6 +69,7 @@ export default function App() {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
     const isStudioPreview = pathname === '/advanced-photo-studio-preview';
+    const isLegacyMobile = pathname === '/advanced-passport-photo-studio-mobile';
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const video = isVideoDetail
@@ -77,6 +79,8 @@ export default function App() {
 
     const title = isStudioPreview
       ? 'Professional Photo & Signature Studio | TANSHU ONLINE'
+      : isLegacyMobile
+        ? 'Advanced Passport Photo Studio · Mobile Edition | TANSHU ONLINE'
       : isVideoCatalog
       ? 'Video Learning Center | TANSHU ONLINE'
       : video
@@ -153,6 +157,8 @@ export default function App() {
 
       if (pathname === '/advanced-photo-studio-preview') {
         setCurrentPage('studio-shell');
+      } else if (pathname === '/advanced-passport-photo-studio-mobile') {
+        setCurrentPage('legacy-mobile');
       } else if (pathname === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (pathname === '/videos' || hash === '#videos') {
@@ -455,6 +461,17 @@ export default function App() {
   // ROUTE 4: DEDICATED NEW PROFESSIONAL PHOTO & SIGNATURE STUDIO
   if (currentPage === 'studio-shell') {
     return <AdvancedPhotoStudioShell />;
+  }
+
+  if (currentPage === 'legacy-mobile') {
+    return (
+      <div className="legacy-mobile-edition min-h-screen bg-slate-100 p-2 sm:p-3">
+        <style>{`@media (max-width: 767px) { .legacy-mobile-edition > .legacy-mobile-workspace { min-height: calc(100dvh - 16px); } .legacy-mobile-edition .flex.h-full.min-h-0.flex-col.gap-1\\.5 { height: auto !important; min-height: calc(100dvh - 16px) !important; } .legacy-mobile-edition .grid.min-h-0.flex-1 { display: flex !important; flex-direction: column !important; overflow: visible !important; } .legacy-mobile-edition section { max-height: none !important; overflow: visible !important; } .legacy-mobile-edition .sticky { position: sticky; top: 0; } }`}</style>
+        <div className="legacy-mobile-workspace mx-auto w-full max-w-5xl rounded-2xl bg-white p-2 shadow-sm sm:p-4">
+          <AdvancedPassportPhotoStudio onBack={() => { setCurrentPage('home'); window.history.pushState({}, '', '/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        </div>
+      </div>
+    );
   }
 
   // ROUTE 4: STANDARD HOMEPAGE
