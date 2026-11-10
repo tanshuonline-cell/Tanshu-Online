@@ -1,5 +1,5 @@
--- Digital Seva document metadata for the dedicated Preview D1 only.
--- Apply ONLY to digital_seva_preview_db after reviewing the private R2 bucket setup.
+-- Digital Seva document metadata for the dedicated Digital Seva D1 database.
+-- Keep document_type present from the initial table creation so later API inserts are compatible.
 ALTER TABLE digital_seva_bookings ADD COLUMN document_upload_token_hash TEXT;
 ALTER TABLE digital_seva_bookings ADD COLUMN document_upload_token_expires_at TEXT;
 ALTER TABLE digital_seva_bookings ADD COLUMN document_consent_at TEXT;
@@ -7,6 +7,7 @@ ALTER TABLE digital_seva_bookings ADD COLUMN document_consent_at TEXT;
 CREATE TABLE IF NOT EXISTS digital_seva_documents (
   id TEXT PRIMARY KEY,
   booking_id TEXT NOT NULL,
+  document_type TEXT NOT NULL,
   object_key TEXT NOT NULL UNIQUE,
   original_file_name TEXT NOT NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('application/pdf', 'image/jpeg', 'image/png')),
