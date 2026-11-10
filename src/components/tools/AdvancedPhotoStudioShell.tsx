@@ -486,13 +486,24 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     } : slot));
   };
 
+  const removeLayer = (layerId: string) => {
+    const removed = photos.find(photo => photo.id === layerId);
+    if (!removed) return;
+    setPhotos(current => current.filter(photo => photo.id !== layerId));
+    if (selectedId === layerId) {
+      const nextPhoto = photos.find(photo => photo.id !== layerId && photo.kind !== 'signature');
+      setSelectedId(nextPhoto?.id || '');
+    }
+    if (removed.kind === 'signature') {
+      setSignatureSelected(false);
+      const remainingSignature = photos.some(photo => photo.id !== layerId && photo.kind === 'signature');
+      if (!remainingSignature) setSignaturePlacement(null);
+      setSheetSlots(current => current.filter(slot => slot.photoId !== layerId));
+    }
+  };
+
   const removeSelected = () => {
-    if (!selected) return;
-    setPhotos(current => {
-      const next = current.filter(photo => photo.id !== selected.id);
-      setSelectedId(next[0]?.id || '');
-      return next;
-    });
+    if (selected) removeLayer(selected.id);
   };
 
   const applyProcessedImage = (blob: Blob, suffix: string, sourceId?: string) => {
@@ -502,7 +513,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const file = new File([blob], source.file.name.replace(/\\.[^.]+$/, '') + '-' + suffix + '.' + extension, { type: blob.type || 'image/jpeg' });
     const url = URL.createObjectURL(file);
     const processedLayer: StudioPhoto = {
-      id: `processed-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      // Keep the same layer identity for a signature so the cleaned cutout replaces
+      // the uploaded artwork instead of leaving an older/original signature on top.
+      id: source.kind === 'signature' ? source.id : `processed-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       file,
       url,
       width: 0,
@@ -512,17 +525,24 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       positionX: 50,
       positionY: 50
     };
-    // Processed signature layers must have real dimensions before the overlay renderer can show them.
     const processedImage = new Image();
     processedImage.onload = () => {
       setPhotos(current => current.map(photo => photo.id === processedLayer.id
         ? { ...photo, width: processedImage.naturalWidth, height: processedImage.naturalHeight }
         : photo));
     };
+    processedImage.onerror = () => {
+      if (source.kind === 'signature') setSignatureSelected(false);
+    };
     processedImage.src = url;
-    setPhotos(current => [...current, processedLayer]);
-    // Processing a signature must not replace the active photo layer.
-    if (source.kind !== 'signature') setSelectedId(processedLayer.id);
+    if (source.kind === 'signature') {
+      setPhotos(current => current.map(photo => photo.id === source.id ? processedLayer : photo));
+      setSignaturePlacement(current => current || { x: 0.34, y: 0.72, width: 0.32 });
+      setSignatureSelected(true);
+    } else {
+      setPhotos(current => [...current, processedLayer]);
+      setSelectedId(processedLayer.id);
+    }
   };
 
   const addSignatureLayer = (file: File) => {
@@ -629,6 +649,23 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const url=URL.createObjectURL(blob), anchor=document.createElement('a');
     anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click();
     window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+
+  const handleSignatureDrop = (event: React.DragEvent<HTMLDivElement>, pageWidthMm:number, pageHeightMm:number) => {
+    const layerId = event.dataTransfer.getData('application/x-tanshu-signature-layer');
+    if (!layerId || !signaturePhoto || signaturePhoto.id !== layerId) return;
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const width = signaturePlacement?.width ?? 0.32;
+    const height = width * pageWidthMm * (signaturePhoto.height / signaturePhoto.width) / pageHeightMm;
+    const pointerX = (event.clientX - rect.left) / Math.max(1, rect.width);
+    const pointerY = (event.clientY - rect.top) / Math.max(1, rect.height);
+    setSignaturePlacement({
+      x: Math.max(0, Math.min(1 - width, pointerX - width / 2)),
+      y: Math.max(0, Math.min(1 - height, pointerY - height / 2)),
+      width
+    });
+    setSignatureSelected(true);
   };
 
   const renderSignatureOverlay = (pageWidthMm:number,pageHeightMm:number) => {
@@ -833,7 +870,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               {selected && sheetMode !== 'single' ? (
                 <div className="mx-auto flex w-max flex-col items-center gap-3">
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetDimensions.label.toUpperCase()} · {visibleCopies} / {sheetCopies} COPIES · {anchoredCapacity} MAX FIT</div>
-                  <div tabIndex={0} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
+                  <div tabIndex={0} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}} onDrop={event=>handleSignatureDrop(event,sheetDimensions.widthMm,sheetDimensions.heightMm)} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
                     {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,sheetGap,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>sheetMargin-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-sheetMargin-item.width));const minDy=Math.max(...groupBounds.map(item=>sheetMargin-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-sheetMargin-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=current[0]?.id===moving.id?0:sheetMargin;const targetX=Math.max(0,Math.min(pageW-moving.width,slotDrag.sx+dx));const targetY=Math.max(0,Math.min(pageH-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className={'pointer-events-none h-full w-full '+(photo.kind==='signature'?'object-contain':'object-cover')} style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:photo.kind==='signature'?'none':'scale('+((slot.cropZoom ?? 100)/100)+')'}}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/pageW*previewPageWidth)}px solid ${borderColor}`:'none'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={selectAllMode?'Delete all photos from sheet':'Delete photo '+(i+1)+' from sheet'} title={selectAllMode?'Delete all photos from sheet':'Delete this photo'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();const ids=selectAllMode?sheetSlots.map(item=>item.id):[slot.id];const removedCount=sheetSlots.filter(item=>ids.includes(item.id)).length;setSheetSlots(current=>current.filter(item=>!ids.includes(item.id)));if(removedCount)setSheetCopies(count=>Math.max(0,count-removedCount));setSelectedSlotIds([]);setSelectedSlotId(null);setSelectAllMode(false);}} style={{transform:`scale(${100/zoom})`,transformOrigin:'top right'}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
@@ -846,6 +883,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div
                   className="mx-auto relative overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl cursor-grab active:cursor-grabbing"
                   style={{ zoom: zoom / 100, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: previewPageWidth, height: previewPageHeight, flexShrink: 0, touchAction: "none" }}
+                  onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}}
+                  onDrop={event=>handleSignatureDrop(event,documentSize.widthMm,documentSize.heightMm)}
                   onClick={event=>{if(event.target===event.currentTarget)setSignatureSelected(false);}}
                   onPointerDown={event => {
                     event.preventDefault();
@@ -919,7 +958,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>setSignatureSelected(true)} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
               <div className="border-t studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
-                {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} className={`flex items-center gap-2 rounded-md border p-2 ${selected?.id === photo.id ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'}`}><button type="button" onClick={() => setSelectedId(photo.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">Image · {photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions'}</span></span></button>{selected?.id === photo.id && <button type="button" aria-label="Remove selected photo" onClick={removeSelected} className="rounded p-1 studio-muted hover:text-[#E1E5E8]"><X size={13}/></button>}{selected?.id === photo.id && <Check size={12} className="studio-muted"/>}</div>)}
+                {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} draggable={photo.kind==='signature'} onDragStart={event=>{if(photo.kind!=='signature')return;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-tanshu-signature-layer',photo.id);}} className={`flex items-center gap-2 rounded-md border p-2 ${selectedId === photo.id || (photo.kind==='signature' && signatureSelected) ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'} ${photo.kind==='signature'?'cursor-grab active:cursor-grabbing':''}`}><button type="button" onClick={() => {if(photo.kind==='signature'){setSignatureSelected(true);}else{setSelectedId(photo.id);}}} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">{photo.kind==='signature'?'Signature layer · Drag to preview':'Image · '+(photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions')}</span></span></button><button type="button" aria-label={'Delete '+(photo.kind==='signature'?'signature':'photo')+' layer'} title="Delete layer" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();removeLayer(photo.id);}} className="rounded p-1 text-[#9AA3AD] hover:bg-red-500/15 hover:text-red-400"><X size={14}/></button></div>)}
                   <button type="button" onClick={() => uploadRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed studio-line py-2 text-[10px] studio-muted hover:text-[#D9DDE1]"><Plus size={13}/> Add photos</button></div> : <div className="rounded-md border border-dashed studio-line p-4 text-center text-[10px] studio-muted">No image layers yet</div>}
               </div>
             </div>
