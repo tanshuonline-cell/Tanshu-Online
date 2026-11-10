@@ -12,6 +12,7 @@ type Props = {
   heightPx: number;
   onApplyImage: (blob: Blob, suffix: string, sourceId?: string) => void;
   onAddSignature: (file: File) => void;
+  onApplySignature: () => void;
   activeSection?: 'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print';
   hideTabs?: boolean;
 };
@@ -24,7 +25,7 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 });
 const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
-export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, onAddSignature, activeSection, hideTabs = false }) => {
+export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, onAddSignature, onApplySignature, activeSection, hideTabs = false }) => {
   const [section, setSection] = useState<'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
   React.useEffect(() => { if (activeSection) setSection(activeSection); }, [activeSection]);
   const [brightness, setBrightness] = useState(100);
@@ -142,20 +143,8 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
 
   const applySignature = () => run(async () => {
     if (!signature) throw new Error('Upload a signature first.');
-    const image = await loadImage(selected!.url);
-    const sign = await loadImage(signature);
-    const canvas = document.createElement('canvas');
-    canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas is unavailable.');
-    ctx.drawImage(image, 0, 0);
-    const targetW = canvas.width * signatureScale / 100;
-    const targetH = targetW * sign.naturalHeight / sign.naturalWidth;
-    const cropScale=Math.max(1,signatureCropZoom/100),sourceW=sign.naturalWidth/cropScale,sourceH=sign.naturalHeight/cropScale;
-    const sourceX=(sign.naturalWidth-sourceW)*signatureCropX/100,sourceY=(sign.naturalHeight-sourceH)*signatureCropY/100;
-    ctx.drawImage(sign,sourceX,sourceY,sourceW,sourceH,canvas.width * signatureX / 100 - targetW / 2, canvas.height * signatureY / 100 - targetH / 2, targetW, targetH);
-    onApplyImage(await canvasBlob(canvas, 'image/png'), 'signature', selected!.id);
-    setStatus('Signature placed on the selected photo.');
+    onApplySignature();
+    setStatus('Signature overlay is ready. Drag it on the preview, resize from a corner, then press OK.');
   });
 
   const exportSheet = async (format: 'jpg'|'png'|'pdf') => run(async () => {
@@ -204,7 +193,12 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
     for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;const luminance=.299*data[i]+.587*data[i+1]+.114*data[i+2];const alpha=luminance>=signatureCleanThreshold?0:Math.round((signatureCleanThreshold-luminance)/Math.max(1,signatureCleanThreshold-80)*255);data[i+3]=Math.min(data[i+3],alpha);if(data[i+3]>8){found=true;left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}}
     if(!found)throw new Error('No dark signature strokes found. Lower the cleanup threshold or use a clearer image.');
     ctx.putImageData(pixels,0,0);const width=right-left+1,height=bottom-top+1;const cropped=document.createElement('canvas');cropped.width=width;cropped.height=height;cropped.getContext('2d')?.drawImage(canvas,left,top,width,height,0,0,width,height);
-    setSignature(cropped.toDataURL('image/png'));setSignatureName(name=>name.replace(/\\.[^.]+$/,'')+'-cleaned.png');setStatus('Signature cleaned and tightly cropped with a transparent background.');
+    const blob=await canvasBlob(cropped,'image/png');
+    setSignature(cropped.toDataURL('image/png'));
+    setSignatureName(name=>name.replace(/\\.[^.]+$/,'')+'-cleaned.png');
+    const signatureLayer=photos.filter(photo=>photo.kind==='signature').slice(-1)[0];
+    if(signatureLayer)onApplyImage(blob,'signature-cleaned',signatureLayer.id);
+    setStatus('Signature cleaned and tightly cropped with a transparent background. The cleaned transparent layer is now used on the preview.');
   };
 
   const signatureFileChanged = async (file?: File) => {
