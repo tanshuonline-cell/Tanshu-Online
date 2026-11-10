@@ -754,12 +754,16 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       `}</style>
       <div className="studio-shell flex h-full min-h-0 flex-col overflow-hidden">
         <header className="flex h-[58px] shrink-0 items-center justify-between border-b studio-line bg-[#171A1D] px-5">
-          <div className="flex items-center gap-4">
-            <a href="/" className="flex items-center gap-2 text-sm studio-muted hover:text-white"><ArrowLeft size={16}/> TANSHU ONLINE</a>
-            <div className="h-6 w-px bg-[#30363D]"/>
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#303840] text-[#D8DEE4]"><ImageIcon size={17}/></div>
-              <div><div className="text-[13px] font-semibold tracking-wide text-[#E4E7EA]">TANSHU STUDIO</div><div className="text-[10px] tracking-[.16em] studio-muted">PHOTO EDITING & PASSPORT STUDIO</div></div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg"
+              alt="Tanshu Online profile"
+              className="h-9 w-9 shrink-0 rounded-full border-2 border-blue-500/70 object-cover object-center shadow-sm"
+              loading="eager"
+            />
+            <div>
+              <div className="text-[13px] font-semibold tracking-wide text-[#E4E7EA]">TANSHU STUDIO</div>
+              <div className="text-[10px] tracking-[.16em] studio-muted">PHOTO, EDITING & PASSPORT STUDIO</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
