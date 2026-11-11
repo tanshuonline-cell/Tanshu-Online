@@ -34,7 +34,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const step = (value:number) => value < 200 ? 10 : value < 500 ? 25 : 50;
-      setPageZoom(value => Math.max(10, Math.min(1600, value + (event.deltaY < 0 ? step(value) : -step(value))));
+      setPageZoom(value => Math.max(10, Math.min(1600, value + (event.deltaY < 0 ? step(value) : -step(value)))));
     };
     element.addEventListener('wheel', handleWheelZoom, { passive: false });
     return () => element.removeEventListener('wheel', handleWheelZoom);
