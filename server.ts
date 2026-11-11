@@ -827,17 +827,18 @@ async function startServer() {
     res.json({ success: true, videos });
   });
 
-  // SEO: Plain-text robots.txt & valid XML sitemap
+  // SEO: Keep local Express routes aligned with Cloudflare Pages SEO endpoints.
   app.get('/robots.txt', (_req: Request, res: Response) => {
     res.type('text/plain').send(`# Robots.txt for TANSHU ONLINE
-# Domain: https://tansu-online.pages.dev
+# Domain: https://tanshu-online.pages.dev
 
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /digital-seva-admin
 Disallow: /api/
 
-Sitemap: https://tansu-online.pages.dev/sitemap.xml
+Sitemap: https://tanshu-online.pages.dev/sitemap.xml
 `);
   });
 
@@ -845,29 +846,16 @@ Sitemap: https://tansu-online.pages.dev/sitemap.xml
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://tansu-online.pages.dev/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
+    <loc>https://tanshu-online.pages.dev/</loc>
   </url>
   <url>
-    <loc>https://tansu-online.pages.dev/videos</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <loc>https://tanshu-online.pages.dev/videos</loc>
   </url>
   <url>
-    <loc>https://tansu-online.pages.dev/services</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://tanshu-online.pages.dev/digital-seva</loc>
   </url>
   <url>
-    <loc>https://tansu-online.pages.dev/schemes</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://tansu-online.pages.dev/tools</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://tanshu-online.pages.dev/advanced-photo-studio-preview</loc>
   </url>
 </urlset>
 `);
