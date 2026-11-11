@@ -109,7 +109,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       setWorkingSrc(saved.workingSrc || active.src);
       setBox(saved.box || initial.box);
       setCroppedAsset(saved.croppedAsset || null);
-      setCutoutSrc(saved.cutoutSrc || ''); setBackgroundColor(saved.backgroundColor ?? null); setBackgroundChoice(saved.backgroundColor || '#ffffff');
+      setCutoutSrc(saved.cutoutSrc || ''); setBackgroundColor(saved.backgroundColor ?? null); setBackgroundChoice(saved.backgroundChoice || saved.backgroundColor || '#ffffff');
       setHistory(saved.history?.length ? saved.history : [initial]);
       setHistoryIndex(Math.max(0, Math.min(saved.historyIndex || 0, (saved.history?.length || 1) - 1)));
       setTargetW(saved.targetW || '0'); setTargetH(saved.targetH || '0');
@@ -132,7 +132,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         ]);
         if (cancelled) return;
         await writeEditorState(active.id, {
-          workingSrc:savedWorkingSrc,box,croppedAsset:croppedAsset?{...croppedAsset,src:savedCropSrc}:null,cutoutSrc:await makePersistentSrc(cutoutSrc),backgroundColor,
+          workingSrc:savedWorkingSrc,box,croppedAsset:croppedAsset?{...croppedAsset,src:savedCropSrc}:null,cutoutSrc:await makePersistentSrc(cutoutSrc),backgroundColor,backgroundChoice,
           history:savedHistory,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing,
           savedAt:Date.now()
         });
@@ -140,7 +140,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       editorSaveQueue.current = editorSaveQueue.current.then(save).catch(error => console.warn('Manual photo editor auto-save failed.', error));
     }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,cutoutSrc,backgroundColor,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
+  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,cutoutSrc,backgroundColor,backgroundChoice,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
   if (!active) return null;
 
   // Use the rendered image bounds for pointer math. The editor stage can be
