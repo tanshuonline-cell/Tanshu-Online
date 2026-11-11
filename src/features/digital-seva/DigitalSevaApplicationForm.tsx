@@ -316,6 +316,9 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     }
     setSubmitting(true);
     setError('');
+    let paymentMayHaveCompleted = Boolean(
+      pendingCheckoutOrderId && new URLSearchParams(window.location.search).get('cashfree_order_id') === pendingCheckoutOrderId
+    );
     try {
       const payload: any = {
         serviceId: service.id, requesterType, applicationFor: isOwnWork ? 'SELF' : 'CUSTOMER',
@@ -368,6 +371,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         let orderId = pendingCheckoutOrderId;
         let paymentSessionId = pendingPaymentSessionId;
         let checkoutMode: 'sandbox' | 'production' = pendingCashfreeMode;
+        if (orderId) paymentMayHaveCompleted = true;
         payload.paymentMode = 'AUTO_PAY';
 
         // If an earlier attempt was paid but the booking response was interrupted,
@@ -412,7 +416,13 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           const cashfree = window.Cashfree!({ mode: checkoutMode });
           const checkoutResult = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
           if (checkoutResult?.error) throw new Error(checkoutResult.error.message || 'Payment was not completed. Your booking has not been submitted.');
-          data = await sendBooking({ ...payload, paymentOrderId: orderId });
+          paymentMayHaveCompleted = true;
+          try {
+            data = await sendBooking({ ...payload, paymentOrderId: orderId });
+          } catch (bookingError: any) {
+            if (bookingError?.status === 402) paymentMayHaveCompleted = false;
+            throw bookingError;
+          }
         }
       } else {
         throw new Error(hi ? 'इस सेवा के लिए सुरक्षित ऑनलाइन भुगतान उपलब्ध नहीं है।' : 'Secure online payment is not available for this service yet.');
@@ -422,7 +432,11 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       await deleteDigitalSevaDraft(service.id);
       onSubmitted(String(data.bookingReference), { paymentMode, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(), fieldValues: { ...fieldValues }, serviceOptions: { ...serviceOptions }, corrections: [...corrections], selectedDocuments: [...selectedDocuments], otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(), submittedAt: new Date().toISOString(), termsAccepted, termsAcceptedAt: termsAccepted ? (termsAcceptedAt || new Date().toISOString()) : null, termsPolicyVersion: TERMS_POLICY_VERSION, refundAccepted, refundAcceptedAt: refundAccepted ? (refundAcceptedAt || new Date().toISOString()) : null, refundPolicyVersion: REFUND_POLICY_VERSION });
     } catch (e: any) {
-      setError(e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.'));
+      setError(paymentMayHaveCompleted
+        ? (hi
+          ? 'भुगतान पूरा हुआ हो सकता है, लेकिन अनुरोध की पुष्टि नहीं मिली। दोबारा भुगतान न करें। इसी फॉर्म को खुला रखें और “भुगतान जाँचें और अनुरोध पूरा करें” दबाएँ।'
+          : 'Your payment may have completed, but the request confirmation was not received. Do not pay again. Keep this form open and use “Check payment & finish request”.')
+        : (e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.')));
     } finally { setSubmitting(false); }
   };
 
@@ -818,7 +832,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {step > 0 && <button type="button" className="ds-application-back" onClick={() => { setError(''); setStep((n) => n - 1); }} disabled={submitting}><ArrowLeft size={15} /> {hi ? 'पीछे' : 'Back'}</button>}
       <span>{hi ? 'चरण ' + (step + 1) + ' / 4' : 'Step ' + (step + 1) + ' of 4'}</span>
       {step < 3 ? <button type="button" className="ds-modal-book" onClick={next}>{hi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={16} /></button> :
-        <button className="ds-modal-book" type="submit" disabled={submitting || !getAutoPaymentQuote(service)}>{submitting ? (hi ? (paymentMode === 'AUTO_PAY' ? 'सुरक्षित पेमेंट खोल रहे हैं…' : 'जमा हो रहा है…') : (paymentMode === 'AUTO_PAY' ? 'Opening secure checkout…' : 'Submitting…')) : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`) : (hi ? 'अभी उपलब्ध नहीं' : 'Not available'))} <ArrowRight size={16} /></button>}
+        <button className="ds-modal-book" type="submit" disabled={submitting || !getAutoPaymentQuote(service)}>{submitting ? (hi ? 'प्रक्रिया जारी है…' : 'Processing…') : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (pendingCheckoutOrderId ? (hi ? 'भुगतान जाँचें और अनुरोध पूरा करें' : 'Check payment & finish request') : (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`)) : (hi ? 'अभी उपलब्ध नहीं' : 'Not available'))} <ArrowRight size={16} /></button>}
     </div>
   </form>;
 }

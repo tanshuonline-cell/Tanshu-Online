@@ -53,6 +53,27 @@ interface RecoveryPaymentOrder {
   paid_at?: string | null;
   created_at: string;
 }
+interface PaymentHistoryEvent {
+  eventType: string;
+  paymentStatus: string;
+  paymentId?: string | null;
+  message?: string | null;
+  amount?: number | null;
+  currency: string;
+  eventTime?: string | null;
+}
+interface PaymentHistoryOrder {
+  orderId: string;
+  serviceId: string;
+  customerPhone: string;
+  amount: number;
+  currency: string;
+  status: string;
+  paidAt?: string | null;
+  createdAt: string;
+  bookingReference?: string | null;
+  events: PaymentHistoryEvent[];
+}
 const STATUS_OPTIONS: BookingStatus[] = ['RECEIVED', 'IN_REVIEW', 'WAITING_FOR_CUSTOMER', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
 interface ApplicationDetails {
@@ -259,6 +280,7 @@ export default function DigitalSevaAdminPage() {
   const [error, setError] = useState('');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [orphanedPayments, setOrphanedPayments] = useState<RecoveryPaymentOrder[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryOrder[]>([]);
   const [copiedRecoveryOrder, setCopiedRecoveryOrder] = useState('');
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState('');
@@ -283,6 +305,7 @@ export default function DigitalSevaAdminPage() {
       const rows = Array.isArray(data.bookings) ? data.bookings as Booking[] : [];
       setBookings(rows);
       setOrphanedPayments(Array.isArray(data.orphanedPayments) ? data.orphanedPayments as RecoveryPaymentOrder[] : []);
+      setPaymentHistory(Array.isArray(data.paymentHistory) ? data.paymentHistory as PaymentHistoryOrder[] : []);
       setDraftStatuses(Object.fromEntries(rows.map((row) => [row.id, row.status])));
       setDraftEstimates(Object.fromEntries(rows.map((row) => [row.id, toLocalDateTimeInput(row.estimated_completion_at)])));
       setDraftPaymentAmounts(Object.fromEntries(rows.map((row) => [row.id, row.payment_amount != null ? String(row.payment_amount) : ''])));
@@ -407,6 +430,7 @@ export default function DigitalSevaAdminPage() {
     setAuthenticated(false);
     setBookings([]);
     setOrphanedPayments([]);
+    setPaymentHistory([]);
   };
 
   const filtered = bookings.filter((booking) => {
@@ -425,6 +449,19 @@ export default function DigitalSevaAdminPage() {
     <div className="dsa-customer-grid"><div><small>Payment reference / ऑर्डर नंबर</small><b>{order.order_id}</b></div>{order.customer_name && <div><small>Cashfree payer name</small><b>{order.customer_name}</b></div>}<div><small>Customer mobile</small><b>{order.customer_phone}</b></div>{order.customer_email && <div><small>Cashfree payer email</small><b>{order.customer_email}</b></div>}<div><small>Paid amount</small><b>₹{Number(order.amount).toFixed(2)} {order.currency}</b></div><div><small>Payment status</small><b>{order.status} · Booking not created</b></div></div>
     <div className="dsa-payment-link"><button type="button" onClick={() => { void navigator.clipboard.writeText(order.order_id).then(() => setCopiedRecoveryOrder(order.order_id)).catch(() => setError('Could not copy the payment reference.')); }}><Copy size={14} /> Copy payment / request reference</button>{copiedRecoveryOrder === order.order_id && <small>Copied / कॉपी हो गया</small>}</div>
     <p className="dsa-payment-policy-warning">Important: the checkout register does not contain the original application form, applicant name/email or uploaded PDF. This reference identifies the payment only; do not mark it as a completed booking until the customer application details are recovered.</p>
+  </article>)}</div>
+</section>}{paymentHistory.length > 0 && <section className="dsa-payment-panel" style={{ marginBottom: 20 }}>
+  <div className="dsa-payment-panel-heading"><strong>Payment History / भुगतान इतिहास ({paymentHistory.length})</strong><small>Recent Cashfree checkout orders, including pending, failed attempts, expired orders and successful payments.</small></div>
+  <div className="dsa-booking-list">{paymentHistory.map((order) => <article className="dsa-booking-card" key={order.orderId}>
+    <div className="dsa-booking-card-top"><strong>{order.orderId}</strong><span>{formatSlipTime(order.paidAt || order.createdAt)} IST</span></div>
+    <h2>{serviceNames.get(order.serviceId) || order.serviceId}</h2>
+    <div className="dsa-customer-grid">
+      <div><small>Customer mobile</small><b>{order.customerPhone || 'Not available'}</b></div>
+      <div><small>Amount</small><b>₹{Number(order.amount).toFixed(2)} {order.currency}</b></div>
+      <div><small>Order status</small><b>{order.status}</b></div>
+      <div><small>Booking reference</small><b>{order.bookingReference || 'Not created'}</b></div>
+    </div>
+    {order.events.length > 0 ? <div className="dsa-detail-panel"><strong>Payment attempts / भुगतान प्रयास</strong>{order.events.map((event, index) => <p key={`${order.orderId}-${event.paymentId || index}`}><b>{event.paymentStatus}</b> · {event.eventType}{event.message ? ` — ${event.message}` : ''}{event.paymentId ? ` · Payment ID: ${event.paymentId}` : ''}<small> · {formatSlipTime(event.eventTime || order.createdAt)} IST</small></p>)}</div> : <p className="dsa-payment-policy-warning">No payment-attempt webhook has been recorded for this order yet. The order may still be awaiting payment or the gateway has not sent an attempt event.</p>}
   </article>)}</div>
 </section>}{error && <p className="dsa-error" role="alert">{error}</p>}{paymentMessage && <p className="dsa-payment-message" role="status">{paymentMessage}</p>}{loading && <p>Loading booking requests…</p>}{!loading && filtered.length === 0 && <div className="dsa-empty"><ClipboardList size={30} /><h2>No booking requests found</h2><p>New customer requests will appear here once submitted.</p></div>}<div className="dsa-booking-list">{filtered.map((booking) => <article className="dsa-booking-card" key={booking.id}><div className="dsa-booking-card-top"><strong>{booking.booking_reference}</strong><span>{new Date(booking.created_at + (booking.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString()}</span></div><h2>{serviceNames.get(booking.service_id) || booking.service_id}</h2><div className="dsa-slip-action"><div><strong>Application receipt</strong><small>Customer details, complete address and submitted documents</small></div><button type="button" onClick={() => downloadSlip(booking)}>Download / Print PDF · रसीद</button></div><div className="dsa-customer-grid"><div><small>Applicant / Customer</small><b>{booking.customer_name}</b></div><div><small>Applicant mobile</small><b>{booking.customer_phone}</b></div>{booking.customer_email && <div><small>Applicant email</small><b>{booking.customer_email}</b></div>}<div><small>Submitted by</small><b>{booking.requester_type || 'Legacy request'} · {booking.application_for || '—'}</b></div>{booking.operator_name && <div><small>Operator / Agent</small><b>{booking.operator_name} · {booking.operator_phone} · {booking.operator_email}</b></div>}{booking.centre_name && <div><small>Centre</small><b>{booking.centre_name} · {booking.centre_address}</b></div>}{booking.agency_name && <div><small>Agency</small><b>{booking.agency_name} · {booking.agency_address}</b></div>}</div><details className="dsa-application-details" open><summary>Service details &amp; selected documents / सेवा विवरण और चुने गए दस्तावेज़</summary><BookingApplicationDetails booking={booking} /></details><section className="dsa-documents"><h3>Customer documents ({(booking.documents || []).length})</h3>{(booking.documents || []).length === 0 ? <p>No files uploaded.</p> : <div className="dsa-document-list">{booking.documents!.map((document) => <div className="dsa-document-row" key={document.id}><div><b>{document.fileName}</b><small>{document.documentType} · {document.contentType} · {(document.sizeBytes / 1024 / 1024).toFixed(2)} MB</small></div><div><button type="button" onClick={() => void openDocument(document, false)} disabled={documentActionId === document.id}>View</button><button type="button" onClick={() => void openDocument(document, true)} disabled={documentActionId === document.id}>Download</button><button type="button" onClick={() => void openDocument(document, false)} disabled={documentActionId === document.id}>Print</button><button type="button" className="dsa-document-delete" onClick={() => void removeDocument(document)} disabled={documentActionId === document.id}>Delete</button></div></div>)}</div>}</section><div className="dsa-policy-audit"><span><b>Terms &amp; Conditions:</b> {booking.terms_accepted_at ? `Accepted / स्वीकार किया · ${formatSlipTime(booking.terms_accepted_at)} IST · ${booking.terms_policy_version || 'version missing'}` : 'Not recorded / दर्ज नहीं'}</span><span><b>Refund Policy:</b> {booking.refund_policy_accepted_at ? `Accepted / स्वीकार किया · ${formatSlipTime(booking.refund_policy_accepted_at)} IST · ${booking.refund_policy_version || 'version missing'}` : 'Not recorded'}</span></div><section className="dsa-payment-panel">
   <div className="dsa-payment-panel-heading"><strong>Payment &amp; Service Fee</strong><small>Review the request, set the final amount manually, then create a one-time Cashfree payment link.</small></div>
