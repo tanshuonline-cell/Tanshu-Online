@@ -4,6 +4,7 @@ import { ArrowRight, Check, Crown, MessageCircle, ShieldCheck, X } from 'lucide-
 const plans = [
   {
     name: 'Basic',
+    theme: 'basic',
     eyebrow: 'A simple start',
     description: 'Essential member access for everyday needs.',
     price: '49',
@@ -17,6 +18,7 @@ const plans = [
   },
   {
     name: 'Standard',
+    theme: 'standard',
     eyebrow: 'More ways to get things done',
     description: 'Expanded tools and the same private support.',
     price: '199',
@@ -32,6 +34,7 @@ const plans = [
   },
   {
     name: 'Premium',
+    theme: 'premium',
     eyebrow: 'The complete experience',
     description: 'The widest planned access for members.',
     price: '599',
@@ -65,56 +68,109 @@ export const MembershipPlansSection: React.FC = () => {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <article
-              key={plan.name}
-              className={`relative flex flex-col rounded-2xl border p-5 shadow-xl transition-transform hover:-translate-y-1 sm:p-6 ${
-                plan.popular
-                  ? 'border-blue-400 bg-white text-slate-900 ring-2 ring-blue-400/30'
-                  : 'border-slate-700 bg-slate-900 text-white'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white shadow">
-                  Popular choice
-                </span>
-              )}
-              <div className="mb-5">
-                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${plan.popular ? 'text-blue-700' : 'text-blue-300'}`}>{plan.eyebrow}</p>
-                <h3 className="mt-2 text-2xl font-black">{plan.name}</h3>
-                <p className={`mt-2 min-h-10 text-xs leading-relaxed ${plan.popular ? 'text-slate-600' : 'text-slate-400'}`}>{plan.description}</p>
-                <div className={`mt-4 border-t pt-4 ${plan.popular ? 'border-slate-200' : 'border-slate-700'}`}>
-                  <span className="text-2xl font-extrabold">₹{plan.price}</span>
-                  <p className={`mt-1 text-[11px] ${plan.popular ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {plan.duration}{plan.note ? ` • ${plan.note}` : ''}
-                  </p>
-                </div>
-              </div>
+          {plans.map((plan) => {
+            const isBasic = plan.theme === 'basic';
+            const isStandard = plan.theme === 'standard';
+            const isPremium = plan.theme === 'premium';
 
-              <div className="mb-6 flex-1 space-y-3">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-start gap-2.5">
-                    <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${plan.popular ? 'bg-blue-100 text-blue-700' : 'bg-emerald-400/15 text-emerald-300'}`}>
-                      <Check className="h-3 w-3" />
-                    </span>
-                    <span className={`text-xs leading-relaxed ${plan.popular ? 'text-slate-700' : 'text-slate-300'}`}>{feature}</span>
-                  </div>
-                ))}
-              </div>
+            const cardTheme = isBasic
+              ? 'border-slate-700 bg-slate-900 text-white'
+              : isStandard
+                ? 'border-teal-400 bg-gradient-to-br from-white via-teal-50 to-cyan-50 text-slate-900 ring-1 ring-teal-300/60'
+                : 'border-amber-400/80 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/70 text-white ring-2 ring-amber-400/20';
 
-              <button
-                type="button"
-                onClick={() => setSelectedPlan(plan.name)}
-                className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                  plan.popular
-                    ? 'bg-blue-700 text-white hover:bg-blue-800 focus:ring-blue-500 focus:ring-offset-white'
-                    : 'border border-slate-600 bg-slate-800 text-white hover:border-blue-400 hover:bg-slate-700 focus:ring-blue-400 focus:ring-offset-slate-900'
-                }`}
+            const eyebrowTheme = isBasic
+              ? 'text-blue-300'
+              : isStandard
+                ? 'text-teal-700'
+                : 'text-amber-300';
+
+            const descriptionTheme = isBasic
+              ? 'text-slate-400'
+              : isStandard
+                ? 'text-slate-600'
+                : 'text-slate-300';
+
+            const dividerTheme = isBasic
+              ? 'border-slate-700'
+              : isStandard
+                ? 'border-teal-200'
+                : 'border-amber-400/30';
+
+            const priceTheme = isPremium ? 'text-amber-300' : '';
+
+            const durationTheme = isBasic
+              ? 'text-slate-400'
+              : isStandard
+                ? 'text-slate-500'
+                : 'text-amber-100/70';
+
+            const checkTheme = isBasic
+              ? 'bg-emerald-400/15 text-emerald-300'
+              : isStandard
+                ? 'bg-teal-100 text-teal-700'
+                : 'bg-amber-400/15 text-amber-300';
+
+            const featureTheme = isBasic
+              ? 'text-slate-300'
+              : isStandard
+                ? 'text-slate-700'
+                : 'text-slate-200';
+
+            const buttonTheme = isBasic
+              ? 'border border-slate-600 bg-slate-800 text-white hover:border-blue-400 hover:bg-slate-700 focus:ring-blue-400 focus:ring-offset-slate-900'
+              : isStandard
+                ? 'bg-teal-700 text-white hover:bg-teal-800 focus:ring-teal-500 focus:ring-offset-white'
+                : 'border border-amber-400/60 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 hover:from-amber-400 hover:to-yellow-400 focus:ring-amber-400 focus:ring-offset-slate-900';
+
+            return (
+              <article
+                key={plan.name}
+                className={`relative flex flex-col rounded-2xl border p-5 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl sm:p-6 ${cardTheme}`}
               >
-                Preview {plan.name} <ArrowRight className="h-4 w-4" />
-              </button>
-            </article>
-          ))}
+                {isStandard && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-700 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white shadow">
+                    Popular choice
+                  </span>
+                )}
+                {isPremium && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-amber-300/70 bg-gradient-to-r from-amber-400 to-yellow-300 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-950 shadow-lg">
+                    Premium experience
+                  </span>
+                )}
+                <div className="mb-5">
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${eyebrowTheme}`}>{plan.eyebrow}</p>
+                  <h3 className="mt-2 text-2xl font-black">{plan.name}</h3>
+                  <p className={`mt-2 min-h-10 text-xs leading-relaxed ${descriptionTheme}`}>{plan.description}</p>
+                  <div className={`mt-4 border-t pt-4 ${dividerTheme}`}>
+                    <span className={`text-2xl font-extrabold ${priceTheme}`}>₹{plan.price}</span>
+                    <p className={`mt-1 text-[11px] ${durationTheme}`}>
+                      {plan.duration}{plan.note ? ` • ${plan.note}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-6 flex-1 space-y-3">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-start gap-2.5">
+                      <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${checkTheme}`}>
+                        <Check className="h-3 w-3" />
+                      </span>
+                      <span className={`text-xs leading-relaxed ${featureTheme}`}>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan(plan.name)}
+                  className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${buttonTheme}`}
+                >
+                  Preview {plan.name} <ArrowRight className="h-4 w-4" />
+                </button>
+              </article>
+            );
+          })}
         </div>
 
         <div className="mx-auto mt-7 flex max-w-3xl items-start gap-3 rounded-xl border border-slate-700 bg-slate-900/70 p-4">
