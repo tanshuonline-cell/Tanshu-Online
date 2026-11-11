@@ -81,8 +81,12 @@ export const MembershipPlansSection: React.FC = () => {
         .membership-water-card:focus-within::after {
           opacity: 1; animation: membership-card-sheen 2.8s ease-in-out infinite;
         }
-        .membership-water-card > * { position: relative; z-index: 1; }
-        .membership-water-card > span { z-index: 2; }
+        .membership-water-card > *:not(span) { position: relative; z-index: 1; }
+        .membership-water-card > span {
+          position: absolute; z-index: 2; left: 50%; top: -0.75rem;
+          transform: translateX(-50%); width: max-content; max-width: calc(100% - 2rem);
+          white-space: nowrap; border-radius: 9999px;
+        }
         @keyframes membership-card-current {
           0%, 100% { background-position: 0% 45%; transform: translate3d(-1%, 0, 0) scale(1); }
           50% { background-position: 100% 55%; transform: translate3d(1%, -1%, 0) scale(1.035); }
