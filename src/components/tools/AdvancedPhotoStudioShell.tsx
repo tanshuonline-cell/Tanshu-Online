@@ -601,6 +601,27 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const autoArrangeSheet = () => {
     if (!sheetSlots.length) return;
+    const pageW = sheetDimensions.widthMm;
+    const pageH = sheetDimensions.heightMm;
+    const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
+    const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
+    let x = sheetMargin, y = sheetMargin, rowHeight = 0;
+    const positions = new Map<string,{x:number;y:number}>();
+    photoSlots.forEach(slot => {
+      if (x > sheetMargin && x + slot.width > pageW - sheetMargin) {
+        x = sheetMargin;
+        y += rowHeight + sheetGapY;
+        rowHeight = 0;
+      }
+      positions.set(slot.id, {x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,x)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,y))});
+      x += slot.width + sheetGap;
+      rowHeight = Math.max(rowHeight,slot.height);
+    });
+    setSheetSlots(current => current.map(slot => signatureSlots.has(slot.id) ? slot : ({...slot,...positions.get(slot.id)})));
+  };
+
+  const centerBalanceSheet = () => {
+    if (!sheetSlots.length || sheetMode === 'single') return;
     const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
     const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
     const layout = getBalancedSheetLayout(photoSlots.length, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
@@ -1274,7 +1295,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <label className="text-[9px] studio-muted">Vertical Photo Gap (mm)<input aria-label="Vertical photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGapY.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGapY+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                 </div>
                 <button type="button" onClick={autoArrangeSheet} disabled={!sheetSlots.length} className="mt-2 w-full rounded-md border border-[#46515c] bg-[#252B31] py-2 text-[10px] font-semibold text-[#E2E8F0] transition hover:bg-[#303840] disabled:cursor-not-allowed disabled:opacity-40">Arrange Photos Using Gaps</button>
-                <button type="button" onClick={autoArrangeSheet} disabled={!sheetSlots.length || sheetMode === 'single'} title="Keep every photo at the exact selected size, arrange rows to save paper, and center the complete layout with equal safe margins." className="mt-2 w-full rounded-md border border-[#9B754D] bg-[#34291F] py-2 text-[10px] font-semibold text-[#F2D5AD] transition hover:bg-[#433426] disabled:cursor-not-allowed disabled:opacity-40">Smart Center & Balance</button>
+                <button type="button" onClick={centerBalanceSheet} disabled={!sheetSlots.length || sheetMode === 'single'} title="Keep every photo at the exact selected size, arrange rows to save paper, and center the complete layout with equal safe margins." className="mt-2 w-full rounded-md border border-[#9B754D] bg-[#34291F] py-2 text-[10px] font-semibold text-[#F2D5AD] transition hover:bg-[#433426] disabled:cursor-not-allowed disabled:opacity-40">Smart Center & Balance</button>
               </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">PHOTO BORDER</span><label className="flex items-center gap-1.5 text-[9px] studio-muted"><input type="checkbox" checked={borderEnabled} onChange={event=>setBorderEnabled(event.target.checked)} className="accent-[#D0D7DE]"/> Enable</label></div>
