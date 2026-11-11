@@ -49,7 +49,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const customerPhone = normalizePhone(body?.customerPhone);
   const customerEmail = String(body?.customerEmail || '').trim();
   const idempotencyKey = String(body?.idempotencyKey || '');
-  if (!quote) return json({ success: false, error: 'Automatic payment is not enabled for this service yet. Please use the payment-link request option.' }, 400);
+  if (!quote) return json({ success: false, error: 'Online payment is not enabled for this service yet. Unpaid booking requests are not accepted.' }, 400);
   if (customerName.length < 2 || customerName.length > 100 || !/^[\p{L}\p{M} .'-]+$/u.test(customerName)) return json({ success: false, error: 'Enter a valid customer name.' }, 400);
   if (!/^\d{10}$/.test(customerPhone)) return json({ success: false, error: 'Enter a valid 10-digit Indian mobile number.' }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) || customerEmail.length > 120) return json({ success: false, error: 'Enter a valid email address.' }, 400);
