@@ -56,7 +56,7 @@ export const MembershipPlansSection: React.FC = () => {
   return (
     <section id="membership" className="scroll-mt-24 border-y border-slate-200 bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8">
       <style>{`
-        .membership-water-card { isolation: isolate; overflow: hidden; }
+        .membership-water-card { isolation: isolate; overflow: visible; }
         .membership-water-card::before,
         .membership-water-card::after {
           content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
@@ -203,6 +203,11 @@ export const MembershipPlansSection: React.FC = () => {
                 key={plan.name}
                 className={`membership-water-card relative flex flex-col rounded-2xl border p-5 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl sm:p-6 ${cardTheme}`}
               >
+                {isBasic && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-blue-300/50 bg-gradient-to-r from-slate-800 to-blue-900 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-blue-200 shadow-lg">
+                    A simple start
+                  </span>
+                )}
                 {isStandard && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-700 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white shadow">
                     Popular choice
@@ -214,7 +219,6 @@ export const MembershipPlansSection: React.FC = () => {
                   </span>
                 )}
                 <div className="mb-5">
-                  <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${eyebrowTheme}`}>{plan.eyebrow}</p>
                   <h3 className="mt-2 text-2xl font-black">{plan.name}</h3>
                   <p className={`mt-2 min-h-10 text-xs leading-relaxed ${descriptionTheme}`}>{plan.description}</p>
                   <div className={`mt-4 border-t pt-4 ${dividerTheme}`}>
