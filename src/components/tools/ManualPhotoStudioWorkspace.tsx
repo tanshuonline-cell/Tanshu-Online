@@ -125,7 +125,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
         });
       };
       saveQueueRef.current = saveQueueRef.current.then(save).catch(error => console.warn('Manual Studio auto-save failed.', error));
-    }, 350);
+    }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [hydrated,pages,pageIndex,tool,selectedIds,files,assetDocuments,activeAssetId,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio]);
   useEffect(() => {
