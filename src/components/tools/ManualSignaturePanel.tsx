@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { ImagePlus, Eraser, Check, Crop } from 'lucide-react';
 
-type Props = { onPlace: (asset: { name: string; src: string }) => void };
+type Props = { onPlace: (asset: { name: string; src: string }) => void; onApply: () => void; canApply: boolean };
 const loadImage = (src:string) => new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Signature image could not be loaded.'));image.src=src;});
 
-export const ManualSignaturePanel: React.FC<Props> = ({ onPlace }) => {
+export const ManualSignaturePanel: React.FC<Props> = ({ onPlace, onApply, canApply }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [name,setName]=useState('');
   const [source,setSource]=useState('');
@@ -123,6 +123,7 @@ export const ManualSignaturePanel: React.FC<Props> = ({ onPlace }) => {
       </>}
       <button onClick={()=>{if(cutout&&preview)onPlace({name:name.replace(/\.[^.]+$/,'')+'-signature.png',src:preview});}} disabled={!cutout||busy} className="mt-2 flex w-full items-center justify-center gap-1 rounded bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20] disabled:opacity-40"><Check size={13}/> Place on Photo / A4</button>
     </>}
+    {canApply&&<button onClick={onApply} className="mt-2 w-full rounded bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20]">Apply &amp; Save to Photo</button>}
     <p className="mt-2 text-[9px] leading-4 text-[#8996a2]">{message}</p>
     <p className="mt-1 text-[9px] leading-4 text-[#8996a2]">Cleaned transparent PNG is placed as its own layer. The selection border and corner handles are editing guides only; they are not included in the saved image.</p>
   </section>;
