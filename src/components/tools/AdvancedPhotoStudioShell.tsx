@@ -207,6 +207,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
   const [quickPrintLayout, setQuickPrintLayout] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const showUpgradePrompt = () => setUpgradePromptOpen(true);
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
   const [cropDialogDrag, setCropDialogDrag] = useState<{x:number;y:number;left:number;top:number}|null>(null);
@@ -680,6 +682,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportPrintSheet = async (format: 'jpg'|'png'|'pdf') => {
+    showUpgradePrompt();
+    return;
     if (!selected) return;
     const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
@@ -707,6 +711,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const printActualSize = async () => {
+    showUpgradePrompt();
+    return;
     if(!selected)return;
     const printWindow=window.open('','_blank','width=900,height=700');
     if(!printWindow){window.alert('Please allow pop-ups to print at actual size.');return;}
@@ -740,6 +746,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
+    showUpgradePrompt();
+    return;
     if (!selected) return;
     const image = new Image();
     image.src = selected.url;
@@ -987,7 +995,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
             <div className="mb-1 w-full border-b border-[#343A42] pb-2">
-              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>setActiveTool(label as typeof activeTool)} data-tool={label.toLowerCase()} className={`studio-tool-button mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'is-active':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
+              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>{if(['Portrait','Retouch','Background'].includes(label))showUpgradePrompt();else setActiveTool(label as typeof activeTool);}} data-tool={label.toLowerCase()} className={`studio-tool-button mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'is-active':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
               <label htmlFor="studio-delete-mode" title="Delete mode" className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg py-2 text-[9px] ${deleteModeEnabled?'bg-red-500/15 text-red-300':'studio-muted hover:bg-[#252B31]'}`}>
                 <Trash2 size={17}/><input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3 w-3 accent-red-500"/><span>Delete</span>
               </label>
@@ -1093,6 +1101,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <span className="studio-control flex items-center gap-2 px-3 py-2 text-[10px]"><Plus size={13}/> Browse files</span>
                 </button>
               )}
+              {selected && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[35] grid grid-cols-3 grid-rows-4 place-items-center gap-4 overflow-hidden select-none">{Array.from({length:12},(_,index)=><span key={index} className="whitespace-nowrap rounded border border-slate-900/20 bg-white/20 px-2 py-1 text-[clamp(10px,1.2vw,16px)] font-black tracking-[.16em] text-slate-950/40 shadow-sm" style={{transform:`rotate(-27deg) translateY(${index%2===0?'5px':'-5px'})`,WebkitTextStroke:'0.4px rgba(255,255,255,.75)'}}>TANSHU ONLINE</span>)}</div>}
             </div>
 
             <div className="flex h-[38px] shrink-0 items-center justify-between border-t studio-line bg-[#191D21] px-5 text-[10px] studio-muted">
@@ -1144,6 +1153,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </aside>
         </div>
                 {cropDialogOpen && <div className="fixed inset-0 z-[100] bg-black/50" onPointerDown={event=>{if(event.target===event.currentTarget)setCropDialogOpen(false);}}><div className="absolute w-[min(560px,calc(100vw-32px))] rounded-xl border border-[#46505A] bg-[#1B1F23] shadow-2xl" style={{left:cropDialogPosition.x,top:cropDialogPosition.y}}><div className="flex cursor-move items-center justify-between border-b border-[#343A42] px-4 py-3" onPointerDown={event=>{setCropDialogDrag({x:event.clientX,y:event.clientY,left:cropDialogPosition.x,top:cropDialogPosition.y});event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={event=>{if(cropDialogDrag)setCropDialogPosition({x:Math.max(0,cropDialogDrag.left+event.clientX-cropDialogDrag.x),y:Math.max(0,cropDialogDrag.top+event.clientY-cropDialogDrag.y)});}} onPointerUp={()=>setCropDialogDrag(null)} onPointerCancel={()=>setCropDialogDrag(null)}><div><div className="text-[12px] font-semibold text-[#E4E8EC]">Manual Crop Studio</div><div className="text-[9px] studio-muted">Exact size in mm, cm or inches · drag the dialog by its title bar</div></div><button type="button" onClick={()=>setCropDialogOpen(false)}><X size={16}/></button></div><div className="grid grid-cols-[1fr_180px] gap-4 p-4"><div className="relative h-[260px] w-full touch-none overflow-hidden rounded-lg border border-white/20 bg-[#E7E5E0]" onPointerDown={event=>{if(!selected)return;event.currentTarget.setPointerCapture(event.pointerId);cropDragRef.current={pointerId:event.pointerId,x:event.clientX,y:event.clientY,positionX:activePositionX,positionY:activePositionY};}} onPointerMove={event=>{const drag=cropDragRef.current;if(!drag||drag.pointerId!==event.pointerId)return;const rect=event.currentTarget.getBoundingClientRect();updateActiveCrop({positionX:Math.max(0,Math.min(100,drag.positionX-(event.clientX-drag.x)/rect.width*100)),positionY:Math.max(0,Math.min(100,drag.positionY-(event.clientY-drag.y)/rect.height*100))});}} onPointerUp={event=>{cropDragRef.current=null;if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{cropDragRef.current=null;}}>{selected&&<img src={selected.url} alt="Drag photo to position crop" draggable={false} className="pointer-events-none h-full w-full select-none object-cover" style={{objectPosition:activePositionX+'% '+activePositionY+'%',transform:'scale('+(activeCropZoom/100)+')'}}/>}</div><div className="space-y-3"><label className="block text-[10px] studio-muted">Unit<select value={sizeUnit} onChange={event=>setSizeUnit(event.target.value as StudioUnit)} className="studio-control mt-1 h-8 w-full px-2"><option value="mm">Millimetres</option><option value="cm">Centimetres</option><option value="in">Inches</option></select></label><label className="block text-[10px] studio-muted">Width ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customWidthMm,sizeUnit).toFixed(2))} onChange={event=>{setPreset('custom');setCustomWidthMm(unitToMm(Math.max(.1,Number(event.target.value)||.1),sizeUnit));}} className="studio-control mt-1 h-8 w-full px-2"/></label><label className="block text-[10px] studio-muted">Height ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customHeightMm,sizeUnit).toFixed(2))} onChange={event=>{setPreset('custom');setCustomHeightMm(unitToMm(Math.max(.1,Number(event.target.value)||.1),sizeUnit));}} className="studio-control mt-1 h-8 w-full px-2"/></label><label className="block text-[10px] studio-muted">Zoom {activeCropZoom}%<input type="range" min="100" max="300" value={activeCropZoom} onChange={event=>updateActiveCrop({cropZoom:Number(event.target.value)})} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Horizontal {activePositionX}%<input type="range" min="0" max="100" value={activePositionX} onChange={event=>updateActiveCrop({positionX:Number(event.target.value)})} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Vertical {activePositionY}%<input type="range" min="0" max="100" value={activePositionY} onChange={event=>updateActiveCrop({positionY:Number(event.target.value)})} className="mt-1 w-full"/></label><button type="button" onClick={()=>updateActiveCrop({cropZoom:100,positionX:50,positionY:50})} className="studio-control w-full py-2 text-[10px]">Reset selected crop</button><button type="button" onClick={()=>setCropDialogOpen(false)} className="w-full rounded-md bg-[#D9DEE2] py-2 text-[10px] font-semibold text-[#20252A]">Apply crop settings</button></div></div></div></div>}
+        {upgradePromptOpen && <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="studio-upgrade-title"><div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#5B4A35] bg-[#1B1F23] shadow-2xl"><div className="flex items-center justify-between border-b border-[#343A42] px-5 py-4"><div><div className="text-[10px] font-semibold tracking-[.18em] text-[#C99A60]">TANSHU ONLINE MEMBERSHIP</div><h2 id="studio-upgrade-title" className="mt-1 text-lg font-semibold text-white">Unlock this Studio feature</h2></div><button type="button" onClick={()=>setUpgradePromptOpen(false)} aria-label="Close upgrade prompt" className="rounded-lg p-2 text-[#AAB2BA] hover:bg-white/10"><X size={18}/></button></div><div className="p-5"><p className="text-sm leading-6 text-[#C4CBD2]">This feature is part of the paid Studio experience. Choose a membership to unlock premium tools, high-quality downloads and print.</p><div className="mt-4 grid grid-cols-3 gap-2">{[{name:'Basic',price:'₹49',term:'24 hours'},{name:'Standard',price:'₹199',term:'30 days'},{name:'Premium',price:'₹599',term:'90 days'}].map(plan=><div key={plan.name} className="rounded-xl border border-[#41464D] bg-[#22272D] p-3 text-center"><div className="text-[10px] text-[#AAB2BA]">{plan.name}</div><div className="mt-1 text-xl font-bold text-white">{plan.price}</div><div className="mt-1 text-[9px] text-[#9AA4AE]">{plan.term}</div></div>)}</div><div className="mt-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[10px] leading-5 text-amber-100">Membership sign-in and secure checkout are still being connected in this Preview. No payment has been started.</div><button type="button" onClick={()=>setUpgradePromptOpen(false)} className="mt-4 w-full rounded-lg bg-[#C99555] px-4 py-3 text-xs font-bold text-[#171A1D] hover:bg-[#E0B276]">Continue preview</button></div></div></div>}
         <footer className="flex h-[34px] shrink-0 items-center justify-between border-t studio-line bg-[#171A1D] px-5 text-[9px] studio-muted"><span>TANSHU STUDIO · DOCUMENT PRESETS</span><span className="flex items-center gap-4"><span>Import and layer selection enabled</span><span>© TANSHU ONLINE</span></span></footer>
       </div>
     </div>
