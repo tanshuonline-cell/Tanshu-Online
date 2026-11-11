@@ -132,7 +132,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         });
       };
       editorSaveQueue.current = editorSaveQueue.current.then(save).catch(error => console.warn('Manual photo editor auto-save failed.', error));
-    }, 300);
+    }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
   if (!active) return null;
