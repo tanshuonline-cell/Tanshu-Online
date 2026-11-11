@@ -43,7 +43,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     serviceId: 'aadhaar-co', totalAmount: 275, governmentFee: 75, tanshuFee: 200, currency: 'INR',
     routeLabel: 'C/O address-detail update',
     note: 'C/O is part of the address, not a separate father-name update.'
-  ,
+  },
   'pdf-split': {
     serviceId: 'pdf-split', totalAmount: 30, governmentFee: 0, tanshuFee: 30, currency: 'INR',
     routeLabel: 'Private PDF page-splitting task',
