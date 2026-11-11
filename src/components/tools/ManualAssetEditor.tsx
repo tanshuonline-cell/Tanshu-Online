@@ -20,6 +20,8 @@ type Props = {
   onFinish: () => void;
   cropMode?: boolean;
   workspaceOpen?: boolean;
+  backgroundPickerOpen?: boolean;
+  onToggleBackgroundPicker?: () => void;
 };
 
 type Unit = 'mm' | 'cm' | 'in' | 'custom';
@@ -64,11 +66,14 @@ const makePersistentSrc = async (src: string) => {
   } catch { return ''; }
 };
 
-export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, onFinish, cropMode = false, workspaceOpen = true }) => {
+export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, onFinish, cropMode = false, workspaceOpen = true, backgroundPickerOpen = false, onToggleBackgroundPicker }) => {
   const [unit, setUnit] = useState<Unit>('mm');
   const [customUnitName, setCustomUnitName] = useState('custom');
   const [customUnitMm, setCustomUnitMm] = useState('1');
   const [croppedAsset, setCroppedAsset] = useState<{src:string;widthMm:number;heightMm:number;name:string}|null>(null);
+  const [cutoutSrc, setCutoutSrc] = useState('');
+  const [backgroundColor, setBackgroundColor] = useState<string|null>(null);
+  const [backgroundChoice, setBackgroundChoice] = useState<string>('#ffffff');
   const [workingSrc, setWorkingSrc] = useState(documents[0]?.src || '');
   const [history, setHistory] = useState<Array<{src:string;box:{x:number;y:number;w:number;h:number};croppedAsset:{src:string;widthMm:number;heightMm:number;name:string}|null}>>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -97,13 +102,14 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     setEditorHydrated(false);
     if (!active) { setEditorHydrated(true); return; }
     const initial = { src: active.src, box: {x:0,y:0,w:100,h:100}, croppedAsset: null };
-    setWorkingSrc(active.src); setBox(initial.box); setCroppedAsset(null); setHistory([initial]); setHistoryIndex(0);
+    setWorkingSrc(active.src); setBox(initial.box); setCroppedAsset(null); setCutoutSrc(''); setBackgroundColor(null); setHistory([initial]); setHistoryIndex(0);
     setTargetW('0'); setTargetH('0'); setLockRatio(false); setDimensionEditing(false);
     readEditorState(active.id).then(saved => {
       if (cancelled || !saved) return;
       setWorkingSrc(saved.workingSrc || active.src);
       setBox(saved.box || initial.box);
       setCroppedAsset(saved.croppedAsset || null);
+      setCutoutSrc(saved.cutoutSrc || ''); setBackgroundColor(saved.backgroundColor ?? null); setBackgroundChoice(saved.backgroundColor || '#ffffff');
       setHistory(saved.history?.length ? saved.history : [initial]);
       setHistoryIndex(Math.max(0, Math.min(saved.historyIndex || 0, (saved.history?.length || 1) - 1)));
       setTargetW(saved.targetW || '0'); setTargetH(saved.targetH || '0');
@@ -126,7 +132,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         ]);
         if (cancelled) return;
         await writeEditorState(active.id, {
-          workingSrc:savedWorkingSrc,box,croppedAsset:croppedAsset?{...croppedAsset,src:savedCropSrc}:null,
+          workingSrc:savedWorkingSrc,box,croppedAsset:croppedAsset?{...croppedAsset,src:savedCropSrc}:null,cutoutSrc:await makePersistentSrc(cutoutSrc),backgroundColor,
           history:savedHistory,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing,
           savedAt:Date.now()
         });
@@ -134,7 +140,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       editorSaveQueue.current = editorSaveQueue.current.then(save).catch(error => console.warn('Manual photo editor auto-save failed.', error));
     }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
+  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,cutoutSrc,backgroundColor,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
   if (!active) return null;
 
   // Use the rendered image bounds for pointer math. The editor stage can be
@@ -275,14 +281,14 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     const heightMm = targetH.trim() && Number(targetH) > 0 ? toMm(Number(targetH), unit, Number(customUnitMm)||1) : sh * 25.4 / 300;
     const src = URL.createObjectURL(blob);
     const nextAsset = {src, widthMm, heightMm, name:active.name.replace(/\.[^.]+$/, '') + '-crop.png'};
-    const nextState = { src, box:{x:0,y:0,w:100,h:100}, croppedAsset:nextAsset };
+    const nextState = { src, box:{x:0,y:0,w:100,h:100}, croppedAsset:nextAsset, cutoutSrc:'', backgroundColor:null };
     setHistory(prev => { const next = [...prev.slice(0, historyIndex + 1), nextState]; setHistoryIndex(next.length - 1); return next; });
-    setWorkingSrc(src); setCroppedAsset(nextAsset); setBox(nextState.box);
+    setWorkingSrc(src); setCroppedAsset(nextAsset); setCutoutSrc(''); setBackgroundColor(null); setBox(nextState.box);
     setNotice('Crop applied. Use Undo to restore the previous image or Redo to apply it again.');
   };
   const applyHistory = (nextIndex:number) => {
     const item = history[nextIndex]; if (!item) return;
-    setHistoryIndex(nextIndex); setWorkingSrc(item.src); setBox(item.box); setCroppedAsset(item.croppedAsset);
+    setHistoryIndex(nextIndex); setWorkingSrc(item.src); setBox(item.box); setCroppedAsset(item.croppedAsset); setCutoutSrc(item.cutoutSrc || ''); setBackgroundColor(item.backgroundColor ?? null);
     setNotice(nextIndex === 0 ? 'Original image restored.' : 'Crop history restored.');
   };
   const undoCrop = () => applyHistory(Math.max(0, historyIndex - 1));
@@ -303,12 +309,17 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     setRemovingBackground(true);
     setNotice('AI background removal is starting…');
     try {
-      const blob = await removeBackgroundAI(active.src, setNotice);
+      const sourceForRemoval = workingSrc || active.src;
+      const blob = await removeBackgroundAI(sourceForRemoval, setNotice);
       const nextSrc = URL.createObjectURL(blob);
+      const nextAsset = croppedAsset ? {...croppedAsset,src:nextSrc} : null;
+      const nextState = {src:nextSrc,box:{x:0,y:0,w:100,h:100},croppedAsset:nextAsset,cutoutSrc:nextSrc,backgroundColor:null};
       onReplaceSource(active.id, nextSrc);
-      setWorkingSrc(nextSrc);
+      setWorkingSrc(nextSrc); setCutoutSrc(nextSrc); setBackgroundColor(null);
+      if(nextAsset) setCroppedAsset(nextAsset);
       setBox({x:0,y:0,w:100,h:100});
-      setNotice('Background removed. The original remains available in its separate document if you duplicated it first.');
+      setHistory(prev=>{const next=[...prev.slice(0,historyIndex+1),nextState];setHistoryIndex(next.length-1);return next;});
+      setNotice('Background removed. Choose a photo background color or keep it transparent.');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Background removal could not be completed. Please try again.');
     } finally {
@@ -316,6 +327,28 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     }
   };
   const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); setTargetW('0'); setTargetH('0'); setNotice('Crop selection reset.'); };
+  const applyPhotoBackground = async () => {
+    if (!cutoutSrc) { setNotice('पहले Remove BG करें, फिर Background Color चुनें।'); return; }
+    try {
+      const img = new Image();
+      img.src = cutoutSrc;
+      await new Promise<void>((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(new Error('Cutout image could not be loaded'));});
+      const canvas=document.createElement('canvas'); canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
+      const ctx=canvas.getContext('2d'); if(!ctx) return;
+      if(backgroundChoice!=='transparent'){ctx.fillStyle=backgroundChoice;ctx.fillRect(0,0,canvas.width,canvas.height);}
+      ctx.drawImage(img,0,0);
+      const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));
+      if(!blob) throw new Error('Could not create the background image');
+      const nextSrc=URL.createObjectURL(blob);
+      const nextAsset={src:nextSrc,widthMm:croppedAsset?.widthMm||(naturalSize.width*25.4/300),heightMm:croppedAsset?.heightMm||(naturalSize.height*25.4/300),name:croppedAsset?.name||active.name.replace(/\\.[^.]+$/,'')+'-background.png'};
+      const nextState={src:nextSrc,box:{x:0,y:0,w:100,h:100},croppedAsset:nextAsset,cutoutSrc,backgroundColor:backgroundChoice==='transparent'?null:backgroundChoice};
+      setWorkingSrc(nextSrc); setCroppedAsset(nextAsset); setBackgroundColor(nextState.backgroundColor);
+      setHistory(prev=>{const next=[...prev.slice(0,historyIndex+1),nextState];setHistoryIndex(next.length-1);return next;});
+      setNotice(backgroundChoice==='transparent'?'Transparent background kept.':'Photo background color applied.');
+      onToggleBackgroundPicker?.();
+    } catch(error) { setNotice(error instanceof Error?error.message:'Could not apply photo background.'); }
+  };
+
 
   const startStagePointer = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!cropMode || !imageRef.current) return;
