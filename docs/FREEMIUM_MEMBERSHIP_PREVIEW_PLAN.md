@@ -70,6 +70,14 @@ No recurring mandate, subscription debit, or automatic renewal is to be created.
 - Keep essential security/audit records for Admin sign-in and sensitive Admin changes (such as changing roles, feature rules, or payment records); these are security records, not customer usage logs. Do not record ordinary Admin tool interactions as customer activity.
 - Customer sessions remain subject to their purchased plan and feature rules; an Admin bypass must never leak into another user's session.
 
+### Preview implementation status (2026-11-11)
+
+- Implemented in `AdvancedPhotoStudioShell.tsx`: on Studio mount, the UI calls the existing same-origin `GET /api/admin/auth` endpoint with the HttpOnly session cookie and only enables the bypass when the response confirms `authenticated: true` and `role: superadmin`.
+- A failed, expired, or missing Admin session keeps the customer preview locks and watermark in place.
+- The current customer membership entitlement is still not connected; this preview bypass is specifically for verified Admin sessions.
+- The Studio component does not currently write ordinary tool interactions to a customer usage-log endpoint. Do not interpret this as a completed, system-wide log exclusion until all analytics/usage event producers are audited.
+- Not yet browser-tested or build-verified. Admin login must be tested on the Cloudflare Preview deployment before relying on the bypass.
+
 ## Admin controls
 
 - Reuse the existing authenticated Admin session and role checks; never weaken admin authentication.
