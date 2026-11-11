@@ -11,6 +11,16 @@
 - A visitor must be able to preview the tool and understand what it does before being asked to pay.
 - Entitlements must be enforced in the application and, wherever server-side processing exists, on the server. Client-only gates are a UX control and must not be described as tamper-proof.
 
+## Unpaid preview watermark (owner-approved, 2026-11-11)
+
+- Until a verified active membership entitlement exists, show a visible TANSHU ONLINE watermark over the photo/studio preview area.
+- Use a repeated diagonal pattern across the preview, not a single corner logo that can be cropped out. The mark should be legible in screenshots while retaining enough visibility to understand the tool.
+- The watermark must be applied to every relevant preview surface (main photo canvas, sheet preview, crop/final preview, and any other preview that could otherwise expose an unmarked result).
+- Do not rely on a CSS-only overlay for downloadable output protection. Paid export, download, and print actions remain locked by default and must check entitlement before producing the final file.
+- For any preview/export path that can produce a file before entitlement, compose the watermark into the generated image/PDF itself. A screenshot watermark is a deterrent, not a guarantee against capture or tampering.
+- Remove the watermark only after the server confirms a valid, unexpired entitlement for the required tier. Never trust a browser-only flag, local storage value, or client-supplied plan name.
+- Keep the watermark brand text as “TANSHU ONLINE”; do not invent or expose a personal phone number or address.
+
 ## Approved plans
 
 | Plan | Price | Duration | Billing |
