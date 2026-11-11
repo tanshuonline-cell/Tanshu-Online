@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Mail, MessageCircle, Instagram, Facebook, Youtube, MapPin, ShieldCheck, Clock3 } from 'lucide-react';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { useLanguage } from '../context/LanguageContext';
@@ -93,12 +94,51 @@ export const LegalInformationPage: React.FC = () => {
     },
     '/contact': {
       title: hindi ? 'संपर्क करें' : 'Contact TANSHU ONLINE',
-      description: hindi ? 'सहायता, गोपनीयता, रिफंड और कॉपीराइट संबंधी अनुरोधों के लिए संपर्क।' : 'Contact TANSHU ONLINE for support, privacy, refund and copyright requests.',
-      intro: hindi ? 'सामान्य सहायता, Digital Seva बुकिंग, गोपनीयता अनुरोध, रिफंड या कॉपीराइट संबंधी विषयों के लिए ईमेल करें।' : 'For general support, Digital Seva bookings, privacy requests, refunds or copyright matters, contact us by email.',
+      description: hindi ? 'TANSHU ONLINE की सहायता, शिकायत, गोपनीयता और सेवा संबंधी संपर्क जानकारी।' : 'Support, grievance and business contact information for TANSHU ONLINE.',
+      intro: hindi ? 'TANSHU ONLINE एक Digital Service Center & Online Tools Platform है। सेवा-संबंधी जरूरी सहायता, बुकिंग, भुगतान, गोपनीयता या कॉपीराइट शिकायत के लिए नीचे दिए आधिकारिक संपर्क माध्यमों का उपयोग करें।' : 'TANSHU ONLINE is a Digital Service Center & Online Tools Platform. Use the official contact channels below for essential service support, bookings, payment issues, privacy requests or copyright concerns.',
       sections: [
-        { title: hindi ? 'ईमेल सहायता' : 'Email support', body: <a className="font-semibold text-blue-700 underline" href={`mailto:${mail}`}>{mail}</a> },
-        { title: hindi ? 'ईमेल में क्या लिखें' : 'What to include', body: hindi ? 'संबंधित सेवा का नाम और बुकिंग संदर्भ (यदि हो) लिखें। कृपया OTP, पासवर्ड, UPI PIN या पूरा Aadhaar/PAN नंबर ईमेल न करें।' : 'Include the relevant service name and booking reference, if any. Do not email an OTP, password, UPI PIN or full Aadhaar/PAN number.' },
-        { title: hindi ? 'स्वतंत्र प्लेटफ़ॉर्म' : 'Independent platform', body: hindi ? 'TANSHU ONLINE एक स्वतंत्र डिजिटल टूल और सहायता प्लेटफ़ॉर्म है, सरकारी विभाग नहीं। सरकारी आवेदन की स्थिति और निर्णय के लिए संबंधित आधिकारिक पोर्टल से भी संपर्क करें।' : 'TANSHU ONLINE is an independent digital tools and assistance platform, not a government department. For official application status and decisions, also contact the relevant government portal.' },
+        {
+          title: hindi ? 'व्यवसाय की जानकारी' : 'Business information',
+          body: <div className="space-y-2">
+            <p><strong>{hindi ? 'वेबसाइट / ब्रांड:' : 'Website / Brand:'}</strong> TANSHU ONLINE</p>
+            <p><strong>{hindi ? 'व्यवसाय का प्रकार:' : 'Business type:'}</strong> Digital Service Center &amp; Online Tools Platform</p>
+            <p><strong>{hindi ? 'संचालन:' : 'Operated by:'}</strong> TANSHU ONLINE</p>
+            <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-500 shrink-0" /><strong>{hindi ? 'स्थान:' : 'Location:'}</strong> Bihar, India</p>
+          </div>
+        },
+        {
+          title: hindi ? 'ग्राहक सहायता और शिकायत अधिकारी' : 'Customer support & grievance officer',
+          body: <div className="space-y-2">
+            <p><strong>{hindi ? 'जिम्मेदार सहायता टीम:' : 'Responsible support contact:'}</strong> TANSHU ONLINE</p>
+            <p>{hindi ? 'TANSHU ONLINE ग्राहक सहायता और शिकायतों को प्राप्त करने तथा उनका समाधान करने की जिम्मेदारी संभालता है।' : 'TANSHU ONLINE is responsible for receiving customer support requests and grievances and coordinating their resolution.'}</p>
+            <p className="flex items-center gap-2"><Clock3 className="w-4 h-4 text-slate-500 shrink-0" />{hindi ? 'शिकायत मिलने की पुष्टि: 48 घंटे के भीतर।' : 'Grievance acknowledgement: within 48 hours.'}</p>
+            <p className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />{hindi ? 'समाधान का लक्ष्य: शिकायत प्राप्त होने के 30 दिनों के भीतर।' : 'Target resolution: within 30 days of receiving the grievance.'}</p>
+          </div>
+        },
+        {
+          title: hindi ? 'WhatsApp सहायता (प्राथमिक माध्यम)' : 'WhatsApp support (preferred channel)',
+          body: <div className="space-y-3">
+            <p>{hindi ? 'WhatsApp का उपयोग केवल जरूरी सेवा-संबंधी सहायता, बुकिंग/भुगतान की समस्या और वास्तविक शिकायतों के लिए करें।' : 'Use WhatsApp for essential service-related assistance, booking or payment issues, and genuine grievances.'}</p>
+            <a href="https://wa.me/919360714846" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 font-semibold text-white no-underline hover:bg-emerald-800"><MessageCircle className="w-4 h-4" />{hindi ? 'WhatsApp पर संपर्क करें' : 'Contact on WhatsApp'}</a>
+            <p className="text-sm text-slate-600">{hindi ? 'कृपया ध्यान दें: WhatsApp निजी बातचीत या सामान्य जानकारी के हर छोटे सवाल के लिए नहीं है। हर सामान्य प्रश्न का उत्तर देना संभव नहीं होगा। संदेश में सेवा का नाम और बुकिंग संदर्भ (यदि हो) स्पष्ट लिखें।' : 'Please note: WhatsApp is not intended for personal conversations or every routine question. We may not be able to answer all general enquiries. Clearly mention the service name and booking reference, if any.'}</p>
+          </div>
+        },
+        {
+          title: hindi ? 'ईमेल सहायता' : 'Email support',
+          body: <a className="inline-flex items-center gap-2 font-semibold text-blue-700 underline" href={`mailto:${mail}`}><Mail className="w-4 h-4" />{mail}</a>
+        },
+        {
+          title: hindi ? 'हमारे सोशल मीडिया' : 'Connect with us',
+          body: <div className="flex flex-wrap gap-3">
+            <a href="https://www.instagram.com/tanshuonline?obrf=MTY3dmhkNTV2cHk1Mw==" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-semibold text-slate-800 no-underline hover:border-pink-400 hover:text-pink-700"><Instagram className="w-5 h-5" />Instagram</a>
+            <a href="https://www.facebook.com/share/19bDrHwUdD/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-semibold text-slate-800 no-underline hover:border-blue-400 hover:text-blue-700"><Facebook className="w-5 h-5" />Facebook</a>
+            <a href="https://youtube.com/@tanshuonline?si=MSwlXsajZRAZUl0-" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-semibold text-slate-800 no-underline hover:border-red-400 hover:text-red-700"><Youtube className="w-5 h-5" />YouTube</a>
+          </div>
+        },
+        {
+          title: hindi ? 'संपर्क करते समय ध्यान रखें' : 'Please keep in mind when contacting us',
+          body: hindi ? 'संबंधित सेवा का नाम और बुकिंग संदर्भ (यदि हो) लिखें। OTP, पासवर्ड, UPI PIN या पूरा Aadhaar/PAN नंबर WhatsApp या ईमेल पर न भेजें। TANSHU ONLINE एक स्वतंत्र डिजिटल टूल और सहायता प्लेटफ़ॉर्म है, सरकारी विभाग नहीं। सरकारी आवेदन की स्थिति और निर्णय के लिए संबंधित आधिकारिक पोर्टल से भी संपर्क करें।' : 'Mention the relevant service and booking reference, if any. Never send an OTP, password, UPI PIN or full Aadhaar/PAN number over WhatsApp or email. TANSHU ONLINE is an independent digital tools and assistance platform, not a government department. For official application status and decisions, also contact the relevant government portal.'
+        },
       ],
     },
   };
