@@ -78,7 +78,7 @@ No recurring mandate, subscription debit, or automatic renewal is to be created.
 - A source inspection of the active Studio shell found no customer usage/analytics event calls; its only API request is the Admin session check. Therefore ordinary Studio interactions are not currently sent to a usage-log endpoint from this component.
 - This is not a completed, system-wide log exclusion: other site tools, shared analytics, and server-side event producers have not yet been exhaustively audited. Keep this limitation explicit; do not claim that all Admin activity is excluded everywhere.
 - The Admin session check uses same-origin credentials and disables browser caching. The unpaid watermark is held back until the session check completes, avoiding a brief watermark flash for an authenticated Admin.
-- No GitHub Actions Preview build run is associated with the current commit, and no browser/Cloudflare Preview test has been performed yet. Admin login must be tested on the Cloudflare Preview deployment before relying on the bypass.
+- Cloudflare Pages reported a successful Preview deployment for commit `bd6b22b` at `https://b87fc4b4.tanshu-online.pages.dev`. This confirms the Pages build/deploy completed, but it does not prove the Admin bypass or Studio controls work in a browser. A live browser smoke test has not yet been completed; Admin login, unpaid/customer behavior, and video-payment regression still require verification before relying on this bypass.
 
 ### Video payment isolation review (2026-11-11)
 
