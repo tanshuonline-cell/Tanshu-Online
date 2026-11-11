@@ -317,9 +317,11 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   const arrangePhotosUsingGaps = () => {
     const existing = page.layers.filter(layer=>layer.type==='photo' && layer.assetKind!=='signature');
     if (!existing.length) return;
-    const seed = selectedPhoto && selectedPhoto.assetKind!=='signature' ? selectedPhoto : existing[0];
-    const requested = Math.max(1,Math.min(60,existing.length===1?manualPhotoCount:existing.length));
-    const candidates = [...existing];
+    const selectedPhotos = selected.filter(layer=>layer.type==='photo' && layer.assetKind!=='signature');
+    const sources = selectedPhotos.length ? selectedPhotos : [existing[0]];
+    const seed = sources[0];
+    const requested = Math.max(1,Math.min(60,manualPhotoCount));
+    const candidates = sources.slice(0,requested);
     while(candidates.length<requested){candidates.push({...seed,id:uid(),name:seed.name+' copy',locked:false});}
     let x=page.margin,y=page.margin,rowHeight=0;
     const positions=new Map<string,{x:number;y:number}>();
