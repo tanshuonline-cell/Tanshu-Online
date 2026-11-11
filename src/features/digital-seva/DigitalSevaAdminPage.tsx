@@ -45,6 +45,8 @@ interface RecoveryPaymentOrder {
   order_id: string;
   service_id: string;
   customer_phone: string;
+  customer_name?: string;
+  customer_email?: string;
   amount: number;
   currency: string;
   status: string;
@@ -420,7 +422,7 @@ export default function DigitalSevaAdminPage() {
   <div className="dsa-booking-list">{orphanedPayments.map((order) => <article className="dsa-booking-card" key={order.order_id}>
     <div className="dsa-booking-card-top"><strong>{order.order_id}</strong><span>{formatSlipTime(order.paid_at || order.created_at)} IST</span></div>
     <h2>{serviceNames.get(order.service_id) || order.service_id}</h2>
-    <div className="dsa-customer-grid"><div><small>Payment reference / ऑर्डर नंबर</small><b>{order.order_id}</b></div><div><small>Customer mobile</small><b>{order.customer_phone}</b></div><div><small>Paid amount</small><b>₹{Number(order.amount).toFixed(2)} {order.currency}</b></div><div><small>Payment status</small><b>{order.status} · Booking not created</b></div></div>
+    <div className="dsa-customer-grid"><div><small>Payment reference / ऑर्डर नंबर</small><b>{order.order_id}</b></div>{order.customer_name && <div><small>Cashfree payer name</small><b>{order.customer_name}</b></div>}<div><small>Customer mobile</small><b>{order.customer_phone}</b></div>{order.customer_email && <div><small>Cashfree payer email</small><b>{order.customer_email}</b></div>}<div><small>Paid amount</small><b>₹{Number(order.amount).toFixed(2)} {order.currency}</b></div><div><small>Payment status</small><b>{order.status} · Booking not created</b></div></div>
     <div className="dsa-payment-link"><button type="button" onClick={() => { void navigator.clipboard.writeText(order.order_id).then(() => setCopiedRecoveryOrder(order.order_id)).catch(() => setError('Could not copy the payment reference.')); }}><Copy size={14} /> Copy payment / request reference</button>{copiedRecoveryOrder === order.order_id && <small>Copied / कॉपी हो गया</small>}</div>
     <p className="dsa-payment-policy-warning">Important: the checkout register does not contain the original application form, applicant name/email or uploaded PDF. This reference identifies the payment only; do not mark it as a completed booking until the customer application details are recovered.</p>
   </article>)}</div>
