@@ -55,14 +55,21 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     if (wantedW > 0 && wantedH > 0 && naturalSize.width > 0 && naturalSize.height > 0) {
       const targetRatio = toMm(wantedW, unit) / toMm(wantedH, unit);
       const imageRatio = naturalSize.width / naturalSize.height;
-      const cropRatioInPercent = targetRatio / imageRatio;
+      const ratio = targetRatio / imageRatio;
+      // Keep the diagonally opposite corner fixed while locking the requested ratio.
+      const anchorX = drag.corner.includes('w') ? drag.initial.x + drag.initial.w : drag.initial.x;
+      const anchorY = drag.corner.includes('n') ? drag.initial.y + drag.initial.h : drag.initial.y;
       if (drag.corner.includes('e') || drag.corner.includes('w')) {
-        const nextH = b.w / cropRatioInPercent;
-        if (nextH <= 100 - b.y) b.h = Math.max(min, nextH);
+        b.h = b.w / ratio;
+        b.y = drag.corner.includes('n') ? anchorY - b.h : anchorY;
       } else {
-        const nextW = b.h * cropRatioInPercent;
-        if (nextW <= 100 - b.x) b.w = Math.max(min, nextW);
+        b.w = b.h * ratio;
+        b.x = drag.corner.includes('w') ? anchorX - b.w : anchorX;
       }
+      b.w = Math.max(min, Math.min(100, b.w));
+      b.h = Math.max(min, Math.min(100, b.h));
+      b.x = Math.max(0, Math.min(100 - b.w, b.x));
+      b.y = Math.max(0, Math.min(100 - b.h, b.y));
     }
     setBox(b);
   };
@@ -107,7 +114,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         <div ref={stageRef} className="relative max-h-full max-w-full select-none" style={{aspectRatio:'auto',touchAction:'none'}}>
           <img src={active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block max-h-[calc(100vh-250px)] max-w-full object-contain"/>
           <div className="pointer-events-none absolute border border-red-500 bg-red-500/[0.04]" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%'}}/>
-          {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Crop '+corner} onPointerDown={e=>setCorner(e,corner)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-10 h-3 w-3 rounded-full border border-red-700 bg-red-500 touch-none" style={{left:corner.includes('w')?box.x+'%':(box.x+box.w)+'%',top:corner.includes('n')?box.y+'%':(box.y+box.h)+'%',transform:'translate(-50%,-50%)',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
+          {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Crop '+corner} onPointerDown={e=>setCorner(e,corner)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-10 h-5 w-5 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none" style={{left:corner.includes('w')?box.x+'%':(box.x+box.w)+'%',top:corner.includes('n')?box.y+'%':(box.y+box.h)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
         </div>
       </div>
       {notice && <div className="shrink-0 border-t border-[#414a54] px-3 py-2 text-[10px] text-[#b8d6c4]">{notice}</div>}
