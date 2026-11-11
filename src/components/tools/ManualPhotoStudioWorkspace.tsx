@@ -346,7 +346,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
       Promise.all(files.map(async f => ({...f, src: await persistImageSource(f.src)}))),
       Promise.all(assetDocuments.map(async d => ({...d, src: await persistImageSource(d.src)})))
     ]);
-    const save = () => writeManualStudioProject({
+    const save = async () => writeManualStudioProject({
       pages:savedPages,pageIndex,tool,selectedIds,files:savedFiles,assetDocuments:savedDocuments,
       activeAssetId,assetWorkspaceOpen,signatureAsset:signatureAsset?{...signatureAsset,src:await persistImageSource(signatureAsset.src)}:null,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
       savedAt:Date.now()
