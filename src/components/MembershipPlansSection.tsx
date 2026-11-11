@@ -55,6 +55,45 @@ export const MembershipPlansSection: React.FC = () => {
 
   return (
     <section id="membership" className="scroll-mt-24 border-y border-slate-200 bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8">
+      <style>{`
+        .membership-ripple-button { isolation: isolate; overflow: hidden; position: relative; }
+        .membership-ripple-button::before,
+        .membership-ripple-button::after {
+          content: ""; position: absolute; z-index: 0; pointer-events: none;
+          inset: 50% auto auto 50%; width: 18px; height: 18px; border-radius: 9999px;
+          opacity: 0; transform: translate(-50%, -50%) scale(.2);
+        }
+        .membership-ripple-button::before {
+          border: 1.5px solid currentColor;
+          animation: membership-water-ring 1.65s ease-out infinite;
+        }
+        .membership-ripple-button::after {
+          width: 34px; height: 34px;
+          background: radial-gradient(circle, rgba(255,255,255,.34) 0%, rgba(255,255,255,.12) 38%, transparent 72%);
+          animation: membership-water-glow 1.65s ease-out infinite .28s;
+        }
+        .membership-ripple-button:hover::before,
+        .membership-ripple-button:hover::after,
+        .membership-ripple-button:focus-visible::before,
+        .membership-ripple-button:focus-visible::after { animation-play-state: running; }
+        .membership-ripple-button::before,
+        .membership-ripple-button::after { animation-play-state: paused; }
+        .membership-ripple-button > span { position: relative; z-index: 1; }
+        @keyframes membership-water-ring {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(.25); }
+          12% { opacity: .48; }
+          78% { opacity: .16; }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(17); }
+        }
+        @keyframes membership-water-glow {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+          18% { opacity: .72; }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(11); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .membership-ripple-button::before, .membership-ripple-button::after { animation: none !important; }
+        }
+      `}</style>
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto mb-9 max-w-2xl text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-blue-200">
@@ -164,9 +203,11 @@ export const MembershipPlansSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedPlan(plan.name)}
-                  className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${buttonTheme}`}
+                  className={`membership-ripple-button group inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-extrabold transition duration-300 hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-offset-2 ${buttonTheme}`}
                 >
-                  Preview {plan.name} <ArrowRight className="h-4 w-4" />
+                  <span className="inline-flex items-center gap-2">
+                    Preview {plan.name} <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </span>
                 </button>
               </article>
             );
