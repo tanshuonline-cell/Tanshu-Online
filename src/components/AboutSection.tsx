@@ -35,7 +35,7 @@ export const AboutSection: React.FC = () => {
                 <span className="text-[11px] text-slate-500">{t('about.release', 'Current Release')}</span>
               </div>
               <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                <span className="text-xl font-bold font-mono text-emerald-700 block">100%</span>
+                <span className="text-xl font-bold font-mono text-emerald-700 block">Hybrid</span>
                 <span className="text-xs font-semibold text-slate-800 block mt-0.5">{isHindi ? 'ब्राउज़र-आधारित प्रोसेसिंग' : 'Browser-First Processing'}</span>
                 <span className="text-[11px] text-slate-500">{isHindi ? 'Digital Seva अनुरोध सुरक्षित सर्वर पर जाते हैं' : 'Digital Seva requests use secure service servers'}</span>
               </div>
@@ -100,7 +100,7 @@ export const AboutSection: React.FC = () => {
             {t('about.disclaimer', 'TANSHU ONLINE is an independent platform and is not affiliated with any government department.')}
           </p>
           <p className="leading-relaxed text-slate-500">
-            {t('about.disclaimer2', 'We do not collect government fees or issue official documents. Use authorized government websites for official services.')}
+            {isHindi ? 'हम सरकारी दस्तावेज़ जारी नहीं करते और सरकारी निर्णय नहीं लेते। आधिकारिक आवेदन और स्थिति संबंधित सरकारी पोर्टल पर सत्यापित करें।' : 'We do not issue government documents or make government decisions. Verify official applications and status on the relevant government portal.'}
           </p>
         </div>
       </div>
