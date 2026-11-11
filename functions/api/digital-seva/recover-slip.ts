@@ -85,7 +85,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
        ORDER BY created_at DESC LIMIT 5`
     ).bind(phone, name, email).all();
 
-    const bookings = (result.results || []).map((row: any) => {
+    const bookings = await Promise.all((result.results || []).map(async (row: any) => {
       const details = await revealApplicationDetails(row.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index));
       const quote = getAutoPaymentQuote(String(row.service_id || ''));
       return {
@@ -115,7 +115,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           paymentStatus: 'PAID / भुगतान सफल'
         } : null
       };
-    });
+    }));
 
     if (!bookings.length) return json({ success: false, error: 'No matching application was found. Check that all three details exactly match your submitted application.' }, 404);
     return json({ success: true, bookings });
