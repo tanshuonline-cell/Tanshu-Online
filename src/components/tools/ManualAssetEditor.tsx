@@ -56,6 +56,10 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   }, [active?.id]);
   if (!active) return null;
 
+  // Use the rendered image bounds for pointer math. The editor stage can be
+  // affected by flex sizing/zoom, while the crop percentages describe the image.
+  const getImageRect = () => imageRef.current?.getBoundingClientRect() || stageRef.current?.getBoundingClientRect() || null;
+
   const setCorner = (event: React.PointerEvent<HTMLElement>, corner: string) => {
     event.preventDefault();
     event.stopPropagation();
@@ -64,7 +68,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   const moveCorner = (event: React.PointerEvent<HTMLElement>) => {
     if (!drag || !stageRef.current) return;
-    const rect = stageRef.current.getBoundingClientRect();
+    const rect = getImageRect();
+    if (!rect || !rect.width || !rect.height) return;
     const dx = (event.clientX - drag.startX) / rect.width * 100;
     const dy = (event.clientY - drag.startY) / rect.height * 100;
     const b = { ...drag.initial };
@@ -118,7 +123,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const startCropMove = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    stageRef.current?.setPointerCapture(event.pointerId);
     // The initial full-photo frame is also the drawing surface: drag from any
     // starting point to create a new custom rectangle instead of moving 100%.
     if (box.x === 0 && box.y === 0 && box.w === 100 && box.h === 100) {
@@ -130,8 +135,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const moveCropBox = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!drag || !stageRef.current) return;
     // Crop percentages and pointer deltas use the exact same visible stage bounds.
-    const rect = stageRef.current.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
+    const rect = getImageRect();
+    if (!rect || !rect.width || !rect.height) return;
     if (drag.corner === 'draw') {
       const sx = Math.max(0, Math.min(100, (drag.startX - rect.left) / rect.width * 100));
       const sy = Math.max(0, Math.min(100, (drag.startY - rect.top) / rect.height * 100));
@@ -246,7 +251,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#151a1f] p-6">
         <div className="absolute bottom-10 left-4 z-20 flex items-center gap-1 rounded-lg border border-[#4b5661] bg-[#20262d] p-1 text-white"><button title="Zoom out" onClick={()=>setZoom(v=>Math.max(.5,Number((v-.25).toFixed(2))))} className="rounded px-2 py-1 text-xs">−</button><span className="min-w-12 text-center text-[10px]">{Math.round(zoom*100)}%</span><button title="Zoom in" onClick={()=>setZoom(v=>Math.min(3,Number((v+.25).toFixed(2))))} className="rounded px-2 py-1 text-xs">+</button><button title="Reset zoom" onClick={()=>setZoom(1)} className="rounded px-2 py-1 text-[10px]">Fit</button></div>
-        <div ref={stageRef} onPointerDown={startCropDraw} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="relative max-h-full max-w-full select-none" style={{aspectRatio:'auto',touchAction:'none',transform:`scale(${zoom})`,transformOrigin:'center center'}}> 
+        <div ref={stageRef} onPointerDown={startCropDraw} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="relative inline-block h-fit w-fit max-h-full max-w-full select-none" style={{aspectRatio:'auto',touchAction:'none',transform:`scale(${zoom})`,transformOrigin:'center center'}}> 
           <img ref={imageRef} src={workingSrc || active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block max-h-[calc(100vh-250px)] max-w-full object-contain"/>
           <div aria-label="Move crop selection" title="Grab anywhere inside the red crop frame to move the entire selection" onPointerDown={startCropMove} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="absolute z-[5] cursor-move border-2 border-red-500 bg-red-500/[0.04] touch-none" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%',touchAction:'none'}}/>
           {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Crop '+corner} onPointerDown={e=>setCorner(e,corner)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-10 h-5 w-5 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none" style={{left:corner.includes('w')?box.x+'%':(box.x+box.w)+'%',top:corner.includes('n')?box.y+'%':(box.y+box.h)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
