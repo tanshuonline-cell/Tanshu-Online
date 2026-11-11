@@ -179,6 +179,32 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     const layer:ManualLayer={id:uid(),type:'photo',assetKind:'signature',name:asset.name,fileName:asset.name,src:asset.src,x:page.margin+8,y:page.margin+8,w:34,h:12,cropZoom:100};
     updatePage(p=>({...p,layers:[...p.layers,layer]}));setSelectedIds([layer.id]);setTool('move');
   };
+  const applySignatureToPhoto = async () => {
+    const signatureLayer=page.layers.find(layer=>selectedIds.includes(layer.id)&&layer.assetKind==='signature'&&layer.src);
+    if(!signatureLayer)return;
+    const photoLayers=page.layers.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature'&&layer.src&&layer.id!==signatureLayer.id);
+    const target=photoLayers.map(layer=>({layer,area:Math.max(0,Math.min(layer.x+layer.w,signatureLayer.x+signatureLayer.w)-Math.max(layer.x,signatureLayer.x))*Math.max(0,Math.min(layer.y+layer.h,signatureLayer.y+signatureLayer.h)-Math.max(layer.y,signatureLayer.y))})).sort((a,b)=>b.area-a.area)[0];
+    if(!target||target.area<1){window.alert('सिग्नेचर को पहले फोटो के ऊपर रखें, फिर Apply & Save करें।');return;}
+    if(target.layer.rotation){window.alert('सिग्नेचर मर्ज करने से पहले फोटो को सीधा रखें।');return;}
+    try{
+      const [photoImage,signatureImage]=await Promise.all([target.layer.src,signatureLayer.src].map(src=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Image could not be loaded.'));image.src=src!;})));
+      const scale=300/25.4,canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(target.layer.w*scale));canvas.height=Math.max(1,Math.round(target.layer.h*scale));
+      const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas is unavailable.');
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.drawImage(photoImage,0,0,canvas.width,canvas.height);
+      const sx=(signatureLayer.x-target.layer.x)/target.layer.w*canvas.width;
+      const sy=(signatureLayer.y-target.layer.y)/target.layer.h*canvas.height;
+      const sw=signatureLayer.w/target.layer.w*canvas.width;
+      const sh=signatureLayer.h/target.layer.h*canvas.height;
+      ctx.drawImage(signatureImage,sx,sy,sw,sh);
+      const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));
+      if(!blob)throw new Error('Merged photo could not be created.');
+      const mergedSrc=URL.createObjectURL(blob);
+      updatePage(p=>({...p,layers:p.layers.filter(layer=>layer.id!==signatureLayer.id).map(layer=>layer.id===target.layer.id?{...layer,src:mergedSrc,name:layer.name.replace(/\\.[^.]+$/,'')+'-signed.png',fileName:layer.name.replace(/\\.[^.]+$/,'')+'-signed.png'}:layer)}));
+      setSelectedIds([target.layer.id]);setTool('move');
+    }catch(error){window.alert(error instanceof Error?error.message:'Could not apply signature to the photo.');}
+  };
   const startSignatureResize = (event:React.PointerEvent<HTMLButtonElement>, layer:ManualLayer, corner:string) => {
     if(layer.locked)return;event.preventDefault();event.stopPropagation();
     const pageEl=event.currentTarget.closest('[data-manual-page]') as HTMLElement|null;if(!pageEl)return;
@@ -377,7 +403,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
           <label className="block">Page margin · {page.margin} mm<input type="range" min="0" max="30" value={page.margin} onChange={e=>updatePage(p=>({...p,margin:Number(e.target.value)}))} className="mt-1 w-full"/></label>
           <p className="leading-4 text-[#83909c]">Page settings are independent of Auto Photo Maker.</p>
         </div>}
-        <ManualSignaturePanel onPlace={addSignatureToPage}/>
+        <ManualSignaturePanel onPlace={addSignatureToPage} onApply={()=>void applySignatureToPhoto()} canApply={page.layers.some(layer=>selectedIds.includes(layer.id)&&layer.assetKind==='signature')}/>
         <div className="border-b border-[#343b43] p-3"><div className="mb-2 flex items-center justify-between"><strong className="text-xs">Layers</strong><span>{page.layers.length} items</span></div>
           <div className="space-y-1">{[...page.layers].reverse().map(l=><div key={l.id} className={'flex items-center gap-1 rounded border px-2 py-2 '+(selectedIds.includes(l.id)?'border-[#b88b59] bg-[#292e34]':'border-[#39424b]')}><button onClick={()=>setSelectedIds([l.id])} className="min-w-0 flex-1 truncate text-left">{l.name}</button><button title={l.locked?'Unlock':'Lock'} onClick={()=>updateLayer(l.id,{locked:!l.locked})}>{l.locked?<Lock size={12}/>:<Unlock size={12}/>}</button><button title="Move layer up" onClick={()=>updatePage(p=>{const i=p.layers.findIndex(x=>x.id===l.id);if(i<0||i===p.layers.length-1)return p;const a=[...p.layers];[a[i],a[i+1]]=[a[i+1],a[i]];return{...p,layers:a};})}><ChevronUp size={12}/></button><button title="Move layer down" onClick={()=>updatePage(p=>{const i=p.layers.findIndex(x=>x.id===l.id);if(i<=0)return p;const a=[...p.layers];[a[i],a[i-1]]=[a[i-1],a[i]];return{...p,layers:a};})}><ChevronDown size={12}/></button></div>)}</div>
           <div className="mt-3 flex gap-1"><button onClick={duplicateSelected} disabled={!selected.length} className="flex-1 rounded border border-[#46515c] py-2 disabled:opacity-40"><Copy size={12} className="mr-1 inline"/>Duplicate</button><button onClick={removeSelected} disabled={!selected.length} className="flex-1 rounded border border-[#46515c] py-2 disabled:opacity-40"><Trash2 size={12} className="mr-1 inline"/>Delete</button></div>
