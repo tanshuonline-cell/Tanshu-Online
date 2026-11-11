@@ -187,7 +187,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
-  const [studioMode, setStudioMode] = useState<'auto'|'manual'>('auto');
+  const [studioMode, setStudioMode] = useState<'auto'|'manual'>(() => {
+    try { return sessionStorage.getItem('tanshu-studio-shell-mode') === 'manual' ? 'manual' : 'auto'; }
+    catch { return 'auto'; }
+  });
   const [manualSettingsOpen, setManualSettingsOpen] = useState(false);
   const [openToolGroup, setOpenToolGroup] = useState<string | null>(null);
   const [studioSearchQuery, setStudioSearchQuery] = useState('');
@@ -397,6 +400,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         });
         db.close();
         if (!active) return;
+        if (saved?.studioMode === 'manual') setStudioMode('manual');
+        else if (saved?.studioMode === 'auto') setStudioMode('auto');
         if (saved?.photos?.length) {
           const restored = await Promise.all(saved.photos.map(async (item: any) => {
             const file = await dataUrlToFile(item.data, item.name);
@@ -442,7 +447,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(STUDIO_STORE, 'readwrite');
-          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, studioMode, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
           tx.onabort = () => reject(tx.error);
@@ -452,7 +457,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       } catch { setSaveState('error'); }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor]);
+  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, studioMode, borderEnabled, borderWidthMm, borderColor]);
 
   useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
@@ -991,10 +996,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>)}
             </>}
             {studioMode !== 'manual' && <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>}
-            <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
+            <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{try{sessionStorage.removeItem('tanshu-studio-shell-mode');}catch{}setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <WandSparkles size={12}/> <span>Auto Photo Maker</span>
             </button>
             <button type="button" aria-pressed={studioMode==='manual'} title="Manual Photo Studio: keep the current page, photos, zoom and layout while working with the existing editing controls." onClick={()=>{
+              try{sessionStorage.setItem('tanshu-studio-shell-mode','manual');}catch{}
               setStudioMode('manual');
               setActiveTool('Move');
               setOpenToolGroup('selection');
@@ -1034,7 +1040,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>}
         </nav>
 
-        {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => setStudioMode('auto')} /> : (
+        {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => { try{sessionStorage.removeItem('tanshu-studio-shell-mode');}catch{} setStudioMode('auto'); }} /> : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
             <div className="mb-1 w-full border-b border-[#343A42] pb-2">
