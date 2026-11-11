@@ -5,7 +5,7 @@ import cardImg from '../assets/images/card_print_utilities_1793209558484.jpg';
 import { useLanguage } from '../context/LanguageContext';
 
 export const AboutSection: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, isHindi } = useLanguage();
   return (
     <section id="about" className="py-16 bg-white border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
@@ -36,8 +36,8 @@ export const AboutSection: React.FC = () => {
               </div>
               <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
                 <span className="text-xl font-bold font-mono text-emerald-700 block">100%</span>
-                <span className="text-xs font-semibold text-slate-800 block mt-0.5">{t('about.private', 'Private & Client-Side')}</span>
-                <span className="text-[11px] text-slate-500">{t('about.zeroUpload', 'No Server Uploads')}</span>
+                <span className="text-xs font-semibold text-slate-800 block mt-0.5">{isHindi ? 'ब्राउज़र-आधारित प्रोसेसिंग' : 'Browser-First Processing'}</span>
+                <span className="text-[11px] text-slate-500">{isHindi ? 'Digital Seva अनुरोध सुरक्षित सर्वर पर जाते हैं' : 'Digital Seva requests use secure service servers'}</span>
               </div>
             </div>
           </div>
@@ -63,9 +63,9 @@ export const AboutSection: React.FC = () => {
             <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center">
               <Lock className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900">{t('about.privacyTitle', '100% In-Browser Privacy')}</h3>
+            <h3 className="text-sm font-bold text-slate-900">{isHindi ? 'डिवाइस पर प्राथमिक प्रोसेसिंग' : 'Device-First Processing'}</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              {t('about.privacyDesc', 'Your documents stay on your device and are processed in your browser.')}
+              {isHindi ? 'कई फोटो और PDF टूल आपके ब्राउज़र में काम करते हैं। Digital Seva में जमा की गई जानकारी और फाइलें अनुरोध पूरा करने के लिए सुरक्षित सेवा स्टोरेज पर भेजी जाती हैं।' : 'Many photo and PDF tools run in your browser. Information and files submitted through Digital Seva are sent to service storage so the request can be handled.'}
             </p>
           </div>
 
