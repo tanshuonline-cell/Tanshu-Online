@@ -208,6 +208,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [quickPrintLayout, setQuickPrintLayout] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  // Preview remains locked until a server-verified membership entitlement is connected.
+  const isStudioMember = false;
   const showUpgradePrompt = () => setUpgradePromptOpen(true);
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
@@ -682,8 +684,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportPrintSheet = async (format: 'jpg'|'png'|'pdf') => {
-    showUpgradePrompt();
-    return;
+    if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
@@ -711,8 +712,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const printActualSize = async () => {
-    showUpgradePrompt();
-    return;
+    if (!isStudioMember) { showUpgradePrompt(); return; }
     if(!selected)return;
     const printWindow=window.open('','_blank','width=900,height=700');
     if(!printWindow){window.alert('Please allow pop-ups to print at actual size.');return;}
@@ -746,8 +746,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
-    showUpgradePrompt();
-    return;
+    if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const image = new Image();
     image.src = selected.url;
@@ -1101,7 +1100,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <span className="studio-control flex items-center gap-2 px-3 py-2 text-[10px]"><Plus size={13}/> Browse files</span>
                 </button>
               )}
-              {selected && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[35] grid grid-cols-3 grid-rows-4 place-items-center gap-4 overflow-hidden select-none">{Array.from({length:12},(_,index)=><span key={index} className="whitespace-nowrap rounded border border-slate-900/20 bg-white/20 px-2 py-1 text-[clamp(10px,1.2vw,16px)] font-black tracking-[.16em] text-slate-950/40 shadow-sm" style={{transform:`rotate(-27deg) translateY(${index%2===0?'5px':'-5px'})`,WebkitTextStroke:'0.4px rgba(255,255,255,.75)'}}>TANSHU ONLINE</span>)}</div>}
+              {selected && !isStudioMember && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[35] grid grid-cols-3 grid-rows-4 place-items-center gap-4 overflow-hidden select-none">{Array.from({length:12},(_,index)=><span key={index} className="whitespace-nowrap rounded border border-slate-900/20 bg-white/20 px-2 py-1 text-[clamp(10px,1.2vw,16px)] font-black tracking-[.16em] text-slate-950/40 shadow-sm" style={{transform:`rotate(-27deg) translateY(${index%2===0?'5px':'-5px'})`,WebkitTextStroke:'0.4px rgba(255,255,255,.75)'}}>TANSHU ONLINE</span>)}</div>}
             </div>
 
             <div className="flex h-[38px] shrink-0 items-center justify-between border-t studio-line bg-[#191D21] px-5 text-[10px] studio-muted">
