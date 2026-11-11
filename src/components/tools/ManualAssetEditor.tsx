@@ -257,9 +257,6 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   return <>
     <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-      <select aria-label="Active imported photo" value={active.id} onChange={e=>{onActiveChange(e.target.value);}} className="studio-control h-8 max-w-[130px] px-1 text-[10px]">
-        {documents.map(doc=><option key={doc.id} value={doc.id}>{doc.kind==='signature'?'Signature':'Photo'} · {doc.name}</option>)}
-      </select>
       <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">Unit
         <select value={unit} onPointerDown={e=>e.stopPropagation()} onChange={e=>{const next=e.target.value as Unit;const w=Number(targetW),h=Number(targetH);if(w>0)setTargetW(fromMm(toMm(w,unit,Number(customUnitMm)||1),next,Number(customUnitMm)||1).toFixed(2));if(h>0)setTargetH(fromMm(toMm(h,unit,Number(customUnitMm)||1),next,Number(customUnitMm)||1).toFixed(2));setUnit(next);setDimensionEditing(false);}} className="studio-control h-8 w-[68px] px-1 text-[10px]"><option value="mm">MM</option><option value="cm">CM</option><option value="in">Inch</option><option value="custom">Custom</option></select>
       </label>
@@ -278,7 +275,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       <button onClick={()=>{onActiveChange(active.id);void cropOnly();}} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>
       {<button onClick={addCroppedToA4} disabled={!workspaceOpen} title={workspaceOpen?"Add the current photo to A4":"Photo is already on the A4 workspace"} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:opacity-40">Add to A4</button>}{workspaceOpen?<button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>:<button onClick={()=>onActiveChange(active.id)} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Open Photo</button>}
     </div>
-    {workspaceOpen&&<div className="absolute bottom-0 left-0 right-0 top-[128px] z-30 flex min-h-0 items-center justify-center overflow-auto border-t border-[#414a54] bg-[#151b22] p-3">
+    {workspaceOpen&&<div className="absolute bottom-0 left-[64px] right-[270px] top-[128px] z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-3">
       {cropMode&&<div className="absolute left-4 top-3 z-20 rounded border border-red-500/60 bg-[#351b1b] px-3 py-1.5 text-[10px] text-red-100">Crop mode: selection के अंदर खींचें = Move · बाहर खींचें = नया Crop · किनारे/कोने = Resize</div>}
       <div ref={stageRef} onPointerDown={startStagePointer} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="relative flex h-full max-h-full max-w-full shrink-0 items-center justify-center select-none" style={{touchAction:'none'}}>
         <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-full max-w-full object-contain"/>
