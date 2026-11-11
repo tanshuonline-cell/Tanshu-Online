@@ -71,9 +71,9 @@ export const MembershipPlansSection: React.FC = () => {
           animation: membership-card-current 5.5s ease-in-out infinite;
         }
         .membership-water-card::after {
-          inset: -45% -80%; opacity: 0;
-          background: linear-gradient(112deg, transparent 38%, rgba(255,255,255,.20) 48%, rgba(255,255,255,.05) 52%, transparent 62%);
-          transform: translateX(-42%) rotate(8deg);
+          inset: 0; opacity: 0; overflow: hidden;
+          background: linear-gradient(112deg, transparent 28%, rgba(255,255,255,.20) 46%, rgba(255,255,255,.05) 52%, transparent 70%);
+          transform: translateX(-110%);
         }
         .membership-water-card:hover::before,
         .membership-water-card:focus-within::before { opacity: 1; }
@@ -83,17 +83,17 @@ export const MembershipPlansSection: React.FC = () => {
         }
         .membership-water-card > *:not(span) { position: relative; z-index: 1; }
         .membership-water-card > span {
-          position: absolute; z-index: 2; left: 50%; top: -0.75rem;
-          transform: translateX(-50%); width: max-content; max-width: calc(100% - 2rem);
-          white-space: nowrap; border-radius: 9999px;
+          position: absolute; z-index: 2; left: 50%; top: -0.65rem;
+          margin-left: 0; transform: translateX(-50%); width: max-content;
+          max-width: calc(100% - 2rem); white-space: nowrap; border-radius: 9999px;
         }
         @keyframes membership-card-current {
           0%, 100% { background-position: 0% 45%; transform: translate3d(-1%, 0, 0) scale(1); }
           50% { background-position: 100% 55%; transform: translate3d(1%, -1%, 0) scale(1.035); }
         }
         @keyframes membership-card-sheen {
-          0% { transform: translateX(-42%) rotate(8deg); }
-          100% { transform: translateX(42%) rotate(8deg); }
+          0% { transform: translateX(-110%); }
+          100% { transform: translateX(110%); }
         }
         .membership-ripple-button { isolation: isolate; overflow: hidden; position: relative; }
         .membership-ripple-button::before,
