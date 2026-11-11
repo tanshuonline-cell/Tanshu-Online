@@ -953,7 +953,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
         </header>
 
-        <nav ref={menuAreaRef} className="flex h-[48px] shrink-0 items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3">
+        {studioMode !== 'manual' && <nav ref={menuAreaRef} className="flex h-[48px] shrink-0 items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3">
           <div className="relative flex items-center gap-1 text-[12px]">
             {['File','Edit','Image','Canvas','Arrange','Merge','Select All','View','Help'].map(item=><div key={item} className="relative">
               {item==='Select All' ? <label className={'flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 studio-muted hover:text-white '+(sheetMode==='single'||!sheetSlots.length?'cursor-not-allowed opacity-40':'')}><input type="checkbox" checked={selectAllMode} disabled={sheetMode==='single'||!sheetSlots.length} onChange={event=>{const enabled=event.target.checked;setSelectAllMode(enabled);if(enabled){setSelectedSlotIds(sheetSlots.map(slot=>slot.id));setSelectedSlotId(sheetSlots[0]?.id??null);if(sheetSlots[0])setSelectedId(photos.find(photo=>photo.id===sheetSlots[0].photoId)?.id||selectedId);}else setSelectedSlotIds([]);}} className="h-3 w-3 accent-[#D0D7DE]"/><span>Select All</span></label> : <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>}
@@ -1030,7 +1030,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
           </div>
-        </nav>
+        </nav>}
 
         {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => setStudioMode('auto')} /> : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
