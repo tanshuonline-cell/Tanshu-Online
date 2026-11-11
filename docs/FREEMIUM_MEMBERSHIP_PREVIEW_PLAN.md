@@ -80,6 +80,13 @@ No recurring mandate, subscription debit, or automatic renewal is to be created.
 - The Admin session check uses same-origin credentials and disables browser caching. The unpaid watermark is held back until the session check completes, avoiding a brief watermark flash for an authenticated Admin.
 - No GitHub Actions Preview build run is associated with the current commit, and no browser/Cloudflare Preview test has been performed yet. Admin login must be tested on the Cloudflare Preview deployment before relying on the bypass.
 
+### Video payment isolation review (2026-11-11)
+
+- The current PR changes only `docs/FREEMIUM_MEMBERSHIP_PREVIEW_PLAN.md`, `src/components/tools/AdvancedPhotoStudioShell.tsx`, and `src/components/tools/StudioAdvancedPanel.tsx`.
+- The homepage card in `src/components/ReadyToUseTools.tsx` still links “Instant Passport Photo Studio” to `/advanced-photo-studio-preview`; the route in `src/App.tsx` still renders `AdvancedPhotoStudioShell`. The older Passport Photo Maker component is not the target of this work.
+- A recursive file-tree review found the existing video payment routes and UI files (`functions/api/video/create-order.ts`, `verify-payment.ts`, `webhook.ts`, `restore-access.ts`, `stream-token.ts`, and the video Cashfree checkout/player components) are not among the PR's changed files. Video payment migrations and Digital Seva Cashfree payment files are also not among the changed files.
+- The Studio membership work does not intentionally call, edit, or replace those video payment endpoints. This is a source-change isolation check, not a live payment transaction test; the existing video payment flow still requires its normal Preview regression test before release.
+
 ## Admin controls
 
 - Reuse the existing authenticated Admin session and role checks; never weaken admin authentication.
