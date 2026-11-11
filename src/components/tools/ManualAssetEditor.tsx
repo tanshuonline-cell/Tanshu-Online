@@ -228,6 +228,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       const blob = await removeBackgroundAI(active.src, setNotice);
       const nextSrc = URL.createObjectURL(blob);
       onReplaceSource(active.id, nextSrc);
+      setWorkingSrc(nextSrc);
       setBox({x:0,y:0,w:100,h:100});
       setNotice('Background removed. The original remains available in its separate document if you duplicated it first.');
     } catch (error) {
@@ -259,13 +260,13 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         {documents.map(doc=><option key={doc.id} value={doc.id}>{doc.kind==='signature'?'Signature':'Photo'} · {doc.name}</option>)}
       </select>
       <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">Unit
-        <select value={unit} onPointerDown={e=>e.stopPropagation()} onChange={e=>{setUnit(e.target.value as Unit);setDimensionEditing(false);}} className="studio-control h-8 w-[68px] px-1 text-[10px]"><option value="mm">MM</option><option value="cm">CM</option><option value="in">Inch</option><option value="custom">Custom</option></select>
+        <select value={unit} onPointerDown={e=>e.stopPropagation()} onChange={e=>{const next=e.target.value as Unit;const w=Number(targetW),h=Number(targetH);if(w>0)setTargetW(fromMm(toMm(w,unit,Number(customUnitMm)||1),next,Number(customUnitMm)||1).toFixed(2));if(h>0)setTargetH(fromMm(toMm(h,unit,Number(customUnitMm)||1),next,Number(customUnitMm)||1).toFixed(2));setUnit(next);setDimensionEditing(false);}} className="studio-control h-8 w-[68px] px-1 text-[10px]"><option value="mm">MM</option><option value="cm">CM</option><option value="in">Inch</option><option value="custom">Custom</option></select>
       </label>
       <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">W
-        <input aria-label="Crop width" type="number" min="0" step="0.1" value={dimensionEditing ? targetW : measuredWidth.toFixed(2)} onPointerDown={e=>e.stopPropagation()} onFocus={()=>{if(!dimensionEditing){setTargetW(targetW||measuredWidth.toFixed(2));setTargetH(targetH||measuredHeight.toFixed(2));setDimensionEditing(true);}}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();void cropOnly();}}} onChange={e=>{setTargetW(e.target.value);setLockRatio(true);}} className="studio-control h-8 w-[76px] px-1 text-[10px]"/>
+        <input aria-label="Crop width" type="number" min="0" step="0.1" value={dimensionEditing ? targetW : (Number(targetW)>0 ? targetW : measuredWidth.toFixed(2))} onPointerDown={e=>e.stopPropagation()} onFocus={()=>{if(!dimensionEditing){setTargetW(Number(targetW)>0?targetW:measuredWidth.toFixed(2));setTargetH(Number(targetH)>0?targetH:measuredHeight.toFixed(2));setDimensionEditing(true);}}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();void cropOnly();}}} onChange={e=>{setTargetW(e.target.value);setLockRatio(true);}} className="studio-control h-8 w-[76px] px-1 text-[10px]"/>
       </label>
       <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">H
-        <input aria-label="Crop height" type="number" min="0" step="0.1" value={dimensionEditing ? targetH : measuredHeight.toFixed(2)} onPointerDown={e=>e.stopPropagation()} onFocus={()=>{if(!dimensionEditing){setTargetW(targetW||measuredWidth.toFixed(2));setTargetH(targetH||measuredHeight.toFixed(2));setDimensionEditing(true);}}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();void cropOnly();}}} onChange={e=>{setTargetH(e.target.value);setLockRatio(true);}} className="studio-control h-8 w-[76px] px-1 text-[10px]"/>
+        <input aria-label="Crop height" type="number" min="0" step="0.1" value={dimensionEditing ? targetH : (Number(targetH)>0 ? targetH : measuredHeight.toFixed(2))} onPointerDown={e=>e.stopPropagation()} onFocus={()=>{if(!dimensionEditing){setTargetW(targetW||measuredWidth.toFixed(2));setTargetH(targetH||measuredHeight.toFixed(2));setDimensionEditing(true);}}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();void cropOnly();}}} onChange={e=>{setTargetH(e.target.value);setLockRatio(true);}} className="studio-control h-8 w-[76px] px-1 text-[10px]"/>
       </label>
       {unit==='custom'&&<input aria-label="Custom unit millimetres" type="number" min="0.0001" step="any" value={customUnitMm} onPointerDown={e=>e.stopPropagation()} onChange={e=>setCustomUnitMm(e.target.value)} className="studio-control h-8 w-[68px] px-1 text-[10px]" title="1 custom unit = mm"/>}
       <button onClick={()=>onDuplicate(active.id)} className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]"><Copy size={11} className="mr-1 inline"/>Duplicate</button>
