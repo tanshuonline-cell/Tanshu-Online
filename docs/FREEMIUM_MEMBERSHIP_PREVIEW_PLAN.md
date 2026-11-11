@@ -75,8 +75,10 @@ No recurring mandate, subscription debit, or automatic renewal is to be created.
 - Implemented in `AdvancedPhotoStudioShell.tsx`: on Studio mount, the UI calls the existing same-origin `GET /api/admin/auth` endpoint with the HttpOnly session cookie and only enables the bypass when the response confirms `authenticated: true` and `role: superadmin`.
 - A failed, expired, or missing Admin session keeps the customer preview locks and watermark in place.
 - The current customer membership entitlement is still not connected; this preview bypass is specifically for verified Admin sessions.
-- The Studio component does not currently write ordinary tool interactions to a customer usage-log endpoint. Do not interpret this as a completed, system-wide log exclusion until all analytics/usage event producers are audited.
-- Not yet browser-tested or build-verified. Admin login must be tested on the Cloudflare Preview deployment before relying on the bypass.
+- A source inspection of the active Studio shell found no customer usage/analytics event calls; its only API request is the Admin session check. Therefore ordinary Studio interactions are not currently sent to a usage-log endpoint from this component.
+- This is not a completed, system-wide log exclusion: other site tools, shared analytics, and server-side event producers have not yet been exhaustively audited. Keep this limitation explicit; do not claim that all Admin activity is excluded everywhere.
+- The Admin session check uses same-origin credentials and disables browser caching. The unpaid watermark is held back until the session check completes, avoiding a brief watermark flash for an authenticated Admin.
+- No GitHub Actions Preview build run is associated with the current commit, and no browser/Cloudflare Preview test has been performed yet. Admin login must be tested on the Cloudflare Preview deployment before relying on the bypass.
 
 ## Admin controls
 
