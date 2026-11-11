@@ -324,9 +324,11 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       const left = photo.naturalWidth * signaturePosition.x / 100;
       const top = photo.naturalHeight * signaturePosition.y / 100;
       ctx.drawImage(signature, left, top, drawWidth, drawHeight);
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('Signed photo could not be created.');
-      const src = URL.createObjectURL(blob);
+      // Use a self-contained PNG data URL for the hand-off to the A4 page.
+      // The editor closes immediately after Add to A4, so the transferred image
+      // must not depend on a temporary object-URL lifecycle.
+      const src = canvas.toDataURL('image/png');
+      if (!src || src === 'data:,') throw new Error('Signed photo could not be created.');
       const baseName = (croppedAsset?.name || active.name).replace(/\.[^.]+$/, '');
       const nextAsset = {
         src,
