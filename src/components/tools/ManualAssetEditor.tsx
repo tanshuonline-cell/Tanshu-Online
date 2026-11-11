@@ -19,13 +19,14 @@ type Props = {
   onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void;
   onFinish: () => void;
   cropMode?: boolean;
+  workspaceOpen?: boolean;
 };
 
 type Unit = 'mm' | 'cm' | 'in' | 'custom';
 const toMm = (value: number, unit: Unit, customMm = 1) => unit === 'mm' ? value : unit === 'cm' ? value * 10 : unit === 'in' ? value * 25.4 : value * customMm;
 const fromMm = (value: number, unit: Unit, customMm = 1) => unit === 'mm' ? value : unit === 'cm' ? value / 10 : unit === 'in' ? value / 25.4 : value / Math.max(0.0001, customMm);
 
-export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, onFinish, cropMode = false }) => {
+export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, onFinish, cropMode = false, workspaceOpen = true }) => {
   const [unit, setUnit] = useState<Unit>('mm');
   const [customUnitName, setCustomUnitName] = useState('custom');
   const [customUnitMm, setCustomUnitMm] = useState('1');
@@ -278,7 +279,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       <button onClick={addCroppedToA4} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Add to A4</button>
       <button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>
     </div>
-    <div className="absolute bottom-8 left-[64px] right-[270px] top-[92px] z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-4">
+    {workspaceOpen&&<div className="absolute bottom-8 left-[64px] right-[270px] top-[172px] z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-4">
       {cropMode&&<div className="absolute left-4 top-3 z-20 rounded border border-red-500/60 bg-[#351b1b] px-3 py-1.5 text-[10px] text-red-100">Crop mode: selection के अंदर खींचें = Move · बाहर खींचें = नया Crop · किनारे/कोने = Resize</div>}
       <div ref={stageRef} onPointerDown={startStagePointer} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="relative inline-block h-fit w-fit shrink-0 select-none" style={{touchAction:'none'}}>
         <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-[min(68vh,760px)] max-w-[min(88vw,1200px)] object-contain"/>
@@ -287,6 +288,6 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         </>}
       </div>
       {notice&&<div className="absolute bottom-2 left-3 rounded bg-[#26332c] px-3 py-1.5 text-[10px] text-[#b8d6c4]">{notice}</div>}
-    </div>
+    </div>}
   </>;
 };
