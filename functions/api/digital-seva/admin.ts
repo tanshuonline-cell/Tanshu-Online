@@ -179,9 +179,10 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     let paymentHistory: any[] = [];
     try {
       const historyResult = await env.DIGITAL_SEVA_DB.prepare(
-        `SELECT order_id, service_id, customer_phone, amount, currency, status, paid_at, created_at
-         FROM digital_seva_checkout_orders
-         ORDER BY COALESCE(paid_at, created_at) DESC
+        `SELECT o.order_id, o.service_id, o.customer_phone, o.amount, o.currency, o.status, o.paid_at, o.created_at, o.booking_id, b.booking_reference
+         FROM digital_seva_checkout_orders o
+         LEFT JOIN digital_seva_bookings b ON b.checkout_order_id = o.order_id
+         ORDER BY COALESCE(o.paid_at, o.created_at) DESC
          LIMIT 100`
       ).all();
       const historyOrders = historyResult.results || [];
@@ -220,6 +221,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
         paidAt: order.paid_at || null,
         createdAt: String(order.created_at || ''),
         bookingId: order.booking_id ? String(order.booking_id) : null,
+        bookingReference: order.booking_reference ? String(order.booking_reference) : null,
         events: eventGroups.get(String(order.order_id)) || []
       }));
     } catch (historyError) {
