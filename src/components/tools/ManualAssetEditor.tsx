@@ -127,7 +127,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       const save = async () => {
         const [savedWorkingSrc, savedHistory, savedCropSrc] = await Promise.all([
           makePersistentSrc(workingSrc || active.src),
-          Promise.all(history.map(async item => ({...item, src: await makePersistentSrc(item.src)}))),
+          Promise.all(history.map(async item => ({...item, src: await makePersistentSrc(item.src), cutoutSrc:item.cutoutSrc?await makePersistentSrc(item.cutoutSrc):'', croppedAsset:item.croppedAsset?{...item.croppedAsset,src:await makePersistentSrc(item.croppedAsset.src)}:null}))),
           croppedAsset ? makePersistentSrc(croppedAsset.src) : Promise.resolve(null)
         ]);
         if (cancelled) return;
@@ -340,7 +340,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));
       if(!blob) throw new Error('Could not create the background image');
       const nextSrc=URL.createObjectURL(blob);
-      const nextAsset={src:nextSrc,widthMm:croppedAsset?.widthMm||(naturalSize.width*25.4/300),heightMm:croppedAsset?.heightMm||(naturalSize.height*25.4/300),name:croppedAsset?.name||active.name.replace(/\\.[^.]+$/,'')+'-background.png'};
+      const nextAsset={src:nextSrc,widthMm:croppedAsset?.widthMm||(naturalSize.width*25.4/300),heightMm:croppedAsset?.heightMm||(naturalSize.height*25.4/300),name:croppedAsset?.name||active.name.replace(/\.[^.]+$/,'')+'-background.png'};
       const nextState={src:nextSrc,box:{x:0,y:0,w:100,h:100},croppedAsset:nextAsset,cutoutSrc,backgroundColor:backgroundChoice==='transparent'?null:backgroundChoice};
       setWorkingSrc(nextSrc); setCroppedAsset(nextAsset); setBackgroundColor(nextState.backgroundColor);
       setHistory(prev=>{const next=[...prev.slice(0,historyIndex+1),nextState];setHistoryIndex(next.length-1);return next;});
