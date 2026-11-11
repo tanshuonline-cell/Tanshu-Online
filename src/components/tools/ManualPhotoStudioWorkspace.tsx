@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ManualAssetEditor, type ManualAssetDocument } from './ManualAssetEditor';
 import { ArrowLeft, Plus, Upload, Trash2, Copy, Image as ImageIcon, MousePointer2, Crop, SquareDashedMousePointer, Hand, Lock, Unlock, ChevronUp, ChevronDown, Download, RotateCw, Settings2, FilePlus2, ZoomIn, ZoomOut, Check } from 'lucide-react';
 
 type ManualLayer = { id: string; type: 'photo'|'frame'|'text'; name: string; x: number; y: number; w: number; h: number; src?: string; fileName?: string; text?: string; locked?: boolean; rotation?: number; cropZoom?: number };
@@ -15,6 +16,9 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   const [tool, setTool] = useState<Tool>('move');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [files, setFiles] = useState<{id:string;name:string;src:string}[]>([]);
+  const [assetDocuments, setAssetDocuments] = useState<ManualAssetDocument[]>([]);
+  const [activeAssetId, setActiveAssetId] = useState<string|null>(null);
+  const [importKind, setImportKind] = useState<'photo'|'signature'>('photo');
   const [unit, setUnit] = useState<'mm'|'cm'|'in'>('mm');
   const [settingsOpen, setSettingsOpen] = useState(true);
   const [drag, setDrag] = useState<{id:string;px:number;py:number;x:number;y:number}|null>(null);
@@ -64,15 +68,15 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   };
   const onFiles = (list:FileList|null) => {
     if(!list)return;
-    Array.from(list).filter(f=>f.type.startsWith('image/')).forEach(file=>{
+    const incoming=Array.from(list).filter(f=>f.type.startsWith('image/')).map(file=>{
       const item={id:uid(),name:file.name,src:URL.createObjectURL(file)};
-      setFiles(current=>[...current,item]);
-      if(tool==='frame') {
-        const frame=page.layers.find(l=>l.type==='frame'&&selectedIds.includes(l.id));
-        if(frame){addImage(item,{x:frame.x,y:frame.y,w:frame.w,h:frame.h});updatePage(p=>({...p,layers:p.layers.filter(l=>l.id!==frame.id)}));}
-        else addImage(item);
-      } else addImage(item);
+      return {item,document:{...item,kind:importKind} as ManualAssetDocument};
     });
+    if(incoming.length){
+      setFiles(current=>[...current,...incoming.map(x=>x.item)]);
+      setAssetDocuments(current=>[...current,...incoming.map(x=>x.document)]);
+      setActiveAssetId(incoming[incoming.length-1].document.id);
+    }
     if(uploadRef.current)uploadRef.current.value='';
   };
   const addFrame = () => { const l:ManualLayer={id:uid(),type:'frame',name:'Photo Frame',x:page.margin+8,y:page.margin+8,w:45,h:60};updatePage(p=>({...p,layers:[...p.layers,l]}));setSelectedIds([l.id]);setTool('move'); };
@@ -114,10 +118,10 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   };
   const unitValue=(mm:number)=>unit==='mm'?mm:unit==='cm'?mm/10:mm/25.4;
   const fromUnit=(v:number)=>unit==='mm'?v:unit==='cm'?v*10:v*25.4;
-  return <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#171b20] text-[#e4e8ec]">
+  return <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#171b20] text-[#e4e8ec]">
     <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#343b43] px-3">
       <div className="flex items-center gap-2"><button onClick={onBackToAuto} className="rounded-md border border-[#424a53] px-2 py-1.5 text-xs hover:bg-[#303840]"><ArrowLeft size={13} className="mr-1 inline"/> Auto Photo Maker</button><strong className="text-xs tracking-wide">MANUAL PHOTO STUDIO</strong><span className="rounded bg-[#29352f] px-2 py-1 text-[9px] text-[#b8d6c4]">Independent workspace</span></div>
-      <div className="flex items-center gap-2"><button onClick={()=>uploadRef.current?.click()} className="rounded border border-[#47515b] px-3 py-1.5 text-xs"><Upload size={13} className="mr-1 inline"/> Import Photos</button><button onClick={()=>void exportPage()} className="rounded bg-[#d5a66e] px-3 py-1.5 text-xs font-semibold text-[#171b20]"><Download size={13} className="mr-1 inline"/> Export Page PNG</button><input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={e=>onFiles(e.target.files)}/></div>
+      <div className="flex items-center gap-2"><button onClick={()=>{setImportKind('photo');uploadRef.current?.click();}} className="rounded border border-[#47515b] px-3 py-1.5 text-xs"><Upload size={13} className="mr-1 inline"/> Import Photo</button><button onClick={()=>{setImportKind('signature');uploadRef.current?.click();}} className="rounded border border-[#47515b] px-3 py-1.5 text-xs">Import Signature</button><button onClick={()=>void exportPage()} className="rounded bg-[#d5a66e] px-3 py-1.5 text-xs font-semibold text-[#171b20]"><Download size={13} className="mr-1 inline"/> Export Page PNG</button><input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={e=>onFiles(e.target.files)}/></div>
     </div>
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <aside className="flex w-[64px] shrink-0 flex-col items-center gap-1 border-r border-[#343b43] py-3">
@@ -155,6 +159,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
         <div className="p-3"><div className="mb-2 flex items-center justify-between"><strong className="text-xs">Imported Photos</strong><button onClick={()=>uploadRef.current?.click()}><Plus size={14}/></button></div>{files.length?files.map(f=><div key={f.id} className="mb-2 flex items-center gap-2 rounded border border-[#39424b] p-1.5"><img src={f.src} className="h-9 w-8 rounded object-cover" alt=""/><span className="min-w-0 flex-1 truncate text-[9px]">{f.name}</span><button onClick={()=>addImage(f)} title="Add to page"><Plus size={13}/></button></div>):<p className="text-[10px] text-[#7f8b96]">Import photos to add them to this page.</p>}</div>
       </aside>
     </div>
+    {assetDocuments.length>0&&<ManualAssetEditor documents={assetDocuments} activeId={activeAssetId} onActiveChange={setActiveAssetId} onClose={id=>{setAssetDocuments(current=>current.filter(d=>d.id!==id));setActiveAssetId(current=>current===id?(assetDocuments.find(d=>d.id!==id)?.id||null):current);}} onDuplicate={id=>{const source=assetDocuments.find(d=>d.id===id);if(!source)return;const copy={...source,id:uid(),name:source.name.replace(/\\.[^.]+$/,'')+' copy'+(source.name.match(/\\.[^.]+$/)?.[0]||''),src:source.src};setAssetDocuments(current=>[...current,copy]);setActiveAssetId(copy.id);}} onUseOnPage={asset=>{const layer:ManualLayer={id:uid(),type:'photo',name:asset.name,fileName:asset.name,src:asset.src,x:page.margin+8,y:page.margin+8,w:Math.max(5,asset.widthMm),h:Math.max(5,asset.heightMm),cropZoom:100};updatePage(p=>({...p,layers:[...p.layers,layer]}));setSelectedIds([layer.id]);}}/>}
     <div className="flex h-8 shrink-0 items-center justify-between border-t border-[#343b43] px-3 text-[9px] text-[#87939e]"><span>{page.name} · {page.width.toFixed(1)} × {page.height.toFixed(1)} mm · {page.layers.length} layers</span><span>Manual workspace · Preview · Zoom {pageZoom}%</span></div>
   </div>;
 };
