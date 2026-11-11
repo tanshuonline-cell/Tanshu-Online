@@ -1,10 +1,48 @@
 import { normalizeIndianMobile } from '../../../src/features/digital-seva/smartValidation';
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
 
-interface Env { DIGITAL_SEVA_DB?: any; }
+interface Env { DIGITAL_SEVA_DB?: any; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const attempts = new Map<string, { count: number; resetAt: number }>();
 function json(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status, headers }); }
+function fromBase64(value: string): ArrayBuffer {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer as ArrayBuffer;
+}
+
+async function decryptIdentifier(value: string, secrets: string[]): Promise<string> {
+  const parts = value.split(':');
+  if (parts.length !== 4 || parts[0] !== 'enc' || parts[1] !== 'v1') throw new Error('Encrypted identifier format is invalid.');
+  for (const secret of secrets) {
+    if (secret.length < 32) continue;
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`TANSHU-ONLINE-DIGITAL-SEVA-PII-v1:${secret}`));
+      const key = await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(parts[2]) }, key, fromBase64(parts[3]));
+      return new TextDecoder().decode(decrypted);
+    } catch { /* Try the legacy configured key, if present. */ }
+  }
+  throw new Error('Could not decrypt the saved application details.');
+}
+
+async function revealApplicationDetails(raw: string | null, secrets: string[]): Promise<any> {
+  let details: any = {};
+  try { details = JSON.parse(String(raw || '{}')); } catch { return {}; }
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return {};
+  const sensitiveKey = /^(aadhaarnumber|hofaadhaarnumber|aadhaarno|existingpannumber|pannumber)$/i;
+  for (const collection of [details.fieldValues, details.serviceOptions]) {
+    if (!collection || typeof collection !== 'object') continue;
+    for (const [field, value] of Object.entries(collection)) {
+      if (sensitiveKey.test(field) && typeof value === 'string' && value.startsWith('enc:v1:')) {
+        collection[field] = await decryptIdentifier(value, secrets);
+      }
+    }
+  }
+  return details;
+}
+
 function validOrigin(request: Request): boolean {
   const origin = request.headers.get('Origin');
   return Boolean(origin) && origin === new URL(request.url).origin;
@@ -48,8 +86,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     ).bind(phone, name, email).all();
 
     const bookings = (result.results || []).map((row: any) => {
-      let details: any = {};
-      try { details = JSON.parse(String(row.application_details_json || '{}')); } catch { details = {}; }
+      const details = await revealApplicationDetails(row.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index));
       const quote = getAutoPaymentQuote(String(row.service_id || ''));
       return {
         bookingReference: row.booking_reference,
