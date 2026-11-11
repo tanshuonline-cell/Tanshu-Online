@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { removeBackgroundAI } from './backgroundRemovalAI';
 import { Copy, X, Minimize2, Maximize2, Check, RotateCcw } from 'lucide-react';
 
 export type ManualAssetDocument = {
@@ -14,6 +15,7 @@ type Props = {
   onActiveChange: (id: string) => void;
   onClose: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onReplaceSource: (id: string, src: string) => void;
   onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void;
 };
 
@@ -21,7 +23,7 @@ type Unit = 'mm' | 'cm' | 'in';
 const toMm = (value: number, unit: Unit) => unit === 'mm' ? value : unit === 'cm' ? value * 10 : value * 25.4;
 const fromMm = (value: number, unit: Unit) => unit === 'mm' ? value : unit === 'cm' ? value / 10 : value / 25.4;
 
-export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onUseOnPage }) => {
+export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage }) => {
   const [unit, setUnit] = useState<Unit>('mm');
   const [targetW, setTargetW] = useState('0');
   const [targetH, setTargetH] = useState('0');
@@ -29,6 +31,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [drag, setDrag] = useState<{ corner: string; startX: number; startY: number; initial: typeof box } | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [notice, setNotice] = useState('');
+  const [removingBackground, setRemovingBackground] = useState(false);
   const [naturalSize, setNaturalSize] = useState({width:0,height:0});
   const stageRef = useRef<HTMLDivElement>(null);
   const active = documents.find(d => d.id === activeId) || documents[0];
@@ -93,6 +96,22 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     onUseOnPage({ name: active.name.replace(/\\.[^.]+$/, '') + '-crop.png', src: URL.createObjectURL(blob), widthMm, heightMm });
     setNotice('Cropped asset added to the A4 page. This source document remains open.');
   };
+  const removeBackground = async () => {
+    if (active.kind !== 'photo' || removingBackground) return;
+    setRemovingBackground(true);
+    setNotice('AI background removal is starting…');
+    try {
+      const blob = await removeBackgroundAI(active.src, setNotice);
+      const nextSrc = URL.createObjectURL(blob);
+      onReplaceSource(active.id, nextSrc);
+      setBox({x:0,y:0,w:100,h:100});
+      setNotice('Background removed. The original remains available in its separate document if you duplicated it first.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Background removal could not be completed. Please try again.');
+    } finally {
+      setRemovingBackground(false);
+    }
+  };
   const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setNotice('Crop selection reset.'); };
 
   return <div className="absolute inset-3 z-40 flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#58616b] bg-[#20262d] shadow-2xl">
@@ -108,7 +127,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         <label className="text-[10px] text-[#aeb8c2]">Crop width ({unit})<input type="number" min="0" step="0.1" value={targetW} onChange={e=>setTargetW(e.target.value)} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
         <label className="text-[10px] text-[#aeb8c2]">Crop height ({unit})<input type="number" min="0" step="0.1" value={targetH} onChange={e=>setTargetH(e.target.value)} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
         <span className="pb-2 text-[9px] text-[#8996a2]">0 × 0 = free crop · Enter both dimensions to lock the crop ratio · Current: {fromMm(naturalSize.width*box.w/100*25.4/300,unit).toFixed(2)} × {fromMm(naturalSize.height*box.h/100*25.4/300,unit).toFixed(2)} {unit}</span>
-        <div className="ml-auto flex gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button><button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropAndApply()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop & Add to A4</button></div>
+        <div className="ml-auto flex gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button>{active.kind==='photo'&&<button onClick={()=>void removeBackground()} disabled={removingBackground} className="rounded border border-[#6b806e] px-3 py-2 text-[10px] text-[#c6e2cf] disabled:opacity-50">{removingBackground?'Removing…':'Remove Background'}</button>}<button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropAndApply()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop & Add to A4</button></div>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#151a1f] p-6">
         <div ref={stageRef} className="relative max-h-full max-w-full select-none" style={{aspectRatio:'auto',touchAction:'none'}}>
