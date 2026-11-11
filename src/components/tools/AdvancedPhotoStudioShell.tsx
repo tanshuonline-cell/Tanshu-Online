@@ -209,22 +209,24 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [isVerifiedStudioAdmin, setIsVerifiedStudioAdmin] = useState(false);
+  const [isAdminAuthChecked, setIsAdminAuthChecked] = useState(false);
   // Ask the existing Cloudflare Pages auth endpoint to verify the HttpOnly admin session.
   // Never infer admin access from local storage, query parameters, or client-editable flags.
   useEffect(() => {
     let active = true;
-    fetch('/api/admin/auth', { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    fetch('/api/admin/auth', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       .then(async response => response.ok ? response.json() : null)
       .then(data => {
         if (active) setIsVerifiedStudioAdmin(Boolean(data?.authenticated && data?.user?.role === 'superadmin'));
       })
-      .catch(() => { if (active) setIsVerifiedStudioAdmin(false); });
+      .catch(() => { if (active) setIsVerifiedStudioAdmin(false); })
+      .finally(() => { if (active) setIsAdminAuthChecked(true); });
     return () => { active = false; };
   }, []);
   // Customer membership verification will be connected in the payment phase.
   // For this preview, only a server-verified Admin session bypasses customer locks.
   const isStudioMember = isVerifiedStudioAdmin;
-  const showUpgradePrompt = () => setUpgradePromptOpen(true);
+  const showUpgradePrompt = () => { if (isAdminAuthChecked) setUpgradePromptOpen(true); };
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
   const [cropDialogDrag, setCropDialogDrag] = useState<{x:number;y:number;left:number;top:number}|null>(null);
@@ -1117,7 +1119,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <span className="studio-control flex items-center gap-2 px-3 py-2 text-[10px]"><Plus size={13}/> Browse files</span>
                 </button>
               )}
-              {selected && !isStudioMember && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[35] grid grid-cols-3 grid-rows-4 place-items-center gap-4 overflow-hidden select-none">{Array.from({length:12},(_,index)=><span key={index} className="whitespace-nowrap rounded border border-slate-900/20 bg-white/20 px-2 py-1 text-[clamp(10px,1.2vw,16px)] font-black tracking-[.16em] text-slate-950/40 shadow-sm" style={{transform:`rotate(-27deg) translateY(${index%2===0?'5px':'-5px'})`,WebkitTextStroke:'0.4px rgba(255,255,255,.75)'}}>TANSHU ONLINE</span>)}</div>}
+              {selected && isAdminAuthChecked && !isStudioMember && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[35] grid grid-cols-3 grid-rows-4 place-items-center gap-4 overflow-hidden select-none">{Array.from({length:12},(_,index)=><span key={index} className="whitespace-nowrap rounded border border-slate-900/20 bg-white/20 px-2 py-1 text-[clamp(10px,1.2vw,16px)] font-black tracking-[.16em] text-slate-950/40 shadow-sm" style={{transform:`rotate(-27deg) translateY(${index%2===0?'5px':'-5px'})`,WebkitTextStroke:'0.4px rgba(255,255,255,.75)'}}>TANSHU ONLINE</span>)}</div>}
             </div>
 
             <div className="flex h-[38px] shrink-0 items-center justify-between border-t studio-line bg-[#191D21] px-5 text-[10px] studio-muted">
