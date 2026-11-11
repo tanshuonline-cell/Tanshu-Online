@@ -56,7 +56,7 @@ const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number,
 };
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 
-type BalancedSheetLayout = { capacity: number; positions: Array<{ x: number; y: number }> };
+type BalancedSheetLayout = { capacity: number; columns: number; rows: number; positions: Array<{ x: number; y: number }> };
 const getBalancedSheetLayout = (
   count: number,
   photoWidth: number,
@@ -73,7 +73,7 @@ const getBalancedSheetLayout = (
   const usableHeight = pageHeight - safeMargin * 2;
   const maxColumns = Math.floor((usableWidth + gapX + 0.001) / (photoWidth + gapX));
   const maxRows = Math.floor((usableHeight + gapY + 0.001) / (photoHeight + gapY));
-  if (maxColumns < 1 || maxRows < 1 || count <= 0) return { capacity: 0, positions: [] };
+  if (maxColumns < 1 || maxRows < 1 || count <= 0) return { capacity: 0, columns: 0, rows: 0, positions: [] };
 
   const capacity = Math.min(60, maxColumns * maxRows);
   const placedCount = Math.min(count, capacity);
@@ -94,7 +94,7 @@ const getBalancedSheetLayout = (
       });
     }
   }
-  return { capacity, positions };
+  return { capacity, columns, rows, positions };
 };
 
 const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gapX: number, gapY: number) =>
@@ -317,7 +317,21 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
     return { widthMm, heightMm, widthPx: Math.round(widthMm * 300 / 25.4), heightPx: Math.round(heightMm * 300 / 25.4) };
   }, [preset, customWidthMm, customHeightMm]);
-  const sheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
+  const baseSheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
+  const sheetDimensions = (() => {
+    if (sheetMode === 'single') return baseSheetDimensions;
+    const normal = getBalancedSheetLayout(sheetCopies, documentSize.widthMm, documentSize.heightMm, baseSheetDimensions.widthMm, baseSheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
+    const rotated = getBalancedSheetLayout(sheetCopies, documentSize.widthMm, documentSize.heightMm, baseSheetDimensions.heightMm, baseSheetDimensions.widthMm, sheetMargin, sheetGap, sheetGapY);
+    const normalPlaced = Math.min(sheetCopies, normal.capacity);
+    const rotatedPlaced = Math.min(sheetCopies, rotated.capacity);
+    const useRotated = rotatedPlaced > normalPlaced || (rotatedPlaced === normalPlaced && rotated.columns > normal.columns);
+    if (!useRotated) return { ...baseSheetDimensions, label: baseSheetDimensions.label + (baseSheetDimensions.widthMm >= baseSheetDimensions.heightMm ? ' · Landscape' : ' · Portrait') };
+    return {
+      widthMm: baseSheetDimensions.heightMm,
+      heightMm: baseSheetDimensions.widthMm,
+      label: baseSheetDimensions.label + (baseSheetDimensions.widthMm >= baseSheetDimensions.heightMm ? ' · Portrait' : ' · Landscape')
+    };
+  })();
   const sheetWidthPx = Math.round(sheetDimensions.widthMm * 300 / 25.4);
   const sheetHeightPx = Math.round(sheetDimensions.heightMm * 300 / 25.4);
   const previewAspectRatio = sheetDimensions.widthMm / sheetDimensions.heightMm;
