@@ -226,7 +226,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
       </div>
     </nav>
     {assetDocuments.length>0&&<div className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-[#343b43] bg-[#20262d] px-2"><ManualAssetEditor documents={assetDocuments} activeId={activeAssetId||assetDocuments[0].id} workspaceOpen={!!activeAssetId} onActiveChange={setActiveAssetId} onReplaceSource={(id,src)=>setAssetDocuments(current=>current.map(doc=>doc.id===id?{...doc,src}:doc))} onClose={id=>{setAssetDocuments(current=>current.filter(d=>d.id!==id));setActiveAssetId(current=>current===id?(assetDocuments.find(d=>d.id!==id)?.id||null):current);}} onDuplicate={id=>{const source=assetDocuments.find(d=>d.id===id);if(!source)return;const copy={...source,id:uid(),name:source.name.replace(/\\.[^.]+$/,'')+' copy'+(source.name.match(/\\.[^.]+$/)?.[0]||''),src:source.src};setAssetDocuments(current=>[...current,copy]);setActiveAssetId(copy.id);}} onUseOnPage={asset=>{const layer:ManualLayer={id:uid(),type:'photo',name:asset.name,fileName:asset.name,src:asset.src,x:page.margin+8,y:page.margin+8,w:Math.max(0.1,asset.widthMm),h:Math.max(0.1,asset.heightMm),cropZoom:100};updatePage(p=>({...p,layers:[...p.layers,layer]}));setSelectedIds([layer.id]);setTool('move');}} onFinish={()=>setActiveAssetId(null)} cropMode={tool==='crop'}/></div>}
-    <div className="flex min-h-0 flex-1 overflow-hidden">
+    {!activeAssetId&&<div className="flex min-h-0 flex-1 overflow-hidden">
       <aside className="flex w-[64px] shrink-0 flex-col items-center gap-1 border-r border-[#343b43] py-3">
         {([['move','Move',MousePointer2],['crop','Crop',Crop],['marquee','Rectangle Select',SquareDashedMousePointer],['frame','Photo Frame',ImageIcon],['hand','Hand',Hand]] as const).map(([id,label,Icon])=><button key={id} title={label} onClick={()=>{setTool(id);if(id!=='marquee')setMarqueeBox(null);}} className={'flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] '+(tool===id?'bg-[#3a4651] text-white':'text-[#a5afb9] hover:bg-[#28313a]')}><Icon size={17}/>{label}</button>)}
         <button title="Add text" onClick={addText} className="mt-2 flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] text-[#a5afb9] hover:bg-[#28313a]"><Plus size={17}/>Text</button>
@@ -257,7 +257,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
         </div>
         <div className="p-3"><div className="mb-2 flex items-center justify-between"><strong className="text-xs">Imported Assets</strong><span className="text-[9px] text-[#7f8b96]">{files.length} files</span></div>{files.length?files.map(f=><div key={f.id} className="mb-2 flex items-center gap-2 rounded border border-[#39424b] p-1.5"><img src={f.src} className="h-9 w-8 rounded object-cover" alt=""/><span className="min-w-0 flex-1 truncate text-[9px]">{f.name}</span></div>):<p className="text-[10px] text-[#7f8b96]">Imported photos and signatures appear in the photo workspace.</p>}</div>
       </aside>
-    </div>
-    <div className="flex h-8 shrink-0 items-center justify-between border-t border-[#343b43] px-3 text-[9px] text-[#87939e]"><span>{page.name} · {page.width.toFixed(1)} × {page.height.toFixed(1)} mm · {page.layers.length} layers</span><span>Manual workspace · Preview · Zoom {pageZoom}%</span></div>
+    </div>}
+    {!activeAssetId&&<div className="flex h-8 shrink-0 items-center justify-between border-t border-[#343b43] px-3 text-[9px] text-[#87939e]"><span>{page.name} · {page.width.toFixed(1)} × {page.height.toFixed(1)} mm · {page.layers.length} layers</span><span>Manual workspace · Preview · Zoom {pageZoom}%</span></div>}
   </div>;
 };
