@@ -196,12 +196,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (body.paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId)) return json({ success: false, error: 'Validation-only mode is reserved for an enabled automatic-payment service.' }, 400);
     return json({ success: true, validated: true });
   }
-  const paymentMode = String(body.paymentMode || 'SHARE_LINK');
+  const paymentMode = String(body.paymentMode || '');
   const paymentOrderId = String(body.paymentOrderId || '');
-  if (!['SHARE_LINK', 'AUTO_PAY'].includes(paymentMode)) return json({ success: false, error: 'Invalid payment option.' }, 400);
-  if (paymentMode === 'SHARE_LINK' && paymentOrderId) return json({ success: false, error: 'Unexpected payment order.' }, 400);
-  if (paymentMode === 'AUTO_PAY' && (!getAutoPaymentQuote(serviceId) || !/^ds_[0-9a-f]{32}$/i.test(paymentOrderId))) {
-    return json({ success: false, error: 'A valid automatic checkout payment is required before booking submission.' }, 402);
+  if (paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId) || !/^ds_[0-9a-f]{32}$/i.test(paymentOrderId)) {
+    return json({ success: false, error: 'A verified online payment is required before booking submission. Unpaid booking requests are not accepted.' }, 402);
   }
 
   try {
