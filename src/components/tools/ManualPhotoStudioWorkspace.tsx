@@ -98,6 +98,8 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
         setFiles(saved.files || []);
         setAssetDocuments(saved.assetDocuments || []);
         setActiveAssetId(saved.activeAssetId || null);
+        setAssetWorkspaceOpen(!!saved.assetWorkspaceOpen);
+        setSignatureAsset(saved.signatureAsset || null);
         setImportKind(saved.importKind || 'photo');
         setUnit(saved.unit || 'mm');
         setSettingsOpen(saved.settingsOpen ?? true);
@@ -125,14 +127,14 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
         if (cancelled) return;
         await writeManualStudioProject({
           pages:savedPages,pageIndex,tool,selectedIds,files:savedFiles,assetDocuments:savedDocuments,
-          activeAssetId,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
+          activeAssetId,assetWorkspaceOpen,signatureAsset:signatureAsset?{...signatureAsset,src:await persistImageSource(signatureAsset.src)}:null,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
           savedAt:Date.now()
         });
       };
       saveQueueRef.current = saveQueueRef.current.then(save).catch(error => console.warn('Manual Studio auto-save failed.', error));
     }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [hydrated,pages,pageIndex,tool,selectedIds,files,assetDocuments,activeAssetId,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio]);
+  }, [hydrated,pages,pageIndex,tool,selectedIds,files,assetDocuments,activeAssetId,assetWorkspaceOpen,signatureAsset,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio]);
   useEffect(() => {
     const handleOutsidePointer = (event: PointerEvent) => {
       if (!(event.target as HTMLElement).closest('[data-menu-popup], [data-menu-toggle]')) setMenuOpen(null);
@@ -346,7 +348,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     ]);
     const save = () => writeManualStudioProject({
       pages:savedPages,pageIndex,tool,selectedIds,files:savedFiles,assetDocuments:savedDocuments,
-      activeAssetId,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
+      activeAssetId,assetWorkspaceOpen,signatureAsset:signatureAsset?{...signatureAsset,src:await persistImageSource(signatureAsset.src)}:null,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
       savedAt:Date.now()
     });
     saveQueueRef.current = saveQueueRef.current.then(save);
