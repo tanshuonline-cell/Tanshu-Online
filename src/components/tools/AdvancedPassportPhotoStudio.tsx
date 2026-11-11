@@ -281,8 +281,15 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
     const container = sheetPreviewContainerRef.current;
     if (!container) return;
     const handleSheetPreviewWheel = (event: WheelEvent) => {
-      const target = event.target;
-      if (!(target instanceof Element) || !target.closest('[data-auto-sheet-preview]')) return;
+      const sheet = container.querySelector<HTMLCanvasElement>('canvas[data-auto-sheet-preview]');
+      if (!sheet) return;
+      const rect = sheet.getBoundingClientRect();
+      const pointerIsOverSheet =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!pointerIsOverSheet) return;
       event.preventDefault();
       const step = (value: number) => value < 200 ? 10 : value < 500 ? 25 : 50;
       setSheetPreviewZoom(value => Math.max(10, Math.min(1600, value + (event.deltaY < 0 ? step(value) : -step(value)))));
