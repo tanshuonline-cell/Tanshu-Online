@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { ImagePlus, Eraser, Check, Crop } from 'lucide-react';
 
-type Props = { onPlace: (asset: { name: string; src: string }) => void; onApply: () => void; canApply: boolean };
+type Props = { onPlace: (asset: { name: string; src: string }) => void };
 const loadImage = (src:string) => new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Signature image could not be loaded.'));image.src=src;});
 
-export const ManualSignaturePanel: React.FC<Props> = ({ onPlace, onApply, canApply }) => {
+export const ManualSignaturePanel: React.FC<Props> = ({ onPlace }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [name,setName]=useState('');
   const [source,setSource]=useState('');
@@ -99,7 +99,7 @@ export const ManualSignaturePanel: React.FC<Props> = ({ onPlace, onApply, canApp
     <div className="mb-2 flex items-center justify-between"><strong className="text-xs text-[#f0c895]">Signature Studio</strong><span className="text-[9px]">Manual only</span></div>
     <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e=>{upload(e.target.files?.[0]);e.currentTarget.value='';}}/>
     <button onClick={()=>inputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#8b765e] bg-[#252c33] px-3 py-2.5 text-[10px] text-white hover:bg-[#303943]"><ImagePlus size={14}/> Upload Signature</button>
-    {preview&&<div className="mt-2 flex min-h-[86px] items-center justify-center rounded-lg border border-[#46525f] p-2" style={{backgroundImage:'linear-gradient(45deg,#303943 25%,transparent 25%),linear-gradient(-45deg,#303943 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#303943 75%),linear-gradient(-45deg,transparent 75%,#303943 75%)',backgroundSize:'12px 12px',backgroundPosition:'0 0,0 6px,6px -6px,-6px 0'}}><img src={preview} alt="Signature preview" className="max-h-20 max-w-full object-contain"/></div>}
+    {preview&&<div className="mt-2 flex min-h-[86px] items-center justify-center rounded-lg border border-[#46525f] p-2" style={{backgroundImage:'linear-gradient(45deg,#303943 25%,transparent 25%),linear-gradient(-45deg,#303943 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#303943 75%),linear-gradient(-45deg,transparent 75%,#303943 75%)',backgroundSize:'12px 12px',backgroundPosition:'0 0,0 6px,6px -6px,-6px 0'}}><img src={preview} alt="Signature preview — drag onto the cropped photo" draggable onDragStart={event=>{event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-tanshu-signature-src',preview);event.dataTransfer.setData('text/plain',preview);}} className="max-h-20 max-w-full cursor-grab object-contain active:cursor-grabbing"/></div>}
     {name&&<p className="mt-1 truncate text-[9px]">{name}</p>}
     {source&&<>
       <div className="mt-3 rounded border border-[#46525f] p-2">
@@ -121,9 +121,8 @@ export const ManualSignaturePanel: React.FC<Props> = ({ onPlace, onApply, canApp
         <label className="mt-2 flex items-center justify-between rounded border border-[#46525f] px-2 py-1.5 text-[9px]">Custom color <input type="color" value={color==='transparent'?'#ffffff':color} onChange={e=>setColor(e.target.value)} className="h-6 w-9 bg-transparent"/></label>
         <button onClick={()=>void applyColor()} className="mt-2 w-full rounded border border-[#53606c] py-2 text-[10px]">Apply Background Preview</button>
       </>}
-      <button onClick={()=>{if(cutout&&preview)onPlace({name:name.replace(/\.[^.]+$/,'')+'-signature.png',src:preview});}} disabled={!cutout||busy} className="mt-2 flex w-full items-center justify-center gap-1 rounded bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20] disabled:opacity-40"><Check size={13}/> Place on Photo / A4</button>
+      <button onClick={()=>{if(cutout&&preview)onPlace({name:name.replace(/\.[^.]+$/,'')+'-signature.png',src:preview});}} disabled={!cutout||busy} className="mt-2 flex w-full items-center justify-center gap-1 rounded bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20] disabled:opacity-40"><Check size={13}/> Send to Crop Preview</button>
     </>}
-    {canApply&&<button onClick={onApply} className="mt-2 w-full rounded bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20]">Apply &amp; Save to Photo</button>}
     <p className="mt-2 text-[9px] leading-4 text-[#8996a2]">{message}</p>
     <p className="mt-1 text-[9px] leading-4 text-[#8996a2]">Cleaned transparent PNG is placed as its own layer. The selection border and corner handles are editing guides only; they are not included in the saved image.</p>
   </section>;
