@@ -1,6 +1,6 @@
 import { cashfreeApiBase, cashfreeWebhookSecret } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-order-webhook
-// Cashfree Sandbox order webhook. Verify signature, then independently fetch the order before marking it paid.
+// Cashfree order/payment webhook. Verify signature, then independently fetch the order before marking it paid.
 interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; CASHFREE_WEBHOOK_SECRET?: string; }
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -44,7 +44,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!local) return json({ success: true, ignored: true });
     const payment = event?.data?.payment && typeof event.data.payment === 'object' ? event.data.payment : {};
     const eventType = String(event?.type || 'CASHFREE_ORDER_EVENT').slice(0, 100);
-    const paymentStatus = String(payment.payment_status || event?.data?.order?.order_status || 'UNKNOWN').toUpperCase().slice(0, 60);
+    const eventStatusFallback = eventType.includes('FAILED') ? 'FAILED' : eventType.includes('SUCCESS') ? 'SUCCESS' : eventType.includes('USER_DROPPED') ? 'USER_DROPPED' : 'UNKNOWN';
+    const paymentStatus = String(payment.payment_status || event?.data?.order?.order_status || eventStatusFallback).toUpperCase().slice(0, 60);
     const cfPaymentId = payment.cf_payment_id == null ? '' : String(payment.cf_payment_id).slice(0, 100);
     const paymentMessage = String(payment.payment_message || payment.payment_status || '').slice(0, 500);
     const paymentAmount = Number(payment.payment_amount ?? event?.data?.order?.order_amount);
