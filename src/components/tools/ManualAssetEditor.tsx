@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Copy, X, Minimize2, Maximize2, Check, RotateCcw } from 'lucide-react';
 
 export type ManualAssetDocument = {
@@ -29,20 +29,9 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [drag, setDrag] = useState<{ corner: string; startX: number; startY: number; initial: typeof box } | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [notice, setNotice] = useState('');
+  const [naturalSize, setNaturalSize] = useState({width:0,height:0});
   const stageRef = useRef<HTMLDivElement>(null);
   const active = documents.find(d => d.id === activeId) || documents[0];
-  const dimensions = useMemo(() => {
-    if (!active) return { width: 0, height: 0 };
-    return new Promise<{width:number;height:number}>(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const mmPerPixel = 25.4 / 300;
-        resolve({ width: img.naturalWidth * box.w / 100 * mmPerPixel, height: img.naturalHeight * box.h / 100 * mmPerPixel });
-      };
-      img.onerror = () => resolve({width:0,height:0});
-      img.src = active.src;
-    });
-  }, [active?.id, active?.src, box.w, box.h]);
   if (!active) return null;
 
   const setCorner = (event: React.PointerEvent<HTMLButtonElement>, corner: string) => {
@@ -62,6 +51,19 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     if (drag.corner.includes('s')) b.h = Math.max(min, Math.min(100 - b.y, b.h + dy));
     if (drag.corner.includes('w')) { const right = b.x + b.w; b.x = Math.max(0, Math.min(right - min, b.x + dx)); b.w = right - b.x; }
     if (drag.corner.includes('n')) { const bottom = b.y + b.h; b.y = Math.max(0, Math.min(bottom - min, b.y + dy)); b.h = bottom - b.y; }
+    const wantedW = Number(targetW), wantedH = Number(targetH);
+    if (wantedW > 0 && wantedH > 0 && naturalSize.width > 0 && naturalSize.height > 0) {
+      const targetRatio = toMm(wantedW, unit) / toMm(wantedH, unit);
+      const imageRatio = naturalSize.width / naturalSize.height;
+      const cropRatioInPercent = targetRatio / imageRatio;
+      if (drag.corner.includes('e') || drag.corner.includes('w')) {
+        const nextH = b.w / cropRatioInPercent;
+        if (nextH <= 100 - b.y) b.h = Math.max(min, nextH);
+      } else {
+        const nextW = b.h * cropRatioInPercent;
+        if (nextW <= 100 - b.x) b.w = Math.max(min, nextW);
+      }
+    }
     setBox(b);
   };
   const cropAndApply = async () => {
@@ -98,12 +100,12 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         <label className="text-[10px] text-[#aeb8c2]">Unit<select value={unit} onChange={e=>setUnit(e.target.value as Unit)} className="studio-control mt-1 block h-8 w-20 px-2"><option value="mm">mm</option><option value="cm">cm</option><option value="in">inch</option></select></label>
         <label className="text-[10px] text-[#aeb8c2]">Crop width ({unit})<input type="number" min="0" step="0.1" value={targetW} onChange={e=>setTargetW(e.target.value)} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
         <label className="text-[10px] text-[#aeb8c2]">Crop height ({unit})<input type="number" min="0" step="0.1" value={targetH} onChange={e=>setTargetH(e.target.value)} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
-        <span className="pb-2 text-[9px] text-[#8996a2]">0 × 0 = free crop · Enter a size to set the target aspect ratio</span>
+        <span className="pb-2 text-[9px] text-[#8996a2]">0 × 0 = free crop · Enter both dimensions to lock the crop ratio · Current: {fromMm(naturalSize.width*box.w/100*25.4/300,unit).toFixed(2)} × {fromMm(naturalSize.height*box.h/100*25.4/300,unit).toFixed(2)} {unit}</span>
         <div className="ml-auto flex gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button><button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropAndApply()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop & Add to A4</button></div>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#151a1f] p-6">
         <div ref={stageRef} className="relative max-h-full max-w-full select-none" style={{aspectRatio:'auto',touchAction:'none'}}>
-          <img src={active.src} alt={active.name} draggable={false} className="block max-h-[calc(100vh-250px)] max-w-full object-contain"/>
+          <img src={active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block max-h-[calc(100vh-250px)] max-w-full object-contain"/>
           <div className="pointer-events-none absolute border border-red-500 bg-red-500/[0.04]" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%'}}/>
           {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Crop '+corner} onPointerDown={e=>setCorner(e,corner)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-10 h-3 w-3 rounded-full border border-red-700 bg-red-500 touch-none" style={{left:corner.includes('w')?box.x+'%':(box.x+box.w)+'%',top:corner.includes('n')?box.y+'%':(box.y+box.h)+'%',transform:'translate(-50%,-50%)',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
         </div>
