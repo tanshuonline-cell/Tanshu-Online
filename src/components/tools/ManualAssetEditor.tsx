@@ -115,14 +115,19 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     setDrag({ corner:'move', startX:event.clientX, startY:event.clientY, initial:{...box} });
   };
   const moveCropBox = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag || drag.corner !== 'move' || !imageRef.current) return;
-    const rect = imageRef.current.getBoundingClientRect();
+    if (!drag || drag.corner !== 'move' || !stageRef.current) return;
+    // Crop percentages are positioned against the stage wrapper, so both axes
+    // must use that exact same coordinate space (not the nested image element).
+    const rect = stageRef.current.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     const dx = (event.clientX - drag.startX) / rect.width * 100;
     const dy = (event.clientY - drag.startY) / rect.height * 100;
+    const maxX = Math.max(0, 100 - drag.initial.w);
+    const maxY = Math.max(0, 100 - drag.initial.h);
     setBox({
       ...drag.initial,
-      x: Math.max(0, Math.min(100 - drag.initial.w, drag.initial.x + dx)),
-      y: Math.max(0, Math.min(100 - drag.initial.h, drag.initial.y + dy))
+      x: Math.max(0, Math.min(maxX, drag.initial.x + dx)),
+      y: Math.max(0, Math.min(maxY, drag.initial.y + dy))
     });
   };
   const measuredWidth = naturalSize.width > 0 ? fromMm(naturalSize.width * box.w / 100 * 25.4 / 300, unit, Number(customUnitMm)||1) : 0;
