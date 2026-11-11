@@ -176,7 +176,57 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
         created_at: String(order.created_at || '')
       };
     }));
-    return json({ success: true, bookings, orphanedPayments });
+    let paymentHistory: any[] = [];
+    try {
+      const historyResult = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT order_id, service_id, customer_phone, amount, currency, status, paid_at, created_at
+         FROM digital_seva_checkout_orders
+         ORDER BY COALESCE(paid_at, created_at) DESC
+         LIMIT 100`
+      ).all();
+      const historyOrders = historyResult.results || [];
+      const historyIds = historyOrders.map((order: any) => String(order.order_id));
+      const eventGroups = new Map<string, any[]>();
+      if (historyIds.length) {
+        const placeholders = historyIds.map(() => '?').join(',');
+        const eventResult = await env.DIGITAL_SEVA_DB.prepare(
+          `SELECT order_id, event_type, payment_status, cf_payment_id, payment_message, payment_amount, payment_currency, event_time, created_at
+           FROM digital_seva_checkout_payment_events
+           WHERE order_id IN (${placeholders})
+           ORDER BY COALESCE(event_time, created_at) DESC`
+        ).bind(...historyIds).all();
+        for (const event of eventResult.results || []) {
+          const key = String(event.order_id);
+          const list = eventGroups.get(key) || [];
+          list.push({
+            eventType: String(event.event_type || ''),
+            paymentStatus: String(event.payment_status || ''),
+            paymentId: event.cf_payment_id ? String(event.cf_payment_id) : null,
+            message: event.payment_message ? String(event.payment_message) : null,
+            amount: event.payment_amount == null ? null : Number(event.payment_amount),
+            currency: String(event.payment_currency || 'INR'),
+            eventTime: event.event_time || event.created_at || null
+          });
+          eventGroups.set(key, list);
+        }
+      }
+      paymentHistory = historyOrders.map((order: any) => ({
+        orderId: String(order.order_id),
+        serviceId: String(order.service_id),
+        customerPhone: String(order.customer_phone || ''),
+        amount: Number(order.amount),
+        currency: String(order.currency || 'INR'),
+        status: String(order.status || ''),
+        paidAt: order.paid_at || null,
+        createdAt: String(order.created_at || ''),
+        bookingId: order.booking_id ? String(order.booking_id) : null,
+        events: eventGroups.get(String(order.order_id)) || []
+      }));
+    } catch (historyError) {
+      // Keep the existing booking and paid-recovery panels usable before migration 0011 is applied.
+      console.error('Digital Seva payment history is not available yet; apply migration 0011.');
+    }
+    return json({ success: true, bookings, orphanedPayments, paymentHistory });
   } catch (error) {
     console.error('Digital Seva admin list failed:', error);
     return json({ success: false, error: 'Could not load booking records. Confirm the Preview migration has been applied.' }, 503);
