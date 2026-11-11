@@ -117,6 +117,20 @@ export const LegalInformationPage: React.FC = () => {
     let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
     if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
     robots.content = 'index, follow';
+    const setMeta = (selector: string, attribute: 'name' | 'property', key: string, value: string) => {
+      let element = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attribute, key);
+        document.head.appendChild(element);
+      }
+      element.content = value;
+    };
+    setMeta('meta[property="og:title"]', 'property', 'og:title', `${page.title} | TANSHU ONLINE`);
+    setMeta('meta[property="og:description"]', 'property', 'og:description', page.description);
+    setMeta('meta[property="og:url"]', 'property', 'og:url', `https://tanshu-online.pages.dev${path}`);
+    setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', `${page.title} | TANSHU ONLINE`);
+    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', page.description);
   }, [path, page.title, page.description]);
 
   const goToSection = (sectionId: string) => {
