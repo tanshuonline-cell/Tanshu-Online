@@ -285,7 +285,7 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
       if (!(target instanceof Element) || !target.closest('[data-auto-sheet-preview]')) return;
       event.preventDefault();
       const step = (value: number) => value < 200 ? 10 : value < 500 ? 25 : 50;
-      setSheetPreviewZoom(value => Math.max(25, Math.min(1200, value + (event.deltaY < 0 ? step(value) : -step(value))));
+      setSheetPreviewZoom(value => Math.max(25, Math.min(1200, value + (event.deltaY < 0 ? step(value) : -step(value)))));
     };
     container.addEventListener('wheel', handleSheetPreviewWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleSheetPreviewWheel);
