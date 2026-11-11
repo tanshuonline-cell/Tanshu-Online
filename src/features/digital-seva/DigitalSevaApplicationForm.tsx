@@ -18,7 +18,7 @@ const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 declare global {
   interface Window {
-    Cashfree?: (options: { mode: 'sandbox' }) => {
+    Cashfree?: (options: { mode: 'sandbox' | 'production' }) => {
       checkout: (options: { paymentSessionId: string; redirectTarget: '_modal' }) => Promise<any>;
     };
   }
@@ -65,9 +65,10 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [refundAccepted, setRefundAccepted] = useState(false);
   const [refundAcceptedAt, setRefundAcceptedAt] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<'AUTO_PAY' | 'SHARE_LINK'>(getAutoPaymentQuote(service) ? 'AUTO_PAY' : 'SHARE_LINK');
+  const [paymentMode, setPaymentMode] = useState<'AUTO_PAY'>('AUTO_PAY');
   const [pendingCheckoutOrderId, setPendingCheckoutOrderId] = useState('');
   const [pendingPaymentSessionId, setPendingPaymentSessionId] = useState('');
+  const [pendingCashfreeMode, setPendingCashfreeMode] = useState<'sandbox' | 'production'>('sandbox');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draftReady, setDraftReady] = useState(false);
@@ -110,9 +111,10 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setTermsAcceptedAt(typeof d.termsAcceptedAt === 'string' ? d.termsAcceptedAt : null);
         setRefundAccepted(Boolean(d.refundAccepted));
         setRefundAcceptedAt(typeof d.refundAcceptedAt === 'string' ? d.refundAcceptedAt : null);
-        setPaymentMode(d.paymentMode === 'SHARE_LINK' ? 'SHARE_LINK' : (getAutoPaymentQuote(service.id) ? 'AUTO_PAY' : 'SHARE_LINK'));
+        setPaymentMode('AUTO_PAY');
         setPendingCheckoutOrderId(typeof d.pendingCheckoutOrderId === 'string' ? d.pendingCheckoutOrderId : '');
         setPendingPaymentSessionId(typeof d.pendingPaymentSessionId === 'string' ? d.pendingPaymentSessionId : '');
+        setPendingCashfreeMode(d.pendingCashfreeMode === 'production' ? 'production' : 'sandbox');
         setDraftRestored(true);
       }
       setDraftReady(true);
@@ -220,7 +222,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setTermsAcceptedAt(null);
     setRefundAccepted(false);
     setRefundAcceptedAt(null);
-    setPaymentMode(getAutoPaymentQuote(service) ? 'AUTO_PAY' : 'SHARE_LINK');
+    setPaymentMode('AUTO_PAY');
     setPendingCheckoutOrderId('');
     setPendingPaymentSessionId('');
     setError('');
@@ -308,6 +310,10 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     event.preventDefault();
     const message = validateStep();
     if (message) { setError(message); return; }
+    if (!getAutoPaymentQuote(service)) {
+      setError(hi ? 'इस सेवा का ऑनलाइन शुल्क अभी तय नहीं है। बुकिंग फिलहाल उपलब्ध नहीं है।' : 'Online pricing is not enabled for this service yet. Booking is temporarily unavailable.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -361,6 +367,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       if (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service)) {
         let orderId = pendingCheckoutOrderId;
         let paymentSessionId = pendingPaymentSessionId;
+        let checkoutMode: 'sandbox' | 'production' = pendingCashfreeMode;
         payload.paymentMode = 'AUTO_PAY';
 
         // If an earlier attempt was paid but the booking response was interrupted,
@@ -394,20 +401,21 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
             paymentSessionId = String(orderData.paymentSessionId);
             setPendingCheckoutOrderId(orderId);
             setPendingPaymentSessionId(paymentSessionId);
+            checkoutMode = orderData.cashfreeMode === 'production' ? 'production' : 'sandbox';
+            setPendingCashfreeMode(checkoutMode);
             const savedDraft = { ...draftStateRef.current, paymentMode: 'AUTO_PAY', pendingCheckoutOrderId: orderId, pendingPaymentSessionId: paymentSessionId };
             draftStateRef.current = savedDraft;
             await saveDigitalSevaDraft(service.id, savedDraft).catch(() => {});
           }
 
           await loadCashfreeSdk();
-          const cashfree = window.Cashfree!({ mode: 'sandbox' });
+          const cashfree = window.Cashfree!({ mode: checkoutMode });
           const checkoutResult = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
           if (checkoutResult?.error) throw new Error(checkoutResult.error.message || 'Payment was not completed. Your booking has not been submitted.');
           data = await sendBooking({ ...payload, paymentOrderId: orderId });
         }
       } else {
-        payload.paymentMode = 'SHARE_LINK';
-        data = await sendBooking(payload);
+        throw new Error(hi ? 'इस सेवा के लिए सुरक्षित ऑनलाइन भुगतान उपलब्ध नहीं है।' : 'Secure online payment is not available for this service yet.');
       }
 
       completedRef.current = true;
@@ -794,13 +802,12 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <div><small>{hi ? 'काम के निर्देश' : 'Work instructions'}</small><strong>{taskDetails}</strong></div>
       </div>
       <div className="ds-booking-privacy"><ShieldCheck size={18} /><span>{hi ? 'नाम, मोबाइल और ईमेल अनिवार्य हैं। Pay & Submit चुनने पर भुगतान की पुष्टि के बाद ही बुकिंग Admin Panel में जाएगी।' : 'Name, mobile and email are required. With Pay & Submit, the booking reaches the Admin Panel only after payment is verified.'}</span></div>
-      {getAutoPaymentQuote(service) && <div className="ds-application-profile">
-        <h4>{hi ? 'भुगतान का तरीका चुनें' : 'Choose how to pay'}</h4>
-        <div className="ds-application-choice">
-          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'AUTO_PAY'} onChange={() => setPaymentMode('AUTO_PAY')} /> <strong>{hi ? 'अभी भुगतान करें और बुकिंग जमा करें' : 'Pay now & submit booking'}</strong></label>
-          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'SHARE_LINK'} onChange={() => setPaymentMode('SHARE_LINK')} disabled={Boolean(pendingCheckoutOrderId)} /> <strong>{hi ? 'बुकिंग जमा करें, बाद में पेमेंट लिंक लें' : 'Submit request and pay using a shared link later'}</strong></label>
-        </div>
+      {getAutoPaymentQuote(service) ? <div className="ds-application-profile">
+        <h4>{hi ? 'सुरक्षित ऑनलाइन भुगतान' : 'Secure online payment'}</h4>
         <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? `सरकारी / प्रदाता शुल्क ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE शुल्क ₹${getAutoPaymentQuote(service)!.tanshuFee} = कुल ₹${getAutoPaymentQuote(service)!.totalAmount}। ${getAutoPaymentQuote(service)!.note} Preview में केवल Sandbox टेस्ट होगा; असली पैसा नहीं कटेगा।` : `Official/provider fee ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE fee ₹${getAutoPaymentQuote(service)!.tanshuFee} = total ₹${getAutoPaymentQuote(service)!.totalAmount}. ${getAutoPaymentQuote(service)!.note} Preview uses Sandbox only; no real money is collected.`}</span></div>
+      </div> : <div className="ds-application-profile">
+        <h4>{hi ? 'ऑनलाइन भुगतान फिलहाल उपलब्ध नहीं' : 'Online payment not available yet'}</h4>
+        <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'इस सेवा का शुल्क अभी सत्यापित नहीं हुआ है। बिना भुगतान बुकिंग स्वीकार नहीं की जाएगी। कृपया बाद में दोबारा देखें।' : 'Pricing for this service has not been confirmed yet. Unpaid bookings are not accepted. Please check again later.'}</span></div>
       </div>}
       <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); setTermsAcceptedAt(value ? new Date().toISOString() : null); clearFieldError("termsAccepted"); }} onRefundChange={(value) => { setRefundAccepted(value); setRefundAcceptedAt(value ? new Date().toISOString() : null); clearFieldError("refundAccepted"); }} termsError={fieldErrors.termsAccepted} refundError={fieldErrors.refundAccepted} />
       <label className={fieldErrors.bookingConsent ? "ds-booking-consent ds-field-invalid" : "ds-booking-consent"}><input data-validation-key="bookingConsent" aria-invalid={Boolean(fieldErrors.bookingConsent)} type="checkbox" checked={bookingConsent} onChange={(e) => { setBookingConsent(e.target.checked); clearFieldError("bookingConsent"); }} required /><span>{hi ? 'मैं सहमत हूँ कि TANSHU ONLINE इस सेवा अनुरोध के बारे में मुझसे संपर्क कर सकता है। मैं समझता/समझती हूँ कि यह स्वतंत्र सहायता सेवा है, सरकारी विभाग नहीं।' : 'I agree that TANSHU ONLINE may contact me about this service request. I understand this is an independent assistance service, not a government department.'}</span></label>
@@ -811,7 +818,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {step > 0 && <button type="button" className="ds-application-back" onClick={() => { setError(''); setStep((n) => n - 1); }} disabled={submitting}><ArrowLeft size={15} /> {hi ? 'पीछे' : 'Back'}</button>}
       <span>{hi ? 'चरण ' + (step + 1) + ' / 4' : 'Step ' + (step + 1) + ' of 4'}</span>
       {step < 3 ? <button type="button" className="ds-modal-book" onClick={next}>{hi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={16} /></button> :
-        <button className="ds-modal-book" type="submit" disabled={submitting}>{submitting ? (hi ? (paymentMode === 'AUTO_PAY' ? 'सुरक्षित पेमेंट खोल रहे हैं…' : 'जमा हो रहा है…') : (paymentMode === 'AUTO_PAY' ? 'Opening secure checkout…' : 'Submitting…')) : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`) : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request'))} <ArrowRight size={16} /></button>}
+        <button className="ds-modal-book" type="submit" disabled={submitting || !getAutoPaymentQuote(service)}>{submitting ? (hi ? (paymentMode === 'AUTO_PAY' ? 'सुरक्षित पेमेंट खोल रहे हैं…' : 'जमा हो रहा है…') : (paymentMode === 'AUTO_PAY' ? 'Opening secure checkout…' : 'Submitting…')) : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`) : (hi ? 'अभी उपलब्ध नहीं' : 'Not available'))} <ArrowRight size={16} /></button>}
     </div>
   </form>;
 }
