@@ -65,7 +65,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [refundAccepted, setRefundAccepted] = useState(false);
   const [refundAcceptedAt, setRefundAcceptedAt] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<'AUTO_PAY' | 'SHARE_LINK'>(getAutoPaymentQuote(service) ? 'AUTO_PAY' : 'SHARE_LINK');
+  const [paymentMode, setPaymentMode] = useState<'AUTO_PAY'>('AUTO_PAY');
   const [pendingCheckoutOrderId, setPendingCheckoutOrderId] = useState('');
   const [pendingPaymentSessionId, setPendingPaymentSessionId] = useState('');
   const [error, setError] = useState('');
@@ -110,7 +110,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setTermsAcceptedAt(typeof d.termsAcceptedAt === 'string' ? d.termsAcceptedAt : null);
         setRefundAccepted(Boolean(d.refundAccepted));
         setRefundAcceptedAt(typeof d.refundAcceptedAt === 'string' ? d.refundAcceptedAt : null);
-        setPaymentMode(d.paymentMode === 'SHARE_LINK' ? 'SHARE_LINK' : (getAutoPaymentQuote(service.id) ? 'AUTO_PAY' : 'SHARE_LINK'));
+        setPaymentMode('AUTO_PAY');
         setPendingCheckoutOrderId(typeof d.pendingCheckoutOrderId === 'string' ? d.pendingCheckoutOrderId : '');
         setPendingPaymentSessionId(typeof d.pendingPaymentSessionId === 'string' ? d.pendingPaymentSessionId : '');
         setDraftRestored(true);
@@ -220,7 +220,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setTermsAcceptedAt(null);
     setRefundAccepted(false);
     setRefundAcceptedAt(null);
-    setPaymentMode(getAutoPaymentQuote(service) ? 'AUTO_PAY' : 'SHARE_LINK');
+    setPaymentMode('AUTO_PAY');
     setPendingCheckoutOrderId('');
     setPendingPaymentSessionId('');
     setError('');
@@ -308,6 +308,10 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     event.preventDefault();
     const message = validateStep();
     if (message) { setError(message); return; }
+    if (!getAutoPaymentQuote(service)) {
+      setError(hi ? 'इस सेवा का ऑनलाइन शुल्क अभी तय नहीं है। बुकिंग फिलहाल उपलब्ध नहीं है।' : 'Online pricing is not enabled for this service yet. Booking is temporarily unavailable.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -406,8 +410,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           data = await sendBooking({ ...payload, paymentOrderId: orderId });
         }
       } else {
-        payload.paymentMode = 'SHARE_LINK';
-        data = await sendBooking(payload);
+        throw new Error(hi ? 'इस सेवा के लिए सुरक्षित ऑनलाइन भुगतान उपलब्ध नहीं है।' : 'Secure online payment is not available for this service yet.');
       }
 
       completedRef.current = true;
@@ -798,7 +801,6 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <h4>{hi ? 'भुगतान का तरीका चुनें' : 'Choose how to pay'}</h4>
         <div className="ds-application-choice">
           <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'AUTO_PAY'} onChange={() => setPaymentMode('AUTO_PAY')} /> <strong>{hi ? 'अभी भुगतान करें और बुकिंग जमा करें' : 'Pay now & submit booking'}</strong></label>
-          <label><input type="radio" name="digitalSevaPaymentMode" checked={paymentMode === 'SHARE_LINK'} onChange={() => setPaymentMode('SHARE_LINK')} disabled={Boolean(pendingCheckoutOrderId)} /> <strong>{hi ? 'बुकिंग जमा करें, बाद में पेमेंट लिंक लें' : 'Submit request and pay using a shared link later'}</strong></label>
         </div>
         <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? `सरकारी / प्रदाता शुल्क ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE शुल्क ₹${getAutoPaymentQuote(service)!.tanshuFee} = कुल ₹${getAutoPaymentQuote(service)!.totalAmount}। ${getAutoPaymentQuote(service)!.note} Preview में केवल Sandbox टेस्ट होगा; असली पैसा नहीं कटेगा।` : `Official/provider fee ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE fee ₹${getAutoPaymentQuote(service)!.tanshuFee} = total ₹${getAutoPaymentQuote(service)!.totalAmount}. ${getAutoPaymentQuote(service)!.note} Preview uses Sandbox only; no real money is collected.`}</span></div>
       </div>}
@@ -811,7 +813,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {step > 0 && <button type="button" className="ds-application-back" onClick={() => { setError(''); setStep((n) => n - 1); }} disabled={submitting}><ArrowLeft size={15} /> {hi ? 'पीछे' : 'Back'}</button>}
       <span>{hi ? 'चरण ' + (step + 1) + ' / 4' : 'Step ' + (step + 1) + ' of 4'}</span>
       {step < 3 ? <button type="button" className="ds-modal-book" onClick={next}>{hi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={16} /></button> :
-        <button className="ds-modal-book" type="submit" disabled={submitting}>{submitting ? (hi ? (paymentMode === 'AUTO_PAY' ? 'सुरक्षित पेमेंट खोल रहे हैं…' : 'जमा हो रहा है…') : (paymentMode === 'AUTO_PAY' ? 'Opening secure checkout…' : 'Submitting…')) : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`) : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request'))} <ArrowRight size={16} /></button>}
+        <button className="ds-modal-book" type="submit" disabled={submitting || !getAutoPaymentQuote(service)}>{submitting ? (hi ? (paymentMode === 'AUTO_PAY' ? 'सुरक्षित पेमेंट खोल रहे हैं…' : 'जमा हो रहा है…') : (paymentMode === 'AUTO_PAY' ? 'Opening secure checkout…' : 'Submitting…')) : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`) : (hi ? 'बुकिंग अनुरोध जमा करें' : 'Submit booking request'))} <ArrowRight size={16} /></button>}
     </div>
   </form>;
 }
