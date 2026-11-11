@@ -16,7 +16,7 @@ type Props = {
   onClose: (id: string) => void;
   onDuplicate: (id: string) => void;
   onReplaceSource: (id: string, src: string) => void;
-  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void;
+  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void | Promise<void>;
   onFinish: () => void;
   signatureAsset?: { name: string; src: string } | null;
   onSignatureApplied?: () => void;
@@ -97,6 +97,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [lockRatio, setLockRatio] = useState(false);
   const [notice, setNotice] = useState('');
   const [removingBackground, setRemovingBackground] = useState(false);
+  const [addingToA4, setAddingToA4] = useState(false);
   const [signaturePosition, setSignaturePosition] = useState({x:54,y:70,width:30});
   const [signatureDrag, setSignatureDrag] = useState<{startX:number;startY:number;initial:{x:number;y:number;width:number}}|null>(null);
   const [naturalSize, setNaturalSize] = useState({width:0,height:0});
@@ -348,17 +349,36 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       setNotice(error instanceof Error ? error.message : 'Could not apply the signature to the cropped photo.');
     }
   };
-  const addCroppedToA4 = () => {
+  const addCroppedToA4 = async () => {
+    if (addingToA4) return;
     const asset = signedCroppedAssetRef.current || croppedAsset || {
       src: workingSrc || active.src,
       name: active.name,
       widthMm: naturalSize.width > 0 ? naturalSize.width * 25.4 / 300 : 45,
       heightMm: naturalSize.height > 0 ? naturalSize.height * 25.4 / 300 : 60
     };
-    onUseOnPage({name:asset.name,src:asset.src,widthMm:asset.widthMm,heightMm:asset.heightMm});
-    signedCroppedAssetRef.current = null;
-    setNotice(croppedAsset ? 'Cropped photo added to the A4 page.' : 'Original photo added to the A4 page at its proportional source size.');
-    onFinish();
+    setAddingToA4(true);
+    setNotice('Preparing photo and verifying it before adding to A4…');
+    try {
+      // Decode the exact source selected for transfer. Do not close the editor
+      // or clear the signed asset until the A4 workspace confirms insertion.
+      const image = new Image();
+      image.src = asset.src;
+      await new Promise<void>((resolve, reject) => {
+        if (image.complete && image.naturalWidth > 0) { resolve(); return; }
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('The selected photo could not be loaded for A4.'));
+      });
+      if (!image.naturalWidth || !image.naturalHeight) throw new Error('The selected photo is empty or invalid.');
+      await onUseOnPage({name:asset.name,src:asset.src,widthMm:asset.widthMm,heightMm:asset.heightMm});
+      signedCroppedAssetRef.current = null;
+      setNotice('Photo successfully added to the A4 page.');
+      onFinish();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not transfer the photo to A4. Please try again.');
+    } finally {
+      setAddingToA4(false);
+    }
   };
   const removeBackground = async () => {
     if (active.kind !== 'photo' || removingBackground) return;
@@ -439,7 +459,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       <button onClick={redoCrop} disabled={historyIndex>=history.length-1} title="Redo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Redo2 size={13}/></button>{croppedAsset&&<button onClick={()=>{applyHistory(0);setTargetW('0');setTargetH('0');setLockRatio(false);setDimensionEditing(false);setNotice('Original photo restored. Select a new crop, then press Crop / OK.');}} title="Restore the original source photo to make a fresh crop" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]">Re-crop Original</button>}
       <button onClick={handleReset} className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]"><RotateCcw size={11} className="mr-1 inline"/>Reset</button>
       <button onClick={()=>{onActiveChange(active.id);void cropOnly();}} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>{signatureAsset&&<button disabled={!croppedAsset} title={croppedAsset?"Merge the positioned signature into this cropped photo":"पहले Crop / OK दबाकर फोटो क्रॉप करें"} onClick={()=>void applySignatureToCrop()} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Apply Signature to Cropped Photo</button>}
-      {<button onClick={addCroppedToA4} disabled={!workspaceOpen} title={workspaceOpen?"Add the current photo to A4":"Photo is already on the A4 workspace"} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:opacity-40">Add to A4</button>}{workspaceOpen?<button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>:<button onClick={()=>{onActiveChange(active.id);onOpen?.();}} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Back to Crop</button>}
+      {<button onClick={()=>void addCroppedToA4()} disabled={!workspaceOpen||addingToA4} title={workspaceOpen?"Add the current photo to A4":"Photo is already on the A4 workspace"} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:opacity-40"{addingToA4?'Adding…':'Add to A4'}</button>}{workspaceOpen?<button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>:<button onClick={()=>{onActiveChange(active.id);onOpen?.();}} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Back to Crop</button>}
     </div>
     {workspaceOpen&&<div className="absolute bottom-0 left-[64px] right-[270px] top-[128px] z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-3">
       {cropMode&&<div className="absolute left-4 top-3 z-20 rounded border border-red-500/60 bg-[#351b1b] px-3 py-1.5 text-[10px] text-red-100">Crop mode: selection के अंदर खींचें = Move · बाहर खींचें = नया Crop · किनारे/कोने = Resize</div>}
