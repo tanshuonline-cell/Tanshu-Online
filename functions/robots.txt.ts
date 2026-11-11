@@ -5,6 +5,7 @@ export async function onRequestGet(): Promise<Response> {
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /digital-seva-admin
 Disallow: /api/
 
 Sitemap: https://tanshu-online.pages.dev/sitemap.xml
@@ -14,7 +15,7 @@ Sitemap: https://tanshu-online.pages.dev/sitemap.xml
     status: 200,
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 'public, max-age=3600',
     },
   });
 }

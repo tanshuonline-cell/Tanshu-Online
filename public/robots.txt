@@ -4,6 +4,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /digital-seva-admin
 Disallow: /api/
 
 Sitemap: https://tanshu-online.pages.dev/sitemap.xml
