@@ -69,6 +69,7 @@ export default function App() {
   useEffect(() => {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
+    if (LEGAL_PAGE_PATHS.includes(pathname)) return;
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const isDigitalSevaAdmin = pathname === '/digital-seva-admin';
