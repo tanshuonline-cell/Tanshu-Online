@@ -93,7 +93,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     if (!blob) return;
     const widthMm = targetW.trim() && Number(targetW) > 0 ? toMm(Number(targetW), unit) : sw * 25.4 / 300;
     const heightMm = targetH.trim() && Number(targetH) > 0 ? toMm(Number(targetH), unit) : sh * 25.4 / 300;
-    onUseOnPage({ name: active.name.replace(/\\.[^.]+$/, '') + '-crop.png', src: URL.createObjectURL(blob), widthMm, heightMm });
+    onUseOnPage({ name: active.name.replace(/\.[^.]+$/, '') + '-crop.png', src: URL.createObjectURL(blob), widthMm, heightMm });
     setNotice('Cropped asset added to the A4 page. This source document remains open.');
   };
   const removeBackground = async () => {
