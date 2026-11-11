@@ -17,6 +17,7 @@ type Props = {
   onDuplicate: (id: string) => void;
   onReplaceSource: (id: string, src: string) => void;
   onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void;
+  onFinish: () => void;
   cropMode?: boolean;
 };
 
@@ -24,7 +25,7 @@ type Unit = 'mm' | 'cm' | 'in' | 'custom';
 const toMm = (value: number, unit: Unit, customMm = 1) => unit === 'mm' ? value : unit === 'cm' ? value * 10 : unit === 'in' ? value * 25.4 : value * customMm;
 const fromMm = (value: number, unit: Unit, customMm = 1) => unit === 'mm' ? value : unit === 'cm' ? value / 10 : unit === 'in' ? value / 25.4 : value / Math.max(0.0001, customMm);
 
-export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, cropMode = false }) => {
+export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, onFinish, cropMode = false }) => {
   const [unit, setUnit] = useState<Unit>('mm');
   const [customUnitName, setCustomUnitName] = useState('custom');
   const [customUnitMm, setCustomUnitMm] = useState('1');
@@ -236,36 +237,54 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); setTargetW('0'); setTargetH('0'); setNotice('Crop selection reset.'); };
 
-  if (minimized) return <button onClick={() => setMinimized(false)} className="absolute bottom-3 right-3 z-[60] flex items-center gap-2 rounded-lg border border-[#687582] bg-[#20262d] px-4 py-3 text-xs text-white shadow-2xl"><Maximize2 size={14}/> Asset Editor · {documents.length} document{documents.length===1?'':'s'}</button>;
-  return <div onPointerMove={moveWindow} onPointerUp={() => setWindowDrag(null)} className="absolute z-40 flex min-h-[260px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-[#58616b] bg-[#20262d] shadow-2xl"
-    style={{ left:windowPosition.x, top:windowPosition.y, width:maximized?'calc(100% - 24px)':'min(900px, calc(100% - 24px))', height:maximized?'calc(100% - 24px)':'min(680px, calc(100% - 24px))', resize:maximized?'none':'both' }}>
-    <div onPointerDown={startWindowDrag} onPointerUp={() => setWindowDrag(null)} className="flex h-11 shrink-0 cursor-move items-center gap-2 border-b border-[#414a54] px-3">
-      <strong className="mr-2 select-none text-xs tracking-wide">ASSET EDITOR</strong>
-      <span className="max-w-[150px] truncate text-[10px] text-[#9eabb7]">{(active.name.split(/[\\\\/]/).pop() || 'Untitled').split('?')[0].slice(0,24)}</span>
-      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{documents.map(doc => <button key={doc.id} onClick={() => { onActiveChange(doc.id); setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); }} className={'flex shrink-0 items-center gap-2 rounded-t px-3 py-2 text-[10px] ' + (doc.id===active.id?'bg-[#3b4651] text-white':'text-[#aeb8c2] hover:bg-[#303943]')}>{doc.kind==='signature'?'Signature':'Photo'} · {(doc.name.split(/[\\\\/]/).pop() || 'Untitled').split('?')[0].slice(0,28)}<span onClick={e=>{e.stopPropagation();onClose(doc.id);}} className="ml-1 rounded p-0.5 hover:bg-black/20"><X size={11}/></span></button>)}</div>
-      <button title="Minimize" onClick={()=>setMinimized(true)} className="rounded border border-[#4b5661] p-1.5"><Minimize2 size={13}/></button>
-      <button title={maximized?'Restore size':'Maximize'} onClick={()=>setMaximized(v=>!v)} className="rounded border border-[#4b5661] p-1.5"><Maximize2 size={13}/></button>
-      <button title="Close active document" onClick={()=>onClose(active.id)} className="rounded border border-[#4b5661] p-1.5"><X size={13}/></button>
+  const startStagePointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!cropMode || !imageRef.current) return;
+    const rect = getImageRect();
+    if (!rect || !rect.width || !rect.height) return;
+    const px = (event.clientX - rect.left) / rect.width * 100;
+    const py = (event.clientY - rect.top) / rect.height * 100;
+    const inside = box.w > 0 && box.h > 0 && px >= box.x && px <= box.x + box.w && py >= box.y && py <= box.y + box.h;
+    if (inside && !(box.x === 0 && box.y === 0 && box.w === 100 && box.h === 100)) {
+      event.preventDefault(); event.stopPropagation();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setDrag({corner:'move',startX:event.clientX,startY:event.clientY,initial:{...box}});
+    } else {
+      startCropDraw(event);
+    }
+  };
+  return <>
+    <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+      <select aria-label="Active imported photo" value={active.id} onChange={e=>{onActiveChange(e.target.value);}} className="studio-control h-8 max-w-[130px] px-1 text-[10px]">
+        {documents.map(doc=><option key={doc.id} value={doc.id}>{doc.kind==='signature'?'Signature':'Photo'} · {doc.name}</option>)}
+      </select>
+      <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">Unit
+        <select value={unit} onPointerDown={e=>e.stopPropagation()} onChange={e=>{setUnit(e.target.value as Unit);setDimensionEditing(false);}} className="studio-control h-8 w-[68px] px-1 text-[10px]"><option value="mm">MM</option><option value="cm">CM</option><option value="in">Inch</option><option value="custom">Custom</option></select>
+      </label>
+      <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">W
+        <input aria-label="Crop width" type="number" min="0" step="0.1" value={dimensionEditing ? targetW : measuredWidth.toFixed(2)} onPointerDown={e=>e.stopPropagation()} onFocus={()=>{if(!dimensionEditing){setTargetW(targetW||measuredWidth.toFixed(2));setTargetH(targetH||measuredHeight.toFixed(2));setDimensionEditing(true);}}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();void cropOnly();}}} onChange={e=>{setTargetW(e.target.value);setLockRatio(true);}} className="studio-control h-8 w-[76px] px-1 text-[10px]"/>
+      </label>
+      <label className="flex shrink-0 items-center gap-1 text-[9px] text-[#aeb8c2]">H
+        <input aria-label="Crop height" type="number" min="0" step="0.1" value={dimensionEditing ? targetH : measuredHeight.toFixed(2)} onPointerDown={e=>e.stopPropagation()} onFocus={()=>{if(!dimensionEditing){setTargetW(targetW||measuredWidth.toFixed(2));setTargetH(targetH||measuredHeight.toFixed(2));setDimensionEditing(true);}}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();void cropOnly();}}} onChange={e=>{setTargetH(e.target.value);setLockRatio(true);}} className="studio-control h-8 w-[76px] px-1 text-[10px]"/>
+      </label>
+      {unit==='custom'&&<input aria-label="Custom unit millimetres" type="number" min="0.0001" step="any" value={customUnitMm} onPointerDown={e=>e.stopPropagation()} onChange={e=>setCustomUnitMm(e.target.value)} className="studio-control h-8 w-[68px] px-1 text-[10px]" title="1 custom unit = mm"/>}
+      <button onClick={()=>onDuplicate(active.id)} className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]"><Copy size={11} className="mr-1 inline"/>Duplicate</button>
+      {active.kind==='photo'&&<button onClick={()=>void removeBackground()} disabled={removingBackground} className="shrink-0 rounded border border-[#6b806e] px-2 py-1.5 text-[9px] text-[#c6e2cf] disabled:opacity-50">{removingBackground?'Removing…':'Remove BG'}</button>}
+      <button onClick={undoCrop} disabled={historyIndex===0} title="Undo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Undo2 size={13}/></button>
+      <button onClick={redoCrop} disabled={historyIndex>=history.length-1} title="Redo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Redo2 size={13}/></button>
+      <button onClick={handleReset} className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]"><RotateCcw size={11} className="mr-1 inline"/>Reset</button>
+      <button onClick={()=>void cropOnly()} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>
+      <button onClick={addCroppedToA4} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Add to A4</button>
+      <button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>
     </div>
-    {!minimized && <>
-      <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-[#414a54] p-3">
-        <label className="text-[10px] text-[#aeb8c2]">Unit<select value={unit} onChange={e=>{setUnit(e.target.value as Unit);setDimensionEditing(false);setTargetW('0');setTargetH('0');}} className="studio-control mt-1 block h-8 w-24 px-2"><option value="mm">MM</option><option value="cm">CM</option><option value="in">Inch</option><option value="custom">Custom</option></select></label>
-        {unit==='custom'&&<><label className="text-[10px] text-[#aeb8c2]">Custom label<input value={customUnitName} onChange={e=>setCustomUnitName(e.target.value)} className="studio-control mt-1 block h-8 w-24 px-2"/></label><label className="text-[10px] text-[#aeb8c2]">1 {customUnitName||'unit'} = mm<input type="number" min="0.0001" step="any" value={customUnitMm} onChange={e=>setCustomUnitMm(e.target.value)} className="studio-control mt-1 block h-8 w-24 px-2"/></label></>}
-        <label className="text-[10px] text-[#aeb8c2]">Crop width ({unit==='custom'?(customUnitName||'custom'):unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetW : measuredWidth.toFixed(2)} onFocus={()=>{setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));setDimensionEditing(true);}} onBlur={()=>setDimensionEditing(false)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void cropOnly();}}} onChange={e=>{setTargetW(e.target.value);setLockRatio(true);}} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
-        <label className="text-[10px] text-[#aeb8c2]">Crop height ({unit==='custom'?(customUnitName||'custom'):unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetH : measuredHeight.toFixed(2)} onFocus={()=>setDimensionEditing(true)} onBlur={()=>{setDimensionEditing(false);setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void cropOnly();}}} onChange={e=>{setTargetH(e.target.value);setLockRatio(true);}} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
-        <span className="pb-2 text-[9px] text-[#8996a2]">Live crop size · 300 DPI · {measuredWidth.toFixed(2)} × {measuredHeight.toFixed(2)} {unit==='custom'?(customUnitName||'custom'):unit}</span>
-        <div className="ml-auto flex flex-wrap gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button>{active.kind==='photo'&&<button onClick={()=>void removeBackground()} disabled={removingBackground} className="rounded border border-[#6b806e] px-3 py-2 text-[10px] text-[#c6e2cf] disabled:opacity-50">{removingBackground?'Removing…':'Remove Background'}</button>}<button onClick={undoCrop} disabled={historyIndex===0} title="Undo crop" className="rounded border border-[#53606c] px-2 py-2 text-[10px] disabled:opacity-35"><Undo2 size={14}/></button><button onClick={redoCrop} disabled={historyIndex>=history.length-1} title="Redo crop" className="rounded border border-[#53606c] px-2 py-2 text-[10px] disabled:opacity-35"><Redo2 size={14}/></button><button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropOnly()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop / OK</button><button onClick={addCroppedToA4} className="rounded border border-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#f0c895]">Add to A4</button></div>
+    <div className="absolute inset-x-0 bottom-8 top-12 z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-4">
+      {cropMode&&<div className="absolute left-4 top-3 z-20 rounded border border-red-500/60 bg-[#351b1b] px-3 py-1.5 text-[10px] text-red-100">Crop mode: selection के अंदर खींचें = Move · बाहर खींचें = नया Crop · किनारे/कोने = Resize</div>}
+      <div ref={stageRef} onPointerDown={startStagePointer} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="relative inline-block h-fit w-fit shrink-0 select-none" style={{touchAction:'none'}}>
+        <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-[min(68vh,760px)] max-w-[min(88vw,1200px)] object-contain"/>
+        {cropMode&&<><div aria-hidden="true" className="pointer-events-none absolute z-[5] border-2 border-red-500 bg-red-500/[0.04]" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%'}}/>
+          {!(box.x===0&&box.y===0&&box.w===100&&box.h===100)&&(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} aria-label={'Crop '+handle} title={'Resize crop '+handle} onPointerDown={e=>setCorner(e,handle)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className={'absolute z-10 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none '+(handle==='n'||handle==='s'?'h-3 w-5':'h-5 w-3')} style={{left:handle.includes('w')?box.x+'%':handle.includes('e')?(box.x+box.w)+'%':(box.x+box.w/2)+'%',top:handle.includes('n')?box.y+'%':handle.includes('s')?(box.y+box.h)+'%':(box.y+box.h/2)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:handle==='n'||handle==='s'?'ns-resize':handle==='e'||handle==='w'?'ew-resize':handle==='nw'||handle==='se'?'nwse-resize':'nesw-resize'}}/>)}
+        </>}
       </div>
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#151b22] p-4">
-        {cropMode && <div className="absolute left-4 top-[118px] z-20 rounded border border-red-500/60 bg-[#351b1b] px-3 py-1.5 text-[10px] text-red-100">Crop mode: फोटो पर माउस दबाकर खींचें</div>}
-        <div ref={stageRef} onPointerDown={e=>{if(cropMode)startCropDraw(e);}} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="relative inline-block h-fit w-fit shrink-0 select-none" style={{touchAction:'none'}}>
-          <img ref={imageRef} src={workingSrc || active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-[360px] max-w-[min(760px,calc(100vw-100px))] object-contain"/>
-          {cropMode && <><div aria-hidden="true" className="pointer-events-none absolute z-[5] border-2 border-red-500 bg-red-500/[0.04]" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%'}}/>
-          {!(box.x===0 && box.y===0 && box.w===100 && box.h===100) && (['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} aria-label={'Crop '+handle} title={'Resize crop '+handle} onPointerDown={e=>setCorner(e,handle)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className={'absolute z-10 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none '+(handle==='n'||handle==='s'?'h-3 w-5':'h-5 w-3')} style={{left:handle.includes('w')?box.x+'%':handle.includes('e')?(box.x+box.w)+'%':(box.x+box.w/2)+'%',top:handle.includes('n')?box.y+'%':handle.includes('s')?(box.y+box.h)+'%':(box.y+box.h/2)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:handle==='n'||handle==='s'?'ns-resize':handle==='e'||handle==='w'?'ew-resize':handle==='nw'||handle==='se'?'nwse-resize':'nesw-resize'}}/>)}</>}
-        </div>
-      </div>
-      {notice && <div className="shrink-0 border-t border-[#414a54] px-3 py-2 text-[10px] text-[#b8d6c4]">{notice}</div>}
-      <div className="pointer-events-none absolute bottom-0 right-0 h-4 w-4 opacity-60" style={{background:'linear-gradient(135deg, transparent 50%, #9aa7b4 50%)'}}/>
-    </>}
-  </div>;
+      {notice&&<div className="absolute bottom-2 left-3 rounded bg-[#26332c] px-3 py-1.5 text-[10px] text-[#b8d6c4]">{notice}</div>}
+    </div>
+  </>;
 };
