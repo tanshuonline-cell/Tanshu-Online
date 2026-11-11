@@ -400,8 +400,12 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         });
         db.close();
         if (!active) return;
-        if (saved?.studioMode === 'manual') setStudioMode('manual');
-        else if (saved?.studioMode === 'auto') setStudioMode('auto');
+        let sessionMode: string | null = null;
+        try { sessionMode = sessionStorage.getItem('tanshu-studio-shell-mode'); } catch {}
+        if (sessionMode !== 'manual' && sessionMode !== 'auto') {
+          if (saved?.studioMode === 'manual') setStudioMode('manual');
+          else if (saved?.studioMode === 'auto') setStudioMode('auto');
+        }
         if (saved?.photos?.length) {
           const restored = await Promise.all(saved.photos.map(async (item: any) => {
             const file = await dataUrlToFile(item.data, item.name);
@@ -996,7 +1000,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>)}
             </>}
             {studioMode !== 'manual' && <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>}
-            <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{try{sessionStorage.removeItem('tanshu-studio-shell-mode');}catch{}setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
+            <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{try{sessionStorage.setItem('tanshu-studio-shell-mode','auto');}catch{}setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <WandSparkles size={12}/> <span>Auto Photo Maker</span>
             </button>
             <button type="button" aria-pressed={studioMode==='manual'} title="Manual Photo Studio: keep the current page, photos, zoom and layout while working with the existing editing controls." onClick={()=>{
@@ -1040,7 +1044,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>}
         </nav>
 
-        {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => { try{sessionStorage.removeItem('tanshu-studio-shell-mode');}catch{} setStudioMode('auto'); }} /> : (
+        {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => { try{sessionStorage.setItem('tanshu-studio-shell-mode','auto');}catch{} setStudioMode('auto'); }} /> : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
             <div className="mb-1 w-full border-b border-[#343A42] pb-2">
