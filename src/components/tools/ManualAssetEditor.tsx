@@ -33,6 +33,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [windowPosition, setWindowPosition] = useState({ x: 12, y: 12 });
   const [windowDrag, setWindowDrag] = useState<{ startX:number; startY:number; originX:number; originY:number } | null>(null);
   const [dimensionEditing, setDimensionEditing] = useState(false);
+  const [lockRatio, setLockRatio] = useState(false);
   const [notice, setNotice] = useState('');
   const [removingBackground, setRemovingBackground] = useState(false);
   const [naturalSize, setNaturalSize] = useState({width:0,height:0});
@@ -58,7 +59,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     if (drag.corner.includes('w')) { const right = b.x + b.w; b.x = Math.max(0, Math.min(right - min, b.x + dx)); b.w = right - b.x; }
     if (drag.corner.includes('n')) { const bottom = b.y + b.h; b.y = Math.max(0, Math.min(bottom - min, b.y + dy)); b.h = bottom - b.y; }
     const wantedW = Number(targetW), wantedH = Number(targetH);
-    if (wantedW > 0 && wantedH > 0 && naturalSize.width > 0 && naturalSize.height > 0) {
+    if (lockRatio && wantedW > 0 && wantedH > 0 && naturalSize.width > 0 && naturalSize.height > 0) {
       const targetRatio = toMm(wantedW, unit) / toMm(wantedH, unit);
       const imageRatio = naturalSize.width / naturalSize.height;
       const ratio = targetRatio / imageRatio;
@@ -147,7 +148,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       setRemovingBackground(false);
     }
   };
-  const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setNotice('Crop selection reset.'); };
+  const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); setTargetW('0'); setTargetH('0'); setNotice('Crop selection reset.'); };
 
   if (minimized) return <button onClick={() => setMinimized(false)} className="absolute bottom-3 right-3 z-[60] flex items-center gap-2 rounded-lg border border-[#687582] bg-[#20262d] px-4 py-3 text-xs text-white shadow-2xl"><Maximize2 size={14}/> Asset Editor · {documents.length} document{documents.length===1?'':'s'}</button>;
   return <div onPointerMove={moveWindow} onPointerUp={() => setWindowDrag(null)} className="absolute z-40 flex min-h-[260px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-[#58616b] bg-[#20262d] shadow-2xl"
@@ -155,15 +156,15 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     <div onPointerDown={startWindowDrag} onPointerUp={() => setWindowDrag(null)} className="flex h-11 shrink-0 cursor-move items-center gap-2 border-b border-[#414a54] px-3">
       <strong className="mr-2 select-none text-xs tracking-wide">ASSET EDITOR</strong>
       <span className="max-w-[150px] truncate text-[10px] text-[#9eabb7]">{(active.name.split(/[\\\\/]/).pop() || 'Untitled').split('?')[0].slice(0,24)}</span>
-      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{documents.map(doc => <button key={doc.id} onClick={() => { onActiveChange(doc.id); setBox({x:0,y:0,w:100,h:100}); }} className={'flex shrink-0 items-center gap-2 rounded-t px-3 py-2 text-[10px] ' + (doc.id===active.id?'bg-[#3b4651] text-white':'text-[#aeb8c2] hover:bg-[#303943]')}>{doc.kind==='signature'?'Signature':'Photo'} · {(doc.name.split(/[\\\\/]/).pop() || 'Untitled').split('?')[0].slice(0,28)}<span onClick={e=>{e.stopPropagation();onClose(doc.id);}} className="ml-1 rounded p-0.5 hover:bg-black/20"><X size={11}/></span></button>)}</div>
+      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{documents.map(doc => <button key={doc.id} onClick={() => { onActiveChange(doc.id); setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); }} className={'flex shrink-0 items-center gap-2 rounded-t px-3 py-2 text-[10px] ' + (doc.id===active.id?'bg-[#3b4651] text-white':'text-[#aeb8c2] hover:bg-[#303943]')}>{doc.kind==='signature'?'Signature':'Photo'} · {(doc.name.split(/[\\\\/]/).pop() || 'Untitled').split('?')[0].slice(0,28)}<span onClick={e=>{e.stopPropagation();onClose(doc.id);}} className="ml-1 rounded p-0.5 hover:bg-black/20"><X size={11}/></span></button>)}</div>
       <button title={minimized?'Restore':'Minimize'} onClick={()=>setMinimized(v=>!v)} className="rounded border border-[#4b5661] p-1.5">{minimized?<Maximize2 size={13}/>:<Minimize2 size={13}/>}</button>
       <button title="Close active document" onClick={()=>onClose(active.id)} className="rounded border border-[#4b5661] p-1.5"><X size={13}/></button>
     </div>
     {!minimized && <>
       <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-[#414a54] p-3">
         <label className="text-[10px] text-[#aeb8c2]">Unit<select value={unit} onChange={e=>setUnit(e.target.value as Unit)} className="studio-control mt-1 block h-8 w-20 px-2"><option value="mm">mm</option><option value="cm">cm</option><option value="in">inch</option></select></label>
-        <label className="text-[10px] text-[#aeb8c2]">Crop width ({unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetW : measuredWidth.toFixed(2)} onFocus={()=>setDimensionEditing(true)} onBlur={()=>{setDimensionEditing(false);setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));}} onChange={e=>setTargetW(e.target.value)} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
-        <label className="text-[10px] text-[#aeb8c2]">Crop height ({unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetH : measuredHeight.toFixed(2)} onFocus={()=>setDimensionEditing(true)} onBlur={()=>{setDimensionEditing(false);setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));}} onChange={e=>setTargetH(e.target.value)} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
+        <label className="text-[10px] text-[#aeb8c2]">Crop width ({unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetW : measuredWidth.toFixed(2)} onFocus={()=>setDimensionEditing(true)} onBlur={()=>{setDimensionEditing(false);setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));}} onChange={e=>{setTargetW(e.target.value);setLockRatio(true);}} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
+        <label className="text-[10px] text-[#aeb8c2]">Crop height ({unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetH : measuredHeight.toFixed(2)} onFocus={()=>setDimensionEditing(true)} onBlur={()=>{setDimensionEditing(false);setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));}} onChange={e=>{setTargetH(e.target.value);setLockRatio(true);}} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
         <span className="pb-2 text-[9px] text-[#8996a2]">Live crop size · 300 DPI · {measuredWidth.toFixed(2)} × {measuredHeight.toFixed(2)} {unit}</span>
         <div className="ml-auto flex gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button>{active.kind==='photo'&&<button onClick={()=>void removeBackground()} disabled={removingBackground} className="rounded border border-[#6b806e] px-3 py-2 text-[10px] text-[#c6e2cf] disabled:opacity-50">{removingBackground?'Removing…':'Remove Background'}</button>}<button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropAndApply()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop & Add to A4</button></div>
       </div>
