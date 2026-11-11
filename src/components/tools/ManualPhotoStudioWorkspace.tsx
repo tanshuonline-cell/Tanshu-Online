@@ -10,6 +10,47 @@ const uid = () => 'manual-' + Math.random().toString(36).slice(2, 10);
 const makePage = (n: number, width = 210, height = 297): ManualPage => ({ id: uid(), name: 'Page ' + n, width, height, background: '#ffffff', margin: 5, layers: [] });
 const intersects = (a: {x:number;y:number;w:number;h:number}, b: {x:number;y:number;w:number;h:number}) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
 
+const MANUAL_STUDIO_DB = 'tanshu-manual-photo-studio';
+const MANUAL_STUDIO_STORE = 'workspace';
+const MANUAL_STUDIO_KEY = 'current-project';
+const openManualStudioDb = () => new Promise<IDBDatabase>((resolve, reject) => {
+  const request = indexedDB.open(MANUAL_STUDIO_DB, 1);
+  request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains(MANUAL_STUDIO_STORE)) request.result.createObjectStore(MANUAL_STUDIO_STORE); };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+});
+const readManualStudioProject = async () => {
+  const db = await openManualStudioDb();
+  return new Promise<any>((resolve, reject) => {
+    const request = db.transaction(MANUAL_STUDIO_STORE, 'readonly').objectStore(MANUAL_STUDIO_STORE).get(MANUAL_STUDIO_KEY);
+    request.onsuccess = () => { resolve(request.result || null); db.close(); };
+    request.onerror = () => { reject(request.error); db.close(); };
+  });
+};
+const writeManualStudioProject = async (project: any) => {
+  const db = await openManualStudioDb();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(MANUAL_STUDIO_STORE, 'readwrite');
+    tx.objectStore(MANUAL_STUDIO_STORE).put(project, MANUAL_STUDIO_KEY);
+    tx.oncomplete = () => { resolve(); db.close(); };
+    tx.onerror = () => { reject(tx.error); db.close(); };
+    tx.onabort = () => { reject(tx.error); db.close(); };
+  });
+};
+const persistImageSource = async (src?: string) => {
+  if (!src || src.startsWith('data:') || src.startsWith('https:') || src.startsWith('http:')) return src || '';
+  try {
+    const response = await fetch(src);
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return ''; }
+};
+
 export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> = ({ onBackToAuto }) => {
   const [pages, setPages] = useState<ManualPage[]>([makePage(1)]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -37,6 +78,63 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   const undoStackRef = useRef<ManualPage[][]>([]);
   const redoStackRef = useRef<ManualPage[][]>([]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const menuBarRef = useRef<HTMLElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  useEffect(() => {
+    let cancelled = false;
+    readManualStudioProject().then(saved => {
+      if (cancelled) return;
+      if (saved?.pages?.length) {
+        setPages(saved.pages);
+        setPageIndex(Math.max(0, Math.min(saved.pageIndex || 0, saved.pages.length - 1)));
+        setTool(saved.tool || 'move');
+        setSelectedIds(saved.selectedIds || []);
+        setFiles(saved.files || []);
+        setAssetDocuments(saved.assetDocuments || []);
+        setActiveAssetId(saved.activeAssetId || null);
+        setImportKind(saved.importKind || 'photo');
+        setUnit(saved.unit || 'mm');
+        setSettingsOpen(saved.settingsOpen ?? true);
+        setPageZoom(saved.pageZoom || 100);
+        setCropZoom(saved.cropZoom || 100);
+        setCropBox(saved.cropBox || {x:0,y:0,w:100,h:100});
+        setCropTargetW(saved.cropTargetW || '');
+        setCropTargetH(saved.cropTargetH || '');
+        setCropLockRatio(!!saved.cropLockRatio);
+      }
+    }).catch(error => console.warn('Manual Studio recovery could not read the saved project.', error))
+      .finally(() => { if (!cancelled) setHydrated(true); });
+    return () => { cancelled = true; };
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      const save = async () => {
+        const [savedPages, savedFiles, savedDocuments] = await Promise.all([
+          Promise.all(pages.map(async p => ({...p, layers: await Promise.all(p.layers.map(async l => l.src ? {...l, src: await persistImageSource(l.src)} : l))}))),
+          Promise.all(files.map(async f => ({...f, src: await persistImageSource(f.src)}))),
+          Promise.all(assetDocuments.map(async d => ({...d, src: await persistImageSource(d.src)})))
+        ]);
+        if (cancelled) return;
+        await writeManualStudioProject({
+          pages:savedPages,pageIndex,tool,selectedIds,files:savedFiles,assetDocuments:savedDocuments,
+          activeAssetId,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
+          savedAt:Date.now()
+        });
+      };
+      saveQueueRef.current = saveQueueRef.current.then(save).catch(error => console.warn('Manual Studio auto-save failed.', error));
+    }, 350);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [hydrated,pages,pageIndex,tool,selectedIds,files,assetDocuments,activeAssetId,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio]);
+  useEffect(() => {
+    const handleOutsidePointer = (event: PointerEvent) => {
+      if (menuBarRef.current && !menuBarRef.current.contains(event.target as Node)) setMenuOpen(null);
+    };
+    document.addEventListener('pointerdown', handleOutsidePointer);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointer);
+  }, []);
   useEffect(() => {
     const element = stageRef.current;
     if (!element) return;
@@ -195,7 +293,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#343b43] px-3">
       <div className="flex min-w-0 flex-1 items-center gap-2"><button onClick={onBackToAuto} className="rounded-md border border-[#424a53] px-2 py-1.5 text-xs hover:bg-[#303840]"><ArrowLeft size={13} className="mr-1 inline"/> Auto Photo Maker</button><strong className="shrink-0 text-xs tracking-wide">MANUAL PHOTO STUDIO</strong><span className="shrink-0 rounded bg-[#29352f] px-2 py-1 text-[9px] text-[#b8d6c4]">Independent workspace</span><button onClick={()=>{setImportKind('photo');uploadRef.current?.click();}} className="ml-auto shrink-0 rounded border border-[#47515b] px-3 py-1.5 text-xs"><Upload size={13} className="mr-1 inline"/> Import Photo</button><div className="flex shrink-0 items-center gap-1.5 border-l border-[#3b4650] pl-2"><button onClick={()=>void exportPage()} className="rounded bg-[#d5a66e] px-2.5 py-1.5 text-[10px] font-semibold text-[#171b20]" title="Export the current Manual Studio page as a PNG file"><Download size={12} className="mr-1 inline"/> Export File</button><button onClick={()=>void printPage()} className="rounded border border-[#47515b] px-2.5 py-1.5 text-[10px]">Print Actual Size</button></div><input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={e=>onFiles(e.target.files)}/></div>
     </div>
-    <nav className="relative z-40 flex h-10 shrink-0 items-center gap-1 overflow-visible border-b border-[#343b43] bg-[#1b2026] px-3 text-[11px]">
+    <nav ref={menuBarRef} className="relative z-40 flex h-10 shrink-0 items-center gap-1 overflow-visible border-b border-[#343b43] bg-[#1b2026] px-3 text-[11px]">
       {['File','Edit','Image','Canvas','Arrange','Merge'].map(item=><div key={item} className="relative"><button onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2.5 py-2 '+(menuOpen===item?'bg-[#35404a] text-white':'text-[#aeb8c2] hover:bg-[#2b333b] hover:text-white')}>{item}</button>{menuOpen===item&&<div className="absolute left-0 top-9 z-[80] min-w-[190px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl">{(item==='File'?['Export Page PNG','Print Actual Size']:item==='Edit'?['Undo','Redo','Duplicate Selected','Delete Selected','Select All Layers','Deselect All']:item==='Image'?['Crop Selected Photo']:item==='Canvas'?['A4 Portrait','A4 Landscape','Add Page','Duplicate Page','Delete Page']:item==='Arrange'?['Auto Arrange Selected','Bring Forward','Send Backward']:['Merge Selected Photos']).map(action=><button key={action} disabled={action==='Merge Selected Photos'&&selected.filter(l=>l.type==='photo').length<2} onClick={()=>{setMenuOpen(null);if(action==='Export Page PNG')void exportPage();else if(action==='Print Actual Size')void printPage();else if(action==='Undo')undoPage();else if(action==='Redo')redoPage();else if(action==='Duplicate Selected')duplicateSelected();else if(action==='Delete Selected')removeSelected();else if(action==='Select All Layers')setSelectedIds(page.layers.map(l=>l.id));else if(action==='Deselect All')setSelectedIds([]);else if(action==='Crop Selected Photo')setTool('crop');else if(action==='A4 Portrait')updatePage(p=>({...p,width:210,height:297}));else if(action==='A4 Landscape')updatePage(p=>({...p,width:297,height:210}));else if(action==='Add Page')addPage();else if(action==='Duplicate Page')duplicatePage();else if(action==='Delete Page')deletePage();else if(action==='Bring Forward')updatePage(p=>{const a=[...p.layers],i=a.findIndex(l=>selectedIds.includes(l.id));if(i>=0&&i<a.length-1)[a[i],a[i+1]]=[a[i+1],a[i]];return {...p,layers:a};});else if(action==='Send Backward')updatePage(p=>{const a=[...p.layers],i=a.findIndex(l=>selectedIds.includes(l.id));if(i>0)[a[i],a[i-1]]=[a[i-1],a[i]];return {...p,layers:a};});else if(action==='Auto Arrange Selected'){const chosen=page.layers.filter(l=>selectedIds.includes(l.id));updatePage(p=>({...p,layers:p.layers.map(l=>{const i=chosen.findIndex(x=>x.id===l.id);return i<0?l:{...l,x:page.margin+5+(i%3)*(l.w+3),y:page.margin+5+Math.floor(i/3)*(l.h+3)};})}));}else if(action==='Merge Selected Photos')void mergeSelectedPhotos();}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">{action}</button>)}</div>}</div>)}
       <label className="ml-1 flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 text-[#aeb8c2]"><input type="checkbox" checked={page.layers.length>0&&selectedIds.length===page.layers.length} onChange={e=>setSelectedIds(e.target.checked?page.layers.map(l=>l.id):[])} className="accent-[#d5a66e]"/> Select All</label>
       <div className="relative"><button onClick={()=>setMenuOpen(menuOpen==='View'?null:'View')} className="rounded px-2.5 py-2 text-[#aeb8c2] hover:bg-[#2b333b]">View</button>{menuOpen==='View'&&<div className="absolute left-0 top-9 z-[80] min-w-[150px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl">{['Zoom In','Zoom Out','Reset Zoom'].map(a=><button key={a} onClick={()=>{setPageZoom(v=>a==='Zoom In'?Math.min(1600,v+25):a==='Zoom Out'?Math.max(10,v-25):100);setMenuOpen(null);}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">{a}</button>)}</div>}</div>
@@ -232,7 +330,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
         <button title="Add text" onClick={addText} className="mt-2 flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] text-[#a5afb9] hover:bg-[#28313a]"><Plus size={17}/>Text</button>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-0 min-w-0 flex-1 overflow-auto p-5" ref={stageRef} onPointerDown={e=>{if(tool==='marquee'||tool==='frame'){const p=pagePoint(e);setDraw({x:p.x,y:p.y,cx:p.x,cy:p.y});setMarqueeBox(null);e.currentTarget.setPointerCapture(e.pointerId);}}} onPointerMove={e=>{if(!draw)return;const p=pagePoint(e);setDraw(d=>d?{...d,cx:p.x,cy:p.y}:null);}} onPointerUp={()=>{if(!draw)return;const rect={x:Math.min(draw.x,draw.cx),y:Math.min(draw.y,draw.cy),w:Math.abs(draw.cx-draw.x),h:Math.abs(draw.cy-draw.y)};if(rect.w>2&&rect.h>2){if(tool==='frame'){const l:ManualLayer={id:uid(),type:'frame',name:'Photo Frame',...rect};updatePage(p=>({...p,layers:[...p.layers,l]}));setSelectedIds([l.id]);}else{setMarqueeBox(rect);setSelectedIds(page.layers.filter(l=>intersects(rect,l)).map(l=>l.id));}}setDraw(null);}}>
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-auto bg-[#0b1118] p-5" style={{backgroundImage:"radial-gradient(ellipse at 50% 45%, rgba(46,65,82,.34), transparent 68%), linear-gradient(rgba(128,151,171,.075) 1px, transparent 1px), linear-gradient(90deg, rgba(128,151,171,.075) 1px, transparent 1px)",backgroundSize:"100% 100%, 24px 24px, 24px 24px"}} ref={stageRef} onPointerDown={e=>{if(tool==='marquee'||tool==='frame'){const p=pagePoint(e);setDraw({x:p.x,y:p.y,cx:p.x,cy:p.y});setMarqueeBox(null);e.currentTarget.setPointerCapture(e.pointerId);}}} onPointerMove={e=>{if(!draw)return;const p=pagePoint(e);setDraw(d=>d?{...d,cx:p.x,cy:p.y}:null);}} onPointerUp={()=>{if(!draw)return;const rect={x:Math.min(draw.x,draw.cx),y:Math.min(draw.y,draw.cy),w:Math.abs(draw.cx-draw.x),h:Math.abs(draw.cy-draw.y)};if(rect.w>2&&rect.h>2){if(tool==='frame'){const l:ManualLayer={id:uid(),type:'frame',name:'Photo Frame',...rect};updatePage(p=>({...p,layers:[...p.layers,l]}));setSelectedIds([l.id]);}else{setMarqueeBox(rect);setSelectedIds(page.layers.filter(l=>intersects(rect,l)).map(l=>l.id));}}setDraw(null);}}>
           <div className="shrink-0" style={{width:Math.max(stageSize.width,zoomedPageWidth+40),height:Math.max(stageSize.height,zoomedPageHeight+40),display:'flex',alignItems:zoomedPageHeight<stageSize.height-40?'center':'flex-start',justifyContent:zoomedPageWidth<stageSize.width-40?'center':'flex-start'}}><div data-manual-page className="relative shrink-0 shadow-[0_14px_50px_rgba(0,0,0,.45)]" style={{width:basePageWidth,height:fitPageHeight,zoom:pageZoom/100,aspectRatio:page.width+'/'+page.height,background:page.background}} onPointerDown={e=>{if(tool!=='move')return;const target=(e.target as HTMLElement).closest('[data-layer-id]') as HTMLElement|null;if(!target)return;const id=target.dataset.layerId||'';const layer=page.layers.find(l=>l.id===id);if(!layer||layer.locked)return;e.stopPropagation();setSelectedIds([id]);const p=pagePoint(e);setDrag({id,px:p.x,py:p.y,x:layer.x,y:layer.y});e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(cropDrag?.mode==='draw'){updateCropDraw(e);return;}if(!drag)return;const p=pagePoint(e);updateLayer(drag.id,{x:Math.max(0,Math.min(page.width-5,drag.x+p.x-drag.px)),y:Math.max(0,Math.min(page.height-5,drag.y+p.y-drag.py))});}} onPointerUp={()=>{setDrag(null);setCropDrag(null);}}>
             {page.layers.map(l=><div key={l.id} data-layer-id={l.id} onClick={e=>{e.stopPropagation();if(tool==='move'||tool==='crop')setSelectedIds([l.id]);}} onPointerDown={e=>{if(tool==='crop'&&l.type==='photo')startCropDraw(e,l);}} className={'absolute overflow-hidden '+(selectedIds.includes(l.id)?'outline outline-2 outline-[#d4a66f]':'')} style={{left:(l.x/page.width*100)+'%',top:(l.y/page.height*100)+'%',width:(l.w/page.width*100)+'%',height:(l.h/page.height*100)+'%',transform:'rotate('+(l.rotation||0)+'deg)',background:l.type==='frame'?'rgba(148,163,184,.08)':'transparent',border:l.type==='frame'?'2px dashed #8794a2':(l.type==='photo'&&l.borderMm?`${Math.max(1,l.borderMm*basePageWidth/page.width)}px solid ${l.borderColor||'#111827'}`:'none'),cursor:l.locked?'not-allowed':tool==='move'?'move':'default'}}>
               {l.type==='photo'&&<><img src={l.src} alt={l.name} draggable={false} className={'h-full w-full select-none '+(tool==='crop'&&selectedIds.includes(l.id)?'object-fill':'object-cover')} style={{transform:'scale('+(l.cropZoom||100)/100+')'}}/>{tool==='crop'&&selectedIds.includes(l.id)&&<><div className="pointer-events-none absolute border-2 border-[#ef4444] bg-[#ef4444]/[0.08]" style={{left:cropBox.x+'%',top:cropBox.y+'%',width:cropBox.w+'%',height:cropBox.h+'%'}}><span className="absolute -top-5 left-0 whitespace-nowrap rounded bg-[#991b1b] px-1.5 py-0.5 text-[9px] text-white">{unitValue(selectedPhoto?.w*cropBox.w/100||0).toFixed(1)} × {unitValue(selectedPhoto?.h*cropBox.h/100||0).toFixed(1)} {unit}</span></div>{(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Adjust crop '+corner} onPointerDown={e=>startCropDrag(e,corner)} onPointerMove={moveCropDrag} onPointerUp={e=>{setCropDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setCropDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-20 h-3 w-3 rounded-full border border-[#b91c1c] bg-[#ef4444] touch-none" style={{left:corner.includes('w')?cropBox.x+'%':(cropBox.x+cropBox.w)+'%',top:corner.includes('n')?cropBox.y+'%':(cropBox.y+cropBox.h)+'%',transform:'translate(-50%,-50%)',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}</>}</>}{l.type==='text'&&<span className="block p-1 text-sm text-black">{l.text}</span>}{l.type==='frame'&&<span className="flex h-full items-center justify-center text-[10px] text-[#9aa7b4]">Empty Photo Frame</span>}
