@@ -953,8 +953,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
         </header>
 
-        {studioMode !== 'manual' && <nav ref={menuAreaRef} className="flex h-[48px] shrink-0 items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3">
-          <div className="relative flex items-center gap-1 text-[12px]">
+        <nav ref={menuAreaRef} className="flex min-h-[48px] h-auto shrink-0 flex-wrap items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3 py-1">
+          <div className="relative flex shrink-0 flex-wrap items-center gap-1 text-[12px]">
+            {studioMode !== 'manual' && <>
             {['File','Edit','Image','Canvas','Arrange','Merge','Select All','View','Help'].map(item=><div key={item} className="relative">
               {item==='Select All' ? <label className={'flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 studio-muted hover:text-white '+(sheetMode==='single'||!sheetSlots.length?'cursor-not-allowed opacity-40':'')}><input type="checkbox" checked={selectAllMode} disabled={sheetMode==='single'||!sheetSlots.length} onChange={event=>{const enabled=event.target.checked;setSelectAllMode(enabled);if(enabled){setSelectedSlotIds(sheetSlots.map(slot=>slot.id));setSelectedSlotId(sheetSlots[0]?.id??null);if(sheetSlots[0])setSelectedId(photos.find(photo=>photo.id===sheetSlots[0].photoId)?.id||selectedId);}else setSelectedSlotIds([]);}} className="h-3 w-3 accent-[#D0D7DE]"/><span>Select All</span></label> : <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>}
               {menuOpen===item && item!=='Select All' && <div className="absolute left-0 top-10 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
@@ -988,7 +989,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 {item==='Edit' && studioMode !== 'manual' && <div className="mt-2 space-y-2 border-t border-[#3A4148] p-2"><div className="text-[9px] font-semibold tracking-[.12em] text-[#9AA4AE]">QUICK SETTINGS</div><label className="block text-[9px] text-[#AAB2BA]">Paper sheet<select aria-label="Edit menu paper sheet" value={sheetMode} onChange={event=>{setSheetMode(event.target.value as SheetMode);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option><option value="custom">Custom Paper Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Photo size<select aria-label="Edit menu photo size" value={preset} onChange={event=>{if(event.target.value==='india'&&!isStudioMember){showUpgradePrompt();return;}setPreset(event.target.value as StudioPreset);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="india">Passport / General · 35 × 45 mm</option><option value="pan">PAN · 25 × 35 mm</option><option value="voter-35x45">Voter ID · 35 × 45 mm</option><option value="dl-35x45">Driving Licence · 35 × 45 mm</option><option value="exam-35x45">Exam form · 35 × 45 mm</option><option value="stamp">Stamp · 25 × 30 mm</option><option value="square-51">Visa · 2 × 2 inch</option><option value="oci-51">OCI · 51 × 51 mm</option><option value="passport-35x35">Consular square · 35 × 35 mm</option><option value="pcc-35x35">PCC / Birth · 35 × 35 mm</option><option value="frro-35x35">FRRO · 35 × 35 mm</option><option value="custom">Custom Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Number of photos<select aria-label="Edit menu number of photos" value={sheetCopies} onChange={event=>{setSheetCopies(Math.min(anchoredCapacity,Number(event.target.value)));setQuickPrintLayout(false);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]">{Array.from({length:60},(_,index)=>index+1).map(count=><option key={count} value={count} disabled={count>1&&(sheetMode==='single'||count>anchoredCapacity)}>{count} {count===1?'Photo':'Photos'}</option>)}</select></label><p className="text-[8px] leading-4 text-[#87919B]">Custom dimensions appear beside the matching controls in the top toolbar.</p></div>}
               </div>}
             </div>)}
-            <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>
+            </>}
+            {studioMode !== 'manual' && <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>}
             <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <WandSparkles size={12}/> <span>Auto Photo Maker</span>
             </button>
@@ -1009,7 +1011,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <Move size={12}/> <span>Manual Photo Studio</span>
             </button>
           </div>
-          <div className="flex items-center gap-1.5">
+          {studioMode !== 'manual' && <div className="flex shrink-0 flex-wrap items-center gap-1.5">
             <label className="studio-control flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[10px]" title="Lock or unlock selected sheet photos"><input type="checkbox" checked={!!selectedSlotId && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).length>0 && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).every(slot=>slot.locked)} disabled={!selectedSlotId} onChange={toggleSelectedSlotsLock} className="accent-[#D0D7DE]"/> Lock Selected</label>
             <button type="button" title="Duplicate selected photo" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedSlot} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Duplicate</button>
             <button type="button" title="Copy selected row" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Copy Row</button>
@@ -1029,8 +1031,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               </div>}
             </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
-          </div>
-        </nav>}
+          </div>}
+        </nav>
 
         {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => setStudioMode('auto')} /> : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
