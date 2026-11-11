@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { removeBackgroundAI } from './backgroundRemovalAI';
-import { Copy, X, Minimize2, Maximize2, Check, RotateCcw } from 'lucide-react';
+import { Copy, X, Minimize2, Maximize2, Check, RotateCcw, Undo2, Redo2 } from 'lucide-react';
 
 export type ManualAssetDocument = {
   id: string;
@@ -28,6 +28,9 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [customUnitName, setCustomUnitName] = useState('custom');
   const [customUnitMm, setCustomUnitMm] = useState('1');
   const [croppedAsset, setCroppedAsset] = useState<{src:string;widthMm:number;heightMm:number;name:string}|null>(null);
+  const [workingSrc, setWorkingSrc] = useState(documents[0]?.src || '');
+  const [history, setHistory] = useState<Array<{src:string;box:{x:number;y:number;w:number;h:number};croppedAsset:{src:string;widthMm:number;heightMm:number;name:string}|null}>>([]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [maximized, setMaximized] = useState(false);
   const [targetW, setTargetW] = useState('0');
   const [targetH, setTargetH] = useState('0');
@@ -42,7 +45,14 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [removingBackground, setRemovingBackground] = useState(false);
   const [naturalSize, setNaturalSize] = useState({width:0,height:0});
   const stageRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const active = documents.find(d => d.id === activeId) || documents[0];
+  useEffect(() => {
+    if (!active) return;
+    const initial = { src: active.src, box: {x:0,y:0,w:100,h:100}, croppedAsset: null };
+    setWorkingSrc(active.src); setBox(initial.box); setCroppedAsset(null); setHistory([initial]); setHistoryIndex(0);
+    setTargetW('0'); setTargetH('0'); setLockRatio(false); setDimensionEditing(false);
+  }, [active?.id]);
   if (!active) return null;
 
   const setCorner = (event: React.PointerEvent<HTMLElement>, corner: string) => {
@@ -104,8 +114,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     setDrag({ corner:'move', startX:event.clientX, startY:event.clientY, initial:{...box} });
   };
   const moveCropBox = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag || drag.corner !== 'move' || !stageRef.current) return;
-    const rect = stageRef.current.getBoundingClientRect();
+    if (!drag || drag.corner !== 'move' || !imageRef.current) return;
+    const rect = imageRef.current.getBoundingClientRect();
     const dx = (event.clientX - drag.startX) / rect.width * 100;
     const dy = (event.clientY - drag.startY) / rect.height * 100;
     setBox({
@@ -118,7 +128,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const measuredHeight = naturalSize.height > 0 ? fromMm(naturalSize.height * box.h / 100 * 25.4 / 300, unit, Number(customUnitMm)||1) : 0;
   const cropOnly = async () => {
     const img = new Image();
-    img.src = active.src;
+    img.src = workingSrc || active.src;
     await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(new Error('Image load failed')); });
     const sx = Math.round(img.naturalWidth * box.x / 100);
     const sy = Math.round(img.naturalHeight * box.y / 100);
@@ -134,9 +144,19 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     const widthMm = targetW.trim() && Number(targetW) > 0 ? toMm(Number(targetW), unit, Number(customUnitMm)||1) : sw * 25.4 / 300;
     const heightMm = targetH.trim() && Number(targetH) > 0 ? toMm(Number(targetH), unit, Number(customUnitMm)||1) : sh * 25.4 / 300;
     const src = URL.createObjectURL(blob);
-    setCroppedAsset({src, widthMm, heightMm, name:active.name.replace(/\.[^.]+$/, '') + '-crop.png'});
-    setNotice('Crop is ready. Review it, then use Add to A4 when you want to place it.');
+    const nextAsset = {src, widthMm, heightMm, name:active.name.replace(/\.[^.]+$/, '') + '-crop.png'};
+    const nextState = { src, box:{x:0,y:0,w:100,h:100}, croppedAsset:nextAsset };
+    setHistory(prev => { const next = [...prev.slice(0, historyIndex + 1), nextState]; setHistoryIndex(next.length - 1); return next; });
+    setWorkingSrc(src); setCroppedAsset(nextAsset); setBox(nextState.box);
+    setNotice('Crop applied. Use Undo to restore the previous image or Redo to apply it again.');
   };
+  const applyHistory = (nextIndex:number) => {
+    const item = history[nextIndex]; if (!item) return;
+    setHistoryIndex(nextIndex); setWorkingSrc(item.src); setBox(item.box); setCroppedAsset(item.croppedAsset);
+    setNotice(nextIndex === 0 ? 'Original image restored.' : 'Crop history restored.');
+  };
+  const undoCrop = () => applyHistory(Math.max(0, historyIndex - 1));
+  const redoCrop = () => applyHistory(Math.min(history.length - 1, historyIndex + 1));
   const addCroppedToA4 = () => {
     if (!croppedAsset) { setNotice('First click Crop to prepare the cropped asset.'); return; }
     onUseOnPage({name:croppedAsset.name,src:croppedAsset.src,widthMm:croppedAsset.widthMm,heightMm:croppedAsset.heightMm});
@@ -178,11 +198,11 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         <label className="text-[10px] text-[#aeb8c2]">Crop width ({unit==='custom'?(customUnitName||'custom'):unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetW : measuredWidth.toFixed(2)} onFocus={()=>{setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));setDimensionEditing(true);}} onBlur={()=>setDimensionEditing(false)} onChange={e=>{setTargetW(e.target.value);setLockRatio(true);}} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
         <label className="text-[10px] text-[#aeb8c2]">Crop height ({unit==='custom'?(customUnitName||'custom'):unit})<input type="number" min="0" step="0.1" value={dimensionEditing ? targetH : measuredHeight.toFixed(2)} onFocus={()=>setDimensionEditing(true)} onBlur={()=>{setDimensionEditing(false);setTargetW(measuredWidth.toFixed(2));setTargetH(measuredHeight.toFixed(2));}} onChange={e=>{setTargetH(e.target.value);setLockRatio(true);}} className="studio-control mt-1 block h-8 w-28 px-2"/></label>
         <span className="pb-2 text-[9px] text-[#8996a2]">Live crop size · 300 DPI · {measuredWidth.toFixed(2)} × {measuredHeight.toFixed(2)} {unit==='custom'?(customUnitName||'custom'):unit}</span>
-        <div className="ml-auto flex gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button>{active.kind==='photo'&&<button onClick={()=>void removeBackground()} disabled={removingBackground} className="rounded border border-[#6b806e] px-3 py-2 text-[10px] text-[#c6e2cf] disabled:opacity-50">{removingBackground?'Removing…':'Remove Background'}</button>}<button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropOnly()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop</button><button onClick={addCroppedToA4} disabled={!croppedAsset} className="rounded border border-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Add to A4</button></div>
+        <div className="ml-auto flex flex-wrap gap-1"><button onClick={()=>onDuplicate(active.id)} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><Copy size={12} className="mr-1 inline"/>Duplicate Document</button>{active.kind==='photo'&&<button onClick={()=>void removeBackground()} disabled={removingBackground} className="rounded border border-[#6b806e] px-3 py-2 text-[10px] text-[#c6e2cf] disabled:opacity-50">{removingBackground?'Removing…':'Remove Background'}</button>}<button onClick={undoCrop} disabled={historyIndex===0} title="Undo crop" className="rounded border border-[#53606c] px-2 py-2 text-[10px] disabled:opacity-35"><Undo2 size={14}/></button><button onClick={redoCrop} disabled={historyIndex>=history.length-1} title="Redo crop" className="rounded border border-[#53606c] px-2 py-2 text-[10px] disabled:opacity-35"><Redo2 size={14}/></button><button onClick={handleReset} className="rounded border border-[#53606c] px-3 py-2 text-[10px]"><RotateCcw size={12} className="mr-1 inline"/>Reset</button><button onClick={()=>void cropOnly()} className="rounded bg-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#171b20]"><Check size={12} className="mr-1 inline"/>Crop / OK</button><button onClick={addCroppedToA4} disabled={!croppedAsset} className="rounded border border-[#d5a66e] px-3 py-2 text-[10px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Add to A4</button></div>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#151a1f] p-6">
         <div ref={stageRef} className="relative max-h-full max-w-full select-none" style={{aspectRatio:'auto',touchAction:'none'}}>
-          <img src={active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block max-h-[calc(100vh-250px)] max-w-full object-contain"/>
+          <img ref={imageRef} src={workingSrc || active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block max-h-[calc(100vh-250px)] max-w-full object-contain"/>
           <div aria-label="Move crop selection" title="Grab anywhere inside the red crop frame to move the entire selection" onPointerDown={startCropMove} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} className="absolute z-[5] cursor-move border-2 border-red-500 bg-red-500/[0.04] touch-none" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%',touchAction:'none'}}/>
           {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Crop '+corner} onPointerDown={e=>setCorner(e,corner)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-10 h-5 w-5 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none" style={{left:corner.includes('w')?box.x+'%':(box.x+box.w)+'%',top:corner.includes('n')?box.y+'%':(box.y+box.h)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
         </div>
