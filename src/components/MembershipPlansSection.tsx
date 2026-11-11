@@ -7,7 +7,7 @@ const plans = [
     eyebrow: 'A simple start',
     description: 'Essential member access for everyday needs.',
     price: '49',
-    duration: '1 month',
+    duration: '1 day',
     features: [
       'Access to tools included in the Basic plan',
       'Private member support chat',
