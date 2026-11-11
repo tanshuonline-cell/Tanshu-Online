@@ -181,6 +181,18 @@ for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-wor
   };
 }
 
+disclosures['pdf-split'] = {
+  ...DEFAULT_DISCLOSURE,
+  governmentFee: 'Not applicable. This is private PDF file processing performed by TANSHU ONLINE; no government or portal fee is included.',
+  governmentRefund: 'No government fee applies to this task. If the customer separately submits the output to an official portal, that portal’s own fee and refund rules are separate.',
+  governmentStatus: 'not-applicable',
+  officialSourceLabel: 'Private PDF page-splitting service',
+  officialSourceUrl: 'https://www.consumerhelpline.gov.in/',
+  serviceFee: '₹30 TANSHU ONLINE service fee per PDF task. The task includes separating the customer-provided PDF according to the page numbers/ranges supplied and returning the resulting PDF file(s).',
+  serviceRefund: 'If the customer cancels before processing starts, the ₹30 service fee will be refunded. Once processing has started, any retained amount will be proportionate to work actually completed and applicable consumer law. If TANSHU ONLINE cannot deliver the agreed split because of its own technical failure, the unearned service fee will be refunded; the exceptional 15-day technical-failure commitment in the Refund Policy also applies.',
+  note: 'One task means one customer-provided PDF split according to the selected page numbers/ranges. The customer must review the page selection before payment. Password-protected or damaged PDFs may require the customer to provide an unlocked/working copy.',
+};
+
 
 disclosures['pdf-text-edit'] = {
   ...DEFAULT_DISCLOSURE,
