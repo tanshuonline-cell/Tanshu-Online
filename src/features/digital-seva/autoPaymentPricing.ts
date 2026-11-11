@@ -10,7 +10,7 @@ export interface AutoPaymentQuote {
   note: string;
 }
 
-// Initial automatic-checkout scope approved for Preview only.
+// Approved automatic-checkout quotes. Keep unapproved catalogue services disabled.
 // PAN figures assume an Indian physical-card application route.
 // UIDAI figures assume a separate demographic address update, not a document-only refresh.
 export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
@@ -43,6 +43,11 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     serviceId: 'aadhaar-co', totalAmount: 275, governmentFee: 75, tanshuFee: 200, currency: 'INR',
     routeLabel: 'C/O address-detail update',
     note: 'C/O is part of the address, not a separate father-name update.'
+  ,
+  'pdf-split': {
+    serviceId: 'pdf-split', totalAmount: 30, governmentFee: 0, tanshuFee: 30, currency: 'INR',
+    routeLabel: 'Private PDF page-splitting task',
+    note: '₹30 is the TANSHU ONLINE fee for one PDF task. The customer supplies the PDF and selected page numbers/ranges; the separated PDF output is delivered after processing.'
   }
 };
 
