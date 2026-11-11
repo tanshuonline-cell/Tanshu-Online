@@ -327,7 +327,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     let x=page.margin,y=page.margin,rowHeight=0;
     const positions=new Map<string,{x:number;y:number}>();
     arranged.forEach(layer=>{if(x>page.margin&&x+layer.w>page.width-page.margin){x=page.margin;y+=rowHeight+verticalGapMm;rowHeight=0;}positions.set(layer.id,{x,y});x+=layer.w+horizontalGapMm;rowHeight=Math.max(rowHeight,layer.h);});
-    updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!positions.has(layer.id)),...p.layers.filter(layer=>positions.has(layer.id)).map(layer=>({...layer,...positions.get(layer.id)!})),...additions.map(layer=>({...layer,...positions.get(layer.id)!}))]}));
+    updatePage(p=>({...p,layers:[...p.layers.map(layer=>{const position=positions.get(layer.id);return position?{...layer,...position}:layer;}),...additions.map(layer=>({...layer,...positions.get(layer.id)!}))]}));
     setSelectedIds(arranged.map(layer=>layer.id));
   };
   const startCropDrag = (event:React.PointerEvent<HTMLButtonElement>, corner:string) => {
