@@ -25,6 +25,44 @@ type Props = {
 type Unit = 'mm' | 'cm' | 'in' | 'custom';
 const toMm = (value: number, unit: Unit, customMm = 1) => unit === 'mm' ? value : unit === 'cm' ? value * 10 : unit === 'in' ? value * 25.4 : value * customMm;
 const fromMm = (value: number, unit: Unit, customMm = 1) => unit === 'mm' ? value : unit === 'cm' ? value / 10 : unit === 'in' ? value / 25.4 : value / Math.max(0.0001, customMm);
+const EDITOR_DB = 'tanshu-manual-photo-editor-state';
+const openEditorDb = () => new Promise<IDBDatabase>((resolve, reject) => {
+  const request = indexedDB.open(EDITOR_DB, 1);
+  request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains('states')) request.result.createObjectStore('states'); };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+});
+const readEditorState = async (id: string) => {
+  const db = await openEditorDb();
+  return new Promise<any>((resolve, reject) => {
+    const request = db.transaction('states', 'readonly').objectStore('states').get(id);
+    request.onsuccess = () => { resolve(request.result || null); db.close(); };
+    request.onerror = () => { reject(request.error); db.close(); };
+  });
+};
+const writeEditorState = async (id: string, value: any) => {
+  const db = await openEditorDb();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('states', 'readwrite');
+    tx.objectStore('states').put(value, id);
+    tx.oncomplete = () => { resolve(); db.close(); };
+    tx.onerror = () => { reject(tx.error); db.close(); };
+    tx.onabort = () => { reject(tx.error); db.close(); };
+  });
+};
+const makePersistentSrc = async (src: string) => {
+  if (!src || src.startsWith('data:') || src.startsWith('http:') || src.startsWith('https:')) return src;
+  try {
+    const response = await fetch(src);
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return ''; }
+};
 
 export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActiveChange, onClose, onDuplicate, onReplaceSource, onUseOnPage, onFinish, cropMode = false, workspaceOpen = true }) => {
   const [unit, setUnit] = useState<Unit>('mm');
@@ -49,15 +87,54 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [notice, setNotice] = useState('');
   const [removingBackground, setRemovingBackground] = useState(false);
   const [naturalSize, setNaturalSize] = useState({width:0,height:0});
+  const [editorHydrated, setEditorHydrated] = useState(false);
+  const editorSaveQueue = useRef<Promise<void>>(Promise.resolve());
   const stageRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const active = documents.find(d => d.id === activeId) || documents[0];
   useEffect(() => {
-    if (!active) return;
+    let cancelled = false;
+    setEditorHydrated(false);
+    if (!active) { setEditorHydrated(true); return; }
     const initial = { src: active.src, box: {x:0,y:0,w:100,h:100}, croppedAsset: null };
     setWorkingSrc(active.src); setBox(initial.box); setCroppedAsset(null); setHistory([initial]); setHistoryIndex(0);
     setTargetW('0'); setTargetH('0'); setLockRatio(false); setDimensionEditing(false);
+    readEditorState(active.id).then(saved => {
+      if (cancelled || !saved) return;
+      setWorkingSrc(saved.workingSrc || active.src);
+      setBox(saved.box || initial.box);
+      setCroppedAsset(saved.croppedAsset || null);
+      setHistory(saved.history?.length ? saved.history : [initial]);
+      setHistoryIndex(Math.max(0, Math.min(saved.historyIndex || 0, (saved.history?.length || 1) - 1)));
+      setTargetW(saved.targetW || '0'); setTargetH(saved.targetH || '0');
+      setUnit(saved.unit || 'mm'); setCustomUnitName(saved.customUnitName || 'custom');
+      setCustomUnitMm(saved.customUnitMm || '1'); setLockRatio(!!saved.lockRatio);
+      setDimensionEditing(!!saved.dimensionEditing);
+    }).catch(error => console.warn('Manual photo editor recovery could not read its saved state.', error))
+      .finally(() => { if (!cancelled) setEditorHydrated(true); });
+    return () => { cancelled = true; };
   }, [active?.id]);
+  useEffect(() => {
+    if (!active || !editorHydrated) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      const save = async () => {
+        const [savedWorkingSrc, savedHistory, savedCropSrc] = await Promise.all([
+          makePersistentSrc(workingSrc || active.src),
+          Promise.all(history.map(async item => ({...item, src: await makePersistentSrc(item.src)}))),
+          croppedAsset ? makePersistentSrc(croppedAsset.src) : Promise.resolve(null)
+        ]);
+        if (cancelled) return;
+        await writeEditorState(active.id, {
+          workingSrc:savedWorkingSrc,box,croppedAsset:croppedAsset?{...croppedAsset,src:savedCropSrc}:null,
+          history:savedHistory,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing,
+          savedAt:Date.now()
+        });
+      };
+      editorSaveQueue.current = editorSaveQueue.current.then(save).catch(error => console.warn('Manual photo editor auto-save failed.', error));
+    }, 300);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
   if (!active) return null;
 
   // Use the rendered image bounds for pointer math. The editor stage can be
