@@ -15,6 +15,7 @@ type Props = {
   onApplySignature: () => void;
   activeSection?: 'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print';
   hideTabs?: boolean;
+  onLockedAction?: () => void;
 };
 
 const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
@@ -25,7 +26,7 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 });
 const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed.')), type, quality));
 
-export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, onAddSignature, onApplySignature, activeSection, hideTabs = false }) => {
+export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx, heightPx, onApplyImage, onAddSignature, onApplySignature, activeSection, hideTabs = false, onLockedAction }) => {
   const [section, setSection] = useState<'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print'>(activeSection || 'adjust');
   React.useEffect(() => { if (activeSection) setSection(activeSection); }, [activeSection]);
   const [brightness, setBrightness] = useState(100);
@@ -60,6 +61,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
 
   const tabClass = (key: typeof section) => `flex items-center gap-2 rounded-md border px-2 py-2 text-[10px] transition ${section===key?'border-[#59636D] bg-[#30373E] text-[#F0F2F4]':'border-[#343A42] bg-[#202429] text-[#AAB2BA] hover:bg-[#292F35]'}`;
   const run = async (task: () => Promise<void>) => {
+    if (onLockedAction) { onLockedAction(); return; }
     if (!selected || busy) return;
     setBusy(true); setProgress(0); setStatus('Processing…');
     try { await task(); }
@@ -80,6 +82,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   });
 
   const removeBg = async () => {
+    if (onLockedAction) { onLockedAction(); return; }
     if (busy) return;
     const targets = photos.filter(photo => backgroundSelection.includes(photo.id));
     if (!targets.length) { setStatus('Select at least one image layer.'); return; }
@@ -201,6 +204,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   };
 
   const cropSignature = async () => {
+    if (onLockedAction) { onLockedAction(); return; }
     if (!signature || busy) return;
     setBusy(true); setProgress(0);
     try {
@@ -219,6 +223,7 @@ export const StudioAdvancedPanel: React.FC<Props> = ({ selected, photos, widthPx
   };
 
   const cleanSignature = async () => {
+    if (onLockedAction) { onLockedAction(); return; }
     if(!signature || busy)return;
     setBusy(true); setProgress(0);
     try {
