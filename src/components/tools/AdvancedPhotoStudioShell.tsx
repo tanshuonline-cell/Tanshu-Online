@@ -297,7 +297,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const anchoredRows = Math.max(1, Math.floor((sheetDimensions.heightMm - anchorY + sheetGapY) / (documentSize.heightMm + sheetGapY)));
   const anchoredCapacity = Math.min(sheetCapacity, anchoredCols * anchoredRows);
   const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, anchoredCapacity);
-  const reflowSheetSlots = (gapX:number,gapY:number) => setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+gapX)/(documentSize.widthMm+gapX)));return current.map((slot,index)=>({...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+gapX),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+gapY)}));});
+  const reflowSheetSlots = (gapX:number,gapY:number) => setSheetSlots(current=>{const movable=current.filter(slot=>photos.find(photo=>photo.id===slot.photoId)?.kind!=='signature');if(!movable.length)return current;const anchor=movable[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+gapX)/(documentSize.widthMm+gapX)));const positions=new Map(movable.map((slot,index)=>[slot.id,{x:anchor.x+(index%cols)*(documentSize.widthMm+gapX),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+gapY)}]));return current.map(slot=>{const position=positions.get(slot.id);return position?{...slot,...position}:slot;});});
   useEffect(() => { if (sheetMode !== 'single' && sheetCopies > anchoredCapacity) setSheetCopies(anchoredCapacity); }, [sheetMode, anchoredCapacity, sheetCopies]);
   useEffect(() => {
     const element = previewStageRef.current;
