@@ -208,8 +208,22 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [quickPrintLayout, setQuickPrintLayout] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
-  // Preview remains locked until a server-verified membership entitlement is connected.
-  const isStudioMember = false;
+  const [isVerifiedStudioAdmin, setIsVerifiedStudioAdmin] = useState(false);
+  // Ask the existing Cloudflare Pages auth endpoint to verify the HttpOnly admin session.
+  // Never infer admin access from local storage, query parameters, or client-editable flags.
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/auth', { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (active) setIsVerifiedStudioAdmin(Boolean(data?.authenticated && data?.user?.role === 'superadmin'));
+      })
+      .catch(() => { if (active) setIsVerifiedStudioAdmin(false); });
+    return () => { active = false; };
+  }, []);
+  // Customer membership verification will be connected in the payment phase.
+  // For this preview, only a server-verified Admin session bypasses customer locks.
+  const isStudioMember = isVerifiedStudioAdmin;
   const showUpgradePrompt = () => setUpgradePromptOpen(true);
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
