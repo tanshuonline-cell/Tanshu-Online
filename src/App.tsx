@@ -5,6 +5,7 @@ import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
+import { MembershipPlansSection } from './components/MembershipPlansSection';
 import { ReadyToUseTools } from './components/ReadyToUseTools';
 import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
@@ -589,6 +590,9 @@ export default function App() {
 
         {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
         <FeaturedTools onOpenTool={handleOpenTool} />
+
+        {/* Membership plans preview — isolated section; existing homepage components remain unchanged. */}
+        <MembershipPlansSection />
 
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
         <AllToolsDirectory
