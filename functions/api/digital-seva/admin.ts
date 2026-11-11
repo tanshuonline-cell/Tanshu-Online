@@ -138,7 +138,24 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       application_details_json: await revealApplicationDetails(booking.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index)),
       documents: grouped.get(booking.id) || []
     })));
-    return json({ success: true, bookings });
+    const recoveryResult = await env.DIGITAL_SEVA_DB.prepare(
+      `SELECT order_id, service_id, customer_phone, amount, currency, status, paid_at, created_at
+       FROM digital_seva_checkout_orders
+       WHERE status = 'PAID' AND booking_id IS NULL
+       ORDER BY COALESCE(paid_at, created_at) DESC
+       LIMIT 100`
+    ).all();
+    const orphanedPayments = (recoveryResult.results || []).map((order: any) => ({
+      order_id: String(order.order_id),
+      service_id: String(order.service_id),
+      customer_phone: String(order.customer_phone || ''),
+      amount: Number(order.amount),
+      currency: String(order.currency || 'INR'),
+      status: String(order.status),
+      paid_at: order.paid_at || null,
+      created_at: String(order.created_at || '')
+    }));
+    return json({ success: true, bookings, orphanedPayments });
   } catch (error) {
     console.error('Digital Seva admin list failed:', error);
     return json({ success: false, error: 'Could not load booking records. Confirm the Preview migration has been applied.' }, 503);
