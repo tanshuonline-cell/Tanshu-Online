@@ -42,35 +42,35 @@ const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; w
   'exam-35x45': { label: 'Exam form · common print', widthMm: 35, heightMm: 45 }
 };
 const mmToUnit = (value: number, unit: StudioUnit) => value / (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
-const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number, margin: number, gap: number, others: SheetSlot[]) => {
-  const stepX = source.width + gap, stepY = source.height + gap;
+const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number, margin: number, gapX: number, gapY: number, others: SheetSlot[]) => {
+  const stepX = source.width + gapX, stepY = source.height + gapY;
   const candidates = [
     { x: source.x + stepX, y: source.y },
     { x: source.x, y: source.y + stepY },
     { x: source.x - stepX, y: source.y },
     { x: source.x, y: source.y - stepY },
   ];
-  const valid = (p: {x:number;y:number}) => p.x >= 0 && p.y >= 0 && p.x + source.width <= pageW && p.y + source.height <= pageH && !others.some(o => overlapsWithCutGap({...source,...p}, o, gap));
+  const valid = (p: {x:number;y:number}) => p.x >= 0 && p.y >= 0 && p.x + source.width <= pageW && p.y + source.height <= pageH && !others.some(o => overlapsWithCutGap({...source,...p}, o, gapX, gapY));
   const found = candidates.find(valid);
-  return found || getSmartSheetPosition(source.x + stepX, source.y, source, others, pageW, pageH, margin, gap);
+  return found || getSmartSheetPosition(source.x + stepX, source.y, source, others, pageW, pageH, margin, gapX, gapY);
 };
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 
-const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gap: number) =>
-  a.x < b.x + b.width + gap - 0.01 && a.x + a.width + gap > b.x + 0.01 &&
-  a.y < b.y + b.height + gap - 0.01 && a.y + a.height + gap > b.y + 0.01;
+const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gapX: number, gapY: number) =>
+  a.x < b.x + b.width + gapX - 0.01 && a.x + a.width + gapX > b.x + 0.01 &&
+  a.y < b.y + b.height + gapY - 0.01 && a.y + a.height + gapY > b.y + 0.01;
 
-const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gap: number) => {
+const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gapX: number, gapY: number) => {
   const maxX = Math.max(margin, pageW - margin - moving.width), maxY = Math.max(margin, pageH - margin - moving.height);
   const clamp = (value: number, max: number) => Math.max(margin, Math.min(max, value));
   const target = { ...moving, x: clamp(x, maxX), y: clamp(y, maxY) };
-  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gap));
+  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gapX, gapY));
   const xEdges = [margin, maxX], yEdges = [margin, maxY];
-  others.forEach(other => { xEdges.push(other.x - moving.width - gap, other.x + other.width + gap); yEdges.push(other.y - moving.height - gap, other.y + other.height + gap); });
+  others.forEach(other => { xEdges.push(other.x - moving.width - gapX, other.x + other.width + gapX); yEdges.push(other.y - moving.height - gapY, other.y + other.height + gapY); });
   const candidates: SheetSlot[] = [], seen = new Set<string>();
   const add = (cx: number, cy: number) => { const candidate = { ...moving, x: clamp(cx, maxX), y: clamp(cy, maxY) }; const key = candidate.x.toFixed(2)+':'+candidate.y.toFixed(2); if (!seen.has(key) && !collides(candidate)) { seen.add(key); candidates.push(candidate); } };
   xEdges.forEach(cx => yEdges.forEach(cy => add(cx, cy)));
-  const stepX = moving.width + gap, stepY = moving.height + gap;
+  const stepX = moving.width + gapX, stepY = moving.height + gapY;
   for (let row=0; row*stepY+margin<=maxY+0.01; row++) for (let col=0; col*stepX+margin<=maxX+0.01; col++) add(margin+col*stepX,margin+row*stepY);
   const nearest = candidates.sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
   if (!nearest) return { x: target.x, y: target.y };
@@ -476,7 +476,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetGapY, sheetSlots, signaturePlacement, studioMode, borderEnabled, borderWidthMm, borderColor]);
 
-  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
+  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetGapY,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => { if(!menuOpen)return;const close=(event:PointerEvent)=>{if(event.target instanceof Node&&!menuAreaRef.current?.contains(event.target))setMenuOpen(null);};document.addEventListener('pointerdown',close,true);return()=>document.removeEventListener('pointerdown',close,true); }, [menuOpen]);
   useEffect(() => {
@@ -601,7 +601,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const pageW=sheetDimensions.widthMm, pageH=sheetDimensions.heightMm;
     const additions:SheetSlot[]=[];
     for (const item of row.slice(0,room)) {
-      const position=getSmartSheetPosition(item.x,item.y+item.height+sheetGapY,item,[...sheetSlots,...additions],pageW,pageH,sheetMargin,sheetGap);
+      const position=getSmartSheetPosition(item.x,item.y+item.height+sheetGapY,item,[...sheetSlots,...additions],pageW,pageH,sheetMargin,sheetGap,sheetGapY);
       additions.push({...item,id:'slot-row-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2),...position,locked:false});
     }
     if (!additions.length) return;
@@ -625,7 +625,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (!source || sheetSlots.length >= anchoredCapacity || sheetSlots.length >= 60) return;
     const pageW = sheetDimensions.widthMm;
     const pageH = sheetDimensions.heightMm;
-    const position = getPatternCopyPosition(source, pageW, pageH, sheetMargin, sheetGap, sheetSlots.filter(slot => slot.id !== source.id));
+    const position = getPatternCopyPosition(source, pageW, pageH, sheetMargin, sheetGap, sheetGapY, sheetSlots.filter(slot => slot.id !== source.id));
     const copy = { ...source, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
     setSheetSlots(current => [...current, copy]);
     setSheetCopies(current => Math.min(60, sheetCapacity, current + 1));
