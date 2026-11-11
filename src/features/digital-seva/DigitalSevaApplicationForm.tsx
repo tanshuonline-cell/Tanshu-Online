@@ -18,7 +18,7 @@ const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 declare global {
   interface Window {
-    Cashfree?: (options: { mode: 'sandbox' }) => {
+    Cashfree?: (options: { mode: 'sandbox' | 'production' }) => {
       checkout: (options: { paymentSessionId: string; redirectTarget: '_modal' }) => Promise<any>;
     };
   }
@@ -68,6 +68,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [paymentMode, setPaymentMode] = useState<'AUTO_PAY'>('AUTO_PAY');
   const [pendingCheckoutOrderId, setPendingCheckoutOrderId] = useState('');
   const [pendingPaymentSessionId, setPendingPaymentSessionId] = useState('');
+  const [pendingCashfreeMode, setPendingCashfreeMode] = useState<'sandbox' | 'production'>('sandbox');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draftReady, setDraftReady] = useState(false);
@@ -113,6 +114,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setPaymentMode('AUTO_PAY');
         setPendingCheckoutOrderId(typeof d.pendingCheckoutOrderId === 'string' ? d.pendingCheckoutOrderId : '');
         setPendingPaymentSessionId(typeof d.pendingPaymentSessionId === 'string' ? d.pendingPaymentSessionId : '');
+        setPendingCashfreeMode(d.pendingCashfreeMode === 'production' ? 'production' : 'sandbox');
         setDraftRestored(true);
       }
       setDraftReady(true);
@@ -398,13 +400,14 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
             paymentSessionId = String(orderData.paymentSessionId);
             setPendingCheckoutOrderId(orderId);
             setPendingPaymentSessionId(paymentSessionId);
+            setPendingCashfreeMode(orderData.cashfreeMode === 'production' ? 'production' : 'sandbox');
             const savedDraft = { ...draftStateRef.current, paymentMode: 'AUTO_PAY', pendingCheckoutOrderId: orderId, pendingPaymentSessionId: paymentSessionId };
             draftStateRef.current = savedDraft;
             await saveDigitalSevaDraft(service.id, savedDraft).catch(() => {});
           }
 
           await loadCashfreeSdk();
-          const cashfree = window.Cashfree!({ mode: 'sandbox' });
+          const cashfree = window.Cashfree!({ mode: pendingCashfreeMode });
           const checkoutResult = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
           if (checkoutResult?.error) throw new Error(checkoutResult.error.message || 'Payment was not completed. Your booking has not been submitted.');
           data = await sendBooking({ ...payload, paymentOrderId: orderId });
