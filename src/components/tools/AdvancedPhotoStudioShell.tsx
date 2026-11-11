@@ -537,19 +537,23 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const autoArrangeSheet = () => {
     if (!sheetSlots.length) return;
-    const topY = Math.min(...sheetSlots.map(slot => slot.y));
-    const topRow = sheetSlots.filter(slot => Math.abs(slot.y - topY) <= Math.max(1, documentSize.heightMm * 0.35)).sort((a,b) => a.x - b.x);
-    const rowYs = [...new Set(sheetSlots.map(slot => Math.round(slot.y * 10) / 10))].sort((a,b) => a-b);
-    const measuredSteps = rowYs.slice(1).map((value,index) => value - rowYs[index]).filter(value => value >= documentSize.heightMm);
-    const rowStep = measuredSteps.length ? measuredSteps[0] : documentSize.heightMm + sheetGapY;
-    const anchors = topRow.length ? topRow : [sheetSlots[0]];
     const pageW = sheetDimensions.widthMm;
     const pageH = sheetDimensions.heightMm;
-    setSheetSlots(current => current.map((slot,index) => {
-      const anchor = anchors[index % anchors.length];
-      const row = Math.floor(index / anchors.length);
-      return { ...slot, x: Math.max(sheetMargin, Math.min(pageW - sheetMargin - slot.width, anchor.x)), y: Math.max(sheetMargin, Math.min(pageH - sheetMargin - slot.height, topY + row * rowStep)) };
-    }));
+    const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
+    const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
+    let x = sheetMargin, y = sheetMargin, rowHeight = 0;
+    const positions = new Map<string,{x:number;y:number}>();
+    photoSlots.forEach(slot => {
+      if (x > sheetMargin && x + slot.width > pageW - sheetMargin) {
+        x = sheetMargin;
+        y += rowHeight + sheetGapY;
+        rowHeight = 0;
+      }
+      positions.set(slot.id, {x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,x)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,y))});
+      x += slot.width + sheetGap;
+      rowHeight = Math.max(rowHeight,slot.height);
+    });
+    setSheetSlots(current => current.map(slot => signatureSlots.has(slot.id) ? slot : ({...slot,...positions.get(slot.id)})));
   };
 
   const mergeSheetPhotos = async (mergeAll = false) => {
