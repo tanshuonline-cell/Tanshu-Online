@@ -133,6 +133,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       setUnit(saved.unit || 'mm'); setCustomUnitName(saved.customUnitName || 'custom');
       setCustomUnitMm(saved.customUnitMm || '1'); setLockRatio(!!saved.lockRatio);
       setDimensionEditing(!!saved.dimensionEditing);
+      setSignaturePosition(saved.signaturePosition || {x:54,y:70,width:30});
     }).catch(error => console.warn('Manual photo editor recovery could not read its saved state.', error))
       .finally(() => { if (!cancelled) setEditorHydrated(true); });
     return () => { cancelled = true; };
@@ -150,14 +151,14 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         if (cancelled) return;
         await writeEditorState(active.id, {
           workingSrc:savedWorkingSrc,box,croppedAsset:croppedAsset?{...croppedAsset,src:savedCropSrc}:null,cutoutSrc:await makePersistentSrc(cutoutSrc),backgroundColor,backgroundChoice,
-          history:savedHistory,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing,
+          history:savedHistory,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing,signaturePosition,
           savedAt:Date.now()
         });
       };
       editorSaveQueue.current = editorSaveQueue.current.then(save).catch(error => console.warn('Manual photo editor auto-save failed.', error));
     }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,cutoutSrc,backgroundColor,backgroundChoice,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing]);
+  }, [active?.id,editorHydrated,workingSrc,box,croppedAsset,cutoutSrc,backgroundColor,backgroundChoice,history,historyIndex,targetW,targetH,unit,customUnitName,customUnitMm,lockRatio,dimensionEditing,signaturePosition]);
   if (!active) return null;
 
   // Use the rendered image bounds for pointer math. The editor stage can be
