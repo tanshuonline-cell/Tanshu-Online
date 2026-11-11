@@ -146,6 +146,8 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     const element = stageRef.current;
     if (!element) return;
     const handleWheelZoom = (event: WheelEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('[data-manual-page]')) return;
       event.preventDefault();
       const step = (value:number) => value < 200 ? 10 : value < 500 ? 25 : 50;
       setPageZoom(value => Math.max(10, Math.min(1600, value + (event.deltaY < 0 ? step(value) : -step(value)))));
