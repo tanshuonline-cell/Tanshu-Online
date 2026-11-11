@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plus, Upload, Trash2, Copy, Image as ImageIcon, MousePointer2, Crop, SquareDashedMousePointer, Hand, Lock, Unlock, ChevronUp, ChevronDown, Download, RotateCw, Settings2, FilePlus2, ZoomIn, ZoomOut, Check } from 'lucide-react';
 
 type ManualLayer = { id: string; type: 'photo'|'frame'|'text'; name: string; x: number; y: number; w: number; h: number; src?: string; fileName?: string; text?: string; locked?: boolean; rotation?: number; cropZoom?: number };
