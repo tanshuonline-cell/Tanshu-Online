@@ -9,6 +9,7 @@ interface Env {
   CASHFREE_APP_ID?: string;
   CASHFREE_SECRET_KEY?: string;
   CASHFREE_ENVIRONMENT?: string;
+  CF_PAGES_BRANCH?: string;
 }
 const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
 const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
@@ -33,6 +34,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
   if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'The dedicated Digital Seva Preview database is not connected.' }, 503);
   if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured for this environment.' }, 503);
+  const cashfreeMode = cashfreeApiBase(env) === 'https://api.cashfree.com/pg' ? 'production' : 'sandbox';
 
   let body: any;
   try {
@@ -65,7 +67,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     ).bind(idempotencyKey).first();
     if (prior) {
       if (prior.status === 'PENDING' || prior.status === 'PAID') {
-        return json({ success: true, orderId: prior.order_id, paymentSessionId: prior.payment_session_id, amount: prior.amount, status: prior.status, reused: true });
+        return json({ success: true, orderId: prior.order_id, paymentSessionId: prior.payment_session_id, amount: prior.amount, status: prior.status, cashfreeMode, reused: true });
       }
       return json({ success: false, error: 'This checkout attempt has already been used. Please start a fresh payment attempt.' }, 409);
     }
@@ -118,6 +120,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       amount: quote.totalAmount,
       currency: 'INR',
       status: 'PENDING',
+      cashfreeMode,
       quote: { governmentFee: quote.governmentFee, tanshuFee: quote.tanshuFee, routeLabel: quote.routeLabel, note: quote.note }
     }, 201);
   } catch (error) {
