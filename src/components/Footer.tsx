@@ -119,9 +119,18 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
             <strong className="text-slate-200">{t('footer.legal', 'Legal Disclaimer')}:</strong> {isHindi ? 'TANSHU ONLINE एक स्वतंत्र डिजिटल टूल और सार्वजनिक सेवा जानकारी प्लेटफ़ॉर्म है। यह भारत सरकार या किसी राज्य प्रशासन की आधिकारिक एजेंसी नहीं है। सभी सरकारी लोगो, विभागीय ट्रेडमार्क और पोर्टल नाम संबंधित प्राधिकरणों के हैं।' : 'TANSHU ONLINE is an independent digital tool and public service reference platform. It is not an official agency of the Government of India or any state administration. Official logos, trademarks, and portal names belong to their respective authorities.'}
           </p>
 
+          <nav aria-label="Legal information" className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-semibold text-slate-300">
+            <a href="/privacy-policy" className="hover:text-white transition-colors">{isHindi ? 'गोपनीयता नीति' : 'Privacy Policy'}</a>
+            <a href="/terms-and-conditions" className="hover:text-white transition-colors">{isHindi ? 'नियम और शर्तें' : 'Terms & Conditions'}</a>
+            <a href="/disclaimer" className="hover:text-white transition-colors">{isHindi ? 'अस्वीकरण' : 'Disclaimer'}</a>
+            <a href="/refund-policy" className="hover:text-white transition-colors">{isHindi ? 'रिफंड नीति' : 'Refund Policy'}</a>
+            <a href="/copyright" className="hover:text-white transition-colors">{isHindi ? 'कॉपीराइट' : 'Copyright'}</a>
+            <a href="/contact" className="hover:text-white transition-colors">{isHindi ? 'संपर्क' : 'Contact'}</a>
+          </nav>
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
             <div>
-              © {new Date().getFullYear()} TANSHU ONLINE. {isHindi ? 'सर्वाधिकार सुरक्षित। 100% क्लाइंट-साइड गोपनीयता।' : 'All rights reserved. 100% Client-Side Privacy Guaranteed.'}
+              © {new Date().getFullYear()} TANSHU ONLINE. {isHindi ? 'सर्वाधिकार सुरक्षित। गोपनीयता और सेवा संबंधी जानकारी के लिए हमारी नीतियाँ पढ़ें।' : 'All rights reserved. Read our policies for privacy and service information.'}
             </div>
             <div className="flex items-center gap-1 text-slate-400">
               <span>{t('footer.empowering', 'Empowering Digital India with')}</span>

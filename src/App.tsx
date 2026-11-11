@@ -13,6 +13,7 @@ import { CategoryNavigationSection } from './components/CategoryNavigationSectio
 import { LatestVideos } from './components/LatestVideos';
 import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
+import { LegalInformationPage, LEGAL_PAGE_PATHS } from './components/LegalInformationPage';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
@@ -68,6 +69,7 @@ export default function App() {
   useEffect(() => {
     const siteUrl = 'https://tanshu-online.pages.dev';
     const pathname = window.location.pathname;
+    if (LEGAL_PAGE_PATHS.includes(pathname)) return;
     const isVideoCatalog = pathname === '/videos';
     const isVideoDetail = pathname.startsWith('/video/');
     const isDigitalSevaAdmin = pathname === '/digital-seva-admin';
@@ -380,6 +382,11 @@ export default function App() {
   const handleCloseTool = () => {
     setActiveTool(null);
   };
+
+  // Dedicated legal and transparency pages; homepage and tool routes remain unchanged.
+  if (LEGAL_PAGE_PATHS.includes(window.location.pathname)) {
+    return <LegalInformationPage />;
+  }
 
   // ISOLATED DIGITAL SEVA ADMIN — separate route; uses the existing signed superadmin session.
   if (window.location.pathname === '/digital-seva-admin') {
