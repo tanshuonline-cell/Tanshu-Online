@@ -56,6 +56,41 @@ export const MembershipPlansSection: React.FC = () => {
   return (
     <section id="membership" className="scroll-mt-24 border-y border-slate-200 bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8">
       <style>{`
+        .membership-water-card { isolation: isolate; overflow: hidden; }
+        .membership-water-card::before,
+        .membership-water-card::after {
+          content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          border-radius: inherit; opacity: 0; transition: opacity .45s ease;
+        }
+        .membership-water-card::before {
+          background:
+            radial-gradient(ellipse at 12% 18%, rgba(56,189,248,.26), transparent 38%),
+            radial-gradient(ellipse at 88% 78%, rgba(45,212,191,.22), transparent 42%),
+            radial-gradient(ellipse at 55% 110%, rgba(255,255,255,.16), transparent 45%);
+          background-size: 180% 180%; background-position: 0% 50%;
+          animation: membership-card-current 5.5s ease-in-out infinite;
+        }
+        .membership-water-card::after {
+          inset: -45% -80%; opacity: 0;
+          background: linear-gradient(112deg, transparent 38%, rgba(255,255,255,.20) 48%, rgba(255,255,255,.05) 52%, transparent 62%);
+          transform: translateX(-42%) rotate(8deg);
+        }
+        .membership-water-card:hover::before,
+        .membership-water-card:focus-within::before { opacity: 1; }
+        .membership-water-card:hover::after,
+        .membership-water-card:focus-within::after {
+          opacity: 1; animation: membership-card-sheen 2.8s ease-in-out infinite;
+        }
+        .membership-water-card > * { position: relative; z-index: 1; }
+        .membership-water-card > span { z-index: 2; }
+        @keyframes membership-card-current {
+          0%, 100% { background-position: 0% 45%; transform: translate3d(-1%, 0, 0) scale(1); }
+          50% { background-position: 100% 55%; transform: translate3d(1%, -1%, 0) scale(1.035); }
+        }
+        @keyframes membership-card-sheen {
+          0% { transform: translateX(-42%) rotate(8deg); }
+          100% { transform: translateX(42%) rotate(8deg); }
+        }
         .membership-ripple-button { isolation: isolate; overflow: hidden; position: relative; }
         .membership-ripple-button::before,
         .membership-ripple-button::after {
@@ -91,7 +126,8 @@ export const MembershipPlansSection: React.FC = () => {
           100% { opacity: 0; transform: translate(-50%, -50%) scale(11); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .membership-ripple-button::before, .membership-ripple-button::after { animation: none !important; }
+          .membership-ripple-button::before, .membership-ripple-button::after,
+          .membership-water-card::before, .membership-water-card::after { animation: none !important; transition: none !important; }
         }
       `}</style>
       <div className="mx-auto max-w-7xl">
@@ -165,7 +201,7 @@ export const MembershipPlansSection: React.FC = () => {
             return (
               <article
                 key={plan.name}
-                className={`relative flex flex-col rounded-2xl border p-5 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl sm:p-6 ${cardTheme}`}
+                className={`membership-water-card relative flex flex-col rounded-2xl border p-5 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl sm:p-6 ${cardTheme}`}
               >
                 {isStandard && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-700 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white shadow">
