@@ -312,6 +312,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   const applyHistory = (nextIndex:number) => {
     const item = history[nextIndex]; if (!item) return;
+    signedCroppedAssetRef.current = null;
     setHistoryIndex(nextIndex); setWorkingSrc(item.src); setBox(item.box); setCroppedAsset(item.croppedAsset); setCutoutSrc(item.cutoutSrc || ''); setBackgroundColor(item.backgroundColor ?? null);
     setNotice(nextIndex === 0 ? 'Original image restored.' : 'Crop history restored.');
   };
@@ -387,6 +388,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   const removeBackground = async () => {
     if (active.kind !== 'photo' || removingBackground) return;
+    signedCroppedAssetRef.current = null;
     setRemovingBackground(true);
     setNotice('AI background removal is starting…');
     try {
@@ -409,6 +411,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); setTargetW('0'); setTargetH('0'); setNotice('Crop selection reset.'); };
   const applyPhotoBackground = async () => {
+    signedCroppedAssetRef.current = null;
     if (!cutoutSrc) { setNotice('पहले Remove BG करें, फिर Background Color चुनें।'); return; }
     try {
       const img = new Image();
