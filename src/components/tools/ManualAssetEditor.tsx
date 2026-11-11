@@ -217,7 +217,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       heightMm: naturalSize.height > 0 ? naturalSize.height * 25.4 / 300 : 60
     };
     onUseOnPage({name:asset.name,src:asset.src,widthMm:asset.widthMm,heightMm:asset.heightMm});
-    setNotice(croppedAsset ? 'Cropped photo added to the A4 page. Source document remains open.' : 'Original photo added to the A4 page at its proportional source size.');
+    setNotice(croppedAsset ? 'Cropped photo added to the A4 page.' : 'Original photo added to the A4 page at its proportional source size.');
+    onFinish();
   };
   const removeBackground = async () => {
     if (active.kind !== 'photo' || removingBackground) return;
