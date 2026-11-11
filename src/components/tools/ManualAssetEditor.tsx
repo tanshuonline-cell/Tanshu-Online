@@ -25,7 +25,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [unit, setUnit] = useState<Unit>('mm');
   const [targetW, setTargetW] = useState('0');
   const [targetH, setTargetH] = useState('0');
-  const [box, setBox] = useState({ x: 8, y: 8, w: 84, h: 84 });
+  const [box, setBox] = useState({ x: 0, y: 0, w: 100, h: 100 });
   const [drag, setDrag] = useState<{ corner: string; startX: number; startY: number; initial: typeof box } | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [notice, setNotice] = useState('');
@@ -91,7 +91,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   return <div className="absolute inset-3 z-40 flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#58616b] bg-[#20262d] shadow-2xl">
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-[#414a54] px-3">
       <strong className="mr-2 text-xs tracking-wide">ASSET EDITOR</strong>
-      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{documents.map(doc => <button key={doc.id} onClick={() => { onActiveChange(doc.id); setBox({x:8,y:8,w:84,h:84}); }} className={'flex shrink-0 items-center gap-2 rounded-t px-3 py-2 text-[10px] ' + (doc.id===active.id?'bg-[#3b4651] text-white':'text-[#aeb8c2] hover:bg-[#303943]')}>{doc.kind==='signature'?'Signature':'Photo'} · {doc.name}<span onClick={e=>{e.stopPropagation();onClose(doc.id);}} className="ml-1 rounded p-0.5 hover:bg-black/20"><X size={11}/></span></button>)}</div>
+      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{documents.map(doc => <button key={doc.id} onClick={() => { onActiveChange(doc.id); setBox({x:0,y:0,w:100,h:100}); }} className={'flex shrink-0 items-center gap-2 rounded-t px-3 py-2 text-[10px] ' + (doc.id===active.id?'bg-[#3b4651] text-white':'text-[#aeb8c2] hover:bg-[#303943]')}>{doc.kind==='signature'?'Signature':'Photo'} · {doc.name}<span onClick={e=>{e.stopPropagation();onClose(doc.id);}} className="ml-1 rounded p-0.5 hover:bg-black/20"><X size={11}/></span></button>)}</div>
       <button title={minimized?'Restore':'Minimize'} onClick={()=>setMinimized(v=>!v)} className="rounded border border-[#4b5661] p-1.5">{minimized?<Maximize2 size={13}/>:<Minimize2 size={13}/>}</button>
       <button title="Close active document" onClick={()=>onClose(active.id)} className="rounded border border-[#4b5661] p-1.5"><X size={13}/></button>
     </div>
