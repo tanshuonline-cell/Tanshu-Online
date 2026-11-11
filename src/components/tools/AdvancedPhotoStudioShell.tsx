@@ -56,6 +56,47 @@ const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number,
 };
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 
+type BalancedSheetLayout = { capacity: number; positions: Array<{ x: number; y: number }> };
+const getBalancedSheetLayout = (
+  count: number,
+  photoWidth: number,
+  photoHeight: number,
+  pageWidth: number,
+  pageHeight: number,
+  margin: number,
+  gapX: number,
+  gapY: number
+): BalancedSheetLayout => {
+  // Keep a minimum printer-safe edge even if the editable margin is reduced.
+  const safeMargin = Math.max(3, margin);
+  const usableWidth = pageWidth - safeMargin * 2;
+  const usableHeight = pageHeight - safeMargin * 2;
+  const maxColumns = Math.floor((usableWidth + gapX + 0.001) / (photoWidth + gapX));
+  const maxRows = Math.floor((usableHeight + gapY + 0.001) / (photoHeight + gapY));
+  if (maxColumns < 1 || maxRows < 1 || count <= 0) return { capacity: 0, positions: [] };
+
+  const capacity = Math.min(60, maxColumns * maxRows);
+  const placedCount = Math.min(count, capacity);
+  const columns = Math.min(maxColumns, placedCount);
+  const rows = Math.ceil(placedCount / columns);
+  const groupHeight = rows * photoHeight + Math.max(0, rows - 1) * gapY;
+  const firstY = safeMargin + (usableHeight - groupHeight) / 2;
+  const positions: Array<{ x: number; y: number }> = [];
+
+  for (let row = 0; row < rows; row++) {
+    const itemsInRow = Math.min(columns, placedCount - row * columns);
+    const rowWidth = itemsInRow * photoWidth + Math.max(0, itemsInRow - 1) * gapX;
+    const firstX = safeMargin + (usableWidth - rowWidth) / 2;
+    for (let column = 0; column < itemsInRow; column++) {
+      positions.push({
+        x: firstX + column * (photoWidth + gapX),
+        y: firstY + row * (photoHeight + gapY)
+      });
+    }
+  }
+  return { capacity, positions };
+};
+
 const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gapX: number, gapY: number) =>
   a.x < b.x + b.width + gapX - 0.01 && a.x + a.width + gapX > b.x + 0.01 &&
   a.y < b.y + b.height + gapY - 0.01 && a.y + a.height + gapY > b.y + 0.01;
@@ -284,21 +325,28 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     ? Math.max(120, Math.min(552, previewViewport.height - 120, (previewViewport.width - 48) / previewAspectRatio))
     : Math.min(552, 390 / previewAspectRatio);
   const previewPageWidth = previewPageHeight * previewAspectRatio;
-  const marginPx = sheetMode === 'single' ? 0 : sheetMargin * 300 / 25.4;
+  const marginPx = sheetMode === 'single' ? 0 : Math.max(3, sheetMargin) * 300 / 25.4;
   const gapPxX = sheetMode === 'single' ? 0 : sheetGap * 300 / 25.4;
   const gapPxY = sheetMode === 'single' ? 0 : sheetGapY * 300 / 25.4;
-  const sheetCols = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetWidthPx - marginPx * 2 + gapPxX) / (documentSize.widthPx + gapPxX)));
-  const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + gapPxY) / (documentSize.heightPx + gapPxY)));
-  const sheetCapacity = sheetCols * sheetRows;
-  const sheetAnchor = sheetSlots[0];
-  const anchorX = sheetAnchor?.x ?? sheetMargin;
-  const anchorY = sheetAnchor?.y ?? sheetMargin;
-  const anchoredCols = Math.max(1, Math.floor((sheetDimensions.widthMm - anchorX + sheetGap) / (documentSize.widthMm + sheetGap)));
-  const anchoredRows = Math.max(1, Math.floor((sheetDimensions.heightMm - anchorY + sheetGapY) / (documentSize.heightMm + sheetGapY)));
-  const anchoredCapacity = Math.min(sheetCapacity, anchoredCols * anchoredRows);
-  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, anchoredCapacity);
-  const reflowSheetSlots = (gapX:number,gapY:number) => setSheetSlots(current=>{const movable=current.filter(slot=>photos.find(photo=>photo.id===slot.photoId)?.kind!=='signature');if(!movable.length)return current;const anchor=movable[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+gapX)/(documentSize.widthMm+gapX)));const positions=new Map(movable.map((slot,index)=>[slot.id,{x:anchor.x+(index%cols)*(documentSize.widthMm+gapX),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+gapY)}]));return current.map(slot=>{const position=positions.get(slot.id);return position?{...slot,...position}:slot;});});
-  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > anchoredCapacity) setSheetCopies(anchoredCapacity); }, [sheetMode, anchoredCapacity, sheetCopies]);
+  const balancedCapacity = getBalancedSheetLayout(
+    60, documentSize.widthMm, documentSize.heightMm,
+    sheetDimensions.widthMm, sheetDimensions.heightMm,
+    sheetMode === 'single' ? 0 : sheetMargin, sheetGap, sheetGapY
+  ).capacity;
+  const sheetCapacity = sheetMode === 'single' ? 1 : balancedCapacity;
+  const anchoredCapacity = Math.max(1, sheetCapacity);
+  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, sheetCapacity);
+  const reflowSheetSlots = (gapX:number,gapY:number) => setSheetSlots(current=>{
+    const movable=current.filter(slot=>photos.find(photo=>photo.id===slot.photoId)?.kind!=='signature');
+    if(!movable.length)return current;
+    const layout=getBalancedSheetLayout(movable.length,documentSize.widthMm,documentSize.heightMm,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,gapX,gapY);
+    const positions=new Map(movable.map((slot,index)=>[slot.id,layout.positions[index]]));
+    return current.map(slot=>{
+      const position=positions.get(slot.id);
+      return position?{...slot,...position,width:documentSize.widthMm,height:documentSize.heightMm}:slot;
+    });
+  });
+  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > sheetCapacity) setSheetCopies(sheetCapacity); }, [sheetMode, sheetCapacity, sheetCopies]);
   useEffect(() => {
     const element = previewStageRef.current;
     if (!element) return;
@@ -502,15 +550,31 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (sheetMode === 'single' || !printablePhotos.length) { setSheetSlots([]); return; }
     setSheetSlots(current => {
       const count = Math.min(visibleCopies, sheetCapacity, 60);
-      // Signature artwork is an overlay layer, never a printable photo slot.
-      // Also discard legacy slots that may have been created from a signature layer.
-      const result = current.filter(slot => printablePhotos.some(photo => photo.id === slot.photoId)).slice(0, count).map(slot => ({...slot, photoId: printablePhotos.some(p => p.id === slot.photoId) ? slot.photoId : printablePhotos[0].id}));
-      const pageW = sheetDimensions.widthMm;
-      
-      while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:printablePhotos[i%printablePhotos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetGapY),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
-      return result;
+      // The first photo's exact output dimensions are the master size for every slot.
+      // Signature artwork remains an overlay and is never added to the print-copy grid.
+      const result = current
+        .filter(slot => printablePhotos.some(photo => photo.id === slot.photoId))
+        .slice(0, count)
+        .map(slot => ({ ...slot, photoId: printablePhotos.some(photo => photo.id === slot.photoId) ? slot.photoId : printablePhotos[0].id }));
+      while (result.length < count) {
+        const index = result.length;
+        result.push({
+          id: 'slot-' + Date.now() + '-' + index + '-' + Math.random().toString(36).slice(2),
+          photoId: printablePhotos[index % printablePhotos.length].id,
+          x: 0, y: 0,
+          width: documentSize.widthMm, height: documentSize.heightMm,
+          cropZoom: 100, positionX: 50, positionY: 50
+        });
+      }
+      const layout = getBalancedSheetLayout(count, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
+      return result.map((slot, index) => ({
+        ...slot,
+        ...(layout.positions[index] || {}),
+        width: documentSize.widthMm,
+        height: documentSize.heightMm
+      }));
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, sheetGapY, quickPrintLayout]);
+  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
@@ -537,23 +601,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const autoArrangeSheet = () => {
     if (!sheetSlots.length) return;
-    const pageW = sheetDimensions.widthMm;
-    const pageH = sheetDimensions.heightMm;
     const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
     const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
-    let x = sheetMargin, y = sheetMargin, rowHeight = 0;
-    const positions = new Map<string,{x:number;y:number}>();
-    photoSlots.forEach(slot => {
-      if (x > sheetMargin && x + slot.width > pageW - sheetMargin) {
-        x = sheetMargin;
-        y += rowHeight + sheetGapY;
-        rowHeight = 0;
-      }
-      positions.set(slot.id, {x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,x)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,y))});
-      x += slot.width + sheetGap;
-      rowHeight = Math.max(rowHeight,slot.height);
-    });
-    setSheetSlots(current => current.map(slot => signatureSlots.has(slot.id) ? slot : ({...slot,...positions.get(slot.id)})));
+    const layout = getBalancedSheetLayout(photoSlots.length, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
+    const positions = new Map(photoSlots.map((slot, index) => [slot.id, layout.positions[index]]));
+    setSheetSlots(current => current.map(slot => {
+      if (signatureSlots.has(slot.id)) return slot;
+      const position = positions.get(slot.id);
+      return position ? { ...slot, ...position, width: documentSize.widthMm, height: documentSize.heightMm } : slot;
+    }));
   };
 
   const mergeSheetPhotos = async (mergeAll = false) => {
@@ -1218,6 +1274,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <label className="text-[9px] studio-muted">Vertical Photo Gap (mm)<input aria-label="Vertical photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGapY.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGapY+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                 </div>
                 <button type="button" onClick={autoArrangeSheet} disabled={!sheetSlots.length} className="mt-2 w-full rounded-md border border-[#46515c] bg-[#252B31] py-2 text-[10px] font-semibold text-[#E2E8F0] transition hover:bg-[#303840] disabled:cursor-not-allowed disabled:opacity-40">Arrange Photos Using Gaps</button>
+                <button type="button" onClick={autoArrangeSheet} disabled={!sheetSlots.length || sheetMode === 'single'} title="Keep every photo at the exact selected size, arrange rows to save paper, and center the complete layout with equal safe margins." className="mt-2 w-full rounded-md border border-[#9B754D] bg-[#34291F] py-2 text-[10px] font-semibold text-[#F2D5AD] transition hover:bg-[#433426] disabled:cursor-not-allowed disabled:opacity-40">Smart Center & Balance</button>
               </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">PHOTO BORDER</span><label className="flex items-center gap-1.5 text-[9px] studio-muted"><input type="checkbox" checked={borderEnabled} onChange={event=>setBorderEnabled(event.target.checked)} className="accent-[#D0D7DE]"/> Enable</label></div>
