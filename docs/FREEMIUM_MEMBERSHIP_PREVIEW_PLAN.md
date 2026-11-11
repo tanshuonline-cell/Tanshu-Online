@@ -60,6 +60,16 @@ No recurring mandate, subscription debit, or automatic renewal is to be created.
 - On successful login, reload membership entitlement and current feature rules.
 - Membership expiry immediately removes paid entitlements on the next server/session check.
 
+## Admin owner-access bypass (owner-approved, 2026-11-11)
+
+- Provide a separate, secure Admin Login using the existing authenticated Admin account and server-verified Admin role.
+- When the verified Admin uses tools while signed in, bypass customer membership checks: all Free and Paid features are available without purchasing a plan.
+- Admin tool use must not show the customer Upgrade popup or unpaid-customer watermark.
+- Exclude Admin tool activity from customer usage logs, customer quotas, and customer-facing analytics so the owner can demonstrate tools in tutorial videos without consuming a customer allowance or appearing as a customer.
+- Never grant this bypass from a client-side flag, URL parameter, local storage value, or editable role field. Verify Admin role on the server for protected actions.
+- Keep essential security/audit records for Admin sign-in and sensitive Admin changes (such as changing roles, feature rules, or payment records); these are security records, not customer usage logs. Do not record ordinary Admin tool interactions as customer activity.
+- Customer sessions remain subject to their purchased plan and feature rules; an Admin bypass must never leak into another user's session.
+
 ## Admin controls
 
 - Reuse the existing authenticated Admin session and role checks; never weaken admin authentication.
