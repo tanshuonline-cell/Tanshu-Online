@@ -75,6 +75,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [customUnitName, setCustomUnitName] = useState('custom');
   const [customUnitMm, setCustomUnitMm] = useState('1');
   const [croppedAsset, setCroppedAsset] = useState<{src:string;widthMm:number;heightMm:number;name:string}|null>(null);
+  // Keep the merged signed crop synchronously available to the next toolbar action.
+  const signedCroppedAssetRef = useRef<{src:string;widthMm:number;heightMm:number;name:string}|null>(null);
   const [cutoutSrc, setCutoutSrc] = useState('');
   const [backgroundColor, setBackgroundColor] = useState<string|null>(null);
   const [backgroundChoice, setBackgroundChoice] = useState<string>('#ffffff');
@@ -108,6 +110,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     setEditorHydrated(false);
     if (!active) { setEditorHydrated(true); return; }
     const initial = { src: active.src, box: {x:0,y:0,w:100,h:100}, croppedAsset: null };
+    signedCroppedAssetRef.current = null;
     setWorkingSrc(active.src); setBox(initial.box); setCroppedAsset(null); setCutoutSrc(''); setBackgroundColor(null); setHistory([initial]); setHistoryIndex(0);
     setTargetW('0'); setTargetH('0'); setLockRatio(false); setDimensionEditing(false); setSignaturePosition({x:54,y:70,width:30}); setSignatureDrag(null);
     readEditorState(active.id).then(saved => {
@@ -293,6 +296,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     const heightMm = targetH.trim() && Number(targetH) > 0 ? toMm(Number(targetH), unit, Number(customUnitMm)||1) : sh * 25.4 / 300;
     const src = URL.createObjectURL(blob);
     const nextAsset = {src, widthMm, heightMm, name:active.name.replace(/\.[^.]+$/, '') + '-crop.png'};
+    signedCroppedAssetRef.current = null;
     const nextState = { src, box:{x:0,y:0,w:100,h:100}, croppedAsset:nextAsset, cutoutSrc:'', backgroundColor:null };
     setHistory(prev => { const next = [...prev.slice(0, historyIndex + 1), nextState]; setHistoryIndex(next.length - 1); return next; });
     setWorkingSrc(src); setCroppedAsset(nextAsset); setCutoutSrc(''); setBackgroundColor(null); setBox(nextState.box);
@@ -330,6 +334,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         heightMm: croppedAsset?.heightMm || photo.naturalHeight * 25.4 / 300,
         name: baseName + '-signed.png'
       };
+      // Set before React state updates so an immediate Add to A4 uses this PNG.
+      signedCroppedAssetRef.current = nextAsset;
       const nextState = { src, box: {x:0,y:0,w:100,h:100}, croppedAsset: nextAsset, cutoutSrc: '', backgroundColor: null };
       setHistory(prev => { const next = [...prev.slice(0, historyIndex + 1), nextState]; setHistoryIndex(next.length - 1); return next; });
       setWorkingSrc(src); setCroppedAsset(nextAsset); setCutoutSrc(''); setBackgroundColor(null);
@@ -341,13 +347,14 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     }
   };
   const addCroppedToA4 = () => {
-    const asset = croppedAsset || {
+    const asset = signedCroppedAssetRef.current || croppedAsset || {
       src: workingSrc || active.src,
       name: active.name,
       widthMm: naturalSize.width > 0 ? naturalSize.width * 25.4 / 300 : 45,
       heightMm: naturalSize.height > 0 ? naturalSize.height * 25.4 / 300 : 60
     };
     onUseOnPage({name:asset.name,src:asset.src,widthMm:asset.widthMm,heightMm:asset.heightMm});
+    signedCroppedAssetRef.current = null;
     setNotice(croppedAsset ? 'Cropped photo added to the A4 page.' : 'Original photo added to the A4 page at its proportional source size.');
     onFinish();
   };
