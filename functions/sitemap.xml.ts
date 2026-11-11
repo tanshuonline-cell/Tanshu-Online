@@ -7,13 +7,19 @@ export async function onRequestGet(): Promise<Response> {
   <url>
     <loc>https://tanshu-online.pages.dev/videos</loc>
   </url>
+  <url>
+    <loc>https://tanshu-online.pages.dev/digital-seva</loc>
+  </url>
+  <url>
+    <loc>https://tanshu-online.pages.dev/advanced-photo-studio-preview</loc>
+  </url>
 </urlset>`;
 
   return new Response(sitemapXml, {
     status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 'public, max-age=3600',
     },
   });
 }
