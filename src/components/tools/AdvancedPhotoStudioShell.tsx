@@ -990,7 +990,20 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <WandSparkles size={12}/> <span>Auto Photo Maker</span>
             </button>
-            <button type="button" aria-pressed={studioMode==='manual'} title="Manual Photo Studio: keep the current page, photos, zoom and layout while working with the existing editing controls." onClick={()=>{setStudioMode('manual');setActiveTool('Move');setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='manual'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
+            <button type="button" aria-pressed={studioMode==='manual'} title="Manual Photo Studio: keep the current page, photos, zoom and layout while working with the existing editing controls." onClick={()=>{
+              setStudioMode('manual');
+              setActiveTool('Move');
+              setOpenToolGroup('selection');
+              setMenuOpen(null);
+              // Manual Studio starts on a real, editable custom page. Keep imported
+              // photos and their source layers; only change the page workspace.
+              if (sheetMode !== 'custom') {
+                setCustomSheetWidthMm(sheetMode === 'single' ? 210 : sheetDimensions.widthMm);
+                setCustomSheetHeightMm(sheetMode === 'single' ? 297 : sheetDimensions.heightMm);
+                setSheetMode('custom');
+                setQuickPrintLayout(true);
+              }
+            }} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='manual'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <Move size={12}/> <span>Manual Photo Studio</span>
             </button>
           </div>
@@ -1044,7 +1057,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </aside>
           <main className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#14171A]">
             <div className="flex h-[52px] min-w-0 shrink-0 items-center justify-between gap-3 overflow-hidden border-b studio-line px-5">
-              <div className="flex min-w-0 shrink-0 items-center"><span className="text-[12px] font-medium text-[#E1E5E8]">Canvas</span></div>
+              <div className="flex min-w-0 shrink-0 items-center"><span className="text-[12px] font-medium text-[#E1E5E8]">{studioMode === 'manual' ? 'Manual Photo Studio' : 'Canvas'}</span></div>
               <div className="flex items-center gap-2">
                 <span className="mr-1 text-[10px] studio-muted">SHEET</span>
                 <select aria-label="Print sheet size" value={sheetMode} onChange={event => { setSheetMode(event.target.value as SheetMode); setSheetSlots([]); setSelectedSlotId(null); setSelectedSlotIds([]); setQuickPrintLayout(true); }} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="single">Single Photo</option><optgroup label="Common photo paper"><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select>
