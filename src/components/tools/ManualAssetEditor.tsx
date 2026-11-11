@@ -131,10 +131,25 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     const img = new Image();
     img.src = workingSrc || active.src;
     await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(new Error('Image load failed')); });
-    const sx = Math.round(img.naturalWidth * box.x / 100);
-    const sy = Math.round(img.naturalHeight * box.y / 100);
-    const sw = Math.max(1, Math.round(img.naturalWidth * box.w / 100));
-    const sh = Math.max(1, Math.round(img.naturalHeight * box.h / 100));
+    let cropBox = { ...box };
+    const requestedW = Number(targetW), requestedH = Number(targetH);
+    if (requestedW > 0 && requestedH > 0) {
+      const wantedRatio = toMm(requestedW, unit, Number(customUnitMm)||1) / toMm(requestedH, unit, Number(customUnitMm)||1);
+      const currentPixelW = img.naturalWidth * cropBox.w / 100;
+      const currentPixelH = img.naturalHeight * cropBox.h / 100;
+      const currentRatio = currentPixelW / currentPixelH;
+      if (currentRatio > wantedRatio) {
+        const nextW = currentPixelH * wantedRatio / img.naturalWidth * 100;
+        cropBox.x += (cropBox.w - nextW) / 2; cropBox.w = nextW;
+      } else {
+        const nextH = currentPixelW / wantedRatio / img.naturalHeight * 100;
+        cropBox.y += (cropBox.h - nextH) / 2; cropBox.h = nextH;
+      }
+    }
+    const sx = Math.round(img.naturalWidth * cropBox.x / 100);
+    const sy = Math.round(img.naturalHeight * cropBox.y / 100);
+    const sw = Math.max(1, Math.round(img.naturalWidth * cropBox.w / 100));
+    const sh = Math.max(1, Math.round(img.naturalHeight * cropBox.h / 100));
     const canvas = document.createElement('canvas');
     canvas.width = sw; canvas.height = sh;
     const ctx = canvas.getContext('2d');
