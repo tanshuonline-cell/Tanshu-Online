@@ -317,17 +317,25 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   const arrangePhotosUsingGaps = () => {
     const existing = page.layers.filter(layer=>layer.type==='photo' && layer.assetKind!=='signature');
     if (!existing.length) return;
-    const seed = (selectedPhoto && selectedPhoto.assetKind!=='signature' ? selectedPhoto : existing[0]);
-    const cols = Math.max(1,Math.floor((page.width-page.margin*2+horizontalGapMm)/(seed.w+horizontalGapMm)));
-    const rows = Math.max(1,Math.floor((page.height-page.margin*2+verticalGapMm)/(seed.h+verticalGapMm)));
-    const count = Math.max(1,Math.min(60,existing.length===1?manualPhotoCount:existing.length,cols*rows));
-    const arranged = existing.slice(0,count);
-    const additions:ManualLayer[]=[];
-    while(arranged.length<count){const copy:ManualLayer={...seed,id:uid(),name:seed.name+' copy',x:seed.x,y:seed.y,locked:false};additions.push(copy);arranged.push(copy);}
+    const seed = selectedPhoto && selectedPhoto.assetKind!=='signature' ? selectedPhoto : existing[0];
+    const requested = Math.max(1,Math.min(60,existing.length===1?manualPhotoCount:existing.length));
+    const candidates = [...existing];
+    while(candidates.length<requested){candidates.push({...seed,id:uid(),name:seed.name+' copy',locked:false});}
     let x=page.margin,y=page.margin,rowHeight=0;
     const positions=new Map<string,{x:number;y:number}>();
-    arranged.forEach(layer=>{if(x>page.margin&&x+layer.w>page.width-page.margin){x=page.margin;y+=rowHeight+verticalGapMm;rowHeight=0;}positions.set(layer.id,{x,y});x+=layer.w+horizontalGapMm;rowHeight=Math.max(rowHeight,layer.h);});
+    const arranged:ManualLayer[]=[];
+    for(const layer of candidates){
+      if(x>page.margin&&x+layer.w>page.width-page.margin){x=page.margin;y+=rowHeight+verticalGapMm;rowHeight=0;}
+      if(y+layer.h>page.height-page.margin)break;
+      positions.set(layer.id,{x,y});
+      arranged.push(layer);
+      x+=layer.w+horizontalGapMm;
+      rowHeight=Math.max(rowHeight,layer.h);
+    }
+    if(!arranged.length)return;
+    const additions=arranged.filter(layer=>!page.layers.some(existingLayer=>existingLayer.id===layer.id));
     updatePage(p=>({...p,layers:[...p.layers.map(layer=>{const position=positions.get(layer.id);return position?{...layer,...position}:layer;}),...additions.map(layer=>({...layer,...positions.get(layer.id)!}))]}));
+    setManualPhotoCount(arranged.length);
     setSelectedIds(arranged.map(layer=>layer.id));
   };
   const startCropDrag = (event:React.PointerEvent<HTMLButtonElement>, corner:string) => {
