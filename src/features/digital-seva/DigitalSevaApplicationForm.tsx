@@ -367,6 +367,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       if (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service)) {
         let orderId = pendingCheckoutOrderId;
         let paymentSessionId = pendingPaymentSessionId;
+        let checkoutMode: 'sandbox' | 'production' = pendingCashfreeMode;
         payload.paymentMode = 'AUTO_PAY';
 
         // If an earlier attempt was paid but the booking response was interrupted,
@@ -400,14 +401,15 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
             paymentSessionId = String(orderData.paymentSessionId);
             setPendingCheckoutOrderId(orderId);
             setPendingPaymentSessionId(paymentSessionId);
-            setPendingCashfreeMode(orderData.cashfreeMode === 'production' ? 'production' : 'sandbox');
+            checkoutMode = orderData.cashfreeMode === 'production' ? 'production' : 'sandbox';
+            setPendingCashfreeMode(checkoutMode);
             const savedDraft = { ...draftStateRef.current, paymentMode: 'AUTO_PAY', pendingCheckoutOrderId: orderId, pendingPaymentSessionId: paymentSessionId };
             draftStateRef.current = savedDraft;
             await saveDigitalSevaDraft(service.id, savedDraft).catch(() => {});
           }
 
           await loadCashfreeSdk();
-          const cashfree = window.Cashfree!({ mode: pendingCashfreeMode });
+          const cashfree = window.Cashfree!({ mode: checkoutMode });
           const checkoutResult = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' });
           if (checkoutResult?.error) throw new Error(checkoutResult.error.message || 'Payment was not completed. Your booking has not been submitted.');
           data = await sendBooking({ ...payload, paymentOrderId: orderId });
