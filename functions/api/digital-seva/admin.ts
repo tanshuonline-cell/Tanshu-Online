@@ -1,7 +1,8 @@
 // Cloudflare Pages Function: /api/digital-seva/admin
 // Admin-only booking and private document operations. Uses the existing signed superadmin session cookie.
 import { createPrivateDocumentUrl, deletePrivateDocument } from './_storage';
-interface Env { DIGITAL_SEVA_DB?: any; ADMIN_SECRET_TOKEN?: string; DIGITAL_SEVA_PII_SECRET?: string; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; }
+import { cashfreeApiBase } from './_cashfree';
+interface Env { DIGITAL_SEVA_DB?: any; ADMIN_SECRET_TOKEN?: string; DIGITAL_SEVA_PII_SECRET?: string; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const ALLOWED_STATUSES = new Set(['RECEIVED', 'IN_REVIEW', 'WAITING_FOR_CUSTOMER', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
 
@@ -143,17 +144,37 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
        FROM digital_seva_checkout_orders
        WHERE status = 'PAID' AND booking_id IS NULL
        ORDER BY COALESCE(paid_at, created_at) DESC
-       LIMIT 100`
+       LIMIT 25`
     ).all();
-    const orphanedPayments = (recoveryResult.results || []).map((order: any) => ({
-      order_id: String(order.order_id),
-      service_id: String(order.service_id),
-      customer_phone: String(order.customer_phone || ''),
-      amount: Number(order.amount),
-      currency: String(order.currency || 'INR'),
-      status: String(order.status),
-      paid_at: order.paid_at || null,
-      created_at: String(order.created_at || '')
+    const orphanedPayments = await Promise.all((recoveryResult.results || []).map(async (order: any) => {
+      let cashfreeCustomer: any = {};
+      if (env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY) {
+        try {
+          const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(String(order.order_id))}`, {
+            headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
+          });
+          if (response.ok) {
+            const verified = await response.json() as any;
+            if (String(verified.order_id || '') === String(order.order_id) && String(verified.order_status || '').toUpperCase() === 'PAID') {
+              cashfreeCustomer = verified.customer_details || {};
+            }
+          }
+        } catch (error) {
+          console.error('Could not enrich paid checkout order for admin recovery view.');
+        }
+      }
+      return {
+        order_id: String(order.order_id),
+        service_id: String(order.service_id),
+        customer_phone: String(order.customer_phone || cashfreeCustomer.customer_phone || ''),
+        customer_name: String(cashfreeCustomer.customer_name || ''),
+        customer_email: String(cashfreeCustomer.customer_email || ''),
+        amount: Number(order.amount),
+        currency: String(order.currency || 'INR'),
+        status: String(order.status),
+        paid_at: order.paid_at || null,
+        created_at: String(order.created_at || '')
+      };
     }));
     return json({ success: true, bookings, orphanedPayments });
   } catch (error) {
