@@ -42,7 +42,15 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       'SELECT id, amount, status FROM digital_seva_checkout_orders WHERE order_id = ?'
     ).bind(orderId).first();
     if (!local) return json({ success: true, ignored: true });
-    if (local.status === 'CLAIMED' || local.status === 'PAID') return json({ success: true, duplicate: true });
+    const payment = event?.data?.payment && typeof event.data.payment === 'object' ? event.data.payment : {};
+    const eventType = String(event?.type || 'CASHFREE_ORDER_EVENT').slice(0, 100);
+    const paymentStatus = String(payment.payment_status || event?.data?.order?.order_status || 'UNKNOWN').toUpperCase().slice(0, 60);
+    const cfPaymentId = payment.cf_payment_id == null ? '' : String(payment.cf_payment_id).slice(0, 100);
+    const paymentMessage = String(payment.payment_message || payment.payment_status || '').slice(0, 500);
+    const paymentAmount = Number(payment.payment_amount ?? event?.data?.order?.order_amount);
+    const paymentCurrency = String(payment.payment_currency || event?.data?.order?.order_currency || 'INR').slice(0, 8);
+    const eventTime = String(payment.payment_time || event?.data?.payment?.payment_time || '').slice(0, 80) || null;
+    const eventKey = `${orderId}:${cfPaymentId || timestamp}:${paymentStatus}:${eventType}`.slice(0, 240);
 
     const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}`, {
       headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
@@ -50,6 +58,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const verified = await response.json().catch(() => ({})) as any;
     if (!response.ok) return json({ success: false, error: 'Could not verify the Cashfree order.' }, 502);
     if (String(verified.order_id || '') !== orderId) return json({ success: false, error: 'Cashfree returned a different order.' }, 502);
+
+    await env.DIGITAL_SEVA_DB.prepare(
+      `INSERT OR IGNORE INTO digital_seva_checkout_payment_events
+       (event_key, order_id, event_type, payment_status, cf_payment_id, payment_message, payment_amount, payment_currency, event_time)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      eventKey, orderId, eventType, paymentStatus, cfPaymentId || null, paymentMessage || null,
+      Number.isFinite(paymentAmount) ? paymentAmount : null, paymentCurrency, eventTime
+    ).run();
+
+    if (local.status === 'CLAIMED' || local.status === 'PAID') return json({ success: true, duplicate: true, historyRecorded: true });
 
     const status = String(verified.order_status || '').toUpperCase();
     if (status === 'PAID') {
