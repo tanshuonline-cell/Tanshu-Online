@@ -139,6 +139,43 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       application_details_json: await revealApplicationDetails(booking.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index)),
       documents: grouped.get(booking.id) || []
     })));
+    // Reconcile a small bounded set of recent PENDING orders directly with Cashfree.
+    // This catches successful payments when a webhook delivery was delayed or missed.
+    if (env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY) {
+      const pendingResult = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT order_id, amount, currency FROM digital_seva_checkout_orders
+         WHERE status = 'PENDING'
+         ORDER BY created_at DESC LIMIT 25`
+      ).all();
+      await Promise.all((pendingResult.results || []).map(async (order: any) => {
+        try {
+          const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(String(order.order_id))}`, {
+            headers: { 'x-client-id': env.CASHFREE_APP_ID!, 'x-client-secret': env.CASHFREE_SECRET_KEY!, 'x-api-version': '2022-09-01' }
+          });
+          if (!response.ok) return;
+          const verified = await response.json() as any;
+          if (String(verified.order_id || '') !== String(order.order_id) ||
+              String(verified.order_currency || '').toUpperCase() !== String(order.currency || 'INR').toUpperCase() ||
+              Math.round(Number(verified.order_amount) * 100) !== Math.round(Number(order.amount) * 100)) return;
+          const status = String(verified.order_status || '').toUpperCase();
+          if (status === 'PAID') {
+            await env.DIGITAL_SEVA_DB.prepare(
+              `UPDATE digital_seva_checkout_orders
+               SET status = 'PAID', paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+               WHERE order_id = ? AND status = 'PENDING'`
+            ).bind(String(order.order_id)).run();
+          } else if (['EXPIRED', 'TERMINATED'].includes(status)) {
+            await env.DIGITAL_SEVA_DB.prepare(
+              `UPDATE digital_seva_checkout_orders SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP
+               WHERE order_id = ? AND status = 'PENDING'`
+            ).bind(String(order.order_id)).run();
+          }
+        } catch {
+          // A temporary Cashfree lookup failure must not block the Admin Panel.
+        }
+      }));
+    }
+
     const recoveryResult = await env.DIGITAL_SEVA_DB.prepare(
       `SELECT order_id, service_id, customer_phone, amount, currency, status, paid_at, created_at
        FROM digital_seva_checkout_orders
