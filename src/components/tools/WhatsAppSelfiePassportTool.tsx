@@ -649,8 +649,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[#111518] text-[#E8EDF1]">
-      <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[#171C20]/95 backdrop-blur-xl">
+    <main className="relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[#111518] text-[#E8EDF1]">
+      <header className="relative z-30 h-[68px] min-h-[68px] shrink-0 border-b border-white/10 bg-[#171C20]/95 backdrop-blur-xl">
         <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <a href="/" aria-label="Back to TANSHU ONLINE" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#D6DEE5] transition hover:bg-white/10">
@@ -674,9 +674,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         </div>
       </header>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-[1920px] flex-1 overflow-hidden px-2 py-2 sm:px-3">
-        <section onPointerDown={event=>{const target=event.target as HTMLElement;if(isCropping&&cropViewportRef.current&&!cropViewportRef.current.contains(target)&&!target.closest('button'))setIsCropping(false);}} className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#343D44] bg-[#1A2025] shadow-2xl shadow-black/30">
-          <div className="flex flex-nowrap items-center justify-between gap-3 overflow-x-auto border-b border-[#343D44] bg-[#20272D] px-4 py-3 sm:px-5">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1920px] flex-1 overflow-hidden px-2 sm:px-3">
+        <section onPointerDown={event=>{const target=event.target as HTMLElement;if(isCropping&&cropViewportRef.current&&!cropViewportRef.current.contains(target)&&!target.closest('button'))setIsCropping(false);}} className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#343D44] bg-[#1A2025] shadow-2xl shadow-black/30">
+          <div className="relative z-20 flex min-h-[58px] shrink-0 flex-nowrap items-center justify-between gap-3 overflow-x-auto border-b border-[#343D44] bg-[#20272D] px-4 py-3 sm:px-5">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300"><Layers3 size={16}/></span>
               <div><p className="text-xs font-bold text-white">Studio Workspace</p><p className="text-[10px] text-[#8F9BA5]">Upload · Edit · Preview · Print</p></div>
@@ -729,7 +729,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
               </div>
 
-              <div onWheel={(event) => { if (activeTool !== 'print' && selectedFile && (event.ctrlKey || event.metaKey)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
+              <div onWheel={(event) => { if (activeTool !== 'print' && selectedFile && (event.ctrlKey || event.metaKey)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-start justify-start overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
@@ -741,8 +741,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   </label>
                 ) : (
                   activeTool === 'print' ? (
-                    <div className="flex min-h-full min-w-full w-max items-start p-5">
-                      <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative m-auto shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
+                    <div className="flex min-h-full min-w-full w-max items-start justify-start p-5">
+                      <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative mx-0 my-0 shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
                         {Array.from({length:visiblePhotoCount},(_,index)=>{
                           const position=getSheetPhotoPosition(index);
                           return <div key={index} onPointerDown={event=>startSheetPhotoDrag(event,index)} onPointerMove={moveSheetPhotoDrag} onPointerUp={endSheetPhotoDrag} onPointerCancel={endSheetPhotoDrag} className="absolute cursor-move touch-none overflow-hidden bg-slate-100 shadow-sm" style={{left:position.x*sheetPreviewScale*sheetZoom/100+'px',top:position.y*sheetPreviewScale*sheetZoom/100+'px',width:photoWidthMm*sheetPreviewScale*sheetZoom/100+'px',height:photoHeightMm*sheetPreviewScale*sheetZoom/100+'px',border:borderEnabled?Math.max(1,borderWidthMm*sheetPreviewScale*sheetZoom/100)+'px solid '+borderColor:'none'}}>
