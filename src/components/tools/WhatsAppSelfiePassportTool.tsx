@@ -114,6 +114,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
 
   const resetPreview = () => {
+    setProcessedPhotoUrl('');
+    setFaceStatus('idle');
+    setFaceMessage('Choose a photo, then run face alignment. Processing stays in this browser.');
+    setDetectedTilt(null);
     setZoom(100); setRotation(0); setFlipped(false);
     faceAppliedCorrectionRef.current = 0;
     setCropRect({x:0,y:0,w:100,h:100}); setCropHasSelection(false); setPhotoOffset({x:0,y:0}); setPhotoScale(1); setIsCropping(false);
@@ -612,7 +616,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">PRINT SHEET SETUP</p>
                   <select value={sheetSize} onChange={event => setSheetSize(event.target.value as 'A4'|'4x6')} className="h-9 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-2 text-[10px] font-semibold text-white"><option value="A4">A4 Sheet</option><option value="4x6">4 × 6 inch Sheet</option></select>
-                  <button type="button" onClick={downloadPrintSheet} disabled={!processedPhotoUrl} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download ${sheetSize} Print Sheet (PNG)</button>
+                  <button type="button" onClick={downloadPrintSheet} disabled={!processedPhotoUrl} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
                   <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
                   <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
                   <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the preview while Print is selected to zoom the sheet.</p>
