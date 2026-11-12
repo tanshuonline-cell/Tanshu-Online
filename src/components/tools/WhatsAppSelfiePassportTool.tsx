@@ -49,6 +49,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [sheetZoom, setSheetZoom] = useState(100);
   const [signatureVisible, setSignatureVisible] = useState(true);
   const replacePhotoInputRef = useRef<HTMLInputElement>(null);
+  const cropViewportRef = useRef<HTMLDivElement>(null);
+  const cropDragRef = useRef<{mode:'pan'|'nw'|'ne'|'sw'|'se';startX:number;startY:number;startRect:{x:number;y:number;w:number;h:number};startOffset:{x:number;y:number}}|null>(null);
+  const [isCropping,setIsCropping] = useState(false);
+  const [cropRect,setCropRect] = useState({x:10,y:10,w:80,h:80});
+  const [photoOffset,setPhotoOffset] = useState({x:0,y:0});
 
   useEffect(() => {
     if (!selectedFile) {
@@ -81,14 +86,34 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setZoom(100);
     setRotation(0);
     setFlipped(false);
+    setCropRect({x:10,y:10,w:80,h:80});
+    setPhotoOffset({x:0,y:0});
+    setIsCropping(false);
     event.target.value = '';
   };
 
   const resetPreview = () => {
-    setZoom(100);
-    setRotation(0);
-    setFlipped(false);
+    setZoom(100); setRotation(0); setFlipped(false);
+    setCropRect({x:10,y:10,w:80,h:80}); setPhotoOffset({x:0,y:0}); setIsCropping(false);
   };
+  const startCropDrag=(mode:'pan'|'nw'|'ne'|'sw'|'se',event:React.PointerEvent<HTMLElement>)=>{
+    if(!isCropping||activeTool!=='crop')return;
+    event.preventDefault();event.stopPropagation();
+    cropDragRef.current={mode,startX:event.clientX,startY:event.clientY,startRect:{...cropRect},startOffset:{...photoOffset}};
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+  };
+  const handleCropPointerMove=(event:React.PointerEvent<HTMLDivElement>)=>{
+    const drag=cropDragRef.current,bounds=cropViewportRef.current?.getBoundingClientRect();
+    if(!drag||!bounds||!bounds.width||!bounds.height)return;
+    const dx=(event.clientX-drag.startX)/bounds.width*100,dy=(event.clientY-drag.startY)/bounds.height*100;
+    if(drag.mode==='pan'){setPhotoOffset({x:drag.startOffset.x+event.clientX-drag.startX,y:drag.startOffset.y+event.clientY-drag.startY});return;}
+    const r=drag.startRect,min=15;
+    if(drag.mode==='nw'){const x=Math.max(0,Math.min(r.x+r.w-min,r.x+dx)),y=Math.max(0,Math.min(r.y+r.h-min,r.y+dy));setCropRect({x,y,w:r.x+r.w-x,h:r.y+r.h-y});}
+    else if(drag.mode==='ne'){const right=Math.max(r.x+min,Math.min(100,r.x+r.w+dx)),y=Math.max(0,Math.min(r.y+r.h-min,r.y+dy));setCropRect({x:r.x,y,w:right-r.x,h:r.y+r.h-y});}
+    else if(drag.mode==='sw'){const x=Math.max(0,Math.min(r.x+r.w-min,r.x+dx)),bottom=Math.max(r.y+min,Math.min(100,r.y+r.h+dy));setCropRect({x,y:r.y,w:r.x+r.w-x,h:bottom-r.y});}
+    else{const right=Math.max(r.x+min,Math.min(100,r.x+r.w+dx)),bottom=Math.max(r.y+min,Math.min(100,r.y+r.h+dy));setCropRect({x:r.x,y:r.y,w:right-r.x,h:bottom-r.y});}
+  };
+  const endCropDrag=()=>{cropDragRef.current=null;};
 
   const removeSelectedPhoto = () => {
     setSelectedFile(null);
@@ -163,6 +188,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <button type="button" onClick={() => setZoom(value => Math.max(50, value - 10))} disabled={!selectedFile} aria-label="Zoom out" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomOut size={14}/></button>
                   <span className="w-10 text-center text-[10px] font-bold tabular-nums text-[#C8D1D9]">{zoom}%</span>
                   <button type="button" onClick={() => setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
+                  {selectedFile&&activeTool==='crop'&&<button type="button" onClick={()=>setIsCropping(v=>!v)} className={isCropping?'ml-1 rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-2 text-[10px] font-bold text-emerald-200':'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] hover:bg-white/5'}>{isCropping?'Done':'Crop'}</button>}
                   <button type="button" onClick={() => setShowGuides(value => !value)} disabled={!selectedFile} className={showGuides ? 'ml-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 disabled:opacity-30' : 'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] disabled:opacity-30'}>Guides</button>
                 </div>
               </div>
@@ -191,10 +217,14 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                  <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
+                  <div ref={cropViewportRef} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className="relative flex h-full min-h-[420px] w-full items-center justify-center">
                     <div className="relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)'}}>
-                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} className="h-full w-full select-none object-contain transition-transform duration-200" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped ? -1 : 1)+')'}}/>
-                      {showGuides && <div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
+                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={event=>startCropDrag('pan',event)} className={'h-full w-full select-none object-contain '+(isCropping?'cursor-grab active:cursor-grabbing':'transition-transform duration-200')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',touchAction:'none'}}/>
+                      {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
+                      {isCropping&&activeTool==='crop'&&<div className="pointer-events-none absolute rounded-sm border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}>
+                        {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize crop '+corner} onPointerDown={event=>startCropDrag(corner,event)} className="pointer-events-auto absolute h-5 w-5 rounded-full border-2 border-emerald-950 bg-emerald-300 shadow-lg" style={{left:corner.endsWith('w')?'-10px':'auto',right:corner.endsWith('e')?'-10px':'auto',top:corner.startsWith('n')?'-10px':'auto',bottom:corner.startsWith('s')?'-10px':'auto',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
+                      </div>}
+                      {isCropping&&<span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/75 px-3 py-1.5 text-[9px] font-bold text-white">DRAG CORNERS TO CROP · DRAG PHOTO TO POSITION</span>}
                       {signatureUrl && signatureVisible && <img src={signatureUrl} alt="Signature overlay preview" className="absolute bottom-[13%] right-[12%] max-h-[12%] max-w-[38%] object-contain drop-shadow" />}
                       <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[9px] font-bold tracking-wide text-white">PREVIEW ONLY</span>
                     </div>
@@ -246,10 +276,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
                 {activeTool === 'crop' ? (
                   <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
-                    <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-bold text-[#D4DCE1]">PREVIEW ZOOM</span><span className="text-[10px] font-bold tabular-nums text-emerald-300">{zoom}%</span></div>
+                    <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-bold text-[#D4DCE1]">PHOTO ZOOM</span><span className="text-[10px] font-bold tabular-nums text-emerald-300">{zoom}%</span></div>
                     <input aria-label="Preview zoom" type="range" min="50" max="180" step="5" value={zoom} onChange={event => setZoom(Number(event.target.value))} className="w-full accent-emerald-400"/>
                     <div className="mt-2 flex justify-between text-[9px] text-[#829099]"><span>50%</span><span>100%</span><span>180%</span></div>
                     <button type="button" onClick={() => setShowGuides(value => !value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[10px] font-semibold text-[#C3CDD3]"><span>Composition guides</span><span className={showGuides ? 'text-emerald-300' : 'text-[#7E8A93]'}>{showGuides ? 'ON' : 'OFF'}</span></button>
+                    <button type="button" onClick={()=>setPhotoOffset({x:0,y:0})} className="mt-2 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[10px] font-semibold text-[#C3CDD3] hover:bg-white/5">Center photo position</button>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-3">
