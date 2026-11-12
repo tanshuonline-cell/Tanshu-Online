@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { TANSHU_PROFILE_PHOTO } from '../Header';
 import {
   ArrowLeft, Camera, Check, Crop, Download, FileImage, FlipHorizontal,
   ImagePlus, Info, Layers3, RotateCcw, RotateCw, ScanFace,
@@ -41,6 +42,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [rotation, setRotation] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [showGuides, setShowGuides] = useState(true);
+  const [inputMode, setInputMode] = useState<'selfie' | 'existing' | 'whatsapp'>('selfie');
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState('');
+  const [sheetSize, setSheetSize] = useState<'A4' | '4x6'>('A4');
+  const [sheetZoom, setSheetZoom] = useState(100);
+  const [signatureVisible, setSignatureVisible] = useState(true);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -51,6 +58,19 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
+
+  useEffect(() => {
+    if (!signatureFile) { setSignatureUrl(''); return; }
+    const url = URL.createObjectURL(signatureFile);
+    setSignatureUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [signatureFile]);
+
+  const handleSignatureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) setSignatureFile(file);
+    event.target.value = '';
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -77,9 +97,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             <a href="/" aria-label="Back to TANSHU ONLINE" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#D6DEE5] transition hover:bg-white/10">
               <ArrowLeft size={17} />
             </a>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-700 text-white shadow-lg shadow-emerald-950/40">
-              <Camera size={21} />
-            </div>
+            <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-10 w-10 rounded-full border-2 border-emerald-300/80 object-cover object-center shadow-lg shadow-emerald-950/40" />
             <div>
               
               <h1 className="text-sm font-extrabold tracking-wide text-white sm:text-base">TANSHU ONLINE · WHATSAPP SELFIE PHOTO STUDIO</h1>
@@ -134,24 +152,45 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
               </div>
 
-              <div onWheel={(event) => { if (selectedFile) { event.preventDefault(); setZoom(value => Math.max(50, Math.min(250, value + (event.deltaY < 0 ? 5 : -5)))); } }} className="relative flex min-h-[calc(100vh-190px)] flex-1 items-center justify-center overflow-hidden p-4 sm:min-h-[calc(100vh-190px)] sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
+              <div className="border-b border-[#303941] bg-[#182126] px-4 py-3">
+                <div className="mb-2 text-[9px] font-extrabold uppercase tracking-[.16em] text-[#82949B]">Choose photo workflow</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([{id:'selfie',title:'Selfie Photo',desc:'Different camera angles'},{id:'existing',title:'Existing Photo',desc:'Old / low quality photo'},{id:'whatsapp',title:'WhatsApp Print',desc:'Tilted / skewed photo'}] as const).map(mode => <button key={mode.id} type="button" onClick={() => setInputMode(mode.id)} className={inputMode===mode.id?'rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-2 py-2 text-left ring-1 ring-emerald-400/20':'rounded-lg border border-[#3A444C] bg-[#1B2227] px-2 py-2 text-left hover:bg-white/5'}><span className="block text-[10px] font-bold text-white">{mode.title}</span><span className="mt-1 block text-[8px] leading-3 text-[#8F9BA5]">{mode.desc}</span></button>)}
+                </div>
+              </div>
+              <div onWheel={(event) => { if (selectedFile) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-[calc(100vh-190px)] flex-1 items-center justify-center overflow-auto p-4 sm:min-h-[calc(100vh-190px)] sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
-                    <span className="text-lg font-extrabold text-white sm:text-xl">Upload Customer Selfie</span>
-                    <span className="mt-2 max-w-sm text-xs leading-6 text-[#9EADB4] sm:text-sm">Choose a photo received on WhatsApp and saved to this device. Your image preview stays in this browser.</span>
+                    <span className="text-lg font-extrabold text-white sm:text-xl">{inputMode === 'selfie' ? 'Upload Customer Selfie' : inputMode === 'existing' ? 'Upload Existing Photo' : 'Upload WhatsApp Photo'}</span>
+                    <span className="mt-2 max-w-sm text-xs leading-6 text-[#9EADB4] sm:text-sm">{inputMode === 'selfie' ? 'Choose a customer selfie for guided face positioning.' : inputMode === 'existing' ? 'Choose an older passport photo or low-resolution image.' : 'Choose a tilted or photographed passport print received on WhatsApp.'}</span>
                     <span className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 text-xs font-extrabold text-white shadow-lg shadow-emerald-950/50 transition group-hover:-translate-y-0.5"><ImagePlus size={16}/> Choose Photo</span>
                     <span className="mt-4 text-[10px] text-[#73828A]">JPG · PNG · WEBP · Image files</span>
                     <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange}/>
                   </label>
                 ) : (
+                  {activeTool === 'print' ? (
+                    <div className="flex min-h-full min-w-full items-center justify-center overflow-auto p-5">
+                      <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px'}}>
+                        <div className="grid grid-cols-3 content-start gap-3">
+                          {Array.from({length:sheetSize==='A4'?12:4},(_,index)=><div key={index} className="relative overflow-hidden border border-slate-300 bg-slate-100" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9'}}>
+                            <img src={previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
+                            {signatureUrl && signatureVisible && <img src={signatureUrl} alt="" className="absolute bottom-[8%] right-[8%] h-[12%] w-[38%] object-contain"/>}
+                          </div>)}
+                        </div>
+                        <span className="absolute bottom-2 right-3 text-[8px] font-semibold text-slate-400">{sheetSize} · LAYOUT PREVIEW · {sheetZoom}%</span>
+                      </div>
+                    </div>
+                  ) : (
                   <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
                     <div className="relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)'}}>
                       <img src={previewUrl} alt="Customer selfie preview" draggable={false} className="h-full w-full select-none object-contain transition-transform duration-200" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped ? -1 : 1)+')'}}/>
                       {showGuides && <div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
+                      {signatureUrl && signatureVisible && <img src={signatureUrl} alt="Signature overlay preview" className="absolute bottom-[13%] right-[12%] max-h-[12%] max-w-[38%] object-contain drop-shadow" />}
                       <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[9px] font-bold tracking-wide text-white">PREVIEW ONLY</span>
                     </div>
                   </div>
+                  )}
                 )}
               </div>
 
@@ -209,6 +248,21 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <p className="mt-2 text-[10px] leading-5 text-[#B5BFC5]">This tool is visible in the studio layout. Its full editing controls will be connected after the core crop and preview workflow is completed.</p>
                   </div>
                 )}
+
+                <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
+                  <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">SIGNATURE ON PHOTO</p>
+                  {signatureFile ? <div className="flex items-center gap-2"><img src={signatureUrl} alt="Signature" className="h-10 w-16 rounded bg-white object-contain p-1"/><span className="min-w-0 flex-1 truncate text-[9px] text-[#C8D1D9]">{signatureFile.name}</span><button type="button" onClick={() => setSignatureFile(null)} className="rounded p-1 text-rose-300" aria-label="Remove signature"><X size={14}/></button></div> : <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#52615F] px-3 py-3 text-[10px] font-bold text-emerald-300 hover:bg-emerald-400/5"><ImagePlus size={14}/> Add signature image<input type="file" accept="image/*" className="sr-only" onChange={handleSignatureChange}/></label>}
+                  <button type="button" disabled={!signatureFile} onClick={() => setSignatureVisible(value => !value)} className="mt-2 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3] disabled:opacity-40"><span>Show signature on preview</span><span className="text-emerald-300">{signatureVisible ? 'ON' : 'OFF'}</span></button>
+                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Signature is shown as a preview overlay. Final composite export will be connected with the print renderer.</p>
+                </div>
+
+                <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
+                  <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">PRINT SHEET SETUP</p>
+                  <select value={sheetSize} onChange={event => setSheetSize(event.target.value as 'A4'|'4x6')} className="h-9 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-2 text-[10px] font-semibold text-white"><option value="A4">A4 Sheet</option><option value="4x6">4 × 6 inch Sheet</option></select>
+                  <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
+                  <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
+                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the preview while Print is selected to zoom the sheet.</p>
+                </div>
 
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">WORKFLOW</p>
