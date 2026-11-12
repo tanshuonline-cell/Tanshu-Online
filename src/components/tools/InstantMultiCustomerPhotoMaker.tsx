@@ -82,6 +82,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const [cropDragOrigin, setCropDragOrigin] = useState<CropBox|null>(null);
   const [busy, setBusy] = useState(false);
   const [adjustmentOpen, setAdjustmentOpen] = useState(true);
+  const [adjustmentClosing, setAdjustmentClosing] = useState(false);
   const [paperSize, setPaperSize] = useState('A4');
   const [notice, setNotice] = useState('Upload several customer photos to start a batch.');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -191,8 +192,8 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
     try {
       const url=await makeAdjusted(activeCustomer);
       updateCustomer(activeCustomer.id,{workingUrl:url,brightness:100,contrast:100,saturation:100,sharpness:0,clarity:0,beauty:0,faceTone:0,selectiveColor:0,lipTint:0,hairTone:0,colorGrade:0});
-      setNotice('Adjustments applied to the selected customer.'); setAdjustmentOpen(false);
-      window.setTimeout(()=>setActiveStep(current=>current==='adjust'?'upload':current),320);
+      setNotice('Adjustments applied to the selected customer.'); setAdjustmentClosing(true);
+      window.setTimeout(()=>{setAdjustmentOpen(false);setAdjustmentClosing(false);},320);
     } catch {setNotice('Could not apply adjustments.');} finally {setBusy(false);}
   };
   const sizePixels = (c:CustomerPhoto) => {const mm=mmFor(c);return {w:Math.round(mm.w/25.4*300),h:Math.round(mm.h/25.4*300)};};
@@ -264,14 +265,14 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
                     <span className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/><span className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/><span className="absolute -left-1.5 -bottom-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/><span className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/>
                   </div>}
                 </div>
-                {activeStep==='adjust'&&<div className={'w-full min-w-0 overflow-hidden rounded-xl border border-rose-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(15,23,42,.12)] sm:w-[250px] sm:shrink-0 '+(adjustmentOpen?'imc-adjust-pop-in':'imc-adjust-pop-out')}>
+                {activeStep==='adjust'&&(adjustmentOpen||adjustmentClosing?<div className={'w-full min-w-0 overflow-hidden rounded-xl border border-rose-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(15,23,42,.12)] sm:w-[250px] sm:shrink-0 '+(adjustmentClosing?'imc-adjust-pop-out':'imc-adjust-pop-in')}>
                   <div className="flex items-center justify-between gap-2"><div><h3 className="text-xs font-extrabold text-slate-800">Photo Adjustment</h3><p className="mt-0.5 truncate text-[9px] text-slate-500">{activeCustomer.name} · Live preview</p></div><span className="rounded-full bg-rose-50 px-2 py-1 text-[8px] font-bold text-rose-700">PRO</span></div>
                   <div className="mt-3 max-h-[300px] space-y-2.5 overflow-y-auto pr-1 imc-premium-scrollbar">
                     {([{key:'brightness',label:'Brightness',min:50,max:150,suffix:'%'},{key:'contrast',label:'Contrast',min:50,max:150,suffix:'%'},{key:'saturation',label:'Saturation',min:0,max:200,suffix:'%'},{key:'sharpness',label:'Sharpness',min:0,max:100,suffix:'%'},{key:'clarity',label:'Clarity',min:0,max:100,suffix:'%'},{key:'beauty',label:'Beauty · Soft skin',min:0,max:100,suffix:'%'},{key:'faceTone',label:'Face Tone · Warmth',min:-50,max:50,suffix:''},{key:'selectiveColor',label:'Selective Color · Vibrance',min:0,max:100,suffix:'%'},{key:'lipTint',label:'Lip Tint · Color pop',min:0,max:100,suffix:'%'},{key:'hairTone',label:'Hair Tone · Deepen',min:0,max:100,suffix:'%'},{key:'colorGrade',label:'Color Grading · Warm',min:0,max:100,suffix:'%'}] as const).map(item=><label key={item.key} className="block"><span className="flex items-center justify-between gap-2 text-[9px] font-semibold text-slate-600"><span>{item.label}</span><span className="tabular-nums text-slate-500">{activeCustomer[item.key]}{item.suffix}</span></span><input type="range" min={item.min} max={item.max} value={activeCustomer[item.key]} onChange={e=>updateCustomer(activeCustomer.id,{[item.key]:Number(e.target.value)})} className="mt-1 h-1 w-full cursor-pointer accent-rose-700"/></label>)}
                   </div>
                   <p className="mt-2 text-[8px] leading-4 text-slate-400">Beauty and color controls are gentle global previews; precise lipstick / hair masking needs dedicated face segmentation.</p>
                   <div className="mt-3 flex flex-wrap gap-1.5"><button type="button" disabled={busy} onClick={applyAdjustments} className="rounded-lg bg-rose-800 px-3 py-2 text-[9px] font-bold text-white disabled:opacity-40">{busy?'Applying…':'Apply Adjustment'}</button><button type="button" onClick={()=>updateCustomer(activeCustomer.id,{brightness:100,contrast:100,saturation:100,sharpness:0,clarity:0,beauty:0,faceTone:0,selectiveColor:0,lipTint:0,hairTone:0,colorGrade:0})} className="rounded-lg border border-slate-200 px-2.5 py-2 text-[9px] font-bold text-slate-600">Reset</button></div>
-                </div>}
+                </div>:<button type="button" onClick={()=>setAdjustmentOpen(true)} className="imc-adjust-pop-in flex w-full items-center justify-between gap-3 rounded-xl border border-rose-200 bg-white px-4 py-3 text-left shadow-[0_10px_28px_rgba(15,23,42,.10)] transition hover:-translate-y-0.5 hover:border-rose-300 sm:w-[250px] sm:shrink-0"><span><span className="block text-xs font-extrabold text-slate-800">Photo Adjustment</span><span className="mt-0.5 block text-[9px] text-slate-500">Tap to open editing controls</span></span><span className="rounded-full bg-rose-50 px-2.5 py-1.5 text-[9px] font-bold text-rose-700">OPEN ↗</span></button>)}
                 <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold text-white shadow-lg">{activeCustomer.name} · {activeStep==='crop'?'Drag to select crop':activeStep==='adjust'?'Live adjustment preview':'Edited preview'}</span>
               </div>:<button type="button" onClick={()=>fileInputRef.current?.click()} className="group flex w-full max-w-lg flex-col items-center rounded-3xl border-2 border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm transition hover:border-rose-400 hover:bg-rose-50/60"><span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-800 transition group-hover:scale-105"><ImagePlus className="h-8 w-8"/></span><span className="mt-4 text-lg font-black text-slate-900">Upload multiple customer photos</span><span className="mt-2 max-w-sm text-sm leading-6 text-slate-500">Select several JPG, PNG or WEBP photos together. Each customer will receive a separate numbered entry.</span><span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-rose-800 px-5 py-3 text-xs font-bold text-white"><Upload className="h-4 w-4"/> Choose Photos</span></button>}
             </div>
