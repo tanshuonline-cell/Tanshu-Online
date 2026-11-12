@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AiCustomerSession, beginGoogleAiSignIn, completeGoogleAiSignIn, consumeFreeAiPhotoCredit, getAiCustomerSession, getFreeAiPhotoCreditStatus, signOutAiCustomer } from '../../lib/aiCustomerAuth';
 import { TANSHU_PROFILE_PHOTO } from '../Header';
 import {
   ArrowLeft, Camera, Check, Crop, Download, FileImage, FlipHorizontal,
@@ -65,50 +64,6 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [detectedTilt,setDetectedTilt] = useState<number | null>(null);
   const faceLandmarkerRef = useRef<any>(null);
   const faceAppliedCorrectionRef = useRef(0);
-  const [customerSession, setCustomerSession] = useState<AiCustomerSession | null>(null);
-  const [freeCreditsRemaining, setFreeCreditsRemaining] = useState<number | null>(null);
-  const [authNotice, setAuthNotice] = useState('');
-  const [authBusy, setAuthBusy] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    const initializeCustomerAccess = async () => {
-      try {
-        const callbackSession = await completeGoogleAiSignIn();
-        const session = callbackSession || getAiCustomerSession();
-        if (!active) return;
-        setCustomerSession(session);
-        if (session) {
-          const status = await getFreeAiPhotoCreditStatus();
-          if (active) setFreeCreditsRemaining(status.remaining);
-        }
-      } catch (error) {
-        if (active) setAuthNotice(error instanceof Error ? error.message : 'Google sign-in could not be completed.');
-      }
-    };
-    void initializeCustomerAccess();
-    return () => { active = false; };
-  }, []);
-
-  const handleGoogleSignIn = async () => {
-    setAuthBusy(true);
-    setAuthNotice('');
-    try {
-      await beginGoogleAiSignIn();
-    } catch (error) {
-      setAuthNotice(error instanceof Error ? error.message : 'Google sign-in is not configured yet.');
-      setAuthBusy(false);
-    }
-  };
-
-  const handleCustomerSignOut = () => {
-    signOutAiCustomer();
-    setCustomerSession(null);
-    setFreeCreditsRemaining(null);
-    setAuthNotice('');
-  };
-
-
   useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl('');
@@ -634,22 +589,21 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-3">
                     <div className="mb-2 flex items-center gap-2 text-emerald-200"><ScanFace size={15}/><span className="text-[10px] font-extrabold uppercase tracking-wide">Free on-device face check</span></div>
                     <p className="text-[10px] leading-5 text-[#C1CDD2]">Detects one face and measures the eye-line angle. This free on-device tool does not yet reconstruct a side-facing face into a true frontal view.</p>
-                    {!customerSession ? (
-                      <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
-                        <p className="text-[10px] font-bold text-white">Sign in to unlock 5 free AI photo credits</p>
-                        <p className="mt-1 text-[9px] leading-4 text-[#AAB8C0]">Use your Gmail account. Your photo stays in this browser; Google sign-in is only used to manage your free allowance.</p>
-                        <button type="button" onClick={handleGoogleSignIn} disabled={authBusy} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-3 py-2.5 text-[10px] font-extrabold text-slate-900 disabled:opacity-50">
-                          <span className="text-sm font-black text-blue-600">G</span>{authBusy ? 'Opening Google…' : 'Continue with Google'}
-                        </button>
-                        {authNotice && <p className="mt-2 text-[9px] leading-4 text-amber-200">{authNotice}</p>}
-                      </div>
-                    ) : (
-                      <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/[.06] p-2.5">
-                        <div className="min-w-0"><p className="truncate text-[9px] font-bold text-emerald-100">{customerSession.user.email || 'Google account connected'}</p><p className="mt-1 text-[9px] text-[#AAB8C0]">{freeCreditsRemaining === null ? 'Checking free credits…' : `${freeCreditsRemaining} of 5 free photo credits remaining`}</p></div>
-                        <button type="button" onClick={handleCustomerSignOut} className="shrink-0 rounded-md border border-white/15 px-2 py-1.5 text-[9px] font-semibold text-[#C1CDD2]">Sign out</button>
-                      </div>
-                    )}
-                    <button type="button" onClick={runFreeFaceAlignment} disabled={!selectedFile || faceStatus==='loading' || !customerSession || freeCreditsRemaining===0} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">{faceStatus==='loading'?'Loading free model…':!customerSession?'Sign in to continue':freeCreditsRemaining===0?'Free credits used':'Run free face alignment'}</button>
+                    <button type="button" onClick={runFreeFaceAlignment} disabled={!selectedFile || faceStatus==='loading'} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">{faceStatus==='loading'?'Loading free model…':'Run free face alignment'}</button>
+                    <div className="mt-3 rounded-lg border border-sky-300/20 bg-sky-300/[.06] p-3">
+                      <p className="text-[10px] font-bold text-sky-100">Need help making this photo more front-facing?</p>
+                      <p className="mt-1 text-[9px] leading-4 text-[#AAB8C0]">Open ChatGPT, upload this same photo there, and ask it to prepare a passport-style result. Your photo is not transferred automatically.</p>
+                      <button type="button" onClick={() => {
+                        const prompt = 'Please help prepare the photo I upload as a professional passport-style photograph. Preserve the person’s real identity and natural facial features. Correct only genuine head tilt and perspective where possible, use a clean plain white background, center the head and shoulders, and keep realistic proportions. If the face is turned far to the side or important features are hidden, do not invent or hallucinate them; explain the limitation and ask for a more front-facing photo. Show the edited result for review.';
+                        const chatTab = window.open('https://chatgpt.com/', '_blank', 'noopener,noreferrer');
+                        if (navigator.clipboard?.writeText) {
+                          void navigator.clipboard.writeText(prompt).then(() => setFaceMessage('ChatGPT opened in a new tab. The photo-editing instruction was copied; upload your photo there and paste the instruction.')).catch(() => setFaceMessage('ChatGPT opened in a new tab. Upload your photo there and ask it to prepare a passport-style photo while preserving identity.'));
+                        } else {
+                          setFaceMessage('ChatGPT opened in a new tab. Upload your photo there and ask it to prepare a passport-style photo while preserving identity.');
+                        }
+                        if (!chatTab) setFaceMessage('Allow pop-ups for this site, then open chatgpt.com. Upload your photo and paste the copied instruction.');
+                      }} className="mt-3 w-full rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2.5 text-[10px] font-extrabold text-sky-100">Copy instructions & open ChatGPT</button>
+                    </div>
                     <div className="mt-3 rounded-lg border border-white/10 bg-black/15 p-2.5">
                       <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-200">{faceStatus==='loading'?'PROCESSING':faceStatus==='aligned'?'FACE DETECTED & STRAIGHTENED':faceStatus==='no-face'?'FACE NOT DETECTED':faceStatus==='multiple'?'MULTIPLE FACES':faceStatus==='error'?'MODEL UNAVAILABLE':'READY'}</p>
                       <p className="mt-1 text-[9px] leading-4 text-[#AAB8C0]">{faceMessage}</p>
