@@ -338,13 +338,40 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const applySignatureToCrop = async (): Promise<{src:string;widthMm:number;heightMm:number;name:string}|null> => {
     if (!signatureAsset || !croppedAsset) return null;
     try {
-      // Keep the signature as a separate editable layer. The crop preview shows
-      // it over the photo, and Add to A4 transfers both layers independently.
-      await Promise.all([loadImage(croppedAsset.src || workingSrc || active.src), loadImage(signatureAsset.src)]);
-      setNotice('Signature is placed on the cropped photo. Add to A4 to keep it independently editable and resizable.');
-      return croppedAsset;
+      const [photo, signature] = await Promise.all([
+        loadImage(croppedAsset.src || workingSrc || active.src),
+        loadImage(signatureAsset.src)
+      ]);
+      const canvas = document.createElement('canvas');
+      canvas.width = photo.naturalWidth;
+      canvas.height = photo.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not prepare the merged photo.');
+      ctx.drawImage(photo, 0, 0);
+      ctx.drawImage(
+        signature,
+        canvas.width * signaturePosition.x / 100,
+        canvas.height * signaturePosition.y / 100,
+        canvas.width * signaturePosition.width / 100,
+        canvas.height * signaturePosition.height / 100
+      );
+      const src = canvas.toDataURL('image/png');
+      const mergedAsset = {...croppedAsset, src, name:croppedAsset.name.replace(/\\.png$/i,'')+'-signed.png'};
+      const nextState = {src,box:{x:0,y:0,w:100,h:100},croppedAsset:mergedAsset,cutoutSrc:'',backgroundColor:null};
+      setWorkingSrc(src);
+      setCroppedAsset(mergedAsset);
+      setBox(nextState.box);
+      setHistory(prev => {
+        const next = [...prev.slice(0, historyIndex + 1), nextState];
+        setHistoryIndex(next.length - 1);
+        return next;
+      });
+      signedCroppedAssetRef.current = mergedAsset;
+      onSignatureApplied?.();
+      setNotice('Signature merged permanently into the photo. Now click Add to A4.');
+      return mergedAsset;
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not prepare the signature for the cropped photo.');
+      setNotice(error instanceof Error ? error.message : 'Could not merge the signature into the photo.');
       return null;
     }
   };
@@ -454,7 +481,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       <button onClick={undoCrop} disabled={historyIndex===0} title="Undo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Undo2 size={13}/></button>
       <button onClick={redoCrop} disabled={historyIndex>=history.length-1} title="Redo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Redo2 size={13}/></button>{croppedAsset&&<button onClick={()=>{applyHistory(0);setTargetW('0');setTargetH('0');setLockRatio(false);setDimensionEditing(false);setNotice('Original photo restored. Select a new crop, then press Crop / OK.');}} title="Restore the original source photo to make a fresh crop" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]">Re-crop Original</button>}
       <button onClick={handleReset} className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]"><RotateCcw size={11} className="mr-1 inline"/>Reset</button>
-      <button onClick={()=>{onActiveChange(active.id);void cropOnly();}} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>{signatureAsset&&<button disabled={!croppedAsset} title={croppedAsset?"Apply the positioned signature as a separate editable layer on A4":"पहले Crop / OK दबाकर फोटो क्रॉप करें"} onClick={()=>void applySignatureToCrop()} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Apply Signature</button>}
+      <button onClick={()=>{onActiveChange(active.id);void cropOnly();}} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>{signatureAsset&&<button disabled={!croppedAsset} title={croppedAsset?"Permanently merge the positioned signature into the cropped photo":"पहले Crop / OK दबाकर फोटो क्रॉप करें"} onClick={()=>void applySignatureToCrop()} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Merge Signature</button>}
       {<button onClick={()=>void addCroppedToA4()} disabled={!workspaceOpen||addingToA4} title={workspaceOpen?"Add the current photo to A4":"Photo is already on the A4 workspace"} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:opacity-40">{addingToA4?'Adding…':'Add to A4'}</button>}{workspaceOpen?<button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>:<button onClick={()=>{onActiveChange(active.id);onOpen?.();}} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Back to Crop</button>}
     </div>
     {workspaceOpen&&<div className="absolute bottom-0 left-[64px] right-[270px] top-[128px] z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-3">
