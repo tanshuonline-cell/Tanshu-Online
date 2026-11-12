@@ -147,3 +147,22 @@ export async function consumeFreeAiPhotoCredit(): Promise<{ allowed: boolean; us
     remaining: Number(row?.remaining ?? 0),
   };
 }
+
+export async function getFreeAiPhotoCreditStatus(): Promise<{ used: number; remaining: number }> {
+  const session = await refreshAiCustomerSession();
+  if (!session) throw new Error('Please sign in with Gmail to view your AI photo credits.');
+  const { url, key } = config();
+  const response = await fetch(`${url}/rest/v1/rpc/get_ai_photo_credit_status`, {
+    method: 'POST',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: '{}',
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || data.error || 'Could not load your AI photo credits.');
+  const row = Array.isArray(data) ? data[0] : data;
+  return { used: Number(row?.used ?? 0), remaining: Number(row?.remaining ?? 5) };
+}

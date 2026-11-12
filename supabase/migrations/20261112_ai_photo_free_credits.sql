@@ -48,3 +48,25 @@ $$;
 
 revoke all on function public.consume_ai_photo_credit() from public, anon;
 grant execute on function public.consume_ai_photo_credit() to authenticated;
+
+create or replace function public.get_ai_photo_credit_status()
+returns table (used integer, remaining integer)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_used smallint;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  select coalesce(c.free_used, 0)::smallint into current_used
+    from (select auth.uid() as user_id) as u
+    left join public.ai_photo_free_credits as c on c.user_id = u.user_id;
+  return query select current_used::integer, (5 - current_used)::integer;
+end;
+$$;
+
+revoke all on function public.get_ai_photo_credit_status() from public, anon;
+grant execute on function public.get_ai_photo_credit_status() to authenticated;
