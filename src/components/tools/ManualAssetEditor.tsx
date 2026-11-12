@@ -356,6 +356,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     setAddingToA4(true);
     setNotice('Preparing the final photo for A4…');
     try {
+      if (signatureAsset && !croppedAsset) throw new Error('पहले Crop / OK दबाएँ, फिर Merge Signature करें।');
       let asset = signedCroppedAssetRef.current || croppedAsset || {
         src: workingSrc || active.src,
         name: active.name,
@@ -382,6 +383,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   };
   const removeBackground = async () => {
     if (active.kind !== 'photo' || removingBackground) return;
+    signedCroppedAssetRef.current = null;
     setRemovingBackground(true);
     setNotice('AI background removal is starting…');
     try {
@@ -405,6 +407,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const handleReset = () => { setBox({x:0,y:0,w:100,h:100}); setLockRatio(false); setDimensionEditing(false); setTargetW('0'); setTargetH('0'); setNotice('Crop selection reset.'); };
   const applyPhotoBackground = async () => {
     if (!cutoutSrc) { setNotice('पहले Remove BG करें, फिर Background Color चुनें।'); return; }
+    signedCroppedAssetRef.current = null;
     try {
       const img = new Image();
       img.src = cutoutSrc;
