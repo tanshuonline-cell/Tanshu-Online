@@ -763,16 +763,14 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     const printWindow=format==='print'?window.open('','_blank'):null;
     setExportBusy(true);
     try{
-      const outputTarget=format==='print'?'sheet':exportTarget;
+      const outputTarget='sheet' as const;
       const dpi=EXPORT_DPI[exportQuality],result=await createExportCanvas(outputTarget,dpi),canvas=result.canvas,widthMm=result.widthMm,heightMm=result.heightMm;
       const baseName=outputTarget==='photo'?'tanshu-passport-photo':'tanshu-'+sheetSize+'-passport-photo-sheet';
       if(format==='png'){
         const blob=await canvasToBlob(canvas,'image/png');saveBlob(blob,baseName+'.png');
       }else if(format==='jpg'){
-        const blob=await createJpegBlob(canvas,EXPORT_JPEG_QUALITY[exportQuality],exportTarget==='photo'&&export20KbTarget);
+        const blob=await createJpegBlob(canvas,EXPORT_JPEG_QUALITY[exportQuality],false);
         saveBlob(blob,baseName+'.jpg');
-        if(exportTarget==='photo'&&export20KbTarget&&blob.size>20*1024)setFaceMessage('20 KB target could not be reached without more aggressive quality loss. The clearest safe result was downloaded instead.');
-        else if(exportTarget==='photo'&&export20KbTarget)setFaceMessage('JPG exported near the 20 KB target using the best quality that fits.');
       }else if(format==='pdf'){
         const jpeg=await canvasToBlob(canvas,'image/jpeg',EXPORT_JPEG_QUALITY[exportQuality]),dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Could not prepare the PDF image.'));reader.readAsDataURL(jpeg);});
         const pdf=new jsPDF({orientation:widthMm>=heightMm?'landscape':'portrait',unit:'mm',format:[widthMm,heightMm],compress:true});
@@ -1102,7 +1100,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <option value="standard">Standard · 200 DPI · Smaller file</option><option value="high">High Quality · 300 DPI · Recommended</option><option value="very-high">Very High · 360 DPI · Extra detail</option><option value="ultra">Ultra · 450 DPI · Largest output</option>
             </select>
             <p className="mt-2 text-[9px] leading-4 text-[#AAB8C0]">Higher DPI creates a larger output file; it cannot restore detail missing from the original photo.</p>
-            {exportTarget==='photo'&&<label className="mt-3 flex cursor-pointer items-center gap-2 rounded-lg border border-[#46535C] px-3 py-2.5 text-[10px] font-semibold text-[#D4DCE1]"><input type="checkbox" checked={export20KbTarget} onChange={event=>setExport20KbTarget(event.target.checked)} className="accent-emerald-400"/> JPG target: approximately 20 KB (best possible clarity)</label>}
+
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" disabled={exportBusy} onClick={()=>runExport('pdf')} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-3 text-xs font-extrabold text-emerald-100 hover:bg-emerald-400/15 disabled:opacity-40"><FileImage size={16}/> Download PDF</button>
