@@ -50,7 +50,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [signatureVisible, setSignatureVisible] = useState(true);
   const replacePhotoInputRef = useRef<HTMLInputElement>(null);
   const cropViewportRef = useRef<HTMLDivElement>(null);
-  const cropDrawRef = useRef<{startX:number;startY:number;bounds:DOMRect}|null>(null);
+  const cropDrawRef = useRef<{mode:'draw'|'move'|'resize';startX:number;startY:number;bounds:DOMRect;initialRect:{x:number;y:number;w:number;h:number};anchorX:number;anchorY:number;cornerX:number;cornerY:number}|null>(null);
   const photoPanRef = useRef<{startX:number;startY:number;offsetX:number;offsetY:number}|null>(null);
   const [isCropping,setIsCropping] = useState(false);
   const [cropRect,setCropRect] = useState({x:0,y:0,w:100,h:100});
@@ -109,10 +109,29 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     if(!bounds.width||!bounds.height)return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    cropDrawRef.current={startX:event.clientX,startY:event.clientY,bounds};
-    const x=Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100));
-    const y=Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100));
-    setCropRect({x,y,w:0,h:0});
+    const px=Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100));
+    const py=Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100));
+    const valid=cropRect.w>2&&cropRect.h>2;
+    const inside=valid&&px>=cropRect.x&&px<=cropRect.x+cropRect.w&&py>=cropRect.y&&py<=cropRect.y+cropRect.h;
+    let mode:'draw'|'move'|'resize'='draw';
+    let cornerX=0,cornerY=0,anchorX=0,anchorY=0;
+    if(inside){
+      mode='move';
+      const corners=[
+        {x:cropRect.x,y:cropRect.y,cx:1,cy:1},
+        {x:cropRect.x+cropRect.w,y:cropRect.y,cx:-1,cy:1},
+        {x:cropRect.x,y:cropRect.y+cropRect.h,cx:1,cy:-1},
+        {x:cropRect.x+cropRect.w,y:cropRect.y+cropRect.h,cx:-1,cy:-1},
+      ];
+      const hit=corners.find(point=>Math.abs(px-point.x)<2.8&&Math.abs(py-point.y)<2.8);
+      if(hit){
+        mode='resize';cornerX=hit.cx;cornerY=hit.cy;
+        anchorX=hit.x+(hit.cx===1?cropRect.w: -cropRect.w);
+        anchorY=hit.y+(hit.cy===1?cropRect.h: -cropRect.h);
+      }
+    }
+    cropDrawRef.current={mode,startX:px,startY:py,bounds,initialRect:{...cropRect},anchorX,anchorY,cornerX,cornerY};
+    if(mode==='draw')setCropRect({x:px,y:py,w:0,h:0});
   };
   const handleCropPointerMove=(event:React.PointerEvent<HTMLDivElement>)=>{
     const pan=photoPanRef.current;
@@ -122,18 +141,25 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }
     const draw=cropDrawRef.current;
     if(!draw)return;
-    const x1=Math.max(0,Math.min(100,(draw.startX-draw.bounds.left)/draw.bounds.width*100));
-    const y1=Math.max(0,Math.min(100,(draw.startY-draw.bounds.top)/draw.bounds.height*100));
-    const x2=Math.max(0,Math.min(100,(event.clientX-draw.bounds.left)/draw.bounds.width*100));
-    const y2=Math.max(0,Math.min(100,(event.clientY-draw.bounds.top)/draw.bounds.height*100));
-    setCropRect({x:Math.min(x1,x2),y:Math.min(y1,y2),w:Math.abs(x2-x1),h:Math.abs(y2-y1)});
+    const px=Math.max(0,Math.min(100,(event.clientX-draw.bounds.left)/draw.bounds.width*100));
+    const py=Math.max(0,Math.min(100,(event.clientY-draw.bounds.top)/draw.bounds.height*100));
+    if(draw.mode==='draw'){
+      setCropRect({x:Math.min(draw.startX,px),y:Math.min(draw.startY,py),w:Math.abs(px-draw.startX),h:Math.abs(py-draw.startY)});
+    }else if(draw.mode==='move'){
+      const x=Math.max(0,Math.min(100-draw.initialRect.w,draw.initialRect.x+px-draw.startX));
+      const y=Math.max(0,Math.min(100-draw.initialRect.h,draw.initialRect.y+py-draw.startY));
+      setCropRect({...draw.initialRect,x,y});
+    }else{
+      const x=Math.min(draw.anchorX,px),y=Math.min(draw.anchorY,py);
+      setCropRect({x,y,w:Math.abs(px-draw.anchorX),h:Math.abs(py-draw.anchorY)});
+    }
   };
   const endCropDrag=()=>{
     photoPanRef.current=null;
     const draw=cropDrawRef.current;
     if(draw){
       cropDrawRef.current=null;
-      setCropRect(r=>r.w<2||r.h<2?{x:0,y:0,w:100,h:100}:r);
+      if(draw.mode==='draw')setCropRect(r=>r.w<2||r.h<2?{x:0,y:0,w:100,h:100}:r);
     }
   };
 
@@ -241,10 +267,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   ) : (
                   <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
                     <div ref={cropViewportRef} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className={'relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50 '+(isCropping?'cursor-crosshair':'')} style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)',touchAction:'none'}}>
-                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain transition-transform duration-200 '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
+                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
                       {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
-                      {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}/>}
-                      {isCropping&&<span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[9px] font-bold text-white">CLICK + DRAG TO DRAW YOUR CROP AREA · THEN DONE</span>}
+                      {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}><span className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/><span className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/><span className="absolute -bottom-1.5 -left-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/><span className="absolute -bottom-1.5 -right-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/></div>}
+                      {isCropping&&<span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[9px] font-bold text-white">DRAG TO DRAW · INSIDE TO MOVE · CORNERS TO RESIZE · DONE TO APPLY</span>}
                       {signatureUrl && signatureVisible && <img src={signatureUrl} alt="Signature overlay preview" className="absolute bottom-[13%] right-[12%] max-h-[12%] max-w-[38%] object-contain drop-shadow" />}
                       <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[9px] font-bold tracking-wide text-white">PREVIEW ONLY</span>
                     </div>
