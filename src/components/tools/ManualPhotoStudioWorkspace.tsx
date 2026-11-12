@@ -18,7 +18,7 @@ const getManualSmartPosition = (x:number,y:number,moving:ManualLayer,others:Manu
   const clamped={x:Math.max(0,Math.min(pageW-moving.w,x)),y:Math.max(0,Math.min(pageH-moving.h,y))};
   if(!others.some(item=>intersects({...clamped,w:moving.w,h:moving.h},item)))return clamped;
   const alternatives=others.flatMap(item=>[{x:item.x+item.w+gap,y:clamped.y},{x:item.x-moving.w-gap,y:clamped.y},{x:clamped.x,y:item.y+item.h+gap},{x:clamped.x,y:item.y-moving.h-gap}]).map(p=>({x:Math.max(0,Math.min(pageW-moving.w,p.x)),y:Math.max(0,Math.min(pageH-moving.h,p.y))})).filter(p=>!others.some(item=>intersects({...p,w:moving.w,h:moving.h},item))).sort((a,b)=>((a.x-x)**2+(a.y-y)**2)-((b.x-x)**2+(b.y-y)**2));
-  return alternatives[0]||clamped;
+  return alternatives[0]||{x:moving.x,y:moving.y};
 };
 
 const MANUAL_STUDIO_DB = 'tanshu-manual-photo-studio';
@@ -278,9 +278,10 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   };
   const duplicateSelected = () => { const copies=selected.map(l=>({...l,id:uid(),name:l.name+' copy',x:l.x+5,y:l.y+5,locked:false}));updatePage(p=>({...p,layers:[...p.layers,...copies]}));setSelectedIds(copies.map(l=>l.id)); };
   const autoArrangeSelected = () => {
-    const chosen=page.layers.filter(layer=>selectedIds.includes(layer.id));if(!chosen.length)return;
+    const chosen=page.layers.filter(layer=>selectedIds.includes(layer.id)&&!layer.locked);if(!chosen.length)return;
     const gap=page.photoGap??3,maxW=Math.max(...chosen.map(layer=>layer.w)),maxH=Math.max(...chosen.map(layer=>layer.h));
-    const columns=Math.max(1,Math.floor((page.width-page.margin*2+gap)/(maxW+gap)));
+    const columns=Math.max(1,Math.floor((page.width-page.margin*2+gap)/(maxW+gap))),rows=Math.max(1,Math.floor((page.height-page.margin*2+gap)/(maxH+gap)));
+    if(chosen.length>columns*rows){window.alert('Selected photos do not fit on this page at their current sizes. Reduce the photo size or choose a larger page before Auto Arrange.');return;}
     updatePage(p=>({...p,layers:p.layers.map(layer=>{const index=chosen.findIndex(item=>item.id===layer.id);if(index<0)return layer;const col=index%columns,row=Math.floor(index/columns);return {...layer,x:Math.min(page.width-layer.w,page.margin+col*(maxW+gap)),y:Math.min(page.height-layer.h,page.margin+row*(maxH+gap))};})}));
   };
   const pagePoint = (event:React.PointerEvent) => { const element=stageRef.current?.querySelector('[data-manual-page]') as HTMLDivElement|null;const rect=element?.getBoundingClientRect();if(!rect||!rect.width)return{x:0,y:0};const ratio=rect.width/page.width;return{x:Math.max(0,Math.min(page.width,(event.clientX-rect.left)/ratio)),y:Math.max(0,Math.min(page.height,(event.clientY-rect.top)/ratio))}; };
