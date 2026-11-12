@@ -58,8 +58,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [backgroundStatus, setBackgroundStatus] = useState('');
   const [photoCount, setPhotoCount] = useState(8);
-  const [sheetMarginMm, setSheetMarginMm] = useState(5);
-  const [sheetGapMm, setSheetGapMm] = useState(2);
+  const [sheetMarginMm, setSheetMarginMm] = useState(4);
+  const [sheetGapMm, setSheetGapMm] = useState(1.5);
   const [borderEnabled, setBorderEnabled] = useState(false);
   const [borderColor, setBorderColor] = useState('#000000');
   const [borderWidthMm, setBorderWidthMm] = useState(0.3);
@@ -832,7 +832,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <select value={sheetSize} onChange={event => setSheetSize(event.target.value as 'A4'|'4x6')} className="h-9 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-2 text-[10px] font-semibold text-white"><option value="A4">A4 Sheet</option><option value="4x6">4 × 6 inch Sheet</option></select>
                   <label className="mt-3 block text-[9px] font-bold text-[#D4DCE1]">NUMBER OF PHOTOS</label><input type="range" min="1" max={sheetCapacity} value={visiblePhotoCount} onChange={event=>setPhotoCount(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/><p className="mt-1 text-[9px] text-emerald-200">{visiblePhotoCount} photos on this sheet</p>
                   <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">SHEET MARGIN</label><span className="text-[9px] text-emerald-200">{sheetMarginMm} mm</span></div><input type="range" min="0" max="15" step="1" value={sheetMarginMm} onChange={event=>setSheetMarginMm(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
-                  <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">PHOTO GAP</label><span className="text-[9px] text-emerald-200">{sheetGapMm} mm</span></div><input type="range" min="0" max="10" step="1" value={sheetGapMm} onChange={event=>setSheetGapMm(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
+                  <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">PHOTO GAP</label><span className="text-[9px] text-emerald-200">{sheetGapMm} mm</span></div><input type="range" min="0" max="10" step="0.5" value={sheetGapMm} onChange={event=>setSheetGapMm(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
                   <button type="button" onClick={()=>setBorderEnabled(value=>!value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3]"><span>Photo border</span><span className="text-emerald-200">{borderEnabled?'ON':'OFF'}</span></button>
                   {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER WIDTH · {borderWidthMm.toFixed(1)} mm</label><input type="range" min="0.1" max="1.5" step="0.1" value={borderWidthMm} onChange={event=>setBorderWidthMm(Number(event.target.value))} className="mt-1 w-full accent-emerald-400"/></>}
                   <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
