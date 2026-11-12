@@ -51,6 +51,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const replacePhotoInputRef = useRef<HTMLInputElement>(null);
   const cropViewportRef = useRef<HTMLDivElement>(null);
   const cropDrawRef = useRef<{startX:number;startY:number;bounds:DOMRect}|null>(null);
+  const photoPanRef = useRef<{startX:number;startY:number;offsetX:number;offsetY:number}|null>(null);
   const [isCropping,setIsCropping] = useState(false);
   const [cropRect,setCropRect] = useState({x:0,y:0,w:100,h:100});
   const [photoOffset,setPhotoOffset] = useState({x:0,y:0});
@@ -96,6 +97,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setZoom(100); setRotation(0); setFlipped(false);
     setCropRect({x:0,y:0,w:100,h:100}); setPhotoOffset({x:0,y:0}); setIsCropping(false);
   };
+  const startPhotoPan=(event:React.PointerEvent<HTMLImageElement>)=>{
+    if(isCropping||activeTool!=='crop')return;
+    event.preventDefault();
+    photoPanRef.current={startX:event.clientX,startY:event.clientY,offsetX:photoOffset.x,offsetY:photoOffset.y};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
   const startCropDraw=(event:React.PointerEvent<HTMLDivElement>)=>{
     if(!isCropping||activeTool!=='crop')return;
     const bounds=event.currentTarget.getBoundingClientRect();
@@ -108,6 +115,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setCropRect({x,y,w:0,h:0});
   };
   const handleCropPointerMove=(event:React.PointerEvent<HTMLDivElement>)=>{
+    const pan=photoPanRef.current;
+    if(pan){
+      setPhotoOffset({x:pan.offsetX+event.clientX-pan.startX,y:pan.offsetY+event.clientY-pan.startY});
+      return;
+    }
     const draw=cropDrawRef.current;
     if(!draw)return;
     const x1=Math.max(0,Math.min(100,(draw.startX-draw.bounds.left)/draw.bounds.width*100));
@@ -117,6 +129,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setCropRect({x:Math.min(x1,x2),y:Math.min(y1,y2),w:Math.abs(x2-x1),h:Math.abs(y2-y1)});
   };
   const endCropDrag=()=>{
+    photoPanRef.current=null;
     const draw=cropDrawRef.current;
     if(draw){
       cropDrawRef.current=null;
@@ -228,7 +241,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   ) : (
                   <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
                     <div ref={cropViewportRef} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className={'relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50 '+(isCropping?'cursor-crosshair':'')} style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)',touchAction:'none'}}>
-                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} className="pointer-events-none h-full w-full select-none object-contain transition-transform duration-200" style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
+                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain transition-transform duration-200 '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
                       {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
                       {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}/>}
                       {isCropping&&<span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[9px] font-bold text-white">CLICK + DRAG TO DRAW YOUR CROP AREA · THEN DONE</span>}
