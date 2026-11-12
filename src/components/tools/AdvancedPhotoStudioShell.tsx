@@ -399,7 +399,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         event.clientY <= rect.bottom;
       if (!pointerIsOverPaper) return;
       const hoveredSlot = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-auto-photo-slot]');
-      if (hoveredSlot && hoveredSlot.dataset.autoPhotoSlot === selectedSlotId && selectedSlotId && sheetMode !== 'single') {
+      const wheelTargetSlot = sheetSlots.find(slot => slot.id === selectedSlotId);
+      const wheelTargetPhoto = wheelTargetSlot && photos.find(photo => photo.id === wheelTargetSlot.photoId);
+      if (hoveredSlot && hoveredSlot.dataset.autoPhotoSlot === selectedSlotId && wheelTargetSlot && !wheelTargetSlot.locked && wheelTargetPhoto?.kind !== 'signature' && sheetMode !== 'single') {
         if (event.cancelable) event.preventDefault();
         if (!isStudioMember) { showUpgradePrompt(); return; }
         const direction = event.deltaY < 0 ? 1 : -1;
@@ -422,10 +424,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const zoomStep = (current: number) => current < 200 ? 10 : current < 500 ? 25 : 50;
       setZoom(current => Math.max(10, Math.min(1600, current + (event.deltaY < 0 ? zoomStep(current) : -zoomStep(current)))));
     };
-    // Capture before the scrollable preview stage handles the wheel. Only the paper itself zooms.
+    // Capture before the scrollable preview stage handles the wheel: selected photos resize; the remaining paper area zooms.
     document.addEventListener('wheel', handlePreviewWheel, { passive: false, capture: true });
     return () => document.removeEventListener('wheel', handlePreviewWheel, true);
-  }, [studioMode, selectedSlotId, sheetMode, sheetSlots, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetGap, sheetGapY, isStudioMember]);
+  }, [studioMode, selectedSlotId, sheetMode, sheetSlots, photos, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetGap, sheetGapY, isStudioMember]);
 
   const uploadRef = useRef<HTMLInputElement>(null);
   const restoreFullscreenAfterUploadRef = useRef(false);
