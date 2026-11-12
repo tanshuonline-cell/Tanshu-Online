@@ -36,10 +36,11 @@ const toolDescriptions: Record<StudioTool, { title: string; description: string 
 };
 
 const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;step:number;unit?:string;onChange:(value:number)=>void}> = ({label,value,min,max,step,unit='mm',onChange}) => {
-  const adjust=(amount:number)=>onChange(Math.max(min,Math.min(max,Number((value+amount).toFixed(3)))));
+  const normalize=(next:number)=>step===1?Math.round(next):Number(next.toFixed(3));
+  const adjust=(amount:number)=>onChange(normalize(Math.max(min,Math.min(max,value+amount))));
   return <div className="min-w-0"><label className="mb-1 block text-[9px] font-bold text-[#D4DCE1]">{label}</label><div className="flex h-8 items-center overflow-hidden rounded-lg border border-[#46535C] bg-[#171D22]">
     <button type="button" aria-label={label+' decrease'} onClick={()=>adjust(-step)} className="h-full w-7 shrink-0 text-sm font-bold text-[#C3CDD3] hover:bg-white/10">−</button>
-    <input aria-label={label} type="number" min={min} max={max} step={step} value={value} onChange={event=>{const next=event.target.value;if(next!=='')onChange(Math.max(min,Math.min(max,Number(next))));}} onWheel={event=>{event.preventDefault();event.stopPropagation();adjust(event.deltaY<0?step:-step);}} className="h-full min-w-0 w-full bg-transparent px-1 text-center text-[10px] font-bold tabular-nums text-white outline-none"/>
+    <input aria-label={label} type="number" min={min} max={max} step={step} value={value} onChange={event=>{const next=event.target.value;if(next!=='')onChange(normalize(Math.max(min,Math.min(max,Number(next)))));}} onWheel={event=>{event.preventDefault();event.stopPropagation();adjust(event.deltaY<0?step:-step);}} className="h-full min-w-0 w-full bg-transparent px-1 text-center text-[10px] font-bold tabular-nums text-white outline-none"/>
     <span className="shrink-0 text-[8px] text-[#829099]">{unit}</span><button type="button" aria-label={label+' increase'} onClick={()=>adjust(step)} className="h-full w-7 shrink-0 text-sm font-bold text-[#C3CDD3] hover:bg-white/10">+</button>
   </div></div>;
 };
