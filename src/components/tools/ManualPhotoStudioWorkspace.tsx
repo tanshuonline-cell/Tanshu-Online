@@ -17,7 +17,7 @@ const getManualSmartPosition = (x:number,y:number,moving:ManualLayer,others:Manu
   if(best)return best;
   const clamped={x:Math.max(0,Math.min(pageW-moving.w,x)),y:Math.max(0,Math.min(pageH-moving.h,y))};
   if(!others.some(item=>intersects({...clamped,w:moving.w,h:moving.h},item)))return clamped;
-  const alternatives=others.flatMap(item=>[{x:item.x+item.w+gap,y:clamped.y},{x:item.x-moving.w-gap,y:clamped.y},{x:clamped.x,y:item.y+item.h+gap},{x:clamped.x,y:item.y-moving.h-gap}]).map(p=>({x:Math.max(0,Math.min(pageW-moving.w,p.x)),y:Math.max(0,Math.min(pageH-moving.h,p.y))})).filter(p=>!others.some(item=>intersects({...p,w:moving.w,h:moving.h},item))).sort((a,b)=>((a.x-x)**2+(a.y-y)**2)-((b.x-x)**2+(b.y-y)**2));
+  const alternatives=others.flatMap(item=>[{x:item.x+item.w+gapX,y:clamped.y},{x:item.x-moving.w-gapX,y:clamped.y},{x:clamped.x,y:item.y+item.h+gapY},{x:clamped.x,y:item.y-moving.h-gapY}]).map(p=>({x:Math.max(0,Math.min(pageW-moving.w,p.x)),y:Math.max(0,Math.min(pageH-moving.h,p.y))})).filter(p=>!others.some(item=>intersects({...p,w:moving.w,h:moving.h},item))).sort((a,b)=>((a.x-x)**2+(a.y-y)**2)-((b.x-x)**2+(b.y-y)**2));
   return alternatives[0]||{x:moving.x,y:moving.y};
 };
 
