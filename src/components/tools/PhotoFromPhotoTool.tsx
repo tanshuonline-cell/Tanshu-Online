@@ -73,6 +73,8 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
   const [sharpness,setSharpness]=useState(0);
   const [rotation,setRotation]=useState(0);
   const [resultUrl,setResultUrl]=useState('');
+  const [originalResultUrl,setOriginalResultUrl]=useState('');
+  const [compareMode,setCompareMode]=useState(false);
   const [status,setStatus]=useState('');
   const [busy,setBusy]=useState(false);
   const [dragIndex,setDragIndex]=useState<number|null>(null);
@@ -85,7 +87,7 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
     if(!next)return;
     if(!next.type.startsWith('image/')){setStatus('Please choose an image file.');return;}
     const url=URL.createObjectURL(next);
-    setFile(next);setSourceUrl(url);setResultUrl('');setStatus('Drag the four corner points onto the edges of the photographed print.');
+    setFile(next);setSourceUrl(url);setResultUrl('');setOriginalResultUrl('');setCompareMode(false);setStatus('Drag the four corner points onto the edges of the photographed print.');
     setCorners([{x:5,y:5},{x:95,y:5},{x:95,y:95},{x:5,y:95}]);setRotation(0);
   };
   const moveCorner=(event:React.PointerEvent<HTMLButtonElement>,index:number)=>{
@@ -116,7 +118,7 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
       const enhanced=document.createElement('canvas');enhanced.width=outW;enhanced.height=outH;
       const ec=enhanced.getContext('2d');if(!ec)throw new Error('Could not prepare the enhancement.');
       ec.filter='brightness('+brightness+'%) contrast('+(contrast+sharpness*0.12)+'%)';ec.drawImage(canvas,0,0);
-      const url=enhanced.toDataURL('image/jpeg',0.96);setResultUrl(url);setStatus('Perspective corrected. Review the result before applying it to the studio.');
+      const url=enhanced.toDataURL('image/jpeg',0.96);setResultUrl(url);setOriginalResultUrl(url);setCompareMode(false);setStatus('Perspective corrected. Review the result before applying it to the studio.');
     }catch(error){setStatus(error instanceof Error?error.message:'Could not correct this photo.');}
     finally{setBusy(false);}
   };
@@ -125,20 +127,60 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
     const blob=await (await fetch(resultUrl)).blob();
     onApply(new File([blob],'photo-from-photo-corrected.jpg',{type:'image/jpeg'}));
   };
-  const hdEnhance=async()=>{
-    if(!resultUrl||busy)return;
-    setBusy(true);setStatus('Creating a higher-resolution 2× version…');
+  const runEffect=async(kind:'denoise'|'sharpen'|'face')=>{
+    const base=originalResultUrl;
+    if(!base||busy)return;
+    setBusy(true);setCompareMode(false);
+    setStatus(kind==='denoise'?'Reducing noise and mild blur…':kind==='sharpen'?'Applying smart sharpening…':'Protecting natural-looking skin tones…');
     try{
-      const image=new Image();image.src=resultUrl;
+      const image=new Image();image.src=base;
       await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Could not open the corrected photo.'));});
-      const width=image.naturalWidth*2,height=image.naturalHeight*2;
-      if(width*height>12000000)throw new Error('This photo is too large for safe 2× processing on this device.');
+      const w=image.naturalWidth,h=image.naturalHeight;
+      const source=document.createElement('canvas');source.width=w;source.height=h;
+      const sc=source.getContext('2d',{willReadFrequently:true});if(!sc)throw new Error('Could not prepare the image.');
+      sc.drawImage(image,0,0);
+      const original=sc.getImageData(0,0,w,h);
+      const blurredCanvas=document.createElement('canvas');blurredCanvas.width=w;blurredCanvas.height=h;
+      const bc=blurredCanvas.getContext('2d',{willReadFrequently:true});if(!bc)throw new Error('Could not process the image.');
+      bc.filter='blur(1px)';bc.drawImage(source,0,0);
+      const soft=bc.getImageData(0,0,w,h);
+      const out=new ImageData(w,h);
+      for(let i=0;i<original.data.length;i+=4){
+        const r=original.data[i],g=original.data[i+1],b=original.data[i+2];
+        const sr=soft.data[i],sg=soft.data[i+1],sb=soft.data[i+2];
+        if(kind==='denoise'){
+          out.data[i]=Math.round(r*.72+sr*.28);out.data[i+1]=Math.round(g*.72+sg*.28);out.data[i+2]=Math.round(b*.72+sb*.28);
+        }else if(kind==='sharpen'){
+          out.data[i]=Math.max(0,Math.min(255,Math.round(r+(r-sr)*1.15)));
+          out.data[i+1]=Math.max(0,Math.min(255,Math.round(g+(g-sg)*1.15)));
+          out.data[i+2]=Math.max(0,Math.min(255,Math.round(b+(b-sb)*1.15)));
+        }else{
+          const y=.299*r+.587*g+.114*b, cb=128-.168736*r-.331264*g+.5*b, cr=128+.5*r-.418688*g-.081312*b;
+          const skin=cr>132&&cr<180&&cb>75&&cb<135&&y>45;
+          const mix=skin?.12:0;
+          out.data[i]=Math.round(r*(1-mix)+sr*mix);out.data[i+1]=Math.round(g*(1-mix)+sg*mix);out.data[i+2]=Math.round(b*(1-mix)+sb*mix);
+        }
+        out.data[i+3]=original.data[i+3];
+      }
+      sc.putImageData(out,0,0);
+      const next=source.toDataURL('image/jpeg',.98);setResultUrl(next);
+      setStatus(kind==='denoise'?'Noise reduction preview ready.':kind==='sharpen'?'Smart sharpening preview ready.':'Natural Face Protection preview ready. Skin-tone protection is a conservative color-based approximation, not AI face detection.');
+    }catch(error){setStatus(error instanceof Error?error.message:'Could not apply this effect.');}
+    finally{setBusy(false);}
+  };
+  const hdUpscale=async(scale:2|4)=>{
+    if(!originalResultUrl||busy)return;
+    setBusy(true);setCompareMode(false);setStatus('Creating a high-quality '+scale+'× browser upscale…');
+    try{
+      const image=new Image();image.src=originalResultUrl;
+      await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Could not open the corrected photo.'));});
+      const width=image.naturalWidth*scale,height=image.naturalHeight*scale;
+      if(width*height>12000000)throw new Error('This output exceeds the 12 MP safety limit on this device.');
       const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
       const context=canvas.getContext('2d');if(!context)throw new Error('Could not create the HD version.');
-      context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
-      context.drawImage(image,0,0,width,height);
-      setResultUrl(canvas.toDataURL('image/jpeg',0.98));
-      setStatus('2× high-quality upscale complete. This improves resizing, but cannot recover detail missing from the original.');
+      context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,0,0,width,height);
+      setResultUrl(canvas.toDataURL('image/jpeg',.98));
+      setStatus(scale+'× high-quality browser upscale complete. This is not AI and cannot recreate missing original detail.');
     }catch(error){setStatus(error instanceof Error?error.message:'Could not create the HD version.');}
     finally{setBusy(false);}
   };
@@ -169,8 +211,8 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
         {[{label:'BRIGHTNESS',value:brightness,set:setBrightness},{label:'CONTRAST',value:contrast,set:setContrast}].map(item=><div key={item.label}><div className="mb-1 flex justify-between text-[9px] text-slate-300"><label>{item.label}</label><span>{item.value}%</span></div><input type="range" min="70" max="140" value={item.value} onChange={e=>item.set(Number(e.target.value))} className="w-full accent-emerald-400"/></div>)}
         <div><div className="mb-1 flex justify-between text-[9px] text-slate-300"><label>DETAIL ENHANCE</label><span>{sharpness}</span></div><input type="range" min="0" max="100" value={sharpness} onChange={e=>setSharpness(Number(e.target.value))} className="w-full accent-emerald-400"/></div>
         <button type="button" onClick={correct} disabled={busy} className="w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-40">{busy?'Correcting…':'Correct Perspective & Enhance'}</button>
-        {resultUrl&&<><div className="overflow-hidden rounded-lg border border-emerald-300/30 bg-white"><img src={resultUrl} alt="Corrected passport photo" className="max-h-48 w-full object-contain"/></div><button type="button" onClick={hdEnhance} disabled={busy} className="w-full rounded-lg border border-violet-300/35 bg-violet-400/10 px-3 py-2.5 text-[10px] font-extrabold text-violet-100 disabled:opacity-40"><Sparkles size={13} className="mr-1 inline"/>HD Enhance · 2×</button><button type="button" onClick={apply} className="w-full rounded-lg bg-sky-500 px-3 py-2.5 text-[10px] font-extrabold text-white"><Check size={13} className="mr-1 inline"/>Apply to WhatsApp Studio</button><button type="button" onClick={download} className="w-full rounded-lg border border-white/15 px-3 py-2 text-[10px] font-bold text-slate-200"><Download size={13} className="mr-1 inline"/>Download Corrected Photo</button></>}
-        <p className="text-[8px] leading-4 text-slate-400">HD Enhance uses high-quality browser upscaling (2×), not generative AI. It can make enlargement smoother, but cannot truly recover detail missing from a blurry or low-resolution original.</p>
+        {resultUrl&&<><div className="overflow-hidden rounded-lg border border-emerald-300/30 bg-white"><img src={resultUrl} alt="Corrected passport photo" className="max-h-48 w-full object-contain"/></div><div className="space-y-2 rounded-lg border border-violet-300/25 bg-violet-400/[.06] p-2"><div className="text-[9px] font-extrabold text-violet-100">QUALITY TEST LAB · EACH EFFECT STARTS FROM THE ORIGINAL CORRECTED PHOTO</div><div className="grid grid-cols-2 gap-2"><button type="button" onClick={()=>hdUpscale(2)} disabled={busy} className="rounded-lg border border-violet-300/35 px-2 py-2 text-[9px] font-bold text-violet-100 disabled:opacity-40">HD Upscale · 2×</button><button type="button" onClick={()=>hdUpscale(4)} disabled={busy} className="rounded-lg border border-violet-300/35 px-2 py-2 text-[9px] font-bold text-violet-100 disabled:opacity-40">HD Upscale · 4×</button><button type="button" onClick={()=>runEffect('denoise')} disabled={busy} className="rounded-lg border border-white/15 px-2 py-2 text-[9px] font-bold text-slate-100 disabled:opacity-40">Noise & Blur Removal</button><button type="button" onClick={()=>runEffect('sharpen')} disabled={busy} className="rounded-lg border border-white/15 px-2 py-2 text-[9px] font-bold text-slate-100 disabled:opacity-40">Smart Sharpening</button><button type="button" onClick={()=>runEffect('face')} disabled={busy} className="col-span-2 rounded-lg border border-emerald-300/25 px-2 py-2 text-[9px] font-bold text-emerald-100 disabled:opacity-40">Natural Face Protection</button></div><button type="button" onClick={()=>{setResultUrl(originalResultUrl);setCompareMode(false);setStatus('Original corrected photo restored.');}} disabled={busy||!originalResultUrl} className="w-full rounded-lg border border-white/15 px-2 py-2 text-[9px] font-semibold text-slate-300 disabled:opacity-40">Reset to Original Corrected Photo</button><button type="button" onClick={()=>setCompareMode(v=>!v)} disabled={busy||!originalResultUrl} className="w-full rounded-lg border border-amber-300/25 px-2 py-2 text-[9px] font-semibold text-amber-100 disabled:opacity-40">{compareMode?'Hide Comparison':'Compare Original & Current'}</button></div>{compareMode&&<div className="grid grid-cols-2 gap-2"><div className="rounded-lg border border-white/10 bg-white p-1"><img src={originalResultUrl} alt="Original corrected photo" className="max-h-40 w-full object-contain"/><p className="py-1 text-center text-[8px] text-slate-700">ORIGINAL</p></div><div className="rounded-lg border border-emerald-300/30 bg-white p-1"><img src={resultUrl} alt="Current effect preview" className="max-h-40 w-full object-contain"/><p className="py-1 text-center text-[8px] text-slate-700">CURRENT EFFECT</p></div></div>}<button type="button" onClick={apply} className="w-full rounded-lg bg-sky-500 px-3 py-2.5 text-[10px] font-extrabold text-white"><Check size={13} className="mr-1 inline"/>Save to WhatsApp Studio</button><button type="button" onClick={download} className="w-full rounded-lg border border-white/15 px-3 py-2 text-[10px] font-bold text-slate-200"><Download size={13} className="mr-1 inline"/>Download Corrected Photo</button></>}
+        <p className="text-[8px] leading-4 text-slate-400">HD Upscale 2×/4× uses browser resampling, not AI. Noise reduction and sharpening are conventional image filters. Natural Face Protection uses conservative skin-tone detection, not AI face recognition. True AI super-resolution/face restoration requires a connected AI model and is not claimed here.</p>
       </div>
     </div>}
     {status&&<p className="rounded-lg border border-emerald-300/15 bg-emerald-300/[.06] px-3 py-2 text-[9px] text-emerald-100">{status}</p>}
