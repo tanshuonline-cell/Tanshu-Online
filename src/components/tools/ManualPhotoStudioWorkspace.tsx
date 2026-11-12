@@ -3,7 +3,7 @@ import { ManualAssetEditor, type ManualAssetDocument } from './ManualAssetEditor
 import { ManualSignaturePanel } from './ManualSignaturePanel';
 import { ArrowLeft, Plus, Upload, Trash2, Copy, Image as ImageIcon, MousePointer2, Crop, SquareDashedMousePointer, Hand, Lock, Unlock, ChevronUp, ChevronDown, Download, RotateCw, Settings2, FilePlus2, ZoomIn, ZoomOut, Check, Palette } from 'lucide-react';
 
-type ManualLayer = { id: string; type: 'photo'|'frame'|'text'; name: string; x: number; y: number; w: number; h: number; src?: string; fileName?: string; text?: string; locked?: boolean; rotation?: number; cropZoom?: number; borderMm?: number; borderColor?: string; assetKind?: 'photo'|'signature'; aspectRatio?: number };
+type ManualLayer = { id: string; type: 'photo'|'frame'|'text'; name: string; x: number; y: number; w: number; h: number; src?: string; fileName?: string; text?: string; locked?: boolean; rotation?: number; cropZoom?: number; borderMm?: number; borderColor?: string; assetKind?: 'photo'|'signature'; aspectRatio?: number; autoCopy?: boolean };
 type ManualPage = { id: string; name: string; width: number; height: number; background: string; margin: number; layers: ManualLayer[] };
 type Tool = 'move'|'frame'|'marquee'|'crop'|'hand';
 
@@ -319,13 +319,13 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   };
   const selectedPhoto = selected.find(layer=>layer.type==='photo') || null;
   const arrangePhotosUsingGaps = (count = manualPhotoCount, horizontalGap = horizontalGapMm, verticalGap = verticalGapMm) => {
-    const existing = page.layers.filter(layer=>layer.type==='photo' && layer.assetKind!=='signature' && !!layer.src);
+    const existing = page.layers.filter(layer=>layer.type==='photo' && layer.assetKind!=='signature' && !!layer.src && !layer.autoCopy);
     if (!existing.length) return;
     const requested = Math.max(1,Math.min(60,Math.round(count)||1));
     const candidates = existing.slice(0,requested);
     while(candidates.length<requested){
       const source=existing[(candidates.length-existing.length)%existing.length] || existing[0];
-      candidates.push({...source,id:uid(),name:source.name.replace(/ copy(?: \\(\\d+\\))?$/,'')+' copy',locked:false});
+      candidates.push({...source,id:uid(),name:source.name.replace(/ copy(?: \(\d+\))?$/,'')+' copy',locked:false,autoCopy:true});
     }
     const safeMargin=Math.max(3,page.margin||0);
     let x=safeMargin,y=safeMargin,rowHeight=0;
@@ -341,7 +341,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     }
     if(!arranged.length)return;
     const additions=arranged.filter(layer=>!page.layers.some(existingLayer=>existingLayer.id===layer.id));
-    updatePage(p=>({...p,layers:[...p.layers.map(layer=>{const position=positions.get(layer.id);return position?{...layer,...position}:layer;}),...additions.map(layer=>({...layer,...positions.get(layer.id)!}))]}));
+    updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!layer.autoCopy).map(layer=>{const position=positions.get(layer.id);return position?{...layer,...position}:layer;}),...additions.map(layer=>({...layer,...positions.get(layer.id)!}))]}));
     setManualPhotoCount(arranged.length);
     setSelectedIds(arranged.map(layer=>layer.id));
   };
