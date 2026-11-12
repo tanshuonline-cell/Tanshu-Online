@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { jsPDF } from 'jspdf';
 import { TANSHU_PROFILE_PHOTO } from '../Header';
 import {
   ArrowLeft, Camera, Check, Crop, Download, Eraser, FileImage, FlipHorizontal,
@@ -161,6 +162,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const historyRef=useRef<{past:any[];future:any[];current:any;skip:boolean}>({past:[],future:[],current:null,skip:false});
   const [historyVersion,setHistoryVersion]=useState(0);
   const [isFullscreen,setIsFullscreen]=useState(false);
+  const [exportModalOpen,setExportModalOpen]=useState(false);
+  const [exportTarget,setExportTarget]=useState<'photo'|'sheet'>('photo');
+  const [exportQuality,setExportQuality]=useState<'standard'|'high'|'very-high'|'ultra'>('high');
+  const [export20KbTarget,setExport20KbTarget]=useState(false);
+  const [exportBusy,setExportBusy]=useState(false);
   const [backupStatus,setBackupStatus]=useState('Preparing local backup…');
   const backupTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const backupSnapshotRef=useRef<any>(null);
@@ -704,24 +710,80 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }
   };
 
-  const downloadPrintSheet = async () => {
-    if(!mergedPhotoUrl&&!processedPhotoUrl&&!previewUrl)return;
-    try{
-      const loadImage=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not load the print image.'));image.src=src;});
-      const pageWidth=Math.round(sheetWidthMm*300/25.4),pageHeight=Math.round(sheetHeightMm*300/25.4),canvas=document.createElement('canvas');canvas.width=pageWidth;canvas.height=pageHeight;
-      const context=canvas.getContext('2d');if(!context)throw new Error('Could not prepare the print sheet.');context.fillStyle='#ffffff';context.fillRect(0,0,pageWidth,pageHeight);context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
-      const signature=signatureUrl&&signatureVisible&&!mergedPhotoUrl?await loadImage(signatureProcessedUrl||signatureUrl):null;
+  const EXPORT_DPI:Record<'standard'|'high'|'very-high'|'ultra',number>={standard:200,high:300,'very-high':360,ultra:450};
+  const EXPORT_JPEG_QUALITY:Record<'standard'|'high'|'very-high'|'ultra',number>={standard:0.84,high:0.93,'very-high':0.97,ultra:0.99};
+  const openExportOptions=(target:'photo'|'sheet')=>{setExportTarget(target);setExportModalOpen(true);setExport20KbTarget(false);};
+  const canvasToBlob=(canvas:HTMLCanvasElement,type:string,quality?:number)=>new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('The browser could not create this export file.')),type,quality));
+  const loadExportImage=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not load a photo for export.'));image.src=src;});
+  const createExportCanvas=async(target:'photo'|'sheet',dpi:number)=>{
+    const widthMm=target==='photo'?photoWidthMm:sheetWidthMm,heightMm=target==='photo'?photoHeightMm:sheetHeightMm;
+    const pixelWidth=Math.max(1,Math.round(widthMm*dpi/25.4)),pixelHeight=Math.max(1,Math.round(heightMm*dpi/25.4));
+    if(pixelWidth*pixelHeight>26000000)throw new Error('This paper size at the selected Ultra resolution is too large for this browser. Choose Very High or High quality.');
+    const canvas=document.createElement('canvas');canvas.width=pixelWidth;canvas.height=pixelHeight;
+    const context=canvas.getContext('2d');if(!context)throw new Error('Could not prepare the export canvas.');
+    context.fillStyle='#ffffff';context.fillRect(0,0,pixelWidth,pixelHeight);context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+    if(target==='photo'){
+      const source=mergedPhotoUrl||processedPhotoUrl||previewUrl;if(!source)throw new Error('Upload a photo before exporting.');
+      const photo=await loadExportImage(source),ratio=photo.naturalWidth/photo.naturalHeight,targetRatio=pixelWidth/pixelHeight;
+      let sx=0,sy=0,sw=photo.naturalWidth,sh=photo.naturalHeight;
+      if(ratio>targetRatio){sw=photo.naturalHeight*targetRatio;sx=(photo.naturalWidth-sw)/2;}else{sh=photo.naturalWidth/targetRatio;sy=(photo.naturalHeight-sh)/2;}
+      context.save();context.translate(pixelWidth/2,pixelHeight/2);context.rotate(rotation*Math.PI/180);context.scale(flipped?-1:1,1);
+      context.drawImage(photo,sx,sy,sw,sh,-pixelWidth/2,-pixelHeight/2,pixelWidth,pixelHeight);context.restore();
+      const signature=signatureUrl&&signatureVisible&&!mergedPhotoUrl?await loadExportImage(signatureProcessedUrl||signatureUrl):null;
+      if(signature){const maxW=pixelWidth*0.36*signatureScale,maxH=pixelHeight*0.14*signatureScale,fit=Math.min(maxW/signature.naturalWidth,maxH/signature.naturalHeight),sigW=signature.naturalWidth*fit,sigH=signature.naturalHeight*fit;context.save();context.translate(pixelWidth*signaturePosition.x/100,pixelHeight*signaturePosition.y/100);context.rotate(signatureRotation*Math.PI/180);context.drawImage(signature,-sigW/2,-sigH/2,sigW,sigH);context.restore();}
+    }else{
+      const signature=signatureUrl&&signatureVisible&&!mergedPhotoUrl?await loadExportImage(signatureProcessedUrl||signatureUrl):null;
       for(let index=0;index<visiblePhotoCount;index++){
         const source=photoImages[index]||mergedPhotoUrl||processedPhotoUrl||previewUrl;if(!source)continue;
-        const photo=await loadImage(source),dimensions=getSheetPhotoDimensions(index),itemScale=getSheetPhotoScale(index),drawWidth=Math.max(1,Math.round(dimensions.width*300/25.4)),drawHeight=Math.max(1,Math.round(dimensions.height*300/25.4)),sourceRatio=photo.naturalWidth/photo.naturalHeight,targetRatio=drawWidth/drawHeight;
+        const photo=await loadExportImage(source),dimensions=getSheetPhotoDimensions(index),itemScale=getSheetPhotoScale(index),drawWidth=Math.max(1,Math.round(dimensions.width*dpi/25.4)),drawHeight=Math.max(1,Math.round(dimensions.height*dpi/25.4)),sourceRatio=photo.naturalWidth/photo.naturalHeight,targetRatio=drawWidth/drawHeight;
         let sx=0,sy=0,sw=photo.naturalWidth,sh=photo.naturalHeight;if(sourceRatio>targetRatio){sw=photo.naturalHeight*targetRatio;sx=(photo.naturalWidth-sw)/2;}else{sh=photo.naturalWidth/targetRatio;sy=(photo.naturalHeight-sh)/2;}
         const sized=document.createElement('canvas');sized.width=drawWidth;sized.height=drawHeight;const sizedContext=sized.getContext('2d');if(!sizedContext)throw new Error('Could not size a selected photo.');sizedContext.imageSmoothingEnabled=true;sizedContext.imageSmoothingQuality='high';sizedContext.drawImage(photo,sx,sy,sw,sh,0,0,drawWidth,drawHeight);
-        const position=getSheetPhotoPosition(index),x=Math.round(position.x*300/25.4),y=Math.round(position.y*300/25.4),scaledWidth=Math.round(drawWidth*itemScale),scaledHeight=Math.round(drawHeight*itemScale);context.drawImage(sized,x,y,scaledWidth,scaledHeight);
-        if(borderEnabled){context.save();context.strokeStyle=borderColor;context.lineWidth=Math.max(1,borderWidthMm*300/25.4);context.strokeRect(x,y,scaledWidth,scaledHeight);context.restore();}
+        const position=getSheetPhotoPosition(index),x=Math.round(position.x*dpi/25.4),y=Math.round(position.y*dpi/25.4),scaledWidth=Math.round(drawWidth*itemScale),scaledHeight=Math.round(drawHeight*itemScale);
+        context.drawImage(sized,x,y,scaledWidth,scaledHeight);
+        if(borderEnabled){context.save();context.strokeStyle=borderColor;context.lineWidth=Math.max(1,borderWidthMm*dpi/25.4);context.strokeRect(x,y,scaledWidth,scaledHeight);context.restore();}
         if(signature&&!photoImages[index]){const maxW=scaledWidth*0.36*signatureScale,maxH=scaledHeight*0.14*signatureScale,fit=Math.min(maxW/signature.naturalWidth,maxH/signature.naturalHeight),sigW=signature.naturalWidth*fit,sigH=signature.naturalHeight*fit;context.save();context.translate(x+scaledWidth*signaturePosition.x/100,y+scaledHeight*signaturePosition.y/100);context.rotate(signatureRotation*Math.PI/180);context.drawImage(signature,-sigW/2,-sigH/2,sigW,sigH);context.restore();}
       }
-      const link=document.createElement('a');link.href=canvas.toDataURL('image/png');link.download=`tanshu-${sheetSize}-passport-photo-sheet.png`;link.click();
-    }catch(error){console.error('Print sheet export failed:',error);setFaceMessage('The print sheet could not be exported. Please try again with the processed photo loaded.');}
+    }
+    return {canvas,widthMm,heightMm,dpi};
+  };
+  const createJpegBlob=async(canvas:HTMLCanvasElement,quality:number,target20Kb:boolean)=>{
+    if(!target20Kb)return canvasToBlob(canvas,'image/jpeg',quality);
+    const targetBytes=20*1024;let low=0.25,high=quality,best:Blob|null=null;
+    const lowest=await canvasToBlob(canvas,'image/jpeg',low);
+    if(lowest.size>targetBytes)return lowest;
+    best=lowest;
+    for(let attempt=0;attempt<9;attempt++){const mid=(low+high)/2,candidate=await canvasToBlob(canvas,'image/jpeg',mid);if(candidate.size<=targetBytes){best=candidate;low=mid;}else high=mid;}
+    return best;
+  };
+  const saveBlob=(blob:Blob,fileName:string)=>{const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),30000);};
+  const runExport=async(format:'pdf'|'jpg'|'png'|'print')=>{
+    if(!selectedFile||exportBusy)return;
+    setExportBusy(true);
+    try{
+      const dpi=EXPORT_DPI[exportQuality],result=await createExportCanvas(exportTarget,dpi),canvas=result.canvas,widthMm=result.widthMm,heightMm=result.heightMm;
+      const baseName=exportTarget==='photo'?'tanshu-passport-photo':'tanshu-'+sheetSize+'-passport-photo-sheet';
+      if(format==='png'){
+        const blob=await canvasToBlob(canvas,'image/png');saveBlob(blob,baseName+'.png');
+      }else if(format==='jpg'){
+        const blob=await createJpegBlob(canvas,EXPORT_JPEG_QUALITY[exportQuality],exportTarget==='photo'&&export20KbTarget);
+        saveBlob(blob,baseName+'.jpg');
+        if(exportTarget==='photo'&&export20KbTarget&&blob.size>20*1024)setFaceMessage('20 KB target could not be reached without more aggressive quality loss. The clearest safe result was downloaded instead.');
+        else if(exportTarget==='photo'&&export20KbTarget)setFaceMessage('JPG exported near the 20 KB target using the best quality that fits.');
+      }else{
+        const jpeg=await canvasToBlob(canvas,'image/jpeg',EXPORT_JPEG_QUALITY[exportQuality]),dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Could not prepare the PDF image.'));reader.readAsDataURL(jpeg);});
+        const pdf=new jsPDF({orientation:widthMm>=heightMm?'landscape':'portrait',unit:'mm',format:[widthMm,heightMm],compress:true});
+        pdf.addImage(dataUrl,'JPEG',0,0,widthMm,heightMm,undefined,'MEDIUM');pdf.setProperties({title:baseName,subject:'Print-ready photo sheet at '+dpi+' DPI',creator:'TANSHU ONLINE Photo Studio'});
+        const blob=pdf.output('blob');
+        if(format==='pdf')saveBlob(blob,baseName+'.pdf');
+        else{
+          const printUrl=URL.createObjectURL(blob),printWindow=window.open(printUrl,'_blank');
+          if(!printWindow){URL.revokeObjectURL(printUrl);setFaceMessage('Allow pop-ups to open the print-ready PDF, then choose Actual Size / 100% in the print dialog.');}
+          else setFaceMessage('Print-ready PDF opened. In the printer dialog choose Actual Size / 100%, the matching paper size and the highest printer quality.');
+        }
+      }
+      setExportModalOpen(false);
+    }catch(error){console.error('Photo export failed:',error);setFaceMessage(error instanceof Error?error.message:'The export could not be created. Please try again.');}
+    finally{setExportBusy(false);}
   };
 
   const removeSelectedPhoto = () => {
@@ -749,7 +811,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             </span>
             <button type="button" onClick={toggleStudioFullscreen} title={isFullscreen?'Exit full screen':'Enter full screen'} aria-label={isFullscreen?'Exit full screen':'Enter full screen'} className="rounded-lg border border-white/10 p-2 text-[#C8D1D9] transition hover:bg-white/5">{isFullscreen?<Minimize2 size={15}/>:<Maximize2 size={15}/>}</button>
             <button type="button" onClick={resetPreview} disabled={!selectedFile} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-[#C8D1D9] transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40">Reset</button>
-            <button type="button" disabled={!mergedPhotoUrl && !processedPhotoUrl && !previewUrl} onClick={() => { const link=document.createElement("a"); link.href=mergedPhotoUrl || processedPhotoUrl || previewUrl; link.download="tanshu-indian-passport-photo.jpg"; link.click(); }} title="Download the processed passport photo" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-lg shadow-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" disabled={!mergedPhotoUrl && !processedPhotoUrl && !previewUrl} onClick={() => openExportOptions("photo")} title="Download the processed passport photo" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-lg shadow-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-40">
               <Download size={14} /> Export Photo
             </button>
           </div>
@@ -892,7 +954,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><NumericStepper label="BORDER WIDTH" value={borderWidthMm} min={0.1} max={2} step={0.1} onChange={setBorderWidthMm}/></>}
                   <button type="button" onClick={smartArrangePhotos} disabled={!selectedFile} className="mt-3 w-full rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-[9px] font-bold text-emerald-200 disabled:opacity-40">Smart Arrange · Start From Top</button>
                   <button type="button" onClick={shrinkAllPhotos} disabled={!selectedFile} className="mt-2 w-full rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2 text-[9px] font-bold text-sky-100 disabled:opacity-40">Reduce All Photos · 10%</button><button type="button" onClick={()=>setPhotoPositions({})} className="mt-2 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-bold text-[#C3CDD3]">Reset photo positions to grid</button>
-                  <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {paperDimensions[sheetSize]?.label ?? 'Custom'} Print Sheet (PNG)</button>
+                  <button type="button" onClick={()=>openExportOptions("sheet")} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Export / Print {paperDimensions[sheetSize]?.label ?? 'Custom'} Sheet</button>
                   <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Click a photo to select it. Ctrl + C copies, Ctrl + V pastes, Ctrl + T highlights resize handles; Shift / Alt + drag duplicates. Select All, Merge All or Delete All are available above. Smart Arrange starts at the top margin. Print at Actual Size / 100%.</p>
                 </div>}
 
@@ -1019,6 +1081,29 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         </section>
 
       </div>
+
+      {exportModalOpen&&<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title">
+        <div className="w-full max-w-lg rounded-2xl border border-[#46535C] bg-[#20282E] p-4 shadow-2xl sm:p-5">
+          <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-emerald-300">TANSHU ONLINE · EXPORT STUDIO</p><h2 id="export-dialog-title" className="mt-1 text-lg font-extrabold text-white">{exportTarget==='photo'?'Export Passport Photo':'Export Print Sheet'}</h2><p className="mt-1 text-[10px] leading-5 text-[#AAB8C0]">Choose output format and print quality. Physical dimensions stay at Actual Size / 100%.</p></div><button type="button" onClick={()=>setExportModalOpen(false)} aria-label="Close export options" className="rounded-lg border border-white/10 p-2 text-[#C8D1D9] hover:bg-white/5"><X size={16}/></button></div>
+          <div className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-3">
+            <label className="mb-2 block text-[10px] font-bold text-emerald-100">PRINT / EXPORT QUALITY</label>
+            <select value={exportQuality} onChange={event=>setExportQuality(event.target.value as typeof exportQuality)} className="h-10 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-3 text-xs font-bold text-white outline-none focus:border-emerald-400">
+              <option value="standard">Standard · 200 DPI · Smaller file</option><option value="high">High Quality · 300 DPI · Recommended</option><option value="very-high">Very High · 360 DPI · Extra detail</option><option value="ultra">Ultra · 450 DPI · Largest output</option>
+            </select>
+            <p className="mt-2 text-[9px] leading-4 text-[#AAB8C0]">Higher DPI creates a larger output file; it cannot restore detail missing from the original photo.</p>
+            {exportTarget==='photo'&&<label className="mt-3 flex cursor-pointer items-center gap-2 rounded-lg border border-[#46535C] px-3 py-2.5 text-[10px] font-semibold text-[#D4DCE1]"><input type="checkbox" checked={export20KbTarget} onChange={event=>setExport20KbTarget(event.target.checked)} className="accent-emerald-400"/> JPG target: approximately 20 KB (best possible clarity)</label>}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" disabled={exportBusy} onClick={()=>runExport('pdf')} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-3 text-xs font-extrabold text-emerald-100 hover:bg-emerald-400/15 disabled:opacity-40"><FileImage size={16}/> Download PDF</button>
+            <button type="button" disabled={exportBusy} onClick={()=>runExport('jpg')} className="flex items-center justify-center gap-2 rounded-xl border border-[#52616A] bg-[#29343B] px-3 py-3 text-xs font-extrabold text-white hover:bg-[#34424B] disabled:opacity-40"><Download size={16}/> Download JPG</button>
+            <button type="button" disabled={exportBusy} onClick={()=>runExport('png')} className="flex items-center justify-center gap-2 rounded-xl border border-[#52616A] bg-[#29343B] px-3 py-3 text-xs font-extrabold text-white hover:bg-[#34424B] disabled:opacity-40"><Download size={16}/> Download PNG</button>
+            <button type="button" disabled={exportBusy} onClick={()=>runExport('print')} className="flex items-center justify-center gap-2 rounded-xl border border-sky-300/30 bg-sky-300/10 px-3 py-3 text-xs font-extrabold text-sky-100 hover:bg-sky-300/15 disabled:opacity-40"><FileImage size={16}/> Print</button>
+          </div>
+          {exportBusy&&<p className="mt-3 text-center text-[10px] font-semibold text-emerald-200">Preparing high-quality output…</p>}
+          <p className="mt-3 text-[9px] leading-4 text-[#87969F]">Print tip: select the matching paper size, disable “Fit to page” and choose Actual Size / 100%. Set printer quality to High or Best in the printer driver.</p>
+          <button type="button" onClick={()=>setExportModalOpen(false)} disabled={exportBusy} className="mt-3 w-full rounded-lg border border-white/10 px-3 py-2 text-[10px] font-semibold text-[#BFC9D0] hover:bg-white/5">Cancel</button>
+        </div>
+      </div>}
     </main>
   );
 };
