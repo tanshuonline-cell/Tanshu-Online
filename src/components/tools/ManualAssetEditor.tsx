@@ -356,7 +356,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         canvas.height * signaturePosition.height / 100
       );
       const src = canvas.toDataURL('image/png');
-      const mergedAsset = {...croppedAsset, src, name:croppedAsset.name.replace(/\\.png$/i,'')+'-signed.png'};
+      const mergedAsset = {...croppedAsset, src, name:croppedAsset.name.replace(/\.png$/i,'')+'-signed.png'};
       const nextState = {src,box:{x:0,y:0,w:100,h:100},croppedAsset:mergedAsset,cutoutSrc:'',backgroundColor:null};
       setWorkingSrc(src);
       setCroppedAsset(mergedAsset);
