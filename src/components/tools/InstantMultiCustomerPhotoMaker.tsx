@@ -48,7 +48,7 @@ const removePhotoBackground = async (src: string, onProgress: (fraction: number,
   const sourceBlob = await response.blob();
   const result = await removeBackground(sourceBlob, {
     quality: 'quality',
-    onProgress: ({ progress, message }) => onProgress(Math.max(0, Math.min(1, progress)), message),
+    onProgress: ({ progress, message }) => { const value = Number(progress) || 0; onProgress(Math.max(0, Math.min(1, value > 1 ? value / 100 : value)), message); },
   });
   return URL.createObjectURL(result.blob);
 };
@@ -61,7 +61,6 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const [cropBox, setCropBox] = useState<CropBox | null>(null);
   const [cropStart, setCropStart] = useState<{x:number;y:number}|null>(null);
   const [dragging, setDragging] = useState(false);
-  const [bgThreshold, setBgThreshold] = useState(28);
   const [backgroundColor, setBackgroundColor] = useState('transparent');
   const [customBackgroundColor, setCustomBackgroundColor] = useState('#ffffff');
   const [bgProgress, setBgProgress] = useState(0);
