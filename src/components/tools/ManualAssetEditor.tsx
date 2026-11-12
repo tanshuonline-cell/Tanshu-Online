@@ -16,7 +16,7 @@ type Props = {
   onClose: (id: string) => void;
   onDuplicate: (id: string) => void;
   onReplaceSource: (id: string, src: string) => void;
-  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number; signature?: {name:string;src:string;x:number;y:number;width:number} }) => void | Promise<void>;
+  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number; signature?: {name:string;src:string;x:number;y:number;width:number;height:number} }) => void | Promise<void>;
   onFinish: () => void;
   signatureAsset?: { name: string; src: string } | null;
   onSignatureApplied?: () => void;
@@ -105,8 +105,9 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const [notice, setNotice] = useState('');
   const [removingBackground, setRemovingBackground] = useState(false);
   const [addingToA4, setAddingToA4] = useState(false);
-  const [signaturePosition, setSignaturePosition] = useState({x:54,y:70,width:30});
-  const [signatureDrag, setSignatureDrag] = useState<{startX:number;startY:number;initial:{x:number;y:number;width:number}}|null>(null);
+  const [signaturePosition, setSignaturePosition] = useState({x:54,y:70,width:30,height:10});
+  const [signatureDrag, setSignatureDrag] = useState<{startX:number;startY:number;initial:{x:number;y:number;width:number;height:number}}|null>(null);
+  const [signatureResize, setSignatureResize] = useState<{corner:'nw'|'ne'|'sw'|'se';startX:number;startY:number;initial:{x:number;y:number;width:number;height:number}}|null>(null);
   const [naturalSize, setNaturalSize] = useState({width:0,height:0});
   const [editorHydrated, setEditorHydrated] = useState(false);
   const editorSaveQueue = useRef<Promise<void>>(Promise.resolve());
@@ -120,7 +121,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     const initial = { src: active.src, box: {x:0,y:0,w:100,h:100}, croppedAsset: null };
     signedCroppedAssetRef.current = null;
     setWorkingSrc(active.src); setBox(initial.box); setCroppedAsset(null); setCutoutSrc(''); setBackgroundColor(null); setHistory([initial]); setHistoryIndex(0);
-    setTargetW('0'); setTargetH('0'); setLockRatio(false); setDimensionEditing(false); setSignaturePosition({x:54,y:70,width:30}); setSignatureDrag(null);
+    setTargetW('0'); setTargetH('0'); setLockRatio(false); setDimensionEditing(false); setSignaturePosition({x:54,y:70,width:30,height:10}); setSignatureDrag(null); setSignatureResize(null);
     readEditorState(active.id).then(saved => {
       if (cancelled || !saved) return;
       setWorkingSrc(saved.workingSrc || active.src);
@@ -133,7 +134,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       setUnit(saved.unit || 'mm'); setCustomUnitName(saved.customUnitName || 'custom');
       setCustomUnitMm(saved.customUnitMm || '1'); setLockRatio(!!saved.lockRatio);
       setDimensionEditing(!!saved.dimensionEditing);
-      setSignaturePosition(saved.signaturePosition || {x:54,y:70,width:30});
+      setSignaturePosition({...{x:54,y:70,width:30,height:10},...(saved.signaturePosition||{}),height:saved.signaturePosition?.height ?? 10});
     }).catch(error => console.warn('Manual photo editor recovery could not read its saved state.', error))
       .finally(() => { if (!cancelled) setEditorHydrated(true); });
     return () => { cancelled = true; };
@@ -238,10 +239,25 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
     }
   };
   const moveCropBox = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (signatureResize) {
+      const rect = getImageRect();
+      if (!rect || !rect.width || !rect.height) return;
+      const dx = (event.clientX-signatureResize.startX)/rect.width*100;
+      const dy = (event.clientY-signatureResize.startY)/rect.height*100;
+      const initial = signatureResize.initial;
+      const right = initial.x+initial.width, bottom = initial.y+initial.height;
+      let x=initial.x, y=initial.y, width=initial.width, height=initial.height;
+      if(signatureResize.corner.includes('e')) width=Math.max(2,Math.min(100-initial.x,initial.width+dx));
+      if(signatureResize.corner.includes('s')) height=Math.max(1,Math.min(100-initial.y,initial.height+dy));
+      if(signatureResize.corner.includes('w')) { x=Math.max(0,Math.min(right-2,initial.x+dx)); width=right-x; }
+      if(signatureResize.corner.includes('n')) { y=Math.max(0,Math.min(bottom-1,initial.y+dy)); height=bottom-y; }
+      setSignaturePosition({x,y,width,height});
+      return;
+    }
     if (signatureDrag) {
       const rect = getImageRect();
       if (!rect || !rect.width || !rect.height) return;
-      setSignaturePosition(current => ({...current, x: Math.max(0, Math.min(100-current.width, signatureDrag.initial.x + (event.clientX-signatureDrag.startX)/rect.width*100)), y: Math.max(0, Math.min(99, signatureDrag.initial.y + (event.clientY-signatureDrag.startY)/rect.height*100))}));
+      setSignaturePosition(current => ({...current, x: Math.max(0, Math.min(100-current.width, signatureDrag.initial.x + (event.clientX-signatureDrag.startX)/rect.width*100)), y: Math.max(0, Math.min(100-current.height, signatureDrag.initial.y + (event.clientY-signatureDrag.startY)/rect.height*100))}));
       return;
     }
     if (!drag || !stageRef.current) return;
@@ -453,8 +469,8 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         {!cutoutSrc&&<p className="mb-2 rounded bg-[#3a3030] px-2 py-1.5 text-[9px] text-[#f0c4b9]">पहले ऊपर Remove BG करें।</p>}
         <button disabled={!cutoutSrc} onClick={()=>void applyPhotoBackground()} className="w-full rounded-lg bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20] disabled:cursor-not-allowed disabled:opacity-40">OK · Apply to Cropped Photo</button>
       </div>}
-      <div ref={stageRef} onPointerDown={startStagePointer} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);setSignatureDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>{setDrag(null);setSignatureDrag(null);}} onDragOver={e=>{if(e.dataTransfer.types.includes('application/x-tanshu-signature-src'))e.preventDefault();}} onDrop={e=>{const src=e.dataTransfer.getData('application/x-tanshu-signature-src')||e.dataTransfer.getData('text/plain');if(!src)return;e.preventDefault();const rect=getImageRect();if(rect?.width&&rect.height)setSignaturePosition(current=>({...current,x:Math.max(0,Math.min(100-current.width,(e.clientX-rect.left)/rect.width*100)),y:Math.max(0,Math.min(99,(e.clientY-rect.top)/rect.height*100))}));onSignatureDrop?.({name:'Cleaned Signature.png',src});}} className="relative flex h-full max-h-full max-w-full shrink-0 items-center justify-center select-none" style={{touchAction:'none'}}>
-        <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-full max-w-full object-contain"/>{signatureAsset&&<img data-signature-overlay src={signatureAsset.src} alt="Signature placement — drag to position" draggable={false} onPointerDown={e=>{e.preventDefault();e.stopPropagation();stageRef.current?.setPointerCapture(e.pointerId);setSignatureDrag({startX:e.clientX,startY:e.clientY,initial:{...signaturePosition}});}} onPointerUp={e=>{setSignatureDrag(null);if(stageRef.current?.hasPointerCapture(e.pointerId))stageRef.current.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setSignatureDrag(null)} className="absolute z-20 max-w-none cursor-grab touch-none active:cursor-grabbing" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:signaturePosition.width+'%',height:'auto',pointerEvents:'auto'}}/>}
+      <div ref={stageRef} onPointerDown={startStagePointer} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);setSignatureDrag(null);setSignatureResize(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>{setDrag(null);setSignatureDrag(null);setSignatureResize(null);}} onDragOver={e=>{if(e.dataTransfer.types.includes('application/x-tanshu-signature-src'))e.preventDefault();}} onDrop={e=>{const src=e.dataTransfer.getData('application/x-tanshu-signature-src')||e.dataTransfer.getData('text/plain');if(!src)return;e.preventDefault();const rect=getImageRect();if(rect?.width&&rect.height)setSignaturePosition(current=>({...current,x:Math.max(0,Math.min(100-current.width,(e.clientX-rect.left)/rect.width*100)),y:Math.max(0,Math.min(100-current.height,(e.clientY-rect.top)/rect.height*100))}));onSignatureDrop?.({name:'Cleaned Signature.png',src});}} className="relative flex h-full max-h-full max-w-full shrink-0 items-center justify-center select-none" style={{touchAction:'none'}}>
+        <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-full max-w-full object-contain"/>{signatureAsset&&<div data-signature-overlay className="absolute z-20 border border-dashed border-[#60a5fa] shadow-[0_0_0_1px_rgba(37,99,235,.25)]" onPointerDown={e=>{e.preventDefault();e.stopPropagation();stageRef.current?.setPointerCapture(e.pointerId);setSignatureDrag({startX:e.clientX,startY:e.clientY,initial:{...signaturePosition}});}} style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:signaturePosition.width+'%',height:signaturePosition.height+'%',cursor:'grab',touchAction:'none'}}><img src={signatureAsset.src} alt="Signature placement — drag to position and resize" draggable={false} className="h-full w-full select-none object-fill pointer-events-none"/>{(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize signature '+corner} title="Drag to resize signature" onPointerDown={e=>{e.preventDefault();e.stopPropagation();stageRef.current?.setPointerCapture(e.pointerId);setSignatureResize({corner,startX:e.clientX,startY:e.clientY,initial:{...signaturePosition}});}} onPointerMove={moveCropBox} onPointerUp={e=>{setSignatureResize(null);if(stageRef.current?.hasPointerCapture(e.pointerId))stageRef.current.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setSignatureResize(null)} onClick={e=>e.stopPropagation()} className="absolute z-30 h-3 w-3 rounded-[2px] border border-white bg-[#2563eb] shadow touch-none" style={{left:corner.includes('w')?'0%':'100%',top:corner.includes('n')?'0%':'100%',transform:'translate(-50%,-50%)',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}</div>}
         {cropMode&&<><div aria-hidden="true" className="pointer-events-none absolute z-[5] border-2 border-red-500 bg-red-500/[0.04]" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%'}}/>
           {!(box.x===0&&box.y===0&&box.w===100&&box.h===100)&&(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} aria-label={'Crop '+handle} title={'Resize crop '+handle} onPointerDown={e=>setCorner(e,handle)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className={'absolute z-10 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none '+(handle==='n'||handle==='s'?'h-3 w-5':'h-5 w-3')} style={{left:handle.includes('w')?box.x+'%':handle.includes('e')?(box.x+box.w)+'%':(box.x+box.w/2)+'%',top:handle.includes('n')?box.y+'%':handle.includes('s')?(box.y+box.h)+'%':(box.y+box.h/2)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:handle==='n'||handle==='s'?'ns-resize':handle==='e'||handle==='w'?'ew-resize':handle==='nw'||handle==='se'?'nwse-resize':'nesw-resize'}}/>)}
         </>}
