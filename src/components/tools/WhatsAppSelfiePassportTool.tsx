@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TANSHU_PROFILE_PHOTO } from '../Header';
 import {
   ArrowLeft, Camera, Check, Crop, Download, FileImage, FlipHorizontal,
@@ -48,6 +48,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [sheetSize, setSheetSize] = useState<'A4' | '4x6'>('A4');
   const [sheetZoom, setSheetZoom] = useState(100);
   const [signatureVisible, setSignatureVisible] = useState(true);
+  const replacePhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -87,6 +88,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setZoom(100);
     setRotation(0);
     setFlipped(false);
+  };
+
+  const removeSelectedPhoto = () => {
+    setSelectedFile(null);
+    resetPreview();
   };
 
   return (
@@ -149,6 +155,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-[#303941] bg-[#12171B]/95 px-4 py-3 backdrop-blur">
                 <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8C9AA4]">Live photo canvas</p><p className="mt-0.5 text-xs font-semibold text-[#E3E8EC]">{selectedFile ? 'Photo loaded · Ready to edit' : 'Your photo preview will appear here'}</p></div>
                 <div className="flex items-center gap-1.5">
+                  {selectedFile && <>
+                    <input ref={replacePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange}/>
+                    <button type="button" onClick={() => replacePhotoInputRef.current?.click()} className="rounded-lg border border-emerald-400/30 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 transition hover:bg-emerald-400/10">Replace Photo</button>
+                    <button type="button" onClick={removeSelectedPhoto} className="rounded-lg border border-rose-400/25 px-2.5 py-2 text-[10px] font-semibold text-rose-300 transition hover:bg-rose-400/10">Remove</button>
+                  </>}
                   <button type="button" onClick={() => setZoom(value => Math.max(50, value - 10))} disabled={!selectedFile} aria-label="Zoom out" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomOut size={14}/></button>
                   <span className="w-10 text-center text-[10px] font-bold tabular-nums text-[#C8D1D9]">{zoom}%</span>
                   <button type="button" onClick={() => setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
