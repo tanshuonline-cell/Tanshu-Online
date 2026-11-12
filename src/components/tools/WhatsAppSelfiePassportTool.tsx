@@ -751,7 +751,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <option value="2x2">Visa Photo · 2 × 2 inch</option>
                     <option value="35x35">Square Photo · 35 × 35 mm</option>
                   </select>
-                  <p className="mt-2 text-[9px] leading-4 text-[#83919A]">Size selection currently updates the preview frame only. Exact crop/export is a later stage.</p>
+                  <p className="mt-2 text-[9px] leading-4 text-[#83919A]">The selected size is applied to each print photo at 300 DPI, with a matching crop on export.</p>
                 </div>
 
                 {activeTool === 'background' ? (
