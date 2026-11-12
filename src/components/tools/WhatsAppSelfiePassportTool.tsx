@@ -101,6 +101,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [horizontalGapMm, setHorizontalGapMm] = useState(2);
   const [verticalGapMm, setVerticalGapMm] = useState(2);
   const [photoPositions, setPhotoPositions] = useState<Record<number,{x:number;y:number}>>({});
+  const [photoScales, setPhotoScales] = useState<Record<number,number>>({});
   const [borderEnabled, setBorderEnabled] = useState(false);
   const [borderColor, setBorderColor] = useState('#000000');
   const [borderWidthMm, setBorderWidthMm] = useState(0.3);
@@ -820,8 +821,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <div className="flex min-h-full min-w-full w-max items-start justify-start p-5">
                       <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative mx-0 my-0 shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
                         {Array.from({length:visiblePhotoCount},(_,index)=>{
-                          const position=getSheetPhotoPosition(index);
-                          return <div key={index} onPointerDown={event=>startSheetPhotoDrag(event,index)} onPointerMove={moveSheetPhotoDrag} onPointerUp={endSheetPhotoDrag} onPointerCancel={endSheetPhotoDrag} className="absolute cursor-move touch-none overflow-hidden bg-slate-100 shadow-sm" style={{left:position.x*sheetPreviewScale*sheetZoom/100+'px',top:position.y*sheetPreviewScale*sheetZoom/100+'px',width:photoWidthMm*sheetPreviewScale*sheetZoom/100+'px',height:photoHeightMm*sheetPreviewScale*sheetZoom/100+'px',border:borderEnabled?Math.max(1,borderWidthMm*sheetPreviewScale*sheetZoom/100)+'px solid '+borderColor:'none'}}>
+                          const position=getSheetPhotoPosition(index),itemScale=photoScales[index]??1,previewUnit=sheetPreviewScale*sheetZoom/100;
+                          return <div key={index} data-photo-index={index} onPointerDown={event=>startSheetPhotoDrag(event,index)} onPointerMove={moveSheetPhotoDrag} onPointerUp={endSheetPhotoDrag} onPointerCancel={endSheetPhotoDrag} onWheel={event=>{event.preventDefault();event.stopPropagation();setPhotoScales(current=>({...current,[index]:Math.max(0.3,Math.min(1.5,(current[index]??1)+(event.deltaY<0?0.05:-0.05)))}));}} className="absolute cursor-move touch-none overflow-visible bg-slate-100 shadow-sm" style={{left:position.x*previewUnit+'px',top:position.y*previewUnit+'px',width:photoWidthMm*itemScale*previewUnit+'px',height:photoHeightMm*itemScale*previewUnit+'px',border:borderEnabled?Math.max(1,borderWidthMm*previewUnit*itemScale)+'px solid '+borderColor:'none'}}>
                             <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt={'Photo '+(index+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
                             {!mergedPhotoUrl && signatureUrl && signatureVisible && <img src={signatureProcessedUrl || signatureUrl} alt="" draggable={false} className="pointer-events-none absolute object-contain" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:(36*signatureScale)+'%',transform:'translate(-50%,-50%) rotate('+signatureRotation+'deg)'}}/>}
                           </div>;
