@@ -176,13 +176,27 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
     try{
       const image=new Image();image.src=originalResultUrl;
       await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Could not open the corrected photo.'));});
-      const width=image.naturalWidth*scale,height=image.naturalHeight*scale;
-      if(width*height>12000000)throw new Error('This output exceeds the 12 MP safety limit on this device.');
+      const maxPixels=12000000;
+      const maxDimension=8192;
+      const requestedScale=scale;
+      const safeScale=Math.min(
+        requestedScale,
+        Math.sqrt(maxPixels/(image.naturalWidth*image.naturalHeight)),
+        maxDimension/image.naturalWidth,
+        maxDimension/image.naturalHeight
+      );
+      const width=Math.max(1,Math.floor(image.naturalWidth*safeScale));
+      const height=Math.max(1,Math.floor(image.naturalHeight*safeScale));
       const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-      const context=canvas.getContext('2d');if(!context)throw new Error('Could not create the HD version.');
+      const context=canvas.getContext('2d');if(!context)throw new Error('Could not create the HD version on this device.');
       context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,0,0,width,height);
       setResultUrl(canvas.toDataURL('image/jpeg',.98));
-      setStatus(scale+'× high-quality browser upscale complete. This is not AI and cannot recreate missing original detail.');
+      const actualScale=Math.min(width/image.naturalWidth,height/image.naturalHeight);
+      const limited=actualScale+0.01<requestedScale;
+      setStatus((limited
+        ? requestedScale+'× request was automatically reduced to '+actualScale.toFixed(2)+'× to stay within this device’s safe canvas limit.'
+        : scale+'× high-quality browser upscale complete.')
+        +' Output: '+(width*height/1000000).toFixed(2)+' MP. This is not AI and cannot recreate missing original detail.');
     }catch(error){setStatus(error instanceof Error?error.message:'Could not create the HD version.');}
     finally{setBusy(false);}
   };
