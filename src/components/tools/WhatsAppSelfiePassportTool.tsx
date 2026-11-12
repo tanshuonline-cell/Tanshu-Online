@@ -770,24 +770,22 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         saveBlob(blob,baseName+'.jpg');
         if(exportTarget==='photo'&&export20KbTarget&&blob.size>20*1024)setFaceMessage('20 KB target could not be reached without more aggressive quality loss. The clearest safe result was downloaded instead.');
         else if(exportTarget==='photo'&&export20KbTarget)setFaceMessage('JPG exported near the 20 KB target using the best quality that fits.');
-      }else{
+      }else if(format==='pdf'){
         const jpeg=await canvasToBlob(canvas,'image/jpeg',EXPORT_JPEG_QUALITY[exportQuality]),dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Could not prepare the PDF image.'));reader.readAsDataURL(jpeg);});
         const pdf=new jsPDF({orientation:widthMm>=heightMm?'landscape':'portrait',unit:'mm',format:[widthMm,heightMm],compress:true});
         pdf.addImage(dataUrl,'JPEG',0,0,widthMm,heightMm,undefined,'MEDIUM');pdf.setProperties({title:baseName,subject:'Print-ready photo sheet at '+dpi+' DPI',creator:'TANSHU ONLINE Photo Studio'});
-        const blob=pdf.output('blob');
-        if(format==='pdf')saveBlob(blob,baseName+'.pdf');
+        saveBlob(pdf.output('blob'),baseName+'.pdf');
+      }else{
+        if(!printWindow)setFaceMessage('Allow pop-ups for this site, then press Print again to open the printer dialog.');
         else{
-          if(!printWindow)setFaceMessage('Allow pop-ups for this site, then press Print again to open the printer dialog.');
-          else{
-            const printImage=await canvasToBlob(canvas,'image/jpeg',EXPORT_JPEG_QUALITY[exportQuality]),printUrl=URL.createObjectURL(printImage);
-            printWindow.document.open();
-            printWindow.document.write('<!doctype html><html><head><title>Print · '+baseName+'</title><style>@page{size:'+widthMm+'mm '+heightMm+'mm;margin:0}html,body{margin:0;padding:0;width:'+widthMm+'mm;height:'+heightMm+'mm;background:#fff}img{display:block;width:'+widthMm+'mm;height:'+heightMm+'mm;object-fit:fill}</style></head><body><img id="print-image" src="'+printUrl+'" alt="Print-ready photo"></body></html>');
-            printWindow.document.close();
-            const printImageElement=printWindow.document.getElementById('print-image') as HTMLImageElement|null;
-            if(printImageElement){printImageElement.onload=()=>{printWindow.focus();printWindow.print();};printImageElement.onerror=()=>{setFaceMessage('The print preview could not load. Please download the PDF instead.');};}
-            printWindow.onafterprint=()=>{URL.revokeObjectURL(printUrl);printWindow.close();};
-            setFaceMessage('Print dialog opened. Select Actual Size / 100%, the matching paper size and High / Best printer quality.');
-          }
+          const printImage=await canvasToBlob(canvas,'image/jpeg',EXPORT_JPEG_QUALITY[exportQuality]),printUrl=URL.createObjectURL(printImage);
+          printWindow.document.open();
+          printWindow.document.write('<!doctype html><html><head><title>Print · '+baseName+'</title><style>@page{size:'+widthMm+'mm '+heightMm+'mm;margin:0}html,body{margin:0;padding:0;width:'+widthMm+'mm;height:'+heightMm+'mm;background:#fff}img{display:block;width:'+widthMm+'mm;height:'+heightMm+'mm;object-fit:fill}</style></head><body><img id="print-image" src="'+printUrl+'" alt="Print-ready photo"></body></html>');
+          printWindow.document.close();
+          const printImageElement=printWindow.document.getElementById('print-image') as HTMLImageElement|null;
+          if(printImageElement){printImageElement.onload=()=>{printWindow.focus();printWindow.print();};printImageElement.onerror=()=>{setFaceMessage('The print preview could not load. Please download the PDF instead.');};}
+          printWindow.onafterprint=()=>{URL.revokeObjectURL(printUrl);printWindow.close();};
+          setFaceMessage('Print dialog opened. Select Actual Size / 100%, the matching paper size and High / Best printer quality.');
         }
       }
       setExportModalOpen(false);
