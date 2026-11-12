@@ -87,8 +87,8 @@ const makeAdjusted = async (customer: CustomerPhoto) => {
   const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
   const ctx = canvas.getContext('2d'); if (!ctx) return customer.workingUrl;
   const detail = Math.max(0, customer.sharpness + customer.clarity * 0.45 + customer.qualityEnhance * 0.35 + customer.hdEnhance * 0.55);
-  const beautySoft = Math.min(0.28, (customer.beauty + customer.smooth + customer.bлемish) / 900);
-  const lightLift = customer.brilliance * 0.12 + customer.shadows * 0.08 + customer.whites * 0.06 + customer.hslLightness * 0.08 + customer.brightEyes * 0.025 + customer.whitening * 0.025 + customer.clear * 0.04;
+  const beautySoft = Math.min(0.28, (customer.beauty + customer.smooth + customer.blemish + customer.plump * 0.25) / 900);
+  const lightLift = customer.brilliance * 0.12 + customer.shadows * 0.08 + customer.whites * 0.06 + customer.hslLightness * 0.08 + customer.brightEyes * 0.025 + customer.darkCircle * 0.025 + customer.whitening * 0.025 + customer.clear * 0.04;
   const toneContrast = customer.graphic * 0.12 + customer.highlights * 0.05 - customer.blacks * 0.04;
   ctx.filter = [
     'brightness(' + Math.max(45, Math.min(165, customer.brightness + customer.faceTone * 0.12 + customer.skinTone * 0.08 + lightLift)) + '%)',
