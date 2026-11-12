@@ -351,7 +351,6 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     const photos=page.layers.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature'&&!!layer.src);
     if(!photos.length)return;
     const resized=photos.map(layer=>({...layer,w:reference.w,h:reference.h}));
-    updatePage(p=>({...p,layers:p.layers.map(layer=>resized.find(photo=>photo.id===layer.id)||layer)}));
     const nextCount=Math.max(manualPhotoCount,resized.length);
     setManualPhotoCount(nextCount);
     const safeMargin=Math.max(3,page.margin||0);
@@ -364,7 +363,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
       positions.set(layer.id,{x,y});arranged.push(layer);
       x+=layer.w+horizontalGapMm;rowHeight=Math.max(rowHeight,layer.h);
     }
-    updatePage(p=>({...p,layers:p.layers.map(layer=>{const position=positions.get(layer.id);return position?{...layer,...position}:layer;})}));
+    updatePage(p=>({...p,layers:p.layers.map(layer=>{const resizedLayer=resized.find(photo=>photo.id===layer.id);const position=positions.get(layer.id);return resizedLayer?{...resizedLayer,...(position||{})}:layer;})}));
     setManualPhotoCount(arranged.length);
     setSelectedIds(arranged.map(layer=>layer.id));
   };
