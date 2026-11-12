@@ -74,7 +74,7 @@ const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: 
   const stepX = moving.width + gap, stepY = moving.height + gap;
   for (let row=0; row*stepY+margin<=maxY+0.01; row++) for (let col=0; col*stepX+margin<=maxX+0.01; col++) add(margin+col*stepX,margin+row*stepY);
   const nearest = candidates.sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
-  if (!nearest) return { x: target.x, y: target.y };
+  if (!nearest) return { x: moving.x, y: moving.y };
   const distance = Math.hypot(nearest.x-target.x,nearest.y-target.y);
   return collides(target)||distance<=4 ? {x:nearest.x,y:nearest.y} : {x:target.x,y:target.y};
 };
