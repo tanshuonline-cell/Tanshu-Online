@@ -728,7 +728,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     }
 
     const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + `-${sheetMode}-print`;
-    if (format === 'pdf') { const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[sheetDimensions.widthMm, sheetDimensions.heightMm] as any}); doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,sheetDimensions.widthMm,sheetDimensions.heightMm); doc.save(baseName+'.pdf'); return; }
+    if (format === 'pdf') { const doc = new jsPDF({orientation:sheetDimensions.widthMm>=sheetDimensions.heightMm?'landscape':'portrait', unit:'mm', format:[sheetDimensions.widthMm, sheetDimensions.heightMm] as any}); doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,sheetDimensions.widthMm,sheetDimensions.heightMm); doc.save(baseName+'.pdf'); return; }
     const mime = format === 'png' ? 'image/png' : 'image/jpeg'; const blob = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Sheet export failed.')),mime,0.96)); const url=URL.createObjectURL(blob), anchor=document.createElement('a'); anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click(); window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 
