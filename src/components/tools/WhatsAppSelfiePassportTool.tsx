@@ -21,7 +21,7 @@ const TOOL_ITEMS: { id: StudioTool; label: string; short: string; icon: typeof C
   { id: 'crop', label: 'Crop & Position', short: 'CROP', icon: Crop },
   { id: 'face', label: 'Face Alignment', short: 'FACE', icon: ScanFace },
   { id: 'straighten', label: 'Straighten', short: 'ALIGN', icon: SlidersHorizontal },
-  { id: 'background', label: 'BG Remove', short: 'BG', icon: WandSparkles },
+  { id: 'background', label: 'BG Remove', short: 'BG', icon: Eraser },
   { id: 'signature', label: 'Signature Studio', short: 'SIGN', icon: FileImage },
   { id: 'print', label: 'Photo Size & Print', short: 'PRINT', icon: FileImage },
 ];
