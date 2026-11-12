@@ -8,7 +8,7 @@ type ManualPage = { id: string; name: string; width: number; height: number; bac
 type Tool = 'move'|'frame'|'marquee'|'crop'|'hand';
 
 const uid = () => 'manual-' + Math.random().toString(36).slice(2, 10);
-const makePage = (n: number, width = 210, height = 297): ManualPage => ({ id: uid(), name: 'Page ' + n, width, height, background: '#ffffff', margin: 5, layers: [] });
+const makePage = (n: number, width = 210, height = 297): ManualPage => ({ id: uid(), name: 'Page ' + n, width, height, background: '#ffffff', margin: 3, layers: [] });
 const intersects = (a: {x:number;y:number;w:number;h:number}, b: {x:number;y:number;w:number;h:number}) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
 const getManualSmartPosition = (x:number,y:number,moving:ManualLayer,others:ManualLayer[],gapX:number,gapY:number,pageW:number,pageH:number) => {
   const snap=3.5, xs=[x,...others.flatMap(item=>[item.x,item.x+item.w+gapX,item.x-moving.w-gapX,item.x+(item.w-moving.w)/2])], ys=[y,...others.flatMap(item=>[item.y,item.y+item.h+gapY,item.y-moving.h-gapY,item.y+(item.h-moving.h)/2])];
@@ -101,7 +101,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     readManualStudioProject().then(saved => {
       if (cancelled) return;
       if (saved?.pages?.length) {
-        setPages(saved.pages);
+        setPages(saved.pages.map((p:any)=>({...p,margin:p.margin===5?3:(p.margin??3)})));
         setPageIndex(Math.max(0, Math.min(saved.pageIndex || 0, saved.pages.length - 1)));
         setTool(saved.tool || 'move');
         setSelectedIds(saved.selectedIds || []);
@@ -289,7 +289,28 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     });
     updatePage(p=>({...p,layers:[...p.layers,...copies]}));setSelectedIds(copies.map(l=>l.id));
   };
-  const setManualPhotoCount = (requested:number) => { const target=Math.max(1,Math.min(60,Math.floor(requested)||1)),current=page.layers.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature'),gapX=page.horizontalPhotoGap??page.photoGap??2,gapY=page.verticalPhotoGap??page.photoGap??3; if(target===current.length)return; if(target<current.length){let removeCount=current.length-target;const removeIds:string[]=[];for(const layer of [...current].reverse()){if(removeCount<=0)break;if(!layer.locked){removeIds.push(layer.id);removeCount--;}}if(removeIds.length)updatePage(p=>({...p,layers:p.layers.filter(layer=>!removeIds.includes(layer.id))}));return;} const base=selectedPhoto||current[0];if(!base)return;const occupied=[...page.layers],copies:ManualLayer[]=[];for(let i=current.length;i<target;i++){const copy:ManualLayer={...base,id:uid(),name:base.name+' copy '+(i+1),x:base.x+5,y:base.y+5,locked:false};const pos=getManualSmartPosition(copy.x,copy.y,copy,occupied.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature'),gapX,gapY,page.width,page.height);copy.x=pos.x;copy.y=pos.y;copies.push(copy);occupied.push(copy);}updatePage(p=>({...p,layers:[...p.layers,...copies]}));setSelectedIds(copies.map(layer=>layer.id)); };
+  const setManualPhotoCount = (requested:number) => {
+    const current=page.layers.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature');
+    const base=selectedPhoto||current[0];
+    if(!base){window.alert('पहले एक फोटो जोड़ें, फिर Count Photo सेट करें।');return;}
+    if(current.some(layer=>layer.locked)){window.alert('Count Photo से ऑटो-अरेंज करने से पहले फोटो की Lock हटाएँ।');return;}
+    const gapX=page.horizontalPhotoGap??page.photoGap??2,gapY=page.verticalPhotoGap??page.photoGap??2,margin=Math.max(0,page.margin??3);
+    const maxW=Math.max(base.w,...current.map(layer=>layer.w)),maxH=Math.max(base.h,...current.map(layer=>layer.h));
+    const columns=Math.max(1,Math.floor((page.width-margin*2+gapX)/(maxW+gapX)));
+    const rows=Math.max(1,Math.floor((page.height-margin*2+gapY)/(maxH+gapY)));
+    const capacity=Math.min(60,columns*rows);
+    const target=Math.max(1,Math.min(capacity,Math.floor(requested)||1));
+    if(requested>capacity)window.alert('इस पेज पर 3 mm सुरक्षित मार्जिन और चुने हुए फोटो साइज के साथ अधिकतम '+capacity+' फोटो फिट होंगे।');
+    const next=current.slice(0,target);
+    while(next.length<target){const index=next.length;next.push({...base,id:uid(),name:base.name.replace(/ copy \d+$/,'')+' copy '+(index+1),locked:false});}
+    const finalW=Math.max(...next.map(layer=>layer.w)),finalH=Math.max(...next.map(layer=>layer.h));
+    const cols=Math.max(1,Math.floor((page.width-margin*2+gapX)/(finalW+gapX)));
+    const arranged=next.map((layer,index)=>({...layer,x:margin+(index%cols)*(finalW+gapX),y:margin+Math.floor(index/cols)*(finalH+gapY)}));
+    const ids=new Set(current.map(layer=>layer.id));
+    updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!ids.has(layer.id)),...arranged]}));
+    setManualPhotoCount(target);
+    setSelectedIds(arranged.map(layer=>layer.id));
+  };
   const autoArrangeSelected = () => {
     const chosen=page.layers.filter(layer=>selectedIds.includes(layer.id)&&!layer.locked);if(!chosen.length)return;
     const gapX=page.horizontalPhotoGap??page.photoGap??2,gapY=page.verticalPhotoGap??page.photoGap??3,maxW=Math.max(...chosen.map(layer=>layer.w)),maxH=Math.max(...chosen.map(layer=>layer.h));
@@ -401,6 +422,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
       {['File','Edit','Image','Canvas','Arrange','Merge'].map(item=><div key={item} className="relative"><button data-menu-toggle onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2.5 py-2 '+(menuOpen===item?'bg-[#35404a] text-white':'text-[#aeb8c2] hover:bg-[#2b333b] hover:text-white')}>{item}</button>{menuOpen===item&&<div data-menu-popup className="absolute left-0 top-9 z-[80] min-w-[190px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl">{(item==='File'?['Export Page PNG','Print Actual Size']:item==='Edit'?['Undo','Redo','Duplicate Selected','Delete Selected','Select All Layers','Deselect All']:item==='Image'?['Crop Selected Photo']:item==='Canvas'?['A4 Portrait','A4 Landscape','Add Page','Duplicate Page','Delete Page']:item==='Arrange'?['Auto Arrange Selected','Bring Forward','Send Backward']:['Merge Selected Photos']).map(action=><button key={action} disabled={action==='Merge Selected Photos'&&selected.filter(l=>l.type==='photo').length<2} onClick={()=>{setMenuOpen(null);if(action==='Export Page PNG')void exportPage();else if(action==='Print Actual Size')void printPage();else if(action==='Undo')undoPage();else if(action==='Redo')redoPage();else if(action==='Duplicate Selected')duplicateSelected();else if(action==='Delete Selected')removeSelected();else if(action==='Select All Layers')setSelectedIds(page.layers.map(l=>l.id));else if(action==='Deselect All')setSelectedIds([]);else if(action==='Crop Selected Photo')setTool('crop');else if(action==='A4 Portrait')updatePage(p=>({...p,width:210,height:297}));else if(action==='A4 Landscape')updatePage(p=>({...p,width:297,height:210}));else if(action==='Add Page')addPage();else if(action==='Duplicate Page')duplicatePage();else if(action==='Delete Page')deletePage();else if(action==='Bring Forward')updatePage(p=>{const a=[...p.layers],i=a.findIndex(l=>selectedIds.includes(l.id));if(i>=0&&i<a.length-1)[a[i],a[i+1]]=[a[i+1],a[i]];return {...p,layers:a};});else if(action==='Send Backward')updatePage(p=>{const a=[...p.layers],i=a.findIndex(l=>selectedIds.includes(l.id));if(i>0)[a[i],a[i-1]]=[a[i-1],a[i]];return {...p,layers:a};});else if(action==='Auto Arrange Selected')autoArrangeSelected();else if(action==='Merge Selected Photos')void mergeSelectedPhotos();}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">{action}</button>)}</div>}</div>)}
       <label className="ml-1 flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 text-[#aeb8c2]"><input type="checkbox" checked={page.layers.length>0&&selectedIds.length===page.layers.length} onChange={e=>setSelectedIds(e.target.checked?page.layers.map(l=>l.id):[])} className="accent-[#d5a66e]"/> Select All</label>
       <label className="flex items-center gap-1 rounded border border-[#46515c] px-2 py-1 text-[9px] text-[#aeb8c2]">Horizontal Gap (mm)<input aria-label="Horizontal Photo Gap (mm)" type="number" min="0" max="30" step="0.5" value={page.horizontalPhotoGap??page.photoGap??2} onChange={e=>updatePage(p=>({...p,horizontalPhotoGap:Math.max(0,Math.min(30,Number(e.target.value)||0))}))} className="w-12 rounded bg-[#171d23] px-1 py-1 text-white"/></label>
+      <div className="flex shrink-0 items-center gap-1 rounded border border-[#46515c] p-0.5" aria-label="Manual page orientation"><button type="button" aria-pressed={page.height>=page.width} onClick={()=>updatePage(p=>p.height>=p.width?p:{...p,width:p.height,height:p.width})} className={'rounded px-2 py-1 text-[9px] '+(page.height>=page.width?'bg-[#35404a] text-white':'text-[#aeb8c2]')}>Portrait</button><button type="button" aria-pressed={page.width>page.height} onClick={()=>updatePage(p=>p.width>p.height?p:{...p,width:p.height,height:p.width})} className={'rounded px-2 py-1 text-[9px] '+(page.width>page.height?'bg-[#35404a] text-white':'text-[#aeb8c2]')}>Landscape</button></div>
       <div className="relative"><button data-menu-toggle onClick={()=>setMenuOpen(menuOpen==='View'?null:'View')} className="rounded px-2.5 py-2 text-[#aeb8c2] hover:bg-[#2b333b]">View</button>{menuOpen==='View'&&<div data-menu-popup className="absolute left-0 top-9 z-[80] min-w-[150px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl">{['Zoom In','Zoom Out','Reset Zoom'].map(a=><button key={a} onClick={()=>{setPageZoom(v=>a==='Zoom In'?Math.min(1600,v+25):a==='Zoom Out'?Math.max(10,v-25):100);setMenuOpen(null);}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">{a}</button>)}</div>}</div>
       <button data-menu-toggle onClick={()=>setMenuOpen(menuOpen==='Help'?null:'Help')} className="rounded px-2.5 py-2 text-[#aeb8c2] hover:bg-[#2b333b]">Help</button>{menuOpen==='Help'&&<div data-menu-popup className="absolute left-[520px] top-9 z-[80] rounded-lg border border-[#46515c] bg-[#20272e] p-3 text-[10px] text-[#d0d7de] shadow-2xl">Select a photo layer to move, resize, duplicate or delete it. Import Photo opens the separate photo workspace.</div>}
 
