@@ -787,6 +787,23 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               </div>
 
               <div className="space-y-4 p-4">
+                {activeTool==='print'&&<div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.05] p-3">
+                  <p className="mb-3 text-[10px] font-bold tracking-wide text-emerald-200">ADVANCED PRINT SETTINGS</p>
+                  {sheetSize==='custom'&&<div className="mb-3 grid grid-cols-2 gap-2"><NumericStepper label="PAPER WIDTH" value={customSheetWidthMm} min={50} max={500} step={1} onChange={setCustomSheetWidthMm}/><NumericStepper label="PAPER HEIGHT" value={customSheetHeightMm} min={50} max={700} step={1} onChange={setCustomSheetHeightMm}/></div>}
+                  <p className="mb-3 text-[8px] leading-4 text-[#83919A]">Adjust spacing precisely. Drag each photo on the sheet to place it anywhere; the downloaded sheet follows the same positions.</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <NumericStepper label="HORIZONTAL MARGIN" value={horizontalMarginMm} min={0} max={30} step={0.5} onChange={setHorizontalMarginMm}/>
+                    <NumericStepper label="VERTICAL MARGIN" value={verticalMarginMm} min={0} max={30} step={0.5} onChange={setVerticalMarginMm}/>
+                    <NumericStepper label="HORIZONTAL GAP" value={horizontalGapMm} min={0} max={20} step={0.5} onChange={setHorizontalGapMm}/>
+                    <NumericStepper label="VERTICAL GAP" value={verticalGapMm} min={0} max={20} step={0.5} onChange={setVerticalGapMm}/>
+                  </div>
+                  <button type="button" onClick={()=>setBorderEnabled(value=>!value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3]"><span>Photo border</span><span className="text-emerald-200">{borderEnabled?'ON':'OFF'}</span></button>
+                  {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><NumericStepper label="BORDER WIDTH" value={borderWidthMm} min={0.1} max={2} step={0.1} onChange={setBorderWidthMm}/></>}
+                  <button type="button" onClick={()=>setPhotoPositions({})} className="mt-3 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-bold text-[#C3CDD3]">Reset photo positions to grid</button>
+                  <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {paperDimensions[sheetSize]?.label ?? 'Custom'} Print Sheet (PNG)</button>
+                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the paper zooms; outside the paper, scroll normally. Use Actual Size / 100% when printing.</p>
+                </div>}
+
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
                   <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-bold tracking-wide text-[#D4DCE1]">PHOTO INPUT</span><span className={selectedFile ? 'rounded-full bg-emerald-400/10 px-2 py-1 text-[9px] font-bold text-emerald-300' : 'rounded-full bg-white/5 px-2 py-1 text-[9px] font-bold text-[#87939D]'}>{selectedFile ? 'LOADED' : 'EMPTY'}</span></div>
                   {selectedFile ? (
@@ -883,22 +900,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <button type="button" onClick={()=>setActiveTool('signature')} className="mt-2 w-full rounded-lg border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-[9px] font-bold text-emerald-200">Open Signature Studio</button>
                 </div>
 
-                {activeTool==='print'&&<div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.05] p-3">
-                  <p className="mb-3 text-[10px] font-bold tracking-wide text-emerald-200">ADVANCED PRINT SETTINGS</p>
-                  {sheetSize==='custom'&&<div className="mb-3 grid grid-cols-2 gap-2"><NumericStepper label="PAPER WIDTH" value={customSheetWidthMm} min={50} max={500} step={1} onChange={setCustomSheetWidthMm}/><NumericStepper label="PAPER HEIGHT" value={customSheetHeightMm} min={50} max={700} step={1} onChange={setCustomSheetHeightMm}/></div>}
-                  <p className="mb-3 text-[8px] leading-4 text-[#83919A]">Adjust spacing precisely. Drag each photo on the sheet to place it anywhere; the downloaded sheet follows the same positions.</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <NumericStepper label="HORIZONTAL MARGIN" value={horizontalMarginMm} min={0} max={30} step={0.5} onChange={setHorizontalMarginMm}/>
-                    <NumericStepper label="VERTICAL MARGIN" value={verticalMarginMm} min={0} max={30} step={0.5} onChange={setVerticalMarginMm}/>
-                    <NumericStepper label="HORIZONTAL GAP" value={horizontalGapMm} min={0} max={20} step={0.5} onChange={setHorizontalGapMm}/>
-                    <NumericStepper label="VERTICAL GAP" value={verticalGapMm} min={0} max={20} step={0.5} onChange={setVerticalGapMm}/>
-                  </div>
-                  <button type="button" onClick={()=>setBorderEnabled(value=>!value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3]"><span>Photo border</span><span className="text-emerald-200">{borderEnabled?'ON':'OFF'}</span></button>
-                  {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><NumericStepper label="BORDER WIDTH" value={borderWidthMm} min={0.1} max={2} step={0.1} onChange={setBorderWidthMm}/></>}
-                  <button type="button" onClick={()=>setPhotoPositions({})} className="mt-3 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-bold text-[#C3CDD3]">Reset photo positions to grid</button>
-                  <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {paperDimensions[sheetSize]?.label ?? 'Custom'} Print Sheet (PNG)</button>
-                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the paper zooms; outside the paper, scroll normally. Use Actual Size / 100% when printing.</p>
-                </div>}
+
 
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">WORKFLOW</p>
