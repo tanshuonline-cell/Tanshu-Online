@@ -635,8 +635,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[#111518] text-[#E8EDF1]">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#171C20]/95 backdrop-blur-xl">
+    <main className="flex h-screen flex-col overflow-hidden bg-[#111518] text-[#E8EDF1]">
+      <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[#171C20]/95 backdrop-blur-xl">
         <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <a href="/" aria-label="Back to TANSHU ONLINE" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#D6DEE5] transition hover:bg-white/10">
@@ -660,7 +660,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         </div>
       </header>
 
-      <div className="mx-auto h-[calc(100vh-68px)] max-w-[1920px] overflow-hidden px-2 py-2 sm:px-3">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1920px] flex-1 overflow-hidden px-2 py-2 sm:px-3">
         <section onPointerDown={event=>{const target=event.target as HTMLElement;if(isCropping&&cropViewportRef.current&&!cropViewportRef.current.contains(target)&&!target.closest('button'))setIsCropping(false);}} className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#343D44] bg-[#1A2025] shadow-2xl shadow-black/30">
           <div className="flex flex-nowrap items-center justify-between gap-3 overflow-x-auto border-b border-[#343D44] bg-[#20272D] px-4 py-3 sm:px-5">
             <div className="flex items-center gap-2">
