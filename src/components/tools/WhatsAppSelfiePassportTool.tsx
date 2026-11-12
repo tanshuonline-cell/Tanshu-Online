@@ -651,7 +651,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   return (
     <main className="relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[#111518] text-[#E8EDF1]">
       <header className="relative z-30 h-[68px] min-h-[68px] shrink-0 border-b border-white/10 bg-[#171C20]/95 backdrop-blur-xl">
-        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-h-[68px] flex-nowrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <a href="/" aria-label="Back to TANSHU ONLINE" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#D6DEE5] transition hover:bg-white/10">
               <ArrowLeft size={17} />
@@ -659,7 +659,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-10 w-10 rounded-full border-2 border-emerald-300/80 object-cover object-center shadow-lg shadow-emerald-950/40" />
             <div>
               
-              <h1 className="text-sm font-extrabold tracking-wide text-white sm:text-base">TANSHU ONLINE · WHATSAPP SELFIE PHOTO STUDIO</h1>
+              <h1 className="shrink-0 whitespace-nowrap text-sm font-extrabold tracking-wide text-white sm:text-base">TANSHU ONLINE · WHATSAPP SELFIE PHOTO STUDIO</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
