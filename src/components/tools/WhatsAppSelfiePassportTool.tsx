@@ -208,7 +208,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setFaceMessage('Loading the free face model on this device. The first load may take a little longer.');
     try {
       if (!faceLandmarkerRef.current) {
-        const visionTasks = await import('@mediapipe/tasks-vision');
+        const mediaPipeModuleUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/+esm';
+        const visionTasks = await import(/* @vite-ignore */ mediaPipeModuleUrl);
         const vision = await visionTasks.FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm'
         );
