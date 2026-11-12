@@ -313,18 +313,26 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const element = previewStageRef.current;
-    if (!element) return;
+    if (studioMode !== 'auto') return;
     const handlePreviewWheel = (event: WheelEvent) => {
-      const target = event.target as Element | null;
-      if (!target?.closest('[data-photo-sheet]')) return;
-      event.preventDefault();
+      const paper = previewStageRef.current?.querySelector<HTMLElement>('[data-auto-photo-maker-paper]');
+      if (!paper || event.deltaY === 0) return;
+      const rect = paper.getBoundingClientRect();
+      const pointerIsOverPaper =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      // Only the A4/photo sheet zooms. Outside the paper, normal page scrolling remains available.
+      if (!pointerIsOverPaper) return;
+      if (event.cancelable) event.preventDefault();
       const zoomStep = (current: number) => current < 200 ? 10 : current < 500 ? 25 : 50;
       setZoom(current => Math.max(10, Math.min(1600, current + (event.deltaY < 0 ? zoomStep(current) : -zoomStep(current)))));
     };
-    element.addEventListener('wheel', handlePreviewWheel, { passive: false });
-    return () => element.removeEventListener('wheel', handlePreviewWheel);
-  }, []);
+    // Capture phase ensures nested photo elements cannot swallow the sheet zoom gesture.
+    document.addEventListener('wheel', handlePreviewWheel, { passive: false, capture: true });
+    return () => document.removeEventListener('wheel', handlePreviewWheel, true);
+  }, [studioMode]);
 
   const uploadRef = useRef<HTMLInputElement>(null);
   const restoreFullscreenAfterUploadRef = useRef(false);
