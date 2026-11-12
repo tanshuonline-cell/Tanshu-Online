@@ -106,6 +106,7 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
                 </div>
               </article>
               {tool.id === 'photo-signature-resizer' && (
+                <>
                 <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl">
                   <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-100 p-4">
                     <div className="relative flex h-[88%] w-[42%] items-center justify-center rounded-[1.35rem] border-[5px] border-slate-800 bg-white shadow-xl">
@@ -149,6 +150,7 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
                     <a href="/instant-multi-customer-photo-maker" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-900">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
                   </div>
                 </article>
+                </>
               )}
               </React.Fragment>
             );
