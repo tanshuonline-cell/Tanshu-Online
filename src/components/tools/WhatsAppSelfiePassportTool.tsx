@@ -76,6 +76,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [processedPhotoUrl, setProcessedPhotoUrl] = useState('');
   const [photoAdjustments, setPhotoAdjustments] = useState({brightness:100,contrast:100,clarity:0,sharpness:0,saturation:100,curve:0,blackWhite:false,hue:0});
+  const [manualAdjustmentsBeforeAuto, setManualAdjustmentsBeforeAuto] = useState<typeof photoAdjustments | null>(null);
   const [activeTool, setActiveTool] = useState<StudioTool>('crop');
   const [photoSize, setPhotoSize] = useState('35x45');
   const [customPhotoWidthMm, setCustomPhotoWidthMm] = useState(35);
@@ -1092,8 +1093,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       ))}
                       <button type="button" onClick={()=>setPhotoAdjustments(current=>({...current,blackWhite:!current.blackWhite}))} aria-pressed={photoAdjustments.blackWhite} className={photoAdjustments.blackWhite?'w-full rounded-lg border border-slate-200/50 bg-slate-100/15 px-3 py-2.5 text-[10px] font-extrabold text-white':'w-full rounded-lg border border-[#46535C] px-3 py-2.5 text-[10px] font-bold text-[#C3CDD3] hover:bg-white/5'}> {photoAdjustments.blackWhite?'BLACK & WHITE · ON':'Convert to Black & White'} </button>
                       <div className="flex gap-2">
-                        <button type="button" onClick={()=>setPhotoAdjustments(current=>({...current,brightness:100,contrast:100,clarity:0,sharpness:0,saturation:100,curve:0,blackWhite:false,hue:0}))} className="flex-1 rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-bold text-[#C3CDD3] hover:bg-white/5"><RotateCcw size={12} className="mr-1 inline"/> Reset Adjustments</button>
-                        <button type="button" onClick={()=>setPhotoAdjustments(current=>({...current,brightness:108,contrast:108,clarity:12,sharpness:10,saturation:108,curve:8,blackWhite:false,hue:0}))} className="flex-1 rounded-lg border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-[9px] font-bold text-emerald-200">Auto Enhance</button>
+                        <button type="button" onClick={()=>{setManualAdjustmentsBeforeAuto(null);setPhotoAdjustments({brightness:100,contrast:100,clarity:0,sharpness:0,saturation:100,curve:0,blackWhite:false,hue:0});}} className="flex-1 rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-bold text-[#C3CDD3] hover:bg-white/5"><RotateCcw size={12} className="mr-1 inline"/> Reset Adjustments</button>
+                        <button type="button" aria-pressed={manualAdjustmentsBeforeAuto!==null} onClick={()=>{if(manualAdjustmentsBeforeAuto){setPhotoAdjustments(manualAdjustmentsBeforeAuto);setManualAdjustmentsBeforeAuto(null);}else{setManualAdjustmentsBeforeAuto(photoAdjustments);setPhotoAdjustments({brightness:108,contrast:108,clarity:12,sharpness:10,saturation:108,curve:8,blackWhite:false,hue:0});}}} className={manualAdjustmentsBeforeAuto?"flex-1 rounded-lg border border-amber-300/50 bg-amber-300/15 px-3 py-2 text-[9px] font-extrabold text-amber-100":"flex-1 rounded-lg border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-[9px] font-bold text-emerald-200"}>{manualAdjustmentsBeforeAuto?"Undo Auto Enhance":"Auto Enhance"}</button>
                       </div>
                     </div>
                     <div className="rounded-xl border border-sky-300/15 bg-sky-300/[.05] p-3">
