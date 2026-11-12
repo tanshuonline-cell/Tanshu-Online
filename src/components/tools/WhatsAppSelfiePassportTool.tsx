@@ -4,7 +4,7 @@ import {
   ArrowLeft, Camera, Check, Crop, Download, Eraser, FileImage, FlipHorizontal,
   ImagePlus, Info, Layers3, RotateCcw, RotateCw, ScanFace,
   ShieldCheck, SlidersHorizontal, Sparkles, UploadCloud, WandSparkles,
-  X, ZoomIn, ZoomOut, Maximize2, Minimize2, Undo2, Redo2
+  X, ZoomIn, ZoomOut, Maximize2, Minimize2, Undo2, Redo2, Trash2, Copy, Merge
 } from 'lucide-react';
 
 type StudioTool = 'crop' | 'face' | 'straighten' | 'background' | 'signature' | 'print';
@@ -102,6 +102,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [verticalGapMm, setVerticalGapMm] = useState(2);
   const [photoPositions, setPhotoPositions] = useState<Record<number,{x:number;y:number}>>({});
   const [photoScales, setPhotoScales] = useState<Record<number,number>>({});
+  const [photoImages, setPhotoImages] = useState<Record<number,string>>({});
+  const [photoDimensions, setPhotoDimensions] = useState<Record<number,{width:number;height:number}>>({});
+  const [selectedSheetPhotos, setSelectedSheetPhotos] = useState<number[]>([]);
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [resizeMode, setResizeMode] = useState(false);
+  const [photoClipboard, setPhotoClipboard] = useState<{position:{x:number;y:number};scale:number;image?:string;dimensions?:{width:number;height:number}}|null>(null);
   const [borderEnabled, setBorderEnabled] = useState(false);
   const [borderColor, setBorderColor] = useState('#000000');
   const [borderWidthMm, setBorderWidthMm] = useState(0.3);
@@ -158,7 +164,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [backupStatus,setBackupStatus]=useState('Preparing local backup…');
   const backupTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const backupSnapshotRef=useRef<any>(null);
-  backupSnapshotRef.current={version:2,selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,state:{photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,rotation,zoom,flipped,activeTool,backgroundColor,backgroundStatus,faceStatus,faceMessage,detectedTilt,showGuides,isCropping,signatureVisible,signaturePosition,signatureScale,signatureRotation,sheetZoom,photoOffset,photoScale,cropRect,cropHasSelection,borderEnabled,borderColor,borderWidthMm,inputMode}};
+  backupSnapshotRef.current={version:2,selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,state:{photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,photoImages,photoDimensions,rotation,zoom,flipped,activeTool,backgroundColor,backgroundStatus,faceStatus,faceMessage,detectedTilt,showGuides,isCropping,signatureVisible,signaturePosition,signatureScale,signatureRotation,sheetZoom,photoOffset,photoScale,cropRect,cropHasSelection,borderEnabled,borderColor,borderWidthMm,inputMode}};
   useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl('');
@@ -180,12 +186,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     return () => URL.revokeObjectURL(url);
   }, [signatureFile]);
 
-  useEffect(()=>{let active=true;readStudioBackup().then(backup=>{if(!active)return;if(backup?.version===1||backup?.version===2){if(backup.selectedFile)setSelectedFile(backup.selectedFile);if(backup.signatureFile)setSignatureFile(backup.signatureFile);if(backup.processedPhotoUrl)setProcessedPhotoUrl(backup.processedPhotoUrl);if(backup.mergedPhotoUrl)setMergedPhotoUrl(backup.mergedPhotoUrl);if(backup.signatureProcessedUrl)setSignatureProcessedUrl(backup.signatureProcessedUrl);const v=backup.state||{};if(v.photoSize)setPhotoSize(v.photoSize);if(v.customPhotoWidthMm!==undefined)setCustomPhotoWidthMm(v.customPhotoWidthMm);if(v.customPhotoHeightMm!==undefined)setCustomPhotoHeightMm(v.customPhotoHeightMm);if(v.sheetSize)setSheetSize(v.sheetSize);if(v.customSheetWidthMm!==undefined)setCustomSheetWidthMm(v.customSheetWidthMm);if(v.customSheetHeightMm!==undefined)setCustomSheetHeightMm(v.customSheetHeightMm);if(v.photoCount!==undefined)setPhotoCount(v.photoCount);if(v.horizontalMarginMm!==undefined)setHorizontalMarginMm(v.horizontalMarginMm);if(v.verticalMarginMm!==undefined)setVerticalMarginMm(v.verticalMarginMm);if(v.horizontalGapMm!==undefined)setHorizontalGapMm(v.horizontalGapMm);if(v.verticalGapMm!==undefined)setVerticalGapMm(v.verticalGapMm);if(v.photoPositions)setPhotoPositions(v.photoPositions);if(v.photoScales)setPhotoScales(v.photoScales);if(v.rotation!==undefined)setRotation(v.rotation);if(v.zoom!==undefined)setZoom(v.zoom);if(v.flipped!==undefined)setFlipped(v.flipped);if(v.activeTool)setActiveTool(v.activeTool);if(v.backgroundColor)setBackgroundColor(v.backgroundColor);if(v.backgroundStatus!==undefined)setBackgroundStatus(v.backgroundStatus);if(v.faceStatus)setFaceStatus(v.faceStatus);if(v.faceMessage)setFaceMessage(v.faceMessage);if(v.detectedTilt!==undefined)setDetectedTilt(v.detectedTilt);if(v.showGuides!==undefined)setShowGuides(v.showGuides);if(v.isCropping!==undefined)setIsCropping(v.isCropping);if(v.signatureVisible!==undefined)setSignatureVisible(v.signatureVisible);if(v.signaturePosition)setSignaturePosition(v.signaturePosition);if(v.signatureScale!==undefined)setSignatureScale(v.signatureScale);if(v.signatureRotation!==undefined)setSignatureRotation(v.signatureRotation);if(v.sheetZoom!==undefined)setSheetZoom(v.sheetZoom);if(v.photoOffset)setPhotoOffset(v.photoOffset);if(v.photoScale!==undefined)setPhotoScale(v.photoScale);if(v.cropRect)setCropRect(v.cropRect);if(v.cropHasSelection!==undefined)setCropHasSelection(v.cropHasSelection);if(v.borderEnabled!==undefined)setBorderEnabled(v.borderEnabled);if(v.borderColor)setBorderColor(v.borderColor);if(v.borderWidthMm!==undefined)setBorderWidthMm(v.borderWidthMm);if(v.inputMode)setInputMode(v.inputMode);setBackupStatus('Previous session restored');}else setBackupStatus('Local backup ready');backupReadyRef.current=true;}).catch(error=>{console.warn('Studio backup restore failed:',error);if(active){backupReadyRef.current=true;setBackupStatus('Local backup unavailable');}});return()=>{active=false;};},[]);
+  useEffect(()=>{let active=true;readStudioBackup().then(backup=>{if(!active)return;if(backup?.version===1||backup?.version===2){if(backup.selectedFile)setSelectedFile(backup.selectedFile);if(backup.signatureFile)setSignatureFile(backup.signatureFile);if(backup.processedPhotoUrl)setProcessedPhotoUrl(backup.processedPhotoUrl);if(backup.mergedPhotoUrl)setMergedPhotoUrl(backup.mergedPhotoUrl);if(backup.signatureProcessedUrl)setSignatureProcessedUrl(backup.signatureProcessedUrl);const v=backup.state||{};if(v.photoSize)setPhotoSize(v.photoSize);if(v.customPhotoWidthMm!==undefined)setCustomPhotoWidthMm(v.customPhotoWidthMm);if(v.customPhotoHeightMm!==undefined)setCustomPhotoHeightMm(v.customPhotoHeightMm);if(v.sheetSize)setSheetSize(v.sheetSize);if(v.customSheetWidthMm!==undefined)setCustomSheetWidthMm(v.customSheetWidthMm);if(v.customSheetHeightMm!==undefined)setCustomSheetHeightMm(v.customSheetHeightMm);if(v.photoCount!==undefined)setPhotoCount(v.photoCount);if(v.horizontalMarginMm!==undefined)setHorizontalMarginMm(v.horizontalMarginMm);if(v.verticalMarginMm!==undefined)setVerticalMarginMm(v.verticalMarginMm);if(v.horizontalGapMm!==undefined)setHorizontalGapMm(v.horizontalGapMm);if(v.verticalGapMm!==undefined)setVerticalGapMm(v.verticalGapMm);if(v.photoPositions)setPhotoPositions(v.photoPositions);if(v.photoScales)setPhotoScales(v.photoScales);if(v.photoImages)setPhotoImages(v.photoImages);if(v.photoDimensions)setPhotoDimensions(v.photoDimensions);if(v.rotation!==undefined)setRotation(v.rotation);if(v.zoom!==undefined)setZoom(v.zoom);if(v.flipped!==undefined)setFlipped(v.flipped);if(v.activeTool)setActiveTool(v.activeTool);if(v.backgroundColor)setBackgroundColor(v.backgroundColor);if(v.backgroundStatus!==undefined)setBackgroundStatus(v.backgroundStatus);if(v.faceStatus)setFaceStatus(v.faceStatus);if(v.faceMessage)setFaceMessage(v.faceMessage);if(v.detectedTilt!==undefined)setDetectedTilt(v.detectedTilt);if(v.showGuides!==undefined)setShowGuides(v.showGuides);if(v.isCropping!==undefined)setIsCropping(v.isCropping);if(v.signatureVisible!==undefined)setSignatureVisible(v.signatureVisible);if(v.signaturePosition)setSignaturePosition(v.signaturePosition);if(v.signatureScale!==undefined)setSignatureScale(v.signatureScale);if(v.signatureRotation!==undefined)setSignatureRotation(v.signatureRotation);if(v.sheetZoom!==undefined)setSheetZoom(v.sheetZoom);if(v.photoOffset)setPhotoOffset(v.photoOffset);if(v.photoScale!==undefined)setPhotoScale(v.photoScale);if(v.cropRect)setCropRect(v.cropRect);if(v.cropHasSelection!==undefined)setCropHasSelection(v.cropHasSelection);if(v.borderEnabled!==undefined)setBorderEnabled(v.borderEnabled);if(v.borderColor)setBorderColor(v.borderColor);if(v.borderWidthMm!==undefined)setBorderWidthMm(v.borderWidthMm);if(v.inputMode)setInputMode(v.inputMode);setBackupStatus('Previous session restored');}else setBackupStatus('Local backup ready');backupReadyRef.current=true;}).catch(error=>{console.warn('Studio backup restore failed:',error);if(active){backupReadyRef.current=true;setBackupStatus('Local backup unavailable');}});return()=>{active=false;};},[]);
 
-  useEffect(()=>{if(!backupReadyRef.current)return;if(backupTimerRef.current)clearTimeout(backupTimerRef.current);backupTimerRef.current=setTimeout(()=>{const backup=backupSnapshotRef.current;if(!backup)return;writeStudioBackup(backup).then(()=>setBackupStatus('Changes backed up on this device')).catch(error=>{console.warn('Studio backup save failed:',error);setBackupStatus('Backup storage unavailable or full');});},250);return()=>{if(backupTimerRef.current)clearTimeout(backupTimerRef.current);};},[selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,rotation,zoom,flipped,activeTool,backgroundColor,backgroundStatus,faceStatus,faceMessage,detectedTilt,showGuides,isCropping,signatureVisible,signaturePosition,signatureScale,signatureRotation,sheetZoom,photoOffset,photoScale,cropRect,cropHasSelection,borderEnabled,borderColor,borderWidthMm,inputMode]);
+  useEffect(()=>{if(!backupReadyRef.current)return;if(backupTimerRef.current)clearTimeout(backupTimerRef.current);backupTimerRef.current=setTimeout(()=>{const backup=backupSnapshotRef.current;if(!backup)return;writeStudioBackup(backup).then(()=>setBackupStatus('Changes backed up on this device')).catch(error=>{console.warn('Studio backup save failed:',error);setBackupStatus('Backup storage unavailable or full');});},250);return()=>{if(backupTimerRef.current)clearTimeout(backupTimerRef.current);};},[selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,photoImages,photoDimensions,rotation,zoom,flipped,activeTool,backgroundColor,backgroundStatus,faceStatus,faceMessage,detectedTilt,showGuides,isCropping,signatureVisible,signaturePosition,signatureScale,signatureRotation,sheetZoom,photoOffset,photoScale,cropRect,cropHasSelection,borderEnabled,borderColor,borderWidthMm,inputMode]);
   useEffect(()=>{const flushBackup=()=>{if(!backupReadyRef.current||!backupSnapshotRef.current)return;if(backupTimerRef.current){clearTimeout(backupTimerRef.current);backupTimerRef.current=null;}void writeStudioBackup(backupSnapshotRef.current).catch(error=>console.warn('Studio backup flush failed:',error));};const handleVisibilityChange=()=>{if(document.visibilityState==='hidden')flushBackup();};window.addEventListener('pagehide',flushBackup);document.addEventListener('visibilitychange',handleVisibilityChange);return()=>{window.removeEventListener('pagehide',flushBackup);document.removeEventListener('visibilitychange',handleVisibilityChange);flushBackup();};},[]);
 
-  const makeHistorySnapshot=()=>({selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,activeTool,photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,rotation,zoom,flipped,photoOffset,photoScale,signatureVisible,signaturePosition,signatureScale,signatureRotation});
+  const makeHistorySnapshot=()=>({selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,activeTool,photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,photoImages,photoDimensions,rotation,zoom,flipped,photoOffset,photoScale,signatureVisible,signaturePosition,signatureScale,signatureRotation});
   const historySnapshotKey=(v:any)=>JSON.stringify({...v,selectedFile:v.selectedFile?{name:v.selectedFile.name,size:v.selectedFile.size,lastModified:v.selectedFile.lastModified}:null,signatureFile:v.signatureFile?{name:v.signatureFile.name,size:v.signatureFile.size,lastModified:v.signatureFile.lastModified}:null,processedPhotoUrl:undefined,mergedPhotoUrl:undefined,signatureProcessedUrl:undefined});
   useEffect(()=>{if(!backupReadyRef.current)return;const snapshot=makeHistorySnapshot(),previous=historyRef.current.current;if(!historyReadyRef.current){historyRef.current.current=snapshot;historyReadyRef.current=true;return;}if(historyRef.current.skip){historyRef.current.current=snapshot;historyRef.current.skip=false;setHistoryVersion(v=>v+1);return;}if(!previous||historySnapshotKey(snapshot)!==historySnapshotKey(previous)||snapshot.selectedFile!==previous.selectedFile||snapshot.signatureFile!==previous.signatureFile||snapshot.processedPhotoUrl!==previous.processedPhotoUrl||snapshot.mergedPhotoUrl!==previous.mergedPhotoUrl||snapshot.signatureProcessedUrl!==previous.signatureProcessedUrl){historyRef.current.past=[...historyRef.current.past,previous].slice(-12);historyRef.current.future=[];historyRef.current.current=snapshot;setHistoryVersion(v=>v+1);}},[selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,signatureProcessedUrl,activeTool,photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,photoScales,rotation,zoom,flipped,photoOffset,photoScale,signatureVisible,signaturePosition,signatureScale,signatureRotation,backupStatus]);
   useEffect(()=>{const sync=()=>setIsFullscreen(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',sync);return()=>document.removeEventListener('fullscreenchange',sync);},[]);
@@ -222,6 +228,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
 
   const resetPreview = () => {
+    setPhotoCount(8);setPhotoPositions({});setPhotoScales({});setPhotoImages({});setPhotoDimensions({});setSelectedSheetPhotos([]);setPhotoClipboard(null);setDeleteMode(false);setResizeMode(false);
     setProcessedPhotoUrl('');
     setMergedPhotoUrl('');
     setBackgroundStatus('');
@@ -337,7 +344,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }catch(error){console.error('Photo crop failed:',error);setFaceMessage('Could not apply this crop. Please try again.');setIsCropping(false);}
   };
 
-  const applyHistorySnapshot=(v:any)=>{historyRef.current.skip=true;setSelectedFile(v.selectedFile);setSignatureFile(v.signatureFile);setProcessedPhotoUrl(v.processedPhotoUrl);setMergedPhotoUrl(v.mergedPhotoUrl);setSignatureProcessedUrl(v.signatureProcessedUrl);setActiveTool(v.activeTool);setPhotoSize(v.photoSize);setCustomPhotoWidthMm(v.customPhotoWidthMm);setCustomPhotoHeightMm(v.customPhotoHeightMm);setSheetSize(v.sheetSize);setCustomSheetWidthMm(v.customSheetWidthMm);setCustomSheetHeightMm(v.customSheetHeightMm);setPhotoCount(v.photoCount);setHorizontalMarginMm(v.horizontalMarginMm);setVerticalMarginMm(v.verticalMarginMm);setHorizontalGapMm(v.horizontalGapMm);setVerticalGapMm(v.verticalGapMm);setPhotoPositions(v.photoPositions);setPhotoScales(v.photoScales||{});setRotation(v.rotation);setZoom(v.zoom);setFlipped(v.flipped);setPhotoOffset(v.photoOffset);setPhotoScale(v.photoScale);setSignatureVisible(v.signatureVisible);setSignaturePosition(v.signaturePosition);setSignatureScale(v.signatureScale);setSignatureRotation(v.signatureRotation);};
+  const applyHistorySnapshot=(v:any)=>{historyRef.current.skip=true;setSelectedFile(v.selectedFile);setSignatureFile(v.signatureFile);setProcessedPhotoUrl(v.processedPhotoUrl);setMergedPhotoUrl(v.mergedPhotoUrl);setSignatureProcessedUrl(v.signatureProcessedUrl);setActiveTool(v.activeTool);setPhotoSize(v.photoSize);setCustomPhotoWidthMm(v.customPhotoWidthMm);setCustomPhotoHeightMm(v.customPhotoHeightMm);setSheetSize(v.sheetSize);setCustomSheetWidthMm(v.customSheetWidthMm);setCustomSheetHeightMm(v.customSheetHeightMm);setPhotoCount(v.photoCount);setHorizontalMarginMm(v.horizontalMarginMm);setVerticalMarginMm(v.verticalMarginMm);setHorizontalGapMm(v.horizontalGapMm);setVerticalGapMm(v.verticalGapMm);setPhotoPositions(v.photoPositions);setPhotoScales(v.photoScales||{});setPhotoImages(v.photoImages||{});setPhotoDimensions(v.photoDimensions||{});setRotation(v.rotation);setZoom(v.zoom);setFlipped(v.flipped);setPhotoOffset(v.photoOffset);setPhotoScale(v.photoScale);setSignatureVisible(v.signatureVisible);setSignaturePosition(v.signaturePosition);setSignatureScale(v.signatureScale);setSignatureRotation(v.signatureRotation);};
   const undoStudio=()=>{const h=historyRef.current;if(!h.past.length)return;h.future=[h.current,...h.future].slice(0,12);h.current=h.past.pop()!;applyHistorySnapshot(h.current);setHistoryVersion(v=>v+1);};
   const redoStudio=()=>{const h=historyRef.current;if(!h.future.length)return;h.past=[...h.past,h.current].slice(-12);h.current=h.future.shift()!;applyHistorySnapshot(h.current);setHistoryVersion(v=>v+1);};
   const toggleStudioFullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.querySelector('main')?.requestFullscreen?.();}catch(error){console.warn('Fullscreen unavailable:',error);}};
@@ -345,24 +352,79 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const shrinkAllPhotos=()=>{const scale=0.9,margin=3,gap=2,width=sheetWidthMm,height=sheetHeightMm,sw=photoWidthMm*scale,sh=photoHeightMm*scale;const columns=Math.max(1,Math.floor((width-margin*2+gap)/(sw+gap))),rowsFit=Math.max(1,Math.floor((height-margin*2+gap)/(sh+gap))),count=Math.min(photoCount,columns*rowsFit),positions:Record<number,{x:number;y:number}>={},scales:Record<number,number>={};for(let index=0;index<count;index++){const row=Math.floor(index/columns),col=index%columns;positions[index]={x:margin+col*(sw+gap),y:margin+row*(sh+gap)};scales[index]=scale;}setHorizontalMarginMm(margin);setVerticalMarginMm(margin);setHorizontalGapMm(gap);setVerticalGapMm(gap);setPhotoCount(count);setPhotoScales(scales);setPhotoPositions(positions);setFaceMessage('All photos reduced to 90% and arranged from the top of the sheet.');};
 
   const getSheetPhotoScale = (index:number) => photoScales[index] ?? 1;
+  const getSheetPhotoDimensions = (index:number) => photoDimensions[index] ?? ({width:photoWidthMm,height:photoHeightMm});
   const getSheetPhotoPosition = (index:number) => photoPositions[index] ?? ({
     x: horizontalMarginMm + (index % sheetColumns) * (photoWidthMm + horizontalGapMm),
     y: verticalMarginMm + Math.floor(index / sheetColumns) * (photoHeightMm + verticalGapMm),
   });
   const startSheetPhotoDrag=(event:React.PointerEvent<HTMLDivElement>,index:number)=>{
+    if((event.target as HTMLElement).closest('[data-photo-action]'))return;
     event.preventDefault();event.stopPropagation();
+    let dragIndex=index;
+    if(event.shiftKey||event.altKey){
+      if(photoCount>=sheetCapacity){setFaceMessage('This sheet is full. Delete a photo or choose a larger sheet before duplicating.');return;}
+      dragIndex=photoCount;const originalPosition=getSheetPhotoPosition(index);
+      setPhotoCount(current=>Math.min(sheetCapacity,current+1));setPhotoPositions(current=>({...current,[dragIndex]:{...originalPosition}}));
+      setPhotoScales(current=>({...current,[dragIndex]:getSheetPhotoScale(index)}));
+      setPhotoImages(current=>photoImages[index]?({...current,[dragIndex]:photoImages[index]}):current);
+      setPhotoDimensions(current=>photoDimensions[index]?({...current,[dragIndex]:{...photoDimensions[index]}}):current);
+      setSelectedSheetPhotos([dragIndex]);
+    }else if(!selectedSheetPhotos.includes(index)){setSelectedSheetPhotos([index]);}
     const position=getSheetPhotoPosition(index);
-    sheetPhotoDragRef.current={index,startX:event.clientX,startY:event.clientY,initialX:position.x,initialY:position.y,scale:sheetPreviewScale*sheetZoom/100};
+    sheetPhotoDragRef.current={index:dragIndex,startX:event.clientX,startY:event.clientY,initialX:position.x,initialY:position.y,scale:sheetPreviewScale*sheetZoom/100};
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const moveSheetPhotoDrag=(event:React.PointerEvent<HTMLDivElement>)=>{
     const resize=sheetPhotoResizeRef.current;if(resize){const dx=(event.clientX-resize.startX)*resize.cornerX,dy=(event.clientY-resize.startY)*resize.cornerY,delta=(dx+dy)/(Math.max(1,resize.previewScale)*150);setPhotoScales(current=>({...current,[resize.index]:Math.max(0.3,Math.min(1.5,resize.initialScale+delta))}));return;}
     const drag=sheetPhotoDragRef.current;if(!drag)return;
+    const dimensions=getSheetPhotoDimensions(drag.index),scale=getSheetPhotoScale(drag.index);
     setPhotoPositions(current=>({...current,[drag.index]:{
-      x:Math.max(3,Math.min(sheetWidthMm-3-photoWidthMm,drag.initialX+(event.clientX-drag.startX)/drag.scale)),
-      y:Math.max(3,Math.min(sheetHeightMm-3-photoHeightMm,drag.initialY+(event.clientY-drag.startY)/drag.scale)),
+      x:Math.max(0,Math.min(sheetWidthMm-3-dimensions.width*scale,drag.initialX+(event.clientX-drag.startX)/drag.scale)),
+      y:Math.max(0,Math.min(sheetHeightMm-3-dimensions.height*scale,drag.initialY+(event.clientY-drag.startY)/drag.scale)),
     }}));
   };
+  const compactSheetPhotos=(removedIndices:number[],replacement?:{index:number;image:string;position:{x:number;y:number};dimensions:{width:number;height:number}})=>{
+    const removed=new Set(removedIndices),nextPositions:Record<number,{x:number;y:number}>={},nextScales:Record<number,number>={},nextImages:Record<number,string>={},nextDimensions:Record<number,{width:number;height:number}>={},nextSelection:number[]=[];let nextIndex=0;
+    for(let oldIndex=0;oldIndex<visiblePhotoCount;oldIndex++){
+      if(removed.has(oldIndex)&&replacement?.index!==oldIndex)continue;
+      if(replacement&&oldIndex===replacement.index){nextPositions[nextIndex]=replacement.position;nextScales[nextIndex]=1;nextImages[nextIndex]=replacement.image;nextDimensions[nextIndex]=replacement.dimensions;nextSelection.push(nextIndex);nextIndex++;continue;}
+      nextPositions[nextIndex]=getSheetPhotoPosition(oldIndex);if(photoScales[oldIndex]!==undefined)nextScales[nextIndex]=photoScales[oldIndex];if(photoImages[oldIndex])nextImages[nextIndex]=photoImages[oldIndex];if(photoDimensions[oldIndex])nextDimensions[nextIndex]=photoDimensions[oldIndex];if(selectedSheetPhotos.includes(oldIndex)&&!removed.has(oldIndex))nextSelection.push(nextIndex);nextIndex++;
+    }
+    setPhotoCount(nextIndex);setPhotoPositions(nextPositions);setPhotoScales(nextScales);setPhotoImages(nextImages);setPhotoDimensions(nextDimensions);setSelectedSheetPhotos(nextSelection);
+  };
+  const deleteSheetPhoto=(index:number)=>{compactSheetPhotos([index]);setFaceMessage('Selected photo removed from this print sheet.');};
+  const deleteAllSheetPhotos=()=>{if(!window.confirm('Delete every photo from the current print sheet? This will not delete the uploaded original photo.'))return;setPhotoCount(0);setPhotoPositions({});setPhotoScales({});setPhotoImages({});setPhotoDimensions({});setSelectedSheetPhotos([]);setPhotoClipboard(null);setFaceMessage('All photos were removed from the current sheet. Your uploaded original photo is safe.');};
+  const selectAllSheetPhotos=()=>setSelectedSheetPhotos(Array.from({length:visiblePhotoCount},(_,index)=>index));
+  const toggleSheetPhotoSelection=(index:number)=>setSelectedSheetPhotos(current=>current.includes(index)?current.filter(item=>item!==index):[...current,index]);
+  const copySelectedSheetPhoto=()=>{const index=selectedSheetPhotos[0];if(index===undefined)return;setPhotoClipboard({position:getSheetPhotoPosition(index),scale:getSheetPhotoScale(index),image:photoImages[index],dimensions:photoDimensions[index]});setFaceMessage('Photo copied. Press Ctrl + V to paste a duplicate.');};
+  const pasteSheetPhoto=()=>{if(!photoClipboard)return;if(photoCount>=sheetCapacity){setFaceMessage('This sheet is full. Choose a larger sheet or delete a photo before pasting.');return;}const index=photoCount,position={x:Math.max(0,Math.min(sheetWidthMm-3-photoWidthMm,photoClipboard.position.x+3)),y:Math.max(0,Math.min(sheetHeightMm-3-photoHeightMm,photoClipboard.position.y+3))};setPhotoCount(current=>Math.min(sheetCapacity,current+1));setPhotoPositions(current=>({...current,[index]:position}));setPhotoScales(current=>({...current,[index]:photoClipboard.scale}));setPhotoImages(current=>photoClipboard.image?({...current,[index]:photoClipboard.image!}):current);setPhotoDimensions(current=>photoClipboard.dimensions?({...current,[index]:photoClipboard.dimensions!}):current);setSelectedSheetPhotos([index]);setFaceMessage('Copied photo pasted onto the current sheet.');};
+  const mergeSelectedSheetPhotos=async()=>{
+    const indices=selectedSheetPhotos.filter(index=>index>=0&&index<visiblePhotoCount).sort((a,b)=>a-b);if(indices.length<2){setFaceMessage('Select at least two photos, then choose Merge.');return;}if(isMerging)return;setIsMerging(true);
+    try{
+      const dpi=300/25.4,items=await Promise.all(indices.map(async index=>{const source=photoImages[index]||mergedPhotoUrl||processedPhotoUrl||previewUrl;if(!source)throw new Error('A selected photo is missing.');const image=await loadStudioImage(source),position=getSheetPhotoPosition(index),dimensions=getSheetPhotoDimensions(index),scale=getSheetPhotoScale(index);return {index,image,position,width:dimensions.width*scale,height:dimensions.height*scale};}));
+      const minX=Math.min(...items.map(item=>item.position.x)),minY=Math.min(...items.map(item=>item.position.y)),maxX=Math.max(...items.map(item=>item.position.x+item.width)),maxY=Math.max(...items.map(item=>item.position.y+item.height));
+      const mergedWidth=Math.max(1,Math.round((maxX-minX)*dpi)),mergedHeight=Math.max(1,Math.round((maxY-minY)*dpi)),canvas=document.createElement('canvas');canvas.width=mergedWidth;canvas.height=mergedHeight;
+      const context=canvas.getContext('2d');if(!context)throw new Error('Could not create the merge canvas.');context.clearRect(0,0,mergedWidth,mergedHeight);context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+      const signature=signatureUrl&&signatureVisible&&!mergedPhotoUrl?await loadStudioImage(signatureProcessedUrl||signatureUrl):null;
+      for(const item of items){
+        const x=Math.round((item.position.x-minX)*dpi),y=Math.round((item.position.y-minY)*dpi),w=Math.max(1,Math.round(item.width*dpi)),h=Math.max(1,Math.round(item.height*dpi)),sourceRatio=item.image.naturalWidth/item.image.naturalHeight,targetRatio=w/h;let sx=0,sy=0,sw=item.image.naturalWidth,sh=item.image.naturalHeight;
+        if(sourceRatio>targetRatio){sw=item.image.naturalHeight*targetRatio;sx=(item.image.naturalWidth-sw)/2;}else{sh=item.image.naturalWidth/targetRatio;sy=(item.image.naturalHeight-sh)/2;}
+        context.drawImage(item.image,sx,sy,sw,sh,x,y,w,h);
+        if(borderEnabled){context.save();context.strokeStyle=borderColor;context.lineWidth=Math.max(1,borderWidthMm*dpi);context.strokeRect(x,y,w,h);context.restore();}
+        if(signature&&!photoImages[item.index]){const maxW=w*0.36*signatureScale,maxH=h*0.14*signatureScale,fit=Math.min(maxW/signature.naturalWidth,maxH/signature.naturalHeight),sigW=signature.naturalWidth*fit,sigH=signature.naturalHeight*fit;context.save();context.translate(x+w*signaturePosition.x/100,y+h*signaturePosition.y/100);context.rotate(signatureRotation*Math.PI/180);context.drawImage(signature,-sigW/2,-sigH/2,sigW,sigH);context.restore();}
+      }
+      const merged=canvas.toDataURL('image/png'),first=indices[0];compactSheetPhotos(indices.slice(1),{index:first,image:merged,position:{x:minX,y:minY},dimensions:{width:maxX-minX,height:maxY-minY}});setFaceMessage(`Merged ${indices.length} selected photos into one movable composite. Their relative positions and spacing are preserved.`);
+    }catch(error){console.error('Selected photo merge failed:',error);setFaceMessage('Could not merge the selected photos. Please try again.');}finally{setIsMerging(false);}
+  };
+  useEffect(()=>{
+    const handleStudioShortcut=(event:KeyboardEvent)=>{
+      if(activeTool!=='print'||!selectedFile||(event.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+      if(!(event.ctrlKey||event.metaKey))return;const key=event.key.toLowerCase();if(!['c','v','t'].includes(key))return;event.preventDefault();event.stopPropagation();
+      if(key==='c')copySelectedSheetPhoto();if(key==='v')pasteSheetPhoto();
+      if(key==='t'){if(selectedSheetPhotos.length){setResizeMode(value=>!value);setFaceMessage(resizeMode?'Photo resize shortcut mode OFF.':'Photo resize shortcut mode ON. Drag a corner handle to resize the selected photo.');}else setFaceMessage('Select a photo first, then press Ctrl + T to activate resize mode.');}
+    };
+    window.addEventListener('keydown',handleStudioShortcut);return()=>window.removeEventListener('keydown',handleStudioShortcut);
+  },[activeTool,selectedFile,selectedSheetPhotos,photoClipboard,photoCount,sheetCapacity,resizeMode,photoPositions,photoScales,photoImages,photoDimensions]);
   const startSheetPhotoResize=(event:React.PointerEvent<HTMLSpanElement>,index:number,cornerX:number,cornerY:number)=>{event.preventDefault();event.stopPropagation();sheetPhotoResizeRef.current={index,startX:event.clientX,startY:event.clientY,initialScale:getSheetPhotoScale(index),previewScale:sheetPreviewScale*sheetZoom/100,cornerX,cornerY};event.currentTarget.parentElement?.setPointerCapture(event.pointerId);};
   const endSheetPhotoDrag=()=>{sheetPhotoDragRef.current=null;sheetPhotoResizeRef.current=null;};
 
@@ -643,82 +705,23 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
 
   const downloadPrintSheet = async () => {
-    if (!mergedPhotoUrl && !processedPhotoUrl && !previewUrl) return;
-    try {
-      const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error('Could not load the print image.'));
-        image.src = src;
-      });
-      const photo = await loadImage(mergedPhotoUrl || processedPhotoUrl || previewUrl);
-      const signature = !mergedPhotoUrl && signatureUrl && signatureVisible ? await loadImage(signatureProcessedUrl || signatureUrl) : null;
-      const pageWidth = Math.round(sheetWidthMm * 300 / 25.4);
-      const pageHeight = Math.round(sheetHeightMm * 300 / 25.4);
-      const horizontalMargin = Math.round(horizontalMarginMm * 300 / 25.4);
-      const verticalMargin = Math.round(verticalMarginMm * 300 / 25.4);
-      const horizontalGap = Math.round(horizontalGapMm * 300 / 25.4);
-      const verticalGap = Math.round(verticalGapMm * 300 / 25.4);
-      const drawWidth = Math.round(photoWidthMm * 300 / 25.4);
-      const drawHeight = Math.round(photoHeightMm * 300 / 25.4);
-      const sourceRatio = photo.naturalWidth / photo.naturalHeight;
-      const targetRatio = drawWidth / drawHeight;
-      let sourceX = 0, sourceY = 0, sourceWidth = photo.naturalWidth, sourceHeight = photo.naturalHeight;
-      if (sourceRatio > targetRatio) {
-        sourceWidth = photo.naturalHeight * targetRatio;
-        sourceX = (photo.naturalWidth - sourceWidth) / 2;
-      } else {
-        sourceHeight = photo.naturalWidth / targetRatio;
-        sourceY = (photo.naturalHeight - sourceHeight) / 2;
+    if(!mergedPhotoUrl&&!processedPhotoUrl&&!previewUrl)return;
+    try{
+      const loadImage=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not load the print image.'));image.src=src;});
+      const pageWidth=Math.round(sheetWidthMm*300/25.4),pageHeight=Math.round(sheetHeightMm*300/25.4),canvas=document.createElement('canvas');canvas.width=pageWidth;canvas.height=pageHeight;
+      const context=canvas.getContext('2d');if(!context)throw new Error('Could not prepare the print sheet.');context.fillStyle='#ffffff';context.fillRect(0,0,pageWidth,pageHeight);context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+      const signature=signatureUrl&&signatureVisible&&!mergedPhotoUrl?await loadImage(signatureProcessedUrl||signatureUrl):null;
+      for(let index=0;index<visiblePhotoCount;index++){
+        const source=photoImages[index]||mergedPhotoUrl||processedPhotoUrl||previewUrl;if(!source)continue;
+        const photo=await loadImage(source),dimensions=getSheetPhotoDimensions(index),itemScale=getSheetPhotoScale(index),drawWidth=Math.max(1,Math.round(dimensions.width*300/25.4)),drawHeight=Math.max(1,Math.round(dimensions.height*300/25.4)),sourceRatio=photo.naturalWidth/photo.naturalHeight,targetRatio=drawWidth/drawHeight;
+        let sx=0,sy=0,sw=photo.naturalWidth,sh=photo.naturalHeight;if(sourceRatio>targetRatio){sw=photo.naturalHeight*targetRatio;sx=(photo.naturalWidth-sw)/2;}else{sh=photo.naturalWidth/targetRatio;sy=(photo.naturalHeight-sh)/2;}
+        const sized=document.createElement('canvas');sized.width=drawWidth;sized.height=drawHeight;const sizedContext=sized.getContext('2d');if(!sizedContext)throw new Error('Could not size a selected photo.');sizedContext.imageSmoothingEnabled=true;sizedContext.imageSmoothingQuality='high';sizedContext.drawImage(photo,sx,sy,sw,sh,0,0,drawWidth,drawHeight);
+        const position=getSheetPhotoPosition(index),x=Math.round(position.x*300/25.4),y=Math.round(position.y*300/25.4),scaledWidth=Math.round(drawWidth*itemScale),scaledHeight=Math.round(drawHeight*itemScale);context.drawImage(sized,x,y,scaledWidth,scaledHeight);
+        if(borderEnabled){context.save();context.strokeStyle=borderColor;context.lineWidth=Math.max(1,borderWidthMm*300/25.4);context.strokeRect(x,y,scaledWidth,scaledHeight);context.restore();}
+        if(signature&&!photoImages[index]){const maxW=scaledWidth*0.36*signatureScale,maxH=scaledHeight*0.14*signatureScale,fit=Math.min(maxW/signature.naturalWidth,maxH/signature.naturalHeight),sigW=signature.naturalWidth*fit,sigH=signature.naturalHeight*fit;context.save();context.translate(x+scaledWidth*signaturePosition.x/100,y+scaledHeight*signaturePosition.y/100);context.rotate(signatureRotation*Math.PI/180);context.drawImage(signature,-sigW/2,-sigH/2,sigW,sigH);context.restore();}
       }
-      const sizedPhoto = document.createElement('canvas');
-      sizedPhoto.width = drawWidth; sizedPhoto.height = drawHeight;
-      const sizedContext = sizedPhoto.getContext('2d');
-      if (!sizedContext) throw new Error('Could not crop the photo to the selected print size.');
-      sizedContext.imageSmoothingEnabled = true; sizedContext.imageSmoothingQuality = 'high';
-      sizedContext.drawImage(photo, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, drawWidth, drawHeight);
-      const columns = Math.max(1, Math.floor((pageWidth - horizontalMargin * 2 + horizontalGap) / (drawWidth + horizontalGap)));
-      const rows = Math.max(1, Math.floor((pageHeight - verticalMargin * 2 + verticalGap) / (drawHeight + verticalGap)));
-      const canvas = document.createElement('canvas');
-      canvas.width = pageWidth;
-      canvas.height = pageHeight;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Could not prepare the print sheet.');
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, pageWidth, pageHeight);
-      for (let index = 0; index < Math.min(photoCount, columns * rows); index += 1) {
-        const position = getSheetPhotoPosition(index);
-        const x = Math.round(position.x * 300 / 25.4);
-        const y = Math.round(position.y * 300 / 25.4);
-        const itemScale=getSheetPhotoScale(index),scaledWidth=Math.round(drawWidth*itemScale),scaledHeight=Math.round(drawHeight*itemScale);
-        context.drawImage(sizedPhoto, x, y, scaledWidth, scaledHeight);
-        if (borderEnabled) {
-          context.save();
-          context.strokeStyle = borderColor;
-          context.lineWidth = Math.max(1, borderWidthMm * 300 / 25.4);
-          context.strokeRect(x, y, scaledWidth, scaledHeight);
-          context.restore();
-        }
-        if (signature) {
-          const maxSignatureWidth = scaledWidth * 0.36 * signatureScale;
-          const maxSignatureHeight = scaledHeight * 0.14 * signatureScale;
-          const fit = Math.min(maxSignatureWidth / signature.naturalWidth, maxSignatureHeight / signature.naturalHeight);
-          const signatureWidth = signature.naturalWidth * fit, signatureHeight = signature.naturalHeight * fit;
-          context.save();
-          context.translate(x + scaledWidth * signaturePosition.x / 100, y + scaledHeight * signaturePosition.y / 100);
-          context.rotate(signatureRotation * Math.PI / 180);
-          context.drawImage(signature, -signatureWidth / 2, -signatureHeight / 2, signatureWidth, signatureHeight);
-          context.restore();
-        }
-      }
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = `tanshu-${sheetSize}-passport-photo-sheet.png`;
-      link.click();
-    } catch (error) {
-      console.error('Print sheet export failed:', error);
-      setFaceMessage('The print sheet could not be exported. Please try again with the processed photo loaded.');
-    }
+      const link=document.createElement('a');link.href=canvas.toDataURL('image/png');link.download=`tanshu-${sheetSize}-passport-photo-sheet.png`;link.click();
+    }catch(error){console.error('Print sheet export failed:',error);setFaceMessage('The print sheet could not be exported. Please try again with the processed photo loaded.');}
   };
 
   const removeSelectedPhoto = () => {
@@ -772,11 +775,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             <button type="button" onClick={() => { setActiveTool('signature'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-[#3A444C] px-3 py-2 text-[10px] font-bold text-[#C8D1D9] disabled:opacity-40">Add Signature</button>
             {activeTool==='crop'&&<div className="flex shrink-0 items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-400/[.05] px-2 py-1"><label className="text-[9px] font-bold text-[#AAB8C0]">CROP SIZE</label><select value={photoSize} onChange={event=>{setPhotoSize(event.target.value);setPhotoPositions({});setCropRect({x:0,y:0,w:100,h:100});setCropHasSelection(false);setIsCropping(false);}} className="h-8 max-w-[210px] rounded border border-[#46535C] bg-[#171D22] px-2 text-[9px] font-bold text-white">{PHOTO_SIZE_GROUPS.map(group=><optgroup key={group.label} label={group.label}>{group.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>)}<option value="custom">Custom Size · Free Crop</option></select></div>}
             {activeTool==='print'&&<div className="flex shrink-0 items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/[.05] px-2 py-1">
-               <button type="button" onClick={smartArrangePhotos} disabled={!selectedFile} title="Arrange photos from the top print-safe margin" className="rounded-md bg-emerald-500 px-2.5 py-2 text-[9px] font-extrabold text-white disabled:opacity-40"><WandSparkles size={12} className="mr-1 inline"/>SMART ARRANGE</button><button type="button" onClick={shrinkAllPhotos} disabled={!selectedFile} title="Reduce all photos to 90%" className="rounded-md border border-sky-300/40 bg-sky-300/10 px-2 py-2 text-[9px] font-extrabold text-sky-100 disabled:opacity-40">ALL −10%</button>
+               <button type="button" onClick={smartArrangePhotos} disabled={!selectedFile} title="Arrange photos from the top print-safe margin" className="rounded-md bg-emerald-500 px-2.5 py-2 text-[9px] font-extrabold text-white disabled:opacity-40"><WandSparkles size={12} className="mr-1 inline"/>SMART ARRANGE</button><button type="button" onClick={selectAllSheetPhotos} disabled={!visiblePhotoCount} title="Select every photo on this sheet" className="rounded-md border border-sky-300/35 px-2 py-2 text-[9px] font-bold text-sky-100 disabled:opacity-40">SELECT ALL</button><button type="button" onClick={mergeSelectedSheetPhotos} disabled={selectedSheetPhotos.length<2||isMerging} title="Merge selected photos into one movable composite" className="rounded-md border border-violet-300/40 bg-violet-300/10 px-2 py-2 text-[9px] font-bold text-violet-100 disabled:opacity-40"><Merge size={12} className="mr-1 inline"/>{isMerging?'MERGING…':`MERGE ${selectedSheetPhotos.length||''}`}</button><button type="button" onClick={deleteAllSheetPhotos} disabled={!visiblePhotoCount} title="Delete all photos from this sheet" className="rounded-md border border-rose-400/35 px-2 py-2 text-[9px] font-bold text-rose-200 disabled:opacity-40">DELETE ALL</button><button type="button" onClick={shrinkAllPhotos} disabled={!selectedFile} title="Reduce all photos to 90%" className="rounded-md border border-sky-300/40 bg-sky-300/10 px-2 py-2 text-[9px] font-extrabold text-sky-100 disabled:opacity-40">ALL −10%</button>
               <div className="flex shrink-0 items-center gap-1.5"><label className="text-[9px] font-bold text-[#AAB8C0]">SHEET</label><select value={sheetSize} onChange={event=>{setSheetSize(event.target.value);setPhotoPositions({});}} className="h-8 max-w-[150px] rounded border border-[#46535C] bg-[#171D22] px-2 text-[9px] font-bold text-white"><optgroup label="Common photo paper"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="4x8">4 × 8 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="A6">A6 Sheet</option><option value="A5">A5 Sheet</option><option value="A4">A4 Sheet</option><option value="A3">A3 Sheet</option><option value="Letter">Letter Sheet</option><option value="Legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select></div>
-              <div className="min-w-0"><NumericStepper compact label="PHOTO COUNT" value={visiblePhotoCount} min={1} max={sheetCapacity} step={1} unit="copies" onChange={setPhotoCount}/></div>
+              <div className="min-w-0"><NumericStepper compact label="PHOTO COUNT" value={visiblePhotoCount} min={0} max={sheetCapacity} step={1} unit="copies" onChange={setPhotoCount}/></div>
               <div className="min-w-0"><NumericStepper compact label="SHEET ZOOM" value={sheetZoom} min={50} max={250} step={5} unit="%" onChange={setSheetZoom}/></div>
             </div>}
+            {activeTool==='print'&&<button type="button" onClick={()=>setDeleteMode(value=>!value)} title={deleteMode?'Turn Delete Mode off':'Turn Delete Mode on'} aria-label={deleteMode?'Turn Delete Mode off':'Turn Delete Mode on'} aria-pressed={deleteMode} className={deleteMode?'rounded-lg border border-rose-400/50 bg-rose-500/15 p-2 text-rose-300 shadow-sm':'rounded-lg border border-[#46535C] p-2 text-rose-300 transition hover:bg-rose-500/10'}><Trash2 size={14}/></button>}
             <div className="flex shrink-0 items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{backupStatus}<span className="mx-1 text-[#4D5962]">|</span>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}</div>
           </div>
 
@@ -810,7 +814,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <button type="button" onClick={() => activeTool==='print' ? setSheetZoom(value=>Math.min(250,value+10)) : setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
                   {selectedFile&&activeTool==='crop'&&<button type="button" onClick={()=>{if(isCropping)void applyCropSelection();else{setCropRect({x:0,y:0,w:100,h:100});setCropHasSelection(false);setIsCropping(true);}}} className={isCropping?'ml-1 rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-2 text-[10px] font-bold text-emerald-200':'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] hover:bg-white/5'}>{isCropping?'Done · Apply Crop':'Crop'}</button>}
                   {selectedFile&&activeTool==='face'&&<button type="button" onClick={runFreeFaceAlignment} disabled={faceStatus==='loading'} className="ml-1 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-[10px] font-bold text-emerald-200 disabled:opacity-50">{faceStatus==='loading'?'Loading model…':'Detect & Straighten'}</button>}
-                  <button type="button" onClick={() => setShowGuides(value => !value)} disabled={!selectedFile} className={showGuides ? 'ml-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 disabled:opacity-30' : 'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] disabled:opacity-30'}>Guides</button>
+                  <button type="button" onClick={() => setShowGuides(value => !value)} disabled={!selectedFile} className={showGuides ? 'ml-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 disabled:opacity-30' : 'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] disabled:opacity-30'}>Guides</button>{activeTool==='print'&&<><button type="button" onClick={selectAllSheetPhotos} disabled={!visiblePhotoCount} className="ml-1 rounded-lg border border-sky-300/35 px-2.5 py-2 text-[10px] font-semibold text-sky-100 disabled:opacity-30">Select All</button><button type="button" onClick={mergeSelectedSheetPhotos} disabled={selectedSheetPhotos.length<2||isMerging} className="rounded-lg border border-violet-300/40 bg-violet-300/10 px-2.5 py-2 text-[10px] font-bold text-violet-100 disabled:opacity-30">Merge {selectedSheetPhotos.length||''}</button><button type="button" onClick={deleteAllSheetPhotos} disabled={!visiblePhotoCount} className="rounded-lg border border-rose-400/35 px-2.5 py-2 text-[10px] font-semibold text-rose-200 disabled:opacity-30">Delete All</button><span className="text-[9px] text-[#9BA7B0]">{selectedSheetPhotos.length} selected{resizeMode?' · RESIZE MODE':''}</span></>}
                 </div>
               </div>
 
@@ -830,13 +834,16 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative mx-0 my-0 shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
                         {Array.from({length:visiblePhotoCount},(_,index)=>{
                           const position=getSheetPhotoPosition(index),itemScale=photoScales[index]??1,previewUnit=sheetPreviewScale*sheetZoom/100;
-                          return <div key={index} data-photo-index={index} onPointerDown={event=>startSheetPhotoDrag(event,index)} onPointerMove={moveSheetPhotoDrag} onPointerUp={endSheetPhotoDrag} onPointerCancel={endSheetPhotoDrag} onWheel={event=>{event.preventDefault();event.stopPropagation();setPhotoScales(current=>({...current,[index]:Math.max(0.3,Math.min(1.5,(current[index]??1)+(event.deltaY<0?0.05:-0.05)))}));}} className="absolute cursor-move touch-none overflow-visible bg-slate-100 shadow-sm" style={{left:position.x*previewUnit+'px',top:position.y*previewUnit+'px',width:photoWidthMm*itemScale*previewUnit+'px',height:photoHeightMm*itemScale*previewUnit+'px',border:borderEnabled?Math.max(1,borderWidthMm*previewUnit*itemScale)+'px solid '+borderColor:'none'}}>
-                            <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt={'Photo '+(index+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
+                          const dimensions=getSheetPhotoDimensions(index),isSelected=selectedSheetPhotos.includes(index);
+                          return <div key={index} data-photo-index={index} onPointerDown={event=>startSheetPhotoDrag(event,index)} onPointerMove={moveSheetPhotoDrag} onPointerUp={endSheetPhotoDrag} onPointerCancel={endSheetPhotoDrag} onWheel={event=>{event.preventDefault();event.stopPropagation();setPhotoScales(current=>({...current,[index]:Math.max(0.3,Math.min(1.5,(current[index]??1)+(event.deltaY<0?0.05:-0.05)))}));}} className={'absolute cursor-move touch-none overflow-visible bg-slate-100 shadow-sm '+(isSelected?'ring-2 ring-sky-500':'')} style={{left:position.x*previewUnit+'px',top:position.y*previewUnit+'px',width:dimensions.width*itemScale*previewUnit+'px',height:dimensions.height*itemScale*previewUnit+'px',border:borderEnabled?Math.max(1,borderWidthMm*previewUnit*itemScale)+'px solid '+borderColor:'none'}}>
+                            <img src={photoImages[index]||mergedPhotoUrl||processedPhotoUrl||previewUrl} alt={'Photo '+(index+1)} draggable={false} className="pointer-events-none h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
+                            <button type="button" data-photo-action="select" onPointerDown={event=>{event.preventDefault();event.stopPropagation();}} onClick={()=>toggleSheetPhotoSelection(index)} title={isSelected?'Deselect photo':'Select photo for merge'} aria-label={isSelected?'Deselect photo '+(index+1):'Select photo '+(index+1)} className={'absolute -left-2 -top-2 z-40 flex h-5 w-5 items-center justify-center rounded border shadow '+(isSelected?'border-sky-700 bg-sky-600 text-white':'border-slate-500 bg-white text-slate-600')}><Check size={12}/></button>
+                            {deleteMode&&<button type="button" data-photo-action="delete" onPointerDown={event=>{event.preventDefault();event.stopPropagation();}} onClick={()=>deleteSheetPhoto(index)} title="Delete this photo" aria-label="Delete this photo" className="group absolute -right-2 -top-2 z-40 flex h-5 w-5 items-center justify-center rounded-full border border-rose-700 bg-rose-600 text-white shadow transition hover:bg-rose-500"><Trash2 size={11} className="origin-top transition-transform duration-150 group-hover:-rotate-12"/></button>}
                             <span onPointerDown={event=>startSheetPhotoResize(event,index,-1,-1)} className="absolute -left-2.5 -top-2.5 z-30 h-5 w-5 cursor-nwse-resize touch-none rounded-full border-2 border-sky-700 bg-white shadow-md" title="Drag corner to resize"/>
                             <span onPointerDown={event=>startSheetPhotoResize(event,index,1,-1)} className="absolute -right-2.5 -top-2.5 z-30 h-5 w-5 cursor-nesw-resize touch-none rounded-full border-2 border-sky-700 bg-white shadow-md" title="Drag corner to resize"/>
                             <span onPointerDown={event=>startSheetPhotoResize(event,index,-1,1)} className="absolute -left-2.5 -bottom-2.5 z-30 h-5 w-5 cursor-nesw-resize touch-none rounded-full border-2 border-sky-700 bg-white shadow-md" title="Drag corner to resize"/>
                             <span onPointerDown={event=>startSheetPhotoResize(event,index,1,1)} className="absolute -right-2.5 -bottom-2.5 z-30 h-5 w-5 cursor-nwse-resize touch-none rounded-full border-2 border-sky-700 bg-white shadow-md" title="Drag corner to resize"/>
-                            {!mergedPhotoUrl && signatureUrl && signatureVisible && <img src={signatureProcessedUrl || signatureUrl} alt="" draggable={false} className="pointer-events-none absolute object-contain" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:(36*signatureScale)+'%',transform:'translate(-50%,-50%) rotate('+signatureRotation+'deg)'}}/>}
+                            {!photoImages[index]&&!mergedPhotoUrl&&signatureUrl&&signatureVisible&&<img src={signatureProcessedUrl||signatureUrl} alt="" draggable={false} className="pointer-events-none absolute object-contain" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:(36*signatureScale)+'%',transform:'translate(-50%,-50%) rotate('+signatureRotation+'deg)'}}/>}
                           </div>;
                         })}
                         <span className="pointer-events-none absolute bottom-2 right-3 text-[8px] font-semibold text-slate-400">{sheetSize} · DRAG PHOTOS TO ARRANGE · {sheetZoom}%</span>
