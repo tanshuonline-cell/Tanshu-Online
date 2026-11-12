@@ -758,6 +758,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const saveBlob=(blob:Blob,fileName:string)=>{const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),30000);};
   const runExport=async(format:'pdf'|'jpg'|'png'|'print')=>{
     if(!selectedFile||exportBusy)return;
+    const printWindow=format==='print'?window.open('','_blank'):null;
     setExportBusy(true);
     try{
       const dpi=EXPORT_DPI[exportQuality],result=await createExportCanvas(exportTarget,dpi),canvas=result.canvas,widthMm=result.widthMm,heightMm=result.heightMm;
@@ -776,9 +777,17 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         const blob=pdf.output('blob');
         if(format==='pdf')saveBlob(blob,baseName+'.pdf');
         else{
-          const printUrl=URL.createObjectURL(blob),printWindow=window.open(printUrl,'_blank');
-          if(!printWindow){URL.revokeObjectURL(printUrl);setFaceMessage('Allow pop-ups to open the print-ready PDF, then choose Actual Size / 100% in the print dialog.');}
-          else setFaceMessage('Print-ready PDF opened. In the printer dialog choose Actual Size / 100%, the matching paper size and the highest printer quality.');
+          if(!printWindow)setFaceMessage('Allow pop-ups for this site, then press Print again to open the printer dialog.');
+          else{
+            const printImage=await canvasToBlob(canvas,'image/jpeg',EXPORT_JPEG_QUALITY[exportQuality]),printUrl=URL.createObjectURL(printImage);
+            printWindow.document.open();
+            printWindow.document.write('<!doctype html><html><head><title>Print · '+baseName+'</title><style>@page{size:'+widthMm+'mm '+heightMm+'mm;margin:0}html,body{margin:0;padding:0;width:'+widthMm+'mm;height:'+heightMm+'mm;background:#fff}img{display:block;width:'+widthMm+'mm;height:'+heightMm+'mm;object-fit:fill}</style></head><body><img id="print-image" src="'+printUrl+'" alt="Print-ready photo"></body></html>');
+            printWindow.document.close();
+            const printImageElement=printWindow.document.getElementById('print-image') as HTMLImageElement|null;
+            if(printImageElement){printImageElement.onload=()=>{printWindow.focus();printWindow.print();};printImageElement.onerror=()=>{setFaceMessage('The print preview could not load. Please download the PDF instead.');};}
+            printWindow.onafterprint=()=>{URL.revokeObjectURL(printUrl);printWindow.close();};
+            setFaceMessage('Print dialog opened. Select Actual Size / 100%, the matching paper size and High / Best printer quality.');
+          }
         }
       }
       setExportModalOpen(false);
