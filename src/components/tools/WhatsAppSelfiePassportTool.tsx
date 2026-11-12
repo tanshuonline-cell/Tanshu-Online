@@ -302,7 +302,19 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         if(brightness>218&&spread<48)frame.data[i+3]=0;
         else if(brightness>185&&spread<55)frame.data[i+3]=Math.round(frame.data[i+3]*(255-brightness)/70);
       }
-      context.putImageData(frame,0,0);setSignatureProcessedUrl(canvas.toDataURL('image/png'));setMergedPhotoUrl('');
+      context.putImageData(frame,0,0);
+      let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
+      for(let y=0;y<canvas.height;y+=1)for(let x=0;x<canvas.width;x+=1){
+        if(frame.data[(y*canvas.width+x)*4+3]>24){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+      }
+      if(maxX>=minX&&maxY>=minY){
+        const pad=8,left=Math.max(0,minX-pad),top=Math.max(0,minY-pad),right=Math.min(canvas.width,maxX+pad+1),bottom=Math.min(canvas.height,maxY+pad+1);
+        const trimmed=document.createElement('canvas');trimmed.width=right-left;trimmed.height=bottom-top;
+        const trimmedContext=trimmed.getContext('2d');if(!trimmedContext)throw new Error('Could not trim signature edges.');
+        trimmedContext.drawImage(canvas,left,top,trimmed.width,trimmed.height,0,0,trimmed.width,trimmed.height);
+        setSignatureProcessedUrl(trimmed.toDataURL('image/png'));
+      }else{setSignatureProcessedUrl(canvas.toDataURL('image/png'));}
+      setMergedPhotoUrl('');
     } catch(error){console.error('Signature background removal failed:',error);}
   };
 
@@ -586,8 +598,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <span className="mr-1 text-[9px] font-extrabold uppercase tracking-wider text-[#82949B]">Choose Photo</span>
               {([{id:'selfie',title:'Selfie Photo'},{id:'existing',title:'Existing Photo'},{id:'whatsapp',title:'WhatsApp Print'}] as const).map(mode => <button key={mode.id} type="button" onClick={() => setInputMode(mode.id)} aria-pressed={inputMode===mode.id} className={inputMode===mode.id?'rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-400/20 transition':'rounded-lg border border-[#3A444C] bg-[#1B2227] px-2.5 py-2 text-[10px] font-semibold text-[#AAB5BD] transition hover:bg-white/5 hover:text-white'}>{mode.title}</button>)}
             </div>
-            <button type="button" onClick={() => setActiveTool('background')} disabled={!selectedFile} className="rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2 text-[10px] font-extrabold text-emerald-200 disabled:opacity-40"><Eraser size={13} className="mr-1 inline"/>BG Remove</button>
-            <button type="button" onClick={() => setActiveTool('signature')} disabled={!selectedFile} className="rounded-lg border border-[#3A444C] px-3 py-2 text-[10px] font-bold text-[#C8D1D9] disabled:opacity-40">Add Signature</button>
+            <button type="button" onClick={() => { setActiveTool('background'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2 text-[10px] font-extrabold text-emerald-200 disabled:opacity-40"><Eraser size={13} className="mr-1 inline"/>BG Remove</button>
+            <button type="button" onClick={() => { setActiveTool('signature'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-[#3A444C] px-3 py-2 text-[10px] font-bold text-[#C8D1D9] disabled:opacity-40">Add Signature</button>
             <div className="flex shrink-0 items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Studio ready</div>
           </div>
 
