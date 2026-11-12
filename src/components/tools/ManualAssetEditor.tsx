@@ -348,6 +348,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       const signature = signatureAsset ? {...signatureAsset, ...signaturePosition} : undefined;
       if (signature) await loadImage(signature.src);
       await onUseOnPage({...asset, signature});
+      if (signature) onSignatureApplied?.();
       signedCroppedAssetRef.current = null;
       setNotice(signature ? 'Photo and editable signature successfully added to the A4 page.' : 'Photo successfully added to the A4 page.');
       onFinish();
