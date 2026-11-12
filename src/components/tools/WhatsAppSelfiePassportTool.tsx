@@ -362,6 +362,59 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }
   };
 
+  const downloadPrintSheet = async () => {
+    if (!processedPhotoUrl) return;
+    try {
+      const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('Could not load the print image.'));
+        image.src = src;
+      });
+      const photo = await loadImage(processedPhotoUrl);
+      const signature = signatureUrl && signatureVisible ? await loadImage(signatureUrl) : null;
+      const pageWidth = sheetSize === 'A4' ? 2480 : 1800;
+      const pageHeight = sheetSize === 'A4' ? 3508 : 1200;
+      const columns = sheetSize === 'A4' ? 3 : 2;
+      const rows = sheetSize === 'A4' ? 4 : 2;
+      const margin = sheetSize === 'A4' ? 150 : 80;
+      const gap = sheetSize === 'A4' ? 60 : 40;
+      const cellWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
+      const cellHeight = (pageHeight - margin * 2 - gap * (rows - 1)) / rows;
+      const scale = Math.min(cellWidth / photo.naturalWidth, cellHeight / photo.naturalHeight);
+      const drawWidth = photo.naturalWidth * scale;
+      const drawHeight = photo.naturalHeight * scale;
+      const canvas = document.createElement('canvas');
+      canvas.width = pageWidth;
+      canvas.height = pageHeight;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Could not prepare the print sheet.');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, pageWidth, pageHeight);
+      for (let index = 0; index < columns * rows; index += 1) {
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const cellX = margin + column * (cellWidth + gap);
+        const cellY = margin + row * (cellHeight + gap);
+        const x = cellX + (cellWidth - drawWidth) / 2;
+        const y = cellY + (cellHeight - drawHeight) / 2;
+        context.drawImage(photo, x, y, drawWidth, drawHeight);
+        if (signature) {
+          const signatureWidth = drawWidth * 0.34;
+          const signatureHeight = drawHeight * 0.13;
+          context.drawImage(signature, x + drawWidth * 0.60, y + drawHeight * 0.82, signatureWidth, signatureHeight);
+        }
+      }
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = sheetSize === 'A4' ? 'tanshu-A4-passport-photo-sheet.png' : 'tanshu-4x6-passport-photo-sheet.png';
+      link.click();
+    } catch (error) {
+      console.error('Print sheet export failed:', error);
+      setFaceMessage('The print sheet could not be exported. Please try again with the processed photo loaded.');
+    }
+  };
+
   const removeSelectedPhoto = () => {
     setSelectedFile(null);
     resetPreview();
@@ -559,6 +612,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">PRINT SHEET SETUP</p>
                   <select value={sheetSize} onChange={event => setSheetSize(event.target.value as 'A4'|'4x6')} className="h-9 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-2 text-[10px] font-semibold text-white"><option value="A4">A4 Sheet</option><option value="4x6">4 × 6 inch Sheet</option></select>
+                  <button type="button" onClick={downloadPrintSheet} disabled={!processedPhotoUrl} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download ${sheetSize} Print Sheet (PNG)</button>
                   <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
                   <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
                   <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the preview while Print is selected to zoom the sheet.</p>
