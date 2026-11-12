@@ -207,7 +207,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
   const [sheetCopies, setSheetCopies] = useState(8);
-  const [sheetMargin, setSheetMargin] = useState(5);
+  const [sheetMargin, setSheetMargin] = useState(3);
   const [sheetGap, setSheetGap] = useState(2);
   const [sheetVerticalGap, setSheetVerticalGap] = useState(3);
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
@@ -434,7 +434,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           setCustomSheetWidthMm(saved.customSheetWidthMm || 102);
           setCustomSheetHeightMm(saved.customSheetHeightMm || 152);
           setSheetCopies(saved.sheetCopies || 8);
-          setSheetMargin(saved.sheetMargin ?? 5);
+          setSheetMargin(saved.sheetMargin ?? 3);
+          setSheetOrientation(saved.sheetOrientation === 'landscape' ? 'landscape' : 'portrait');
           setSheetGap(saved.sheetGap ?? 2);
           setSheetVerticalGap(saved.sheetVerticalGap ?? 3);
           setSheetSlots(Array.isArray(saved.sheetSlots) ? saved.sheetSlots : []);
@@ -461,7 +462,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(STUDIO_STORE, 'readwrite');
-          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetOrientation, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
           tx.onabort = () => reject(tx.error);
@@ -471,7 +472,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       } catch { setSaveState('error'); }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor]);
+  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, sheetOrientation, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor]);
 
   useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetVerticalGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
@@ -1083,6 +1084,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <span className="mr-1 text-[10px] studio-muted">SHEET</span>
                 <select aria-label="Print sheet size" value={sheetMode} onChange={event => { setSheetMode(event.target.value as SheetMode); setSheetSlots([]); setSelectedSlotId(null); setSelectedSlotIds([]); setQuickPrintLayout(true); }} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="single">Single Photo</option><optgroup label="Common photo paper"><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select>
                 {sheetMode === 'custom' && <div className="flex items-center gap-1"><input aria-label="Custom paper width in millimetres" type="number" min="10" max="1000" value={customSheetWidthMm} onChange={event=>setCustomSheetWidthMm(Math.max(10,Math.min(1000,Number(event.target.value)||10)))} className="studio-control h-7 w-[66px] px-1 text-[9px]"/><span className="text-[9px] studio-muted">×</span><input aria-label="Custom paper height in millimetres" type="number" min="10" max="1000" value={customSheetHeightMm} onChange={event=>setCustomSheetHeightMm(Math.max(10,Math.min(1000,Number(event.target.value)||10)))} className="studio-control h-7 w-[66px] px-1 text-[9px]"/><span className="text-[8px] studio-muted">mm</span></div>}
+                <div className="flex shrink-0 items-center gap-1 rounded-md border border-[#3A4148] p-0.5" aria-label="Sheet orientation"><button type="button" aria-pressed={sheetOrientation==='portrait'} disabled={sheetMode==='single'} onClick={()=>{setSheetOrientation('portrait');setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className={'rounded px-2 py-1 text-[9px] '+(sheetOrientation==='portrait'?'bg-[#3A4148] text-white':'text-[#AAB2BA] hover:bg-[#292F35]')+(sheetMode==='single'?' opacity-40':'')}>Portrait</button><button type="button" aria-pressed={sheetOrientation==='landscape'} disabled={sheetMode==='single'} onClick={()=>{setSheetOrientation('landscape');setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className={'rounded px-2 py-1 text-[9px] '+(sheetOrientation==='landscape'?'bg-[#3A4148] text-white':'text-[#AAB2BA] hover:bg-[#292F35]')+(sheetMode==='single'?' opacity-40':'')}>Landscape</button></div>
                 <span className="mr-1 text-[10px] studio-muted">PHOTO</span>
                 <select aria-label="Photo size preset" value={preset} onChange={event => {if(event.target.value==='india'&&!isStudioMember){showUpgradePrompt();return;}setPreset(event.target.value as StudioPreset);}} className="studio-control h-7 px-2 text-[10px] outline-none"><optgroup label="Common India print sizes">
                     <option value="india">Passport / General form · 35 × 45 mm</option>
@@ -1198,7 +1200,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 text-[10px] font-semibold tracking-[.12em] studio-muted">SHEET SPACING & COPIES</div>
-                <div className="mb-2 flex items-center justify-between text-[9px] studio-muted"><span>Canvas Orientation</span><div className="flex gap-1"><button type="button" aria-pressed={sheetOrientation==='portrait'} onClick={()=>setSheetOrientation('portrait')} disabled={sheetMode==='single'} className={'rounded px-2 py-1 '+(sheetOrientation==='portrait'?'bg-[#3A4148] text-white':'studio-control')+(sheetMode==='single'?' opacity-40':'')}>Portrait</button><button type="button" aria-pressed={sheetOrientation==='landscape'} onClick={()=>setSheetOrientation('landscape')} disabled={sheetMode==='single'} className={'rounded px-2 py-1 '+(sheetOrientation==='landscape'?'bg-[#3A4148] text-white':'studio-control')+(sheetMode==='single'?' opacity-40':'')}>Landscape</button></div></div>
+                <div className="mb-2 flex items-center justify-between text-[9px] studio-muted"><span>Canvas Orientation</span><div className="flex gap-1"><button type="button" aria-pressed={sheetOrientation==='portrait'} onClick={()=>{setSheetOrientation('portrait');setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} disabled={sheetMode==='single'} className={'rounded px-2 py-1 '+(sheetOrientation==='portrait'?'bg-[#3A4148] text-white':'studio-control')+(sheetMode==='single'?' opacity-40':'')}>Portrait</button><button type="button" aria-pressed={sheetOrientation==='landscape'} onClick={()=>{setSheetOrientation('landscape');setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} disabled={sheetMode==='single'} className={'rounded px-2 py-1 '+(sheetOrientation==='landscape'?'bg-[#3A4148] text-white':'studio-control')+(sheetMode==='single'?' opacity-40':'')}>Landscape</button></div></div>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-[9px] studio-muted">Margin (mm) · printer safe<input aria-label="Printer safe margin in millimetres" type="number" min="0" max="50" step="0.5" value={Number(sheetMargin.toFixed(1))} onChange={event=>setSheetMargin(Math.max(0,Math.min(50,Number(event.target.value)||0)))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                   <label className="text-[9px] studio-muted">Horizontal Photo Gap (mm)<input aria-label="Horizontal Photo Gap (mm)" type="number" min="0" max="30" step="0.5" value={Number(sheetGap.toFixed(1))} onChange={event=>setSheetGap(Math.max(0,Math.min(30,Number(event.target.value)||0)))} onWheel={event=>{event.preventDefault();setSheetGap(v=>Math.max(0,Math.min(30,Number((v+(event.deltaY<0?0.5:-0.5)).toFixed(1)))));}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
