@@ -910,7 +910,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             <div className="flex shrink-0 items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{backupStatus}<span className="mx-1 text-[#4D5962]">|</span>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}</div>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_310px]">
+          <div className={"grid min-h-0 flex-1 "+(activeTool==='photoFromPhoto'?"grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)]":"grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_310px]")}>
             <nav aria-label="Studio tools" className="flex min-h-0 flex-col gap-1 overflow-y-auto overflow-x-hidden border-r border-emerald-100/10 bg-[linear-gradient(180deg,#18232b_0%,#141d24_100%)] p-2 lg:p-3">
               {TOOL_ITEMS.map((tool) => {
                 const Icon = tool.icon;
