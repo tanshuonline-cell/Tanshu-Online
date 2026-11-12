@@ -125,9 +125,26 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
     const blob=await (await fetch(resultUrl)).blob();
     onApply(new File([blob],'photo-from-photo-corrected.jpg',{type:'image/jpeg'}));
   };
+  const hdEnhance=async()=>{
+    if(!resultUrl||busy)return;
+    setBusy(true);setStatus('Creating a higher-resolution 2× version…');
+    try{
+      const image=new Image();image.src=resultUrl;
+      await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Could not open the corrected photo.'));});
+      const width=image.naturalWidth*2,height=image.naturalHeight*2;
+      if(width*height>12000000)throw new Error('This photo is too large for safe 2× processing on this device.');
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const context=canvas.getContext('2d');if(!context)throw new Error('Could not create the HD version.');
+      context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+      context.drawImage(image,0,0,width,height);
+      setResultUrl(canvas.toDataURL('image/jpeg',0.98));
+      setStatus('2× high-quality upscale complete. This improves resizing, but cannot recover detail missing from the original.');
+    }catch(error){setStatus(error instanceof Error?error.message:'Could not create the HD version.');}
+    finally{setBusy(false);}
+  };
   const download=()=>{
     if(!resultUrl)return;
-    const link=document.createElement('a');link.href=resultUrl;link.download='tanshu-photo-from-photo.jpg';link.click();
+    const link=document.createElement('a');link.href=resultUrl;link.download='tanshu-photo-from-photo-hd.jpg';link.click();
   };
 
   return <div className="flex h-full min-h-0 w-full flex-col gap-3 overflow-auto p-3 sm:p-5 text-white">
@@ -152,8 +169,8 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
         {[{label:'BRIGHTNESS',value:brightness,set:setBrightness},{label:'CONTRAST',value:contrast,set:setContrast}].map(item=><div key={item.label}><div className="mb-1 flex justify-between text-[9px] text-slate-300"><label>{item.label}</label><span>{item.value}%</span></div><input type="range" min="70" max="140" value={item.value} onChange={e=>item.set(Number(e.target.value))} className="w-full accent-emerald-400"/></div>)}
         <div><div className="mb-1 flex justify-between text-[9px] text-slate-300"><label>DETAIL ENHANCE</label><span>{sharpness}</span></div><input type="range" min="0" max="100" value={sharpness} onChange={e=>setSharpness(Number(e.target.value))} className="w-full accent-emerald-400"/></div>
         <button type="button" onClick={correct} disabled={busy} className="w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-40">{busy?'Correcting…':'Correct Perspective & Enhance'}</button>
-        {resultUrl&&<><div className="overflow-hidden rounded-lg border border-emerald-300/30 bg-white"><img src={resultUrl} alt="Corrected passport photo" className="max-h-48 w-full object-contain"/></div><button type="button" onClick={apply} className="w-full rounded-lg bg-sky-500 px-3 py-2.5 text-[10px] font-extrabold text-white"><Check size={13} className="mr-1 inline"/>Apply to WhatsApp Studio</button><button type="button" onClick={download} className="w-full rounded-lg border border-white/15 px-3 py-2 text-[10px] font-bold text-slate-200"><Download size={13} className="mr-1 inline"/>Download Corrected Photo</button></>}
-        <p className="text-[8px] leading-4 text-slate-400">Manual corner selection is used to rectify the photographed print. Enhancement can improve appearance but cannot recreate detail missing from a blurry or low-resolution original.</p>
+        {resultUrl&&<><div className="overflow-hidden rounded-lg border border-emerald-300/30 bg-white"><img src={resultUrl} alt="Corrected passport photo" className="max-h-48 w-full object-contain"/></div><button type="button" onClick={hdEnhance} disabled={busy} className="w-full rounded-lg border border-violet-300/35 bg-violet-400/10 px-3 py-2.5 text-[10px] font-extrabold text-violet-100 disabled:opacity-40"><Sparkles size={13} className="mr-1 inline"/>HD Enhance · 2×</button><button type="button" onClick={apply} className="w-full rounded-lg bg-sky-500 px-3 py-2.5 text-[10px] font-extrabold text-white"><Check size={13} className="mr-1 inline"/>Apply to WhatsApp Studio</button><button type="button" onClick={download} className="w-full rounded-lg border border-white/15 px-3 py-2 text-[10px] font-bold text-slate-200"><Download size={13} className="mr-1 inline"/>Download Corrected Photo</button></>}
+        <p className="text-[8px] leading-4 text-slate-400">HD Enhance uses high-quality browser upscaling (2×), not generative AI. It can make enlargement smoother, but cannot truly recover detail missing from a blurry or low-resolution original.</p>
       </div>
     </div>}
     {status&&<p className="rounded-lg border border-emerald-300/15 bg-emerald-300/[.06] px-3 py-2 text-[9px] text-emerald-100">{status}</p>}
