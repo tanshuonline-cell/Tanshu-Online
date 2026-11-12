@@ -195,7 +195,9 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   };
   const addImage = (file:{id:string;name:string;src:string}, target?:{x:number;y:number;w:number;h:number}) => {
     const layer:ManualLayer={id:uid(),type:'photo',name:file.name,fileName:file.name,src:file.src,x:target?.x??page.margin+8,y:target?.y??page.margin+8,w:target?.w??45,h:target?.h??60,cropZoom:100};
-    updatePage(p=>({...p,layers:[...p.layers,layer]})); setSelectedIds([layer.id]);
+    const position=getManualSmartPosition(layer.x,layer.y,layer,page.layers.filter(item=>item.type==='photo'&&item.assetKind!=='signature'),page.photoGap??3,page.width,page.height);
+    const placed={...layer,...position};
+    updatePage(p=>({...p,layers:[...p.layers,placed]})); setSelectedIds([placed.id]);
   };
   const addSignatureToPage = (asset:{name:string;src:string}) => {
     const image=new Image();
@@ -276,7 +278,17 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     const merged:ManualLayer={id:uid(),type:'photo',name:'Merged Photos.png',fileName:'Merged Photos.png',src:URL.createObjectURL(blob),x:left,y:top,w:right-left,h:bottom-top,cropZoom:100};
     updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!chosen.some(item=>item.id===layer.id)),merged]}));setSelectedIds([merged.id]);setTool('move');
   };
-  const duplicateSelected = () => { const copies=selected.map(l=>({...l,id:uid(),name:l.name+' copy',x:l.x+5,y:l.y+5,locked:false}));updatePage(p=>({...p,layers:[...p.layers,...copies]}));setSelectedIds(copies.map(l=>l.id)); };
+  const duplicateSelected = () => {
+    const occupied=[...page.layers],copies=selected.map(layer=>{
+      const copy={...layer,id:uid(),name:layer.name+' copy',x:layer.x+5,y:layer.y+5,locked:false};
+      if(copy.type==='photo'&&copy.assetKind!=='signature'){
+        const position=getManualSmartPosition(copy.x,copy.y,copy,occupied.filter(item=>item.type==='photo'&&item.assetKind!=='signature'),page.photoGap??3,page.width,page.height);
+        copy.x=position.x;copy.y=position.y;occupied.push(copy);
+      }
+      return copy;
+    });
+    updatePage(p=>({...p,layers:[...p.layers,...copies]}));setSelectedIds(copies.map(l=>l.id));
+  };
   const autoArrangeSelected = () => {
     const chosen=page.layers.filter(layer=>selectedIds.includes(layer.id)&&!layer.locked);if(!chosen.length)return;
     const gap=page.photoGap??3,maxW=Math.max(...chosen.map(layer=>layer.w)),maxH=Math.max(...chosen.map(layer=>layer.h));
