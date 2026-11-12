@@ -754,7 +754,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const additions:SheetSlot[]=[];
     for (const item of row.slice(0,room)) {
       const position=getSmartSheetPosition(item.x,item.y+item.height+sheetGapY,item,[...sheetSlots,...additions],pageW,pageH,AUTO_SHEET_MARGIN_MM,sheetGap,sheetGapY);
-      additions.push({...item,id:'slot-row-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2),...position,locked:false});
+      const { groupId: _sourceGroupId, ...ungroupedItem } = item;
+      additions.push({...ungroupedItem,id:'slot-row-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2),...position,locked:false});
     }
     if (!additions.length) return;
     setSheetSlots(current=>[...current,...additions]); setSheetCopies(current=>Math.min(60,sheetCapacity,current+additions.length));
@@ -778,7 +779,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const pageW = sheetDimensions.widthMm;
     const pageH = sheetDimensions.heightMm;
     const position = getPatternCopyPosition(source, pageW, pageH, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY, sheetSlots.filter(slot => slot.id !== source.id));
-    const copy = { ...source, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
+    const { groupId: _sourceGroupId, ...ungroupedSource } = source;
+    const copy = { ...ungroupedSource, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
     setSheetSlots(current => [...current, copy]);
     setSheetCopies(current => Math.min(60, sheetCapacity, current + 1));
     setSelectedSlotId(copy.id); setSelectedSlotIds([copy.id]);
