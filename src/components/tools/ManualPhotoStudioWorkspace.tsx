@@ -195,7 +195,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
   };
   const addImage = (file:{id:string;name:string;src:string}, target?:{x:number;y:number;w:number;h:number}) => {
     const layer:ManualLayer={id:uid(),type:'photo',name:file.name,fileName:file.name,src:file.src,x:target?.x??page.margin+8,y:target?.y??page.margin+8,w:target?.w??45,h:target?.h??60,cropZoom:100};
-    const position=getManualSmartPosition(layer.x,layer.y,layer,page.layers.filter(item=>item.type==='photo'&&item.assetKind!=='signature'),page.horizontalPhotoGap??page.photoGap??2,page.verticalPhotoGap??page.horizontalPhotoGap??page.photoGap??2,page.verticalPhotoGap??page.photoGap??3,page.width,page.height);
+    const position=getManualSmartPosition(layer.x,layer.y,layer,page.layers.filter(item=>item.type==='photo'&&item.assetKind!=='signature'),page.horizontalPhotoGap??page.photoGap??2,page.verticalPhotoGap??page.photoGap??3,page.width,page.height);
     const placed={...layer,...position};
     updatePage(p=>({...p,layers:[...p.layers,placed]})); setSelectedIds([placed.id]);
   };
