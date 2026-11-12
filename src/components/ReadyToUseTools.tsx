@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, Camera, CreditCard, Image as ImageIcon, ScanLine, Crop, MessageCircle, Smartphone, UserRound } from 'lucide-react';
+import { ArrowUpRight, Camera, CreditCard, Image as ImageIcon, ScanLine, Crop, MessageCircle, Smartphone, UserRound, Layers } from 'lucide-react';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { ToolItem } from '../types';
 import { getToolPreviewImage } from '../data/toolPreviewImages';
