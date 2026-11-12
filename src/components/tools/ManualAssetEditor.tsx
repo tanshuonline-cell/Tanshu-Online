@@ -16,7 +16,7 @@ type Props = {
   onClose: (id: string) => void;
   onDuplicate: (id: string) => void;
   onReplaceSource: (id: string, src: string) => void;
-  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void;
+  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void | Promise<void>;
   onFinish: () => void;
   signatureAsset?: { name: string; src: string } | null;
   onSignatureApplied?: () => void;
