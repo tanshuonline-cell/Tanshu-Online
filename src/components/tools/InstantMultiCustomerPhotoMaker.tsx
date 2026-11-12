@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { jsPDF } from 'jspdf';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Crop, ImagePlus,
   LayoutGrid, Plus, Printer, RotateCw, Settings2, SlidersHorizontal,
-  Sparkles, Trash2, Upload, Users, UserRound, X, Download, WandSparkles
+  Sparkles, Trash2, Upload, Users, UserRound, X, WandSparkles
 } from 'lucide-react';
 
 type CropBox = { x: number; y: number; w: number; h: number };
@@ -164,8 +165,11 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
         }
       }
       pages.push(page);
-      pages.forEach((p,i)=>{const a=document.createElement('a');a.href=p.toDataURL('image/jpeg',0.94);a.download='tanshu-multi-customer-sheet-'+(i+1)+'.jpg';a.click();});
-      setNotice(pages.length+' print sheet(s) created and downloaded. Print at Actual Size / 100%.');
+      const pageMm=paperSize==='A4'?{w:210,h:297}:paperSize==='4x6'?{w:152.4,h:101.6}:{w:177.8,h:127};
+      const pdf=new jsPDF({orientation:pageMm.w>pageMm.h?'landscape':'portrait',unit:'mm',format:[pageMm.w,pageMm.h],compress:true});
+      pages.forEach((p,i)=>{if(i>0)pdf.addPage([pageMm.w,pageMm.h],pageMm.w>pageMm.h?'landscape':'portrait');pdf.addImage(p.toDataURL('image/jpeg',0.94),'JPEG',0,0,pageMm.w,pageMm.h,undefined,'FAST');});
+      pdf.save('tanshu-multi-customer-print-sheets.pdf');
+      setNotice(pages.length+' print sheet(s) created as a correctly sized PDF. Print at Actual Size / 100%.');
     } catch {setNotice('Could not create the print sheet. Check the selected photos and try again.');} finally {setBusy(false);}
   };
   const printSheet = async () => { await buildPrintSheet(); };
