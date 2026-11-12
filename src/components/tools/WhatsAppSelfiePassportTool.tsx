@@ -124,6 +124,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setSelectedFile(file);
     setProcessedPhotoUrl('');
     setMergedPhotoUrl('');
+    setSignatureVisible(true);
     setBackgroundStatus('');
     setZoom(100);
     setRotation(0);
@@ -295,7 +296,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       context.drawImage(image,0,0,canvas.width,canvas.height);
       context.globalCompositeOperation='destination-in';context.filter='blur(1.2px)';context.drawImage(maskCanvas,0,0,canvas.width,canvas.height);
       context.filter='none';context.globalCompositeOperation='destination-over';context.fillStyle=backgroundColor;context.fillRect(0,0,canvas.width,canvas.height);
-      setProcessedPhotoUrl(canvas.toDataURL('image/png'));setMergedPhotoUrl('');
+      setProcessedPhotoUrl(canvas.toDataURL('image/png'));setMergedPhotoUrl('');setSignatureVisible(true);
       setBackgroundStatus('Background removed successfully.');
     } catch(error) {
       console.error('Photo background removal failed:',error);
@@ -327,7 +328,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         trimmedContext.drawImage(canvas,left,top,trimmed.width,trimmed.height,0,0,trimmed.width,trimmed.height);
         setSignatureProcessedUrl(trimmed.toDataURL('image/png'));
       }else{setSignatureProcessedUrl(canvas.toDataURL('image/png'));}
-      setMergedPhotoUrl('');
+      setMergedPhotoUrl('');setSignatureVisible(true);
     } catch(error){console.error('Signature background removal failed:',error);}
   };
 
