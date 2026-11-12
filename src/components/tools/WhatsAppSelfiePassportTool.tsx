@@ -117,20 +117,20 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     const inside=valid&&px>=cropRect.x&&px<=cropRect.x+cropRect.w&&py>=cropRect.y&&py<=cropRect.y+cropRect.h;
     let mode:'draw'|'move'|'resize'='draw';
     let cornerX=0,cornerY=0,anchorX=0,anchorY=0;
-    if(inside){
+    const corners=[
+      {id:'tl',x:cropRect.x,y:cropRect.y,cx:1,cy:1},
+      {id:'tr',x:cropRect.x+cropRect.w,y:cropRect.y,cx:-1,cy:1},
+      {id:'bl',x:cropRect.x,y:cropRect.y+cropRect.h,cx:1,cy:-1},
+      {id:'br',x:cropRect.x+cropRect.w,y:cropRect.y+cropRect.h,cx:-1,cy:-1},
+    ];
+    const handle=(event.target as HTMLElement).closest('[data-crop-handle]')?.getAttribute('data-crop-handle');
+    const hit=valid&&handle?corners.find(point=>point.id===handle):undefined;
+    if(hit){
+      mode='resize';cornerX=hit.cx;cornerY=hit.cy;
+      anchorX=hit.x+(hit.cx===1?cropRect.w:-cropRect.w);
+      anchorY=hit.y+(hit.cy===1?cropRect.h:-cropRect.h);
+    }else if(inside){
       mode='move';
-      const corners=[
-        {x:cropRect.x,y:cropRect.y,cx:1,cy:1},
-        {x:cropRect.x+cropRect.w,y:cropRect.y,cx:-1,cy:1},
-        {x:cropRect.x,y:cropRect.y+cropRect.h,cx:1,cy:-1},
-        {x:cropRect.x+cropRect.w,y:cropRect.y+cropRect.h,cx:-1,cy:-1},
-      ];
-      const hit=corners.find(point=>Math.abs(px-point.x)<2.8&&Math.abs(py-point.y)<2.8);
-      if(hit){
-        mode='resize';cornerX=hit.cx;cornerY=hit.cy;
-        anchorX=hit.x+(hit.cx===1?cropRect.w: -cropRect.w);
-        anchorY=hit.y+(hit.cy===1?cropRect.h: -cropRect.h);
-      }
     }
     cropDrawRef.current={mode,startX:px,startY:py,bounds,initialRect:{...cropRect},anchorX,anchorY,cornerX,cornerY};
     if(mode==='draw')setCropRect({x:px,y:py,w:0,h:0});
@@ -278,7 +278,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <div ref={cropViewportRef} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className={'relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50 '+(isCropping?'cursor-crosshair':'')} style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)',touchAction:'none'}}>
                       <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
                       {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
-                      {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}><span className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/><span className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/><span className="absolute -bottom-1.5 -left-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/><span className="absolute -bottom-1.5 -right-1.5 h-3 w-3 rounded-full border-2 border-rose-600 bg-white"/></div>}
+                      {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/></div>}
                       {isCropping&&<span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[9px] font-bold text-white">DRAG TO DRAW · INSIDE TO MOVE · CORNERS TO RESIZE · DONE TO APPLY</span>}
                       {signatureUrl && signatureVisible && <img src={signatureUrl} alt="Signature overlay preview" className="absolute bottom-[13%] right-[12%] max-h-[12%] max-w-[38%] object-contain drop-shadow" />}
                       <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[9px] font-bold tracking-wide text-white">PREVIEW ONLY</span>
