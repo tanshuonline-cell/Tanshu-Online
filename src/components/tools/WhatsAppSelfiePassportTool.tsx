@@ -169,7 +169,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange}/>
                   </label>
                 ) : (
-                  {activeTool === 'print' ? (
+                  activeTool === 'print' ? (
                     <div className="flex min-h-full min-w-full items-center justify-center overflow-auto p-5">
                       <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px'}}>
                         <div className="grid grid-cols-3 content-start gap-3">
