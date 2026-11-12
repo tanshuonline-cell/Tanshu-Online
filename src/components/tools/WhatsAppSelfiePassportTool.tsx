@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Camera, Check, Crop, Download, FileImage, FlipHorizontal,
-  ImagePlus, Info, Layers3, Maximize2, RotateCcw, RotateCw, ScanFace,
+  ImagePlus, Info, Layers3, RotateCcw, RotateCw, ScanFace,
   ShieldCheck, SlidersHorizontal, Sparkles, UploadCloud, WandSparkles,
   X, ZoomIn, ZoomOut
 } from 'lucide-react';
@@ -124,7 +124,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             </nav>
 
             <section className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-[#12171B] overscroll-contain">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#303941] px-4 py-3">
+              <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-[#303941] bg-[#12171B]/95 px-4 py-3 backdrop-blur">
                 <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8C9AA4]">Live photo canvas</p><p className="mt-0.5 text-xs font-semibold text-[#E3E8EC]">{selectedFile ? selectedFile.name : 'Your photo preview will appear here'}</p></div>
                 <div className="flex items-center gap-1.5">
                   <button type="button" onClick={() => setZoom(value => Math.max(50, value - 10))} disabled={!selectedFile} aria-label="Zoom out" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomOut size={14}/></button>
@@ -146,7 +146,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   </label>
                 ) : (
                   <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
-                    <div className="relative flex max-h-[540px] max-w-[min(100%,420px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(68vh, 520px)'}}>
+                    <div className="relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)'}}>
                       <img src={previewUrl} alt="Customer selfie preview" draggable={false} className="h-full w-full select-none object-contain transition-transform duration-200" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped ? -1 : 1)+')'}}/>
                       {showGuides && <div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
                       <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[9px] font-bold tracking-wide text-white">PREVIEW ONLY</span>
