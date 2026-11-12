@@ -764,7 +764,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     try{
       const outputTarget='sheet' as const;
       const dpi=EXPORT_DPI[exportQuality],result=await createExportCanvas(outputTarget,dpi),canvas=result.canvas,widthMm=result.widthMm,heightMm=result.heightMm;
-      const baseName=outputTarget==='photo'?'tanshu-passport-photo':'tanshu-'+sheetSize+'-passport-photo-sheet';
+      const baseName='tanshu-'+sheetSize+'-passport-photo-sheet';
       if(format==='png'){
         const blob=await canvasToBlob(canvas,'image/png');saveBlob(blob,baseName+'.png');
       }else if(format==='jpg'){
