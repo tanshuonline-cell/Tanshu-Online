@@ -306,7 +306,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       const fit=Math.min(maxWidth/signature.naturalWidth,maxHeight/signature.naturalHeight),w=signature.naturalWidth*fit,h=signature.naturalHeight*fit;
       context.save();context.translate(canvas.width*signaturePosition.x/100,canvas.height*signaturePosition.y/100);
       context.rotate(signatureRotation*Math.PI/180);context.drawImage(signature,-w/2,-h/2,w,h);context.restore();
-      const merged=canvas.toDataURL('image/png');setMergedPhotoUrl(merged);setProcessedPhotoUrl(merged);setSignatureVisible(false);
+      const merged=canvas.toDataURL('image/png');setMergedPhotoUrl(merged);setSignatureVisible(false);
       setBackgroundStatus('Signature merged into the photo.');
     }catch(error){console.error('Signature merge failed:',error);setBackgroundStatus('Could not merge the signature. Please try again.');}
     finally{setIsMerging(false);}
@@ -320,7 +320,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const handleSignaturePointerMove=(event:React.PointerEvent<HTMLImageElement>)=>{
     const drag=signatureDragRef.current;if(!drag||!cropViewportRef.current)return;
     const bounds=cropViewportRef.current.getBoundingClientRect();
-    setSignaturePosition({x:Math.max(8,Math.min(92,drag.left+(event.clientX-drag.x)/bounds.width*100)),y:Math.max(8,Math.min(92,drag.top+(event.clientY-drag.y)/bounds.height*100))});
+    setSignaturePosition({x:Math.max(8,Math.min(92,drag.left+(event.clientX-drag.x)/bounds.width*100)),y:Math.max(8,Math.min(92,drag.top+(event.clientY-drag.y)/bounds.height*100))});setMergedPhotoUrl('');setSignatureVisible(true);
   };
   const handleSignaturePointerUp=()=>{signatureDragRef.current=null;};
 
@@ -480,7 +480,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
 
   const downloadPrintSheet = async () => {
-    if (!processedPhotoUrl) return;
+    if (!mergedPhotoUrl && !processedPhotoUrl && !previewUrl) return;
     try {
       const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
         const image = new Image();
@@ -488,7 +488,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         image.onerror = () => reject(new Error('Could not load the print image.'));
         image.src = src;
       });
-      const photo = await loadImage(mergedPhotoUrl || processedPhotoUrl);
+      const photo = await loadImage(mergedPhotoUrl || processedPhotoUrl || previewUrl);
       const signature = !mergedPhotoUrl && signatureUrl && signatureVisible ? await loadImage(signatureProcessedUrl || signatureUrl) : null;
       const pageWidth = sheetSize === 'A4' ? 2480 : 1800;
       const pageHeight = sheetSize === 'A4' ? 3508 : 1200;
@@ -565,18 +565,18 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
       <div className="mx-auto h-[calc(100vh-68px)] max-w-[1920px] overflow-hidden px-2 py-2 sm:px-3">
         <section onPointerDown={event=>{const target=event.target as HTMLElement;if(isCropping&&cropViewportRef.current&&!cropViewportRef.current.contains(target)&&!target.closest('button'))setIsCropping(false);}} className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#343D44] bg-[#1A2025] shadow-2xl shadow-black/30">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#343D44] bg-[#20272D] px-4 py-3 sm:px-5">
+          <div className="flex flex-nowrap items-center justify-between gap-3 overflow-x-auto border-b border-[#343D44] bg-[#20272D] px-4 py-3 sm:px-5">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300"><Layers3 size={16}/></span>
               <div><p className="text-xs font-bold text-white">Studio Workspace</p><p className="text-[10px] text-[#8F9BA5]">Upload · Edit · Preview · Print</p></div>
             </div>
-            <div className="flex flex-1 flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+            <div className="flex shrink-0 flex-1 flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
               <span className="mr-1 text-[9px] font-extrabold uppercase tracking-wider text-[#82949B]">Choose Photo</span>
               {([{id:'selfie',title:'Selfie Photo'},{id:'existing',title:'Existing Photo'},{id:'whatsapp',title:'WhatsApp Print'}] as const).map(mode => <button key={mode.id} type="button" onClick={() => setInputMode(mode.id)} aria-pressed={inputMode===mode.id} className={inputMode===mode.id?'rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-400/20 transition':'rounded-lg border border-[#3A444C] bg-[#1B2227] px-2.5 py-2 text-[10px] font-semibold text-[#AAB5BD] transition hover:bg-white/5 hover:text-white'}>{mode.title}</button>)}
             </div>
             <button type="button" onClick={() => setActiveTool('background')} disabled={!selectedFile} className="rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2 text-[10px] font-extrabold text-emerald-200 disabled:opacity-40"><Eraser size={13} className="mr-1 inline"/>BG Remove</button>
             <button type="button" onClick={() => setActiveTool('signature')} disabled={!selectedFile} className="rounded-lg border border-[#3A444C] px-3 py-2 text-[10px] font-bold text-[#C8D1D9] disabled:opacity-40">Add Signature</button>
-            <div className="flex items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Studio ready</div>
+            <div className="flex shrink-0 items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Studio ready</div>
           </div>
 
           <div className="grid min-h-0 flex-1 grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_310px]">
@@ -710,11 +710,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     {signatureFile ? <div className="mb-3 flex items-center gap-2"><img src={signatureProcessedUrl||signatureUrl} alt="Signature preview" className="h-12 w-20 rounded bg-white object-contain p-1"/><span className="min-w-0 flex-1 truncate text-[9px] text-[#C8D1D9]">{signatureFile.name}</span><button type="button" onClick={()=>{setSignatureFile(null);setSignatureProcessedUrl('');setMergedPhotoUrl('');}} className="rounded p-1 text-rose-300"><X size={14}/></button></div> : <label className="mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#52615F] px-3 py-3 text-[10px] font-bold text-emerald-300"><ImagePlus size={14}/> Add Signature<input type="file" accept="image/*" className="sr-only" onChange={handleSignatureChange}/></label>}
                     <button type="button" disabled={!signatureUrl} onClick={applySignatureBackgroundRemoval} className="w-full rounded-lg border border-emerald-300/30 bg-emerald-400/10 px-3 py-2.5 text-[10px] font-extrabold text-emerald-200 disabled:opacity-40">Remove Signature Background</button>
                     <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Works best with a dark signature on a plain white or light background.</p>
-                    <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">SIGNATURE SIZE</label><span className="text-[9px] text-emerald-200">{Math.round(signatureScale*100)}%</span></div><input type="range" min="40" max="180" value={Math.round(signatureScale*100)} onChange={event=>{setSignatureScale(Number(event.target.value)/100);setMergedPhotoUrl('');}} className="mt-2 w-full accent-emerald-400"/>
-                    <div className="mt-3 flex gap-2"><button type="button" onClick={()=>{setSignatureRotation(value=>value-5);setMergedPhotoUrl('');}} className="flex-1 rounded-lg border border-[#46535C] px-2 py-2 text-[9px] font-bold text-[#D4DCE1]">Rotate −5°</button><button type="button" onClick={()=>{setSignatureRotation(value=>value+5);setMergedPhotoUrl('');}} className="flex-1 rounded-lg border border-[#46535C] px-2 py-2 text-[9px] font-bold text-[#D4DCE1]">Rotate +5°</button></div>
+                    <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">SIGNATURE SIZE</label><span className="text-[9px] text-emerald-200">{Math.round(signatureScale*100)}%</span></div><input type="range" min="40" max="180" value={Math.round(signatureScale*100)} onChange={event=>{setSignatureScale(Number(event.target.value)/100);setMergedPhotoUrl('');setSignatureVisible(true);}} className="mt-2 w-full accent-emerald-400"/>
+                    <div className="mt-3 flex gap-2"><button type="button" onClick={()=>{setSignatureRotation(value=>value-5);setMergedPhotoUrl('');setSignatureVisible(true);}} className="flex-1 rounded-lg border border-[#46535C] px-2 py-2 text-[9px] font-bold text-[#D4DCE1]">Rotate −5°</button><button type="button" onClick={()=>{setSignatureRotation(value=>value+5);setMergedPhotoUrl('');setSignatureVisible(true);}} className="flex-1 rounded-lg border border-[#46535C] px-2 py-2 text-[9px] font-bold text-[#D4DCE1]">Rotate +5°</button></div>
                     <button type="button" disabled={!signatureUrl} onClick={()=>setSignatureVisible(value=>!value)} className="mt-3 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3] disabled:opacity-40">{signatureVisible?'Hide signature':'Show signature'} on photo</button>
                     <button type="button" disabled={!signatureUrl||!selectedFile||isMerging} onClick={mergeSignatureIntoPhoto} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-40">{isMerging?'Merging…':'Done · Merge Signature'}</button>
-                    <button type="button" disabled={!mergedPhotoUrl} onClick={()=>setActiveTool('print')} className="mt-2 w-full rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2.5 text-[10px] font-extrabold text-sky-100 disabled:opacity-40">Save & Next · A4 / 4 × 6 Sheet</button>
+                    <button type="button" disabled={!selectedFile} onClick={()=>setActiveTool('print')} className="mt-2 w-full rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2.5 text-[10px] font-extrabold text-sky-100 disabled:opacity-40">Save & Next · A4 / 4 × 6 Sheet</button>
+                    <button type="button" disabled={!selectedFile} onClick={()=>setActiveTool('print')} className="mt-2 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3]">Continue without signature</button>
                     {backgroundStatus&&<p className="mt-2 text-[9px] leading-4 text-emerald-200">{backgroundStatus}</p>}
                   </div>
                 ) : activeTool === 'crop' ? (
@@ -769,7 +770,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">PRINT SHEET SETUP</p>
                   <select value={sheetSize} onChange={event => setSheetSize(event.target.value as 'A4'|'4x6')} className="h-9 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-2 text-[10px] font-semibold text-white"><option value="A4">A4 Sheet</option><option value="4x6">4 × 6 inch Sheet</option></select>
                   <label className="mt-3 block text-[9px] font-bold text-[#D4DCE1]">NUMBER OF PHOTOS</label><input type="range" min="1" max={sheetSize==='A4'?12:4} value={Math.min(photoCount,sheetSize==='A4'?12:4)} onChange={event=>setPhotoCount(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/><p className="mt-1 text-[9px] text-emerald-200">{Math.min(photoCount,sheetSize==='A4'?12:4)} photos on this sheet</p>
-                  <button type="button" onClick={downloadPrintSheet} disabled={!processedPhotoUrl} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
+                  <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
                   <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
                   <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
                   <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the preview while Print is selected to zoom the sheet.</p>
