@@ -14,6 +14,10 @@ type CustomerPhoto = {
   brightness: number; contrast: number; saturation: number;
   sharpness: number; clarity: number; beauty: number; faceTone: number;
   selectiveColor: number; lipTint: number; hairTone: number; colorGrade: number;
+  qualityEnhance: number; hdEnhance: number; plump: number; blemish: number; smooth: number;
+  skinTone: number; brightEyes: number; darkCircle: number; whitening: number; clear: number;
+  brilliance: number; hslHue: number; hslSaturation: number; hslLightness: number;
+  graphic: number; highlights: number; shadows: number; whites: number; blacks: number; temperature: number; hue: number;
   bgRemoved: boolean;
 };
 const PHOTO_SIZES = [
@@ -38,18 +42,60 @@ const mmFor = (customer: CustomerPhoto) => {
   const preset = PHOTO_SIZES.find(s => s.value === customer.size);
   return customer.size === 'custom' ? { w: customer.customWidth, h: customer.customHeight } : { w: preset?.w || 35, h: preset?.h || 45 };
 };
+const ADJUSTMENT_GROUPS = [
+  { title: 'Quality & Detail', hint: 'Overall image detail and definition', controls: [
+    { key: 'qualityEnhance', label: 'Quality Enhance', min: 0, max: 100, suffix: '%' },
+    { key: 'hdEnhance', label: 'HD Enhance', min: 0, max: 100, suffix: '%' },
+    { key: 'sharpness', label: 'Sharpness', min: 0, max: 100, suffix: '%' },
+    { key: 'clarity', label: 'Clarity', min: 0, max: 100, suffix: '%' },
+    { key: 'brilliance', label: 'Brilliance', min: -100, max: 100, suffix: '' },
+  ]},
+  { title: 'Face & Skin', hint: 'Gentle portrait finishing controls', controls: [
+    { key: 'plump', label: 'Plump', min: 0, max: 100, suffix: '%' },
+    { key: 'blemish', label: 'Clear Blemish', min: 0, max: 100, suffix: '%' },
+    { key: 'smooth', label: 'Smooth', min: 0, max: 100, suffix: '%' },
+    { key: 'beauty', label: 'Beauty', min: 0, max: 100, suffix: '%' },
+    { key: 'skinTone', label: 'Skin Tone', min: -100, max: 100, suffix: '' },
+    { key: 'faceTone', label: 'Face Warmth', min: -50, max: 50, suffix: '' },
+    { key: 'brightEyes', label: 'Bright Eyes', min: 0, max: 100, suffix: '%' },
+    { key: 'darkCircle', label: 'Dark Circle', min: 0, max: 100, suffix: '%' },
+    { key: 'whitening', label: 'Whitening', min: 0, max: 100, suffix: '%' },
+    { key: 'clear', label: 'Clear', min: 0, max: 100, suffix: '%' },
+  ]},
+  { title: 'Light & Tone', hint: 'Balance highlights, shadows and tonal range', controls: [
+    { key: 'brightness', label: 'Brightness', min: 50, max: 150, suffix: '%' },
+    { key: 'contrast', label: 'Contrast', min: 50, max: 150, suffix: '%' },
+    { key: 'highlights', label: 'Highlights', min: -100, max: 100, suffix: '' },
+    { key: 'shadows', label: 'Shadows', min: -100, max: 100, suffix: '' },
+    { key: 'whites', label: 'Whites', min: -100, max: 100, suffix: '' },
+    { key: 'blacks', label: 'Blacks', min: -100, max: 100, suffix: '' },
+  ]},
+  { title: 'Color & HSL', hint: 'Fine tune color channels and warmth', controls: [
+    { key: 'saturation', label: 'Saturation', min: 0, max: 200, suffix: '%' },
+    { key: 'hslHue', label: 'HSL · Hue', min: -180, max: 180, suffix: '°' },
+    { key: 'hslSaturation', label: 'HSL · Saturation', min: -100, max: 100, suffix: '' },
+    { key: 'hslLightness', label: 'HSL · Lightness', min: -100, max: 100, suffix: '' },
+    { key: 'temperature', label: 'Temperature', min: -100, max: 100, suffix: '' },
+    { key: 'hue', label: 'Hue', min: -180, max: 180, suffix: '°' },
+    { key: 'selectiveColor', label: 'Color Pop', min: 0, max: 100, suffix: '%' },
+    { key: 'colorGrade', label: 'Warm Color Grade', min: 0, max: 100, suffix: '%' },
+    { key: 'graphic', label: 'Graphic', min: 0, max: 100, suffix: '%' },
+  ]},
+];
 const makeAdjusted = async (customer: CustomerPhoto) => {
   const img = await loadImage(customer.workingUrl);
   const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
   const ctx = canvas.getContext('2d'); if (!ctx) return customer.workingUrl;
-  const detail = Math.max(0, customer.sharpness + customer.clarity * 0.45);
-  const beautySoft = customer.beauty > 0 ? Math.min(0.16, customer.beauty / 700) : 0;
+  const detail = Math.max(0, customer.sharpness + customer.clarity * 0.45 + customer.qualityEnhance * 0.35 + customer.hdEnhance * 0.55);
+  const beautySoft = Math.min(0.28, (customer.beauty + customer.smooth + customer.bлемish) / 900);
+  const lightLift = customer.brilliance * 0.12 + customer.shadows * 0.08 + customer.whites * 0.06 + customer.hslLightness * 0.08 + customer.brightEyes * 0.025 + customer.whitening * 0.025 + customer.clear * 0.04;
+  const toneContrast = customer.graphic * 0.12 + customer.highlights * 0.05 - customer.blacks * 0.04;
   ctx.filter = [
-    'brightness(' + Math.max(70, Math.min(140, customer.brightness + customer.faceTone * 0.12)) + '%)',
-    'contrast(' + Math.max(70, Math.min(150, customer.contrast + customer.clarity * 0.18 + detail * 0.08)) + '%)',
-    'saturate(' + Math.max(0, Math.min(200, customer.saturation + customer.selectiveColor * 0.25 + customer.lipTint * 0.12)) + '%)',
-    'sepia(' + Math.max(0, Math.min(0.18, customer.colorGrade / 650)) + ')',
-    'hue-rotate(' + (customer.hairTone * -0.08) + 'deg)',
+    'brightness(' + Math.max(45, Math.min(165, customer.brightness + customer.faceTone * 0.12 + customer.skinTone * 0.08 + lightLift)) + '%)',
+    'contrast(' + Math.max(55, Math.min(175, customer.contrast + customer.clarity * 0.18 + detail * 0.08 + toneContrast)) + '%)',
+    'saturate(' + Math.max(0, Math.min(240, customer.saturation + customer.selectiveColor * 0.25 + customer.hslSaturation * 0.55 + customer.graphic * 0.12)) + '%)',
+    'sepia(' + Math.max(0, Math.min(0.3, (customer.colorGrade + customer.temperature * 0.7) / 650)) + ')',
+    'hue-rotate(' + (customer.hue + customer.hslHue + customer.hairTone * -0.08) + 'deg)',
     'blur(' + beautySoft + 'px)',
   ].join(' ');
   ctx.drawImage(img, 0, 0); ctx.filter = 'none';
@@ -99,7 +145,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
       const url=URL.createObjectURL(file);
       return { id: String(Date.now())+'-'+index+'-'+Math.random().toString(36).slice(2,8), file, previewUrl:url, workingUrl:url,
         name:'Customer '+String(customers.length+index+1).padStart(2,'0'), size:'35x45', quantity:5, customWidth:35, customHeight:45,
-        brightness:100, contrast:100, saturation:100, sharpness:0, clarity:0, beauty:0, faceTone:0, selectiveColor:0, lipTint:0, hairTone:0, colorGrade:0, bgRemoved:false };
+        brightness:100, contrast:100, saturation:100, sharpness:0, clarity:0, beauty:0, faceTone:0, selectiveColor:0, lipTint:0, hairTone:0, colorGrade:0, qualityEnhance:0, hdEnhance:0, plump:0, blemish:0, smooth:0, skinTone:0, brightEyes:0, darkCircle:0, whitening:0, clear:0, brilliance:0, hslHue:0, hslSaturation:0, hslLightness:0, graphic:0, highlights:0, shadows:0, whites:0, blacks:0, temperature:0, hue:0, bgRemoved:false };
     });
     setCustomers(current => [...current,...additions]); if (!selectedId && additions[0]) setSelectedId(additions[0].id);
     setActiveStep('upload'); setNotice(selectedFiles.length+' photo'+(selectedFiles.length===1?'':'s')+' added to this batch.');
@@ -191,7 +237,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
     if(!activeCustomer)return; setBusy(true);
     try {
       const url=await makeAdjusted(activeCustomer);
-      updateCustomer(activeCustomer.id,{workingUrl:url,brightness:100,contrast:100,saturation:100,sharpness:0,clarity:0,beauty:0,faceTone:0,selectiveColor:0,lipTint:0,hairTone:0,colorGrade:0});
+      updateCustomer(activeCustomer.id,{workingUrl:url,brightness:100,contrast:100,saturation:100,sharpness:0,clarity:0,beauty:0,faceTone:0,selectiveColor:0,lipTint:0,hairTone:0,colorGrade:0,qualityEnhance:0,hdEnhance:0,plump:0,blemish:0,smooth:0,skinTone:0,brightEyes:0,darkCircle:0,whitening:0,clear:0,brilliance:0,hslHue:0,hslSaturation:0,hslLightness:0,graphic:0,highlights:0,shadows:0,whites:0,blacks:0,temperature:0,hue:0});
       setNotice('Adjustments applied to the selected customer.'); setAdjustmentClosing(true);
       window.setTimeout(()=>{setAdjustmentOpen(false);setAdjustmentClosing(false);},320);
     } catch {setNotice('Could not apply adjustments.');} finally {setBusy(false);}
@@ -260,7 +306,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
             <div ref={stageRef} className="relative flex flex-1 items-center justify-center overflow-auto bg-slate-50 p-5">
               {activeCustomer?<div className={`relative flex max-w-full items-center justify-center rounded-xl border border-slate-200 p-3 shadow-xl ${activeStep==='adjust'?'w-full flex-col gap-4 sm:flex-row sm:items-stretch':'flex-col'}`} style={{background:backgroundColor==='transparent'?'conic-gradient(#e5e7eb 25%,#fff 0 50%,#e5e7eb 0 75%,#fff 0) 0/16px 16px':backgroundColor}}>
                 <div className={`relative inline-block max-h-[410px] max-w-full ${activeStep==='adjust'?'w-full sm:w-[62%] sm:shrink-0':''}`} onPointerDown={onCropDown} onPointerMove={onCropMove} onPointerUp={onCropUp} onPointerCancel={onCropUp}>
-                  <img ref={imageRef} src={activeCustomer.workingUrl} alt={activeCustomer.name} draggable={false} style={activeStep==='adjust'?{filter:'brightness('+Math.max(70,Math.min(140,activeCustomer.brightness+activeCustomer.faceTone*0.12))+'%) contrast('+Math.max(70,Math.min(150,activeCustomer.contrast+activeCustomer.clarity*0.18+activeCustomer.sharpness*0.08))+'%) saturate('+Math.max(0,Math.min(200,activeCustomer.saturation+activeCustomer.selectiveColor*0.25+activeCustomer.lipTint*0.12))+'%) sepia('+(activeCustomer.colorGrade/650)+') hue-rotate('+(-activeCustomer.hairTone*0.08)+'deg)'}:undefined} className={'block max-h-[410px] max-w-full object-contain '+(activeStep==='crop'?'cursor-crosshair touch-none':'')}/>
+                  <img ref={imageRef} src={activeCustomer.workingUrl} alt={activeCustomer.name} draggable={false} style={activeStep==='adjust'?{filter:'brightness('+Math.max(45,Math.min(165,activeCustomer.brightness+activeCustomer.faceTone*0.12+activeCustomer.skinTone*0.08+activeCustomer.brilliance*0.12+activeCustomer.shadows*0.08+activeCustomer.whites*0.06+activeCustomer.hslLightness*0.08+activeCustomer.brightEyes*0.025+activeCustomer.whitening*0.025+activeCustomer.clear*0.04))+'%) contrast('+Math.max(55,Math.min(175,activeCustomer.contrast+activeCustomer.clarity*0.18+activeCustomer.sharpness*0.08+activeCustomer.qualityEnhance*0.08+activeCustomer.hdEnhance*0.12+activeCustomer.graphic*0.12+activeCustomer.highlights*0.05-activeCustomer.blacks*0.04))+'%) saturate('+Math.max(0,Math.min(240,activeCustomer.saturation+activeCustomer.selectiveColor*0.25+activeCustomer.hslSaturation*0.55+activeCustomer.graphic*0.12))+'%) sepia('+Math.max(0,Math.min(0.3,(activeCustomer.colorGrade+activeCustomer.temperature*0.7)/650))+') hue-rotate('+(activeCustomer.hue+activeCustomer.hslHue+activeCustomer.hairTone*-0.08)+'deg)'}:undefined} className={'block max-h-[410px] max-w-full object-contain '+(activeStep==='crop'?'cursor-crosshair touch-none':'')}/>
                   {cropBox&&activeStep==='crop'&&<div className="absolute border-2 border-rose-500 bg-rose-300/15 shadow-[0_0_0_9999px_rgba(15,23,42,.28)]" style={{left:(cropBox.x*100)+'%',top:(cropBox.y*100)+'%',width:(cropBox.w*100)+'%',height:(cropBox.h*100)+'%'}}>
                     <span className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/><span className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/><span className="absolute -left-1.5 -bottom-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/><span className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-sm border-2 border-white bg-rose-600 shadow"/>
                   </div>}
@@ -268,11 +314,11 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
                 {activeStep==='adjust'&&(adjustmentOpen||adjustmentClosing?<div className={'w-full min-w-0 overflow-hidden rounded-xl border border-rose-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(15,23,42,.12)] sm:w-[250px] sm:shrink-0 '+(adjustmentClosing?'imc-adjust-pop-out':'imc-adjust-pop-in')}>
                   <div className="flex items-center justify-between gap-2"><div><h3 className="text-xs font-extrabold text-slate-800">Photo Adjustment</h3><p className="mt-0.5 truncate text-[9px] text-slate-500">{activeCustomer.name} · Live preview</p></div><span className="rounded-full bg-rose-50 px-2 py-1 text-[8px] font-bold text-rose-700">PRO</span></div>
                   <div className="mt-3 max-h-[300px] space-y-2.5 overflow-y-auto pr-1 imc-premium-scrollbar">
-                    {([{key:'brightness',label:'Brightness',min:50,max:150,suffix:'%'},{key:'contrast',label:'Contrast',min:50,max:150,suffix:'%'},{key:'saturation',label:'Saturation',min:0,max:200,suffix:'%'},{key:'sharpness',label:'Sharpness',min:0,max:100,suffix:'%'},{key:'clarity',label:'Clarity',min:0,max:100,suffix:'%'},{key:'beauty',label:'Beauty · Soft skin',min:0,max:100,suffix:'%'},{key:'faceTone',label:'Face Tone · Warmth',min:-50,max:50,suffix:''},{key:'selectiveColor',label:'Selective Color · Vibrance',min:0,max:100,suffix:'%'},{key:'lipTint',label:'Lip Tint · Color pop',min:0,max:100,suffix:'%'},{key:'hairTone',label:'Hair Tone · Deepen',min:0,max:100,suffix:'%'},{key:'colorGrade',label:'Color Grading · Warm',min:0,max:100,suffix:'%'}] as const).map(item=><label key={item.key} className="block"><span className="flex items-center justify-between gap-2 text-[9px] font-semibold text-slate-600"><span>{item.label}</span><span className="tabular-nums text-slate-500">{activeCustomer[item.key]}{item.suffix}</span></span><input type="range" min={item.min} max={item.max} value={activeCustomer[item.key]} onChange={e=>updateCustomer(activeCustomer.id,{[item.key]:Number(e.target.value)})} className="mt-1 h-1 w-full cursor-pointer accent-rose-700"/></label>)}
+                    {ADJUSTMENT_GROUPS.map((group,index)=><details key={group.title} open={index===0||index===1} className="rounded-lg border border-slate-100 bg-slate-50/70 px-2.5 py-2"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-2"><span><span className="block text-[10px] font-extrabold text-slate-700">{group.title}</span><span className="block text-[8px] text-slate-400">{group.hint}</span></span><span className="text-[10px] font-bold text-rose-700">＋</span></span></summary><div className="mt-3 space-y-2.5">{group.controls.map(item=><label key={item.key} className="block"><span className="flex items-center justify-between gap-2 text-[9px] font-semibold text-slate-600"><span>{item.label}</span><span className="tabular-nums text-slate-500">{activeCustomer[item.key as keyof CustomerPhoto]}{item.suffix}</span></span><input type="range" min={item.min} max={item.max} value={Number(activeCustomer[item.key as keyof CustomerPhoto])} onChange={e=>updateCustomer(activeCustomer.id,{[item.key]:Number(e.target.value)})} className="mt-1 h-1 w-full cursor-pointer accent-rose-700"/></label>)}</div></details>)}
                   </div>
-                  <p className="mt-2 text-[8px] leading-4 text-slate-400">Beauty and color controls are gentle global previews; precise lipstick / hair masking needs dedicated face segmentation.</p>
-                  <div className="mt-3 flex flex-wrap gap-1.5"><button type="button" disabled={busy} onClick={applyAdjustments} className="rounded-lg bg-rose-800 px-3 py-2 text-[9px] font-bold text-white disabled:opacity-40">{busy?'Applying…':'Apply Adjustment'}</button><button type="button" onClick={()=>updateCustomer(activeCustomer.id,{brightness:100,contrast:100,saturation:100,sharpness:0,clarity:0,beauty:0,faceTone:0,selectiveColor:0,lipTint:0,hairTone:0,colorGrade:0})} className="rounded-lg border border-slate-200 px-2.5 py-2 text-[9px] font-bold text-slate-600">Reset</button></div>
-                </div>:<button type="button" onClick={()=>setAdjustmentOpen(true)} className="imc-adjust-pop-in flex w-full items-center justify-between gap-3 rounded-xl border border-rose-200 bg-white px-4 py-3 text-left shadow-[0_10px_28px_rgba(15,23,42,.10)] transition hover:-translate-y-0.5 hover:border-rose-300 sm:w-[250px] sm:shrink-0"><span><span className="block text-xs font-extrabold text-slate-800">Photo Adjustment</span><span className="mt-0.5 block text-[9px] text-slate-500">Tap to open editing controls</span></span><span className="rounded-full bg-rose-50 px-2.5 py-1.5 text-[9px] font-bold text-rose-700">OPEN ↗</span></button>)}
+                  <p className="mt-2 text-[8px] leading-4 text-slate-400">These controls provide live overall-photo finishing. Face-specific effects (blemish, eyes, dark circles and plump) are currently gentle approximations, not AI face masks; HSL and tonal controls are global color adjustments.</p>
+                  <div className="mt-3 flex flex-wrap gap-1.5"><button type="button" disabled={busy} onClick={applyAdjustments} className="rounded-lg bg-rose-800 px-3 py-2 text-[9px] font-bold text-white disabled:opacity-40">{busy?'Applying…':'Apply Adjustment'}</button><button type="button" onClick={()=>updateCustomer(activeCustomer.id,{brightness:100,contrast:100,saturation:100,sharpness:0,clarity:0,beauty:0,faceTone:0,selectiveColor:0,lipTint:0,hairTone:0,colorGrade:0,qualityEnhance:0,hdEnhance:0,plump:0,blemish:0,smooth:0,skinTone:0,brightEyes:0,darkCircle:0,whitening:0,clear:0,brilliance:0,hslHue:0,hslSaturation:0,hslLightness:0,graphic:0,highlights:0,shadows:0,whites:0,blacks:0,temperature:0,hue:0})} className="rounded-lg border border-slate-200 px-2.5 py-2 text-[9px] font-bold text-slate-600">Reset</button></div>
+                </div>:<button type="button" onClick={()=>setAdjustmentOpen(true)} className="imc-adjust-pop-in absolute left-2 top-2 z-20 inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white/95 px-3 py-2 text-[10px] font-extrabold text-rose-800 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-rose-400"><SlidersHorizontal className="h-3.5 w-3.5"/> Photo Adjustment <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[8px] font-black">OPEN</span></button>)}
                 <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold text-white shadow-lg">{activeCustomer.name} · {activeStep==='crop'?'Drag to select crop':activeStep==='adjust'?'Live adjustment preview':'Edited preview'}</span>
               </div>:<button type="button" onClick={()=>fileInputRef.current?.click()} className="group flex w-full max-w-lg flex-col items-center rounded-3xl border-2 border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm transition hover:border-rose-400 hover:bg-rose-50/60"><span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-800 transition group-hover:scale-105"><ImagePlus className="h-8 w-8"/></span><span className="mt-4 text-lg font-black text-slate-900">Upload multiple customer photos</span><span className="mt-2 max-w-sm text-sm leading-6 text-slate-500">Select several JPG, PNG or WEBP photos together. Each customer will receive a separate numbered entry.</span><span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-rose-800 px-5 py-3 text-xs font-bold text-white"><Upload className="h-4 w-4"/> Choose Photos</span></button>}
             </div>
