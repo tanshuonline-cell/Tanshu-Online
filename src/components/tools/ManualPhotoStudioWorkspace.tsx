@@ -308,7 +308,6 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     const arranged=next.map((layer,index)=>({...layer,x:margin+(index%cols)*(finalW+gapX),y:margin+Math.floor(index/cols)*(finalH+gapY)}));
     const ids=new Set(current.map(layer=>layer.id));
     updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!ids.has(layer.id)),...arranged]}));
-    setManualPhotoCount(target);
     setSelectedIds(arranged.map(layer=>layer.id));
   };
   const autoArrangeSelected = () => {
