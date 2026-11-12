@@ -72,6 +72,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const sheetColumns = Math.max(1, Math.floor((sheetWidthMm - sheetMarginMm * 2 + sheetGapMm) / (photoWidthMm + sheetGapMm)));
   const sheetRows = Math.max(1, Math.floor((sheetHeightMm - sheetMarginMm * 2 + sheetGapMm) / (photoHeightMm + sheetGapMm)));
   const sheetCapacity = sheetColumns * sheetRows;
+  const sheetPreviewScale = sheetSize === 'A4' ? 2 : 360 / 152.4;
   const visiblePhotoCount = Math.min(photoCount, sheetCapacity);
   const segmenterRef = useRef<any>(null);
   const signatureDragRef = useRef<{x:number;y:number;left:number;top:number}|null>(null);
@@ -688,9 +689,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 ) : (
                   activeTool === 'print' ? (
                     <div className="flex min-h-full min-w-full items-center justify-center overflow-auto p-5">
-                      <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px',padding:Math.max(4,sheetMarginMm*2*sheetZoom/100)+'px'}}>
-                        <div className={sheetSize==='A4'?"grid grid-cols-3 content-start":"grid grid-cols-2 content-start"} style={{gap:Math.max(2,sheetGapMm*2*sheetZoom/100)+'px',gridTemplateColumns:'repeat('+sheetColumns+', minmax(0, 1fr))'}}>
-                          {Array.from({length:visiblePhotoCount},(_,index)=><div key={index} className="relative overflow-hidden bg-slate-100" style={{width:Math.round(photoWidthMm*2*sheetZoom/100)+'px',margin:'0 auto',aspectRatio:photoWidthMm+' / '+photoHeightMm,border:borderEnabled?Math.max(1,borderWidthMm*2*sheetZoom/100)+'px solid '+borderColor:'none'}}>
+                      <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px',padding:Math.max(4,sheetMarginMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
+                        <div className={sheetSize==='A4'?"grid grid-cols-3 content-start":"grid grid-cols-2 content-start"} style={{gap:Math.max(2,sheetGapMm*sheetPreviewScale*sheetZoom/100)+'px',gridTemplateColumns:'repeat('+sheetColumns+', minmax(0, 1fr))'}}>
+                          {Array.from({length:visiblePhotoCount},(_,index)=><div key={index} className="relative overflow-hidden bg-slate-100" style={{width:Math.round(photoWidthMm*sheetPreviewScale*sheetZoom/100)+'px',margin:'0 auto',aspectRatio:photoWidthMm+' / '+photoHeightMm,border:borderEnabled?Math.max(1,borderWidthMm*sheetPreviewScale*sheetZoom/100)+'px solid '+borderColor:'none'}}>
                             <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
                             {!mergedPhotoUrl && signatureUrl && signatureVisible && <img src={signatureProcessedUrl || signatureUrl} alt="" className="absolute object-contain" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:(36*signatureScale)+'%',transform:'translate(-50%,-50%) rotate('+signatureRotation+'deg)'}}/>}
                           </div>)}
