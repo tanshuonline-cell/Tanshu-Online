@@ -675,7 +675,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
               </div>
 
-              <div onWheel={(event) => { if (selectedFile && Math.abs(event.deltaY) >= Math.abs(event.deltaX)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
+              <div onWheel={(event) => { if (selectedFile && (event.ctrlKey || event.metaKey)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
@@ -839,7 +839,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
                   <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
                   <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
-                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the preview while Print is selected to zoom the sheet.</p>
+                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Ctrl + mouse wheel zooms the paper. Normal wheel and side-scroll move around the sheet.</p>
                 </div>
 
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
