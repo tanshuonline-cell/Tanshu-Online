@@ -1200,7 +1200,6 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <button type="button" onClick={smartCenterAndBalanceSheet} disabled={sheetMode==='single'||!sheetSlots.length} className="studio-control col-span-2 py-2 text-[10px] disabled:opacity-40">Smart Center &amp; Balance</button>
                 </div>
                 </div>
-              </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">PHOTO BORDER</span><label className="flex items-center gap-1.5 text-[9px] studio-muted"><input type="checkbox" checked={borderEnabled} onChange={event=>setBorderEnabled(event.target.checked)} className="accent-[#D0D7DE]"/> Enable</label></div>
                 <label className="block text-[9px] studio-muted">Thickness · {borderWidthMm.toFixed(1)} mm<input type="range" min="0.1" max="10" step="0.1" value={borderWidthMm} onChange={event=>setBorderWidthMm(Number(event.target.value))} onWheel={event=>{event.preventDefault();setBorderWidthMm(value=>Math.max(0.1,Math.min(10,Number((value+(event.deltaY<0?0.1:-0.1)).toFixed(1)))));}} className="mt-1 w-full accent-[#D0D7DE]"/><div className="flex justify-between text-[8px]"><span>0.1 mm · Thin</span><span>10 mm · Thick</span></div></label>
