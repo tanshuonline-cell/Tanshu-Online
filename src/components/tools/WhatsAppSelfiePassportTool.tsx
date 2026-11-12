@@ -58,6 +58,11 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [backgroundStatus, setBackgroundStatus] = useState('');
   const [photoCount, setPhotoCount] = useState(8);
+  const [sheetMarginMm, setSheetMarginMm] = useState(5);
+  const [sheetGapMm, setSheetGapMm] = useState(2);
+  const [borderEnabled, setBorderEnabled] = useState(false);
+  const [borderColor, setBorderColor] = useState('#000000');
+  const [borderWidthMm, setBorderWidthMm] = useState(0.3);
   const [mergedPhotoUrl, setMergedPhotoUrl] = useState('');
   const [isMerging, setIsMerging] = useState(false);
   const segmenterRef = useRef<any>(null);
@@ -518,8 +523,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       const pageHeight = sheetSize === 'A4' ? 3508 : 1200;
       const columns = sheetSize === 'A4' ? 3 : 2;
       const rows = sheetSize === 'A4' ? 4 : 2;
-      const margin = sheetSize === 'A4' ? 150 : 80;
-      const gap = sheetSize === 'A4' ? 60 : 40;
+      const margin = Math.round(sheetMarginMm * 300 / 25.4);
+      const gap = Math.round(sheetGapMm * 300 / 25.4);
       const cellWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
       const cellHeight = (pageHeight - margin * 2 - gap * (rows - 1)) / rows;
       const scale = Math.min(cellWidth / photo.naturalWidth, cellHeight / photo.naturalHeight);
@@ -540,6 +545,13 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         const x = cellX + (cellWidth - drawWidth) / 2;
         const y = cellY + (cellHeight - drawHeight) / 2;
         context.drawImage(photo, x, y, drawWidth, drawHeight);
+        if (borderEnabled) {
+          context.save();
+          context.strokeStyle = borderColor;
+          context.lineWidth = Math.max(1, borderWidthMm * 300 / 25.4);
+          context.strokeRect(x, y, drawWidth, drawHeight);
+          context.restore();
+        }
         if (signature) {
           const signatureWidth = drawWidth * 0.34;
           const signatureHeight = drawHeight * 0.13;
@@ -650,9 +662,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 ) : (
                   activeTool === 'print' ? (
                     <div className="flex min-h-full min-w-full items-center justify-center overflow-auto p-5">
-                      <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px'}}>
-                        <div className={sheetSize==='A4'?"grid grid-cols-3 content-start gap-3":"grid grid-cols-2 content-start gap-3"}>
-                          {Array.from({length:Math.min(photoCount,sheetSize==='A4'?12:4)},(_,index)=><div key={index} className="relative overflow-hidden border border-slate-300 bg-slate-100" style={{width:sheetSize==='A4'?'88px':'70px',margin:'0 auto',aspectRatio:photoSize==='2x2'||photoSize==='35x35'?'1 / 1':'7 / 9'}}>
+                      <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px',padding:Math.max(4,sheetMarginMm*2*sheetZoom/100)+'px'}}>
+                        <div className={sheetSize==='A4'?"grid grid-cols-3 content-start":"grid grid-cols-2 content-start"} style={{gap:Math.max(2,sheetGapMm*2*sheetZoom/100)+'px'}}>
+                          {Array.from({length:Math.min(photoCount,sheetSize==='A4'?12:4)},(_,index)=><div key={index} className="relative overflow-hidden bg-slate-100" style={{width:sheetSize==='A4'?'88px':'70px',margin:'0 auto',aspectRatio:photoSize==='2x2'||photoSize==='35x35'?'1 / 1':'7 / 9',border:borderEnabled?Math.max(1,borderWidthMm*2)+'px solid '+borderColor:'none'}}>
                             <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
                             {!mergedPhotoUrl && signatureUrl && signatureVisible && <img src={signatureProcessedUrl || signatureUrl} alt="" className="absolute bottom-[8%] right-[8%] h-[12%] w-[38%] object-contain"/>}
                           </div>)}
@@ -794,6 +806,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-[#D4DCE1]">PRINT SHEET SETUP</p>
                   <select value={sheetSize} onChange={event => setSheetSize(event.target.value as 'A4'|'4x6')} className="h-9 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-2 text-[10px] font-semibold text-white"><option value="A4">A4 Sheet</option><option value="4x6">4 × 6 inch Sheet</option></select>
                   <label className="mt-3 block text-[9px] font-bold text-[#D4DCE1]">NUMBER OF PHOTOS</label><input type="range" min="1" max={sheetSize==='A4'?12:4} value={Math.min(photoCount,sheetSize==='A4'?12:4)} onChange={event=>setPhotoCount(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/><p className="mt-1 text-[9px] text-emerald-200">{Math.min(photoCount,sheetSize==='A4'?12:4)} photos on this sheet</p>
+                  <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">SHEET MARGIN</label><span className="text-[9px] text-emerald-200">{sheetMarginMm} mm</span></div><input type="range" min="0" max="15" step="1" value={sheetMarginMm} onChange={event=>setSheetMarginMm(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
+                  <div className="mt-3 flex items-center justify-between"><label className="text-[9px] font-bold text-[#D4DCE1]">PHOTO GAP</label><span className="text-[9px] text-emerald-200">{sheetGapMm} mm</span></div><input type="range" min="0" max="10" step="1" value={sheetGapMm} onChange={event=>setSheetGapMm(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
+                  <button type="button" onClick={()=>setBorderEnabled(value=>!value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3]"><span>Photo border</span><span className="text-emerald-200">{borderEnabled?'ON':'OFF'}</span></button>
+                  {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER WIDTH · {borderWidthMm.toFixed(1)} mm</label><input type="range" min="0.1" max="1.5" step="0.1" value={borderWidthMm} onChange={event=>setBorderWidthMm(Number(event.target.value))} className="mt-1 w-full accent-emerald-400"/></>}
                   <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
                   <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
                   <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
