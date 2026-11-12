@@ -165,7 +165,6 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [exportModalOpen,setExportModalOpen]=useState(false);
   const [exportTarget,setExportTarget]=useState<'photo'|'sheet'>('photo');
   const [exportQuality,setExportQuality]=useState<'standard'|'high'|'very-high'|'ultra'>('high');
-  const [export20KbTarget,setExport20KbTarget]=useState(false);
   const [exportBusy,setExportBusy]=useState(false);
   const [backupStatus,setBackupStatus]=useState('Preparing local backup…');
   const backupTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -714,7 +713,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
   const EXPORT_DPI:Record<'standard'|'high'|'very-high'|'ultra',number>={standard:200,high:300,'very-high':360,ultra:450};
   const EXPORT_JPEG_QUALITY:Record<'standard'|'high'|'very-high'|'ultra',number>={standard:0.84,high:0.93,'very-high':0.97,ultra:0.99};
-  const openExportOptions=(target:'photo'|'sheet')=>{setExportTarget(target);setExportModalOpen(true);setExport20KbTarget(false);};
+  const openExportOptions=(target:'photo'|'sheet')=>{setExportTarget(target);setExportModalOpen(true);};
   const canvasToBlob=(canvas:HTMLCanvasElement,type:string,quality?:number)=>new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('The browser could not create this export file.')),type,quality));
   const loadExportImage=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not load a photo for export.'));image.src=src;});
   const createExportCanvas=async(target:'photo'|'sheet',dpi:number)=>{
