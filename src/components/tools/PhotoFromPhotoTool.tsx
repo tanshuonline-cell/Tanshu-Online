@@ -90,7 +90,8 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
   };
   const moveCorner=(event:React.PointerEvent<HTMLButtonElement>,index:number)=>{
     if(dragIndex!==index||!frameRef.current)return;
-    const bounds=frameRef.current.getBoundingClientRect();
+    const bounds=imageRef.current?.getBoundingClientRect();
+    if(!bounds)return;
     const x=Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100));
     const y=Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100));
     setCorners(current=>current.map((p,i)=>i===index?{x,y}:p));
@@ -106,7 +107,7 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
       const rc=rotated.getContext('2d');if(!rc)throw new Error('Could not rotate the source photo.');
       rc.translate(rotated.width/2,rotated.height/2);rc.rotate(rotation*Math.PI/180);rc.drawImage(image,-image.naturalWidth/2,-image.naturalHeight/2);
       const rotatedImage=new Image();rotatedImage.src=rotated.toDataURL('image/png');await new Promise<void>((resolve,reject)=>{rotatedImage.onload=()=>resolve();rotatedImage.onerror=()=>reject(new Error('Could not prepare the rotated image.'));});
-      const points=corners.map(p=>({x:p.x/100*rotated.width,y:p.y/100*rotated.height}));
+      const points=corners.map(p=>{let x=p.x,y=p.y;if(rotation===90){x=100-p.y;y=p.x;}else if(rotation===180){x=100-p.x;y=100-p.y;}else if(rotation===270){x=p.y;y=100-p.x;}return {x:x/100*rotated.width,y:y/100*rotated.height};});
       const outW=aspect==='2x2'?1200:aspect==='25x35'?1000:aspect==='35x35'?1200:1050;
       const outH=Math.round(outW/ratio);
       if(outW*outH>2200000)throw new Error('The output is too large. Please try again.');
