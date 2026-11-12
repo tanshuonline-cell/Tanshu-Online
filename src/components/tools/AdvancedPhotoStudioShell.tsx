@@ -523,7 +523,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const autoArrangeSheet = () => {
     if (!sheetSlots.length) return;
     const pageW=sheetDimensions.widthMm,pageH=sheetDimensions.heightMm,anchor=sheetSlots[0];
-    const cols=Math.max(1,Math.floor((pageW-sheetMargin*2+sheetGap)/(anchor.width+sheetGap)));
+    const cols=Math.max(1,Math.floor((pageW-sheetMargin*2+sheetGap)/(anchor.width+sheetGap))),rows=Math.max(1,Math.floor((pageH-sheetMargin*2+sheetGap)/(anchor.height+sheetGap)));
+    if(sheetSlots.length>cols*rows){window.alert('Current photo size and spacing do not fit all copies on this page. Reduce the photo size or gap, or choose a larger sheet.');return;}
     setSheetSlots(current=>current.map((slot,index)=>{
       const col=index%cols,row=Math.floor(index/cols);
       return {...slot,x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,sheetMargin+col*(anchor.width+sheetGap))),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,sheetMargin+row*(anchor.height+sheetGap)))};
