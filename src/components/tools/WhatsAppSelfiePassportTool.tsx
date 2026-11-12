@@ -122,6 +122,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300"><Layers3 size={16}/></span>
               <div><p className="text-xs font-bold text-white">Studio Workspace</p><p className="text-[10px] text-[#8F9BA5]">Upload · Edit · Preview · Print</p></div>
             </div>
+            <div className="flex flex-1 flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+              <span className="mr-1 text-[9px] font-extrabold uppercase tracking-wider text-[#82949B]">Choose Photo</span>
+              {([{id:'selfie',title:'Selfie Photo'},{id:'existing',title:'Existing Photo'},{id:'whatsapp',title:'WhatsApp Print'}] as const).map(mode => <button key={mode.id} type="button" onClick={() => setInputMode(mode.id)} aria-pressed={inputMode===mode.id} className={inputMode===mode.id?'rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-400/20 transition':'rounded-lg border border-[#3A444C] bg-[#1B2227] px-2.5 py-2 text-[10px] font-semibold text-[#AAB5BD] transition hover:bg-white/5 hover:text-white'}>{mode.title}</button>)}
+            </div>
             <div className="flex items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Studio ready</div>
           </div>
 
@@ -152,12 +156,6 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
               </div>
 
-              <div className="border-b border-[#303941] bg-[#182126] px-4 py-3">
-                <div className="mb-2 text-[9px] font-extrabold uppercase tracking-[.16em] text-[#82949B]">Choose photo workflow</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {([{id:'selfie',title:'Selfie Photo',desc:'Different camera angles'},{id:'existing',title:'Existing Photo',desc:'Old / low quality photo'},{id:'whatsapp',title:'WhatsApp Print',desc:'Tilted / skewed photo'}] as const).map(mode => <button key={mode.id} type="button" onClick={() => setInputMode(mode.id)} className={inputMode===mode.id?'rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-2 py-2 text-left ring-1 ring-emerald-400/20':'rounded-lg border border-[#3A444C] bg-[#1B2227] px-2 py-2 text-left hover:bg-white/5'}><span className="block text-[10px] font-bold text-white">{mode.title}</span><span className="mt-1 block text-[8px] leading-3 text-[#8F9BA5]">{mode.desc}</span></button>)}
-                </div>
-              </div>
               <div onWheel={(event) => { if (selectedFile) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-[calc(100vh-190px)] flex-1 items-center justify-center overflow-auto p-4 sm:min-h-[calc(100vh-190px)] sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
