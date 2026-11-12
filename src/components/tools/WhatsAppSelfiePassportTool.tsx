@@ -54,6 +54,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const photoPanRef = useRef<{startX:number;startY:number;offsetX:number;offsetY:number}|null>(null);
   const [isCropping,setIsCropping] = useState(false);
   const [cropRect,setCropRect] = useState({x:0,y:0,w:100,h:100});
+  const [cropHasSelection,setCropHasSelection] = useState(false);
   const [photoOffset,setPhotoOffset] = useState({x:0,y:0});
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setRotation(0);
     setFlipped(false);
     setCropRect({x:0,y:0,w:100,h:100});
+    setCropHasSelection(false);
     setPhotoOffset({x:0,y:0});
     setIsCropping(false);
     event.target.value = '';
@@ -95,7 +97,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
   const resetPreview = () => {
     setZoom(100); setRotation(0); setFlipped(false);
-    setCropRect({x:0,y:0,w:100,h:100}); setPhotoOffset({x:0,y:0}); setIsCropping(false);
+    setCropRect({x:0,y:0,w:100,h:100}); setCropHasSelection(false); setPhotoOffset({x:0,y:0}); setIsCropping(false);
   };
   const startPhotoPan=(event:React.PointerEvent<HTMLImageElement>)=>{
     if(isCropping||activeTool!=='crop')return;
@@ -111,7 +113,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     event.currentTarget.setPointerCapture(event.pointerId);
     const px=Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100));
     const py=Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100));
-    const valid=cropRect.w>2&&cropRect.h>2;
+    const valid=cropHasSelection&&cropRect.w>2&&cropRect.h>2;
     const inside=valid&&px>=cropRect.x&&px<=cropRect.x+cropRect.w&&py>=cropRect.y&&py<=cropRect.y+cropRect.h;
     let mode:'draw'|'move'|'resize'='draw';
     let cornerX=0,cornerY=0,anchorX=0,anchorY=0;
@@ -159,7 +161,13 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     const draw=cropDrawRef.current;
     if(draw){
       cropDrawRef.current=null;
-      if(draw.mode==='draw')setCropRect(r=>r.w<2||r.h<2?{x:0,y:0,w:100,h:100}:r);
+      if(draw.mode==='draw'){
+        setCropRect(r=>{
+          if(r.w<1||r.h<1)return {x:0,y:0,w:100,h:100};
+          setCropHasSelection(true);
+          return r;
+        });
+      }
     }
   };
 
