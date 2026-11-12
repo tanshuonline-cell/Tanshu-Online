@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { WhatsAppSelfiePassportTool } from './components/tools/WhatsAppSelfiePassportTool';
+import { InstantMultiCustomerPhotoMaker } from './components/tools/InstantMultiCustomerPhotoMaker';
 import { Header, TANSHU_PROFILE_PHOTO } from './components/Header';
 import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
@@ -408,6 +409,11 @@ export default function App() {
   // Dedicated WhatsApp Selfie to Passport Photo scaffold — isolated from existing studios.
   if (window.location.pathname === '/whatsapp-selfie-passport-photo') {
     return <WhatsAppSelfiePassportTool />;
+  }
+
+  // Dedicated Instant Multi Customer Photo Maker — isolated batch workspace.
+  if (window.location.pathname === '/instant-multi-customer-photo-maker') {
+    return <InstantMultiCustomerPhotoMaker />;
   }
 
   // ROUTE 1: ADMIN PANEL
