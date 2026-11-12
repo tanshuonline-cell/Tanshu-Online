@@ -318,11 +318,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
     return { widthMm, heightMm, widthPx: Math.round(widthMm * 300 / 25.4), heightPx: Math.round(heightMm * 300 / 25.4) };
   }, [preset, customWidthMm, customHeightMm]);
+  const layoutReferenceSlot = sheetSlots.find(slot => slot.id === selectedSlotId && photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature') || sheetSlots.find(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature') || null;
+  const layoutPhotoWidthMm = layoutReferenceSlot?.width || documentSize.widthMm;
+  const layoutPhotoHeightMm = layoutReferenceSlot?.height || documentSize.heightMm;
+  const AUTO_SHEET_MARGIN_MM = 3;
   const baseSheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
   const autoSheetDimensions = (() => {
     if (sheetMode === 'single') return baseSheetDimensions;
-    const normal = getBalancedSheetLayout(sheetCopies, documentSize.widthMm, documentSize.heightMm, baseSheetDimensions.widthMm, baseSheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
-    const rotated = getBalancedSheetLayout(sheetCopies, documentSize.widthMm, documentSize.heightMm, baseSheetDimensions.heightMm, baseSheetDimensions.widthMm, sheetMargin, sheetGap, sheetGapY);
+    const normal = getBalancedSheetLayout(sheetCopies, layoutPhotoWidthMm, layoutPhotoHeightMm, baseSheetDimensions.widthMm, baseSheetDimensions.heightMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
+    const rotated = getBalancedSheetLayout(sheetCopies, layoutPhotoWidthMm, layoutPhotoHeightMm, baseSheetDimensions.heightMm, baseSheetDimensions.widthMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
     const normalPlaced = Math.min(sheetCopies, normal.capacity);
     const rotatedPlaced = Math.min(sheetCopies, rotated.capacity);
     const useRotated = rotatedPlaced > normalPlaced || (rotatedPlaced === normalPlaced && rotated.columns > normal.columns);
@@ -349,13 +353,13 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     ? Math.max(120, Math.min(552, previewViewport.height - 120, (previewViewport.width - 48) / previewAspectRatio))
     : Math.min(552, 390 / previewAspectRatio);
   const previewPageWidth = previewPageHeight * previewAspectRatio;
-  const marginPx = sheetMode === 'single' ? 0 : Math.max(3, sheetMargin) * 300 / 25.4;
+  const marginPx = sheetMode === 'single' ? 0 : AUTO_SHEET_MARGIN_MM * 300 / 25.4;
   const gapPxX = sheetMode === 'single' ? 0 : sheetGap * 300 / 25.4;
   const gapPxY = sheetMode === 'single' ? 0 : sheetGapY * 300 / 25.4;
   const balancedCapacity = getBalancedSheetLayout(
-    60, documentSize.widthMm, documentSize.heightMm,
+    60, layoutPhotoWidthMm, layoutPhotoHeightMm,
     sheetDimensions.widthMm, sheetDimensions.heightMm,
-    sheetMode === 'single' ? 0 : sheetMargin, sheetGap, sheetGapY
+    sheetMode === 'single' ? 0 : AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY
   ).capacity;
   const sheetCapacity = sheetMode === 'single' ? 1 : balancedCapacity;
   const anchoredCapacity = Math.max(1, sheetCapacity);
@@ -363,11 +367,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const reflowSheetSlots = (gapX:number,gapY:number) => setSheetSlots(current=>{
     const movable=current.filter(slot=>photos.find(photo=>photo.id===slot.photoId)?.kind!=='signature');
     if(!movable.length)return current;
-    const layout=getBalancedSheetLayout(movable.length,documentSize.widthMm,documentSize.heightMm,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,gapX,gapY);
+    const layout=getBalancedSheetLayout(movable.length,layoutPhotoWidthMm,layoutPhotoHeightMm,sheetDimensions.widthMm,sheetDimensions.heightMm,AUTO_SHEET_MARGIN_MM,gapX,gapY);
     const positions=new Map(movable.map((slot,index)=>[slot.id,layout.positions[index]]));
     return current.map(slot=>{
       const position=positions.get(slot.id);
-      return position?{...slot,...position,width:documentSize.widthMm,height:documentSize.heightMm}:slot;
+      return position?{...slot,...position,width:layoutPhotoWidthMm,height:layoutPhotoHeightMm}:slot;
     });
   });
   useEffect(() => { if (sheetMode !== 'single' && sheetCopies > sheetCapacity) setSheetCopies(sheetCapacity); }, [sheetMode, sheetCapacity, sheetCopies]);
@@ -586,19 +590,19 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           id: 'slot-' + Date.now() + '-' + index + '-' + Math.random().toString(36).slice(2),
           photoId: printablePhotos[index % printablePhotos.length].id,
           x: 0, y: 0,
-          width: documentSize.widthMm, height: documentSize.heightMm,
+          width: layoutPhotoWidthMm, height: layoutPhotoHeightMm,
           cropZoom: 100, positionX: 50, positionY: 50
         });
       }
-      const layout = getBalancedSheetLayout(count, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
+      const layout = getBalancedSheetLayout(count, layoutPhotoWidthMm, layoutPhotoHeightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
       return result.map((slot, index) => ({
         ...slot,
         ...(layout.positions[index] || {}),
-        width: documentSize.widthMm,
-        height: documentSize.heightMm
+        width: layoutPhotoWidthMm,
+        height: layoutPhotoHeightMm
       }));
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY, quickPrintLayout]);
+  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, layoutPhotoWidthMm, layoutPhotoHeightMm, selectedSlotId, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetGap, sheetGapY, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
@@ -629,15 +633,16 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const pageH = sheetDimensions.heightMm;
     const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
     const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
-    let x = sheetMargin, y = sheetMargin, rowHeight = 0;
+    const margin = AUTO_SHEET_MARGIN_MM;
+    let x = margin, y = margin, rowHeight = 0;
     const positions = new Map<string,{x:number;y:number}>();
     photoSlots.forEach(slot => {
-      if (x > sheetMargin && x + slot.width > pageW - sheetMargin) {
-        x = sheetMargin;
+      if (x > margin && x + slot.width > pageW - margin) {
+        x = margin;
         y += rowHeight + sheetGapY;
         rowHeight = 0;
       }
-      positions.set(slot.id, {x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,x)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,y))});
+      positions.set(slot.id, {x:Math.max(margin,Math.min(pageW-margin-slot.width,x)),y:Math.max(margin,Math.min(pageH-margin-slot.height,y))});
       x += slot.width + sheetGap;
       rowHeight = Math.max(rowHeight,slot.height);
     });
@@ -648,12 +653,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (!sheetSlots.length || sheetMode === 'single') return;
     const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
     const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
-    const layout = getBalancedSheetLayout(photoSlots.length, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
+    const anchor = photoSlots.find(slot => slot.id === selectedSlotId) || photoSlots[0];
+    const referenceWidth = anchor?.width || layoutPhotoWidthMm;
+    const referenceHeight = anchor?.height || layoutPhotoHeightMm;
+    const layout = getBalancedSheetLayout(photoSlots.length, referenceWidth, referenceHeight, sheetDimensions.widthMm, sheetDimensions.heightMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
     const positions = new Map(photoSlots.map((slot, index) => [slot.id, layout.positions[index]]));
     setSheetSlots(current => current.map(slot => {
       if (signatureSlots.has(slot.id)) return slot;
       const position = positions.get(slot.id);
-      return position ? { ...slot, ...position, width: documentSize.widthMm, height: documentSize.heightMm } : slot;
+      return position ? { ...slot, ...position, width: referenceWidth, height: referenceHeight } : slot;
     }));
   };
 
@@ -1318,10 +1326,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="border-b studio-line p-3">
                 <div className="mb-2 text-[10px] font-semibold tracking-[.12em] studio-muted">SHEET SPACING & COPIES</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="text-[9px] studio-muted">Margin ({sizeUnit}) · printer safe<input aria-label="Sheet margin, minimum 3 millimetres" type="number" min={Number(mmToUnit(3,sizeUnit).toFixed(2))} max={Number(mmToUnit(50,sizeUnit).toFixed(2))} step="0.5" value={Number(mmToUnit(sheetMargin,sizeUnit).toFixed(2))} onChange={event=>setSheetMargin(Math.max(3,Math.min(50,unitToMm(Number(event.target.value)||0,sizeUnit))))} onWheel={event=>{event.preventDefault();setSheetMargin(value=>Math.max(3,Math.min(50,Number((value+(event.deltaY<0?0.5:-0.5)).toFixed(1)))));}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Horizontal Photo Gap (mm)<input aria-label="Horizontal photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGap.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGap(next);reflowSheetSlots(next,sheetGapY);}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGap+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGap(next);reflowSheetSlots(next,sheetGapY);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Vertical Photo Gap (mm)<input aria-label="Vertical photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGapY.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGapY+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Sheet Margin · fixed 3 mm<input aria-label="Fixed equal 3 millimetre sheet margin" type="text" value="3 mm" readOnly disabled className="studio-control mt-1 h-8 w-full px-2 text-[10px] opacity-80"/></label>
+                  <label className="text-[9px] studio-muted">Horizontal Photo Gap (mm)<input aria-label="Horizontal photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGap.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGap(next);reflowSheetSlots(next,sheetGapY);}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGap+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGap(next);reflowSheetSlots(next,sheetGapY);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Vertical Photo Gap (mm)<input aria-label="Vertical photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGapY.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGapY+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                 </div>
                 <button type="button" onClick={autoArrangeSheet} disabled={!sheetSlots.length} className="mt-2 w-full rounded-md border border-[#46515c] bg-[#252B31] py-2 text-[10px] font-semibold text-[#E2E8F0] transition hover:bg-[#303840] disabled:cursor-not-allowed disabled:opacity-40">Arrange Photos Using Gaps</button>
                 <button type="button" onClick={centerBalanceSheet} disabled={!sheetSlots.length || sheetMode === 'single'} title="Keep every photo at the exact selected size, arrange rows to save paper, and center the complete layout with equal safe margins." className="mt-2 w-full rounded-md border border-[#9B754D] bg-[#34291F] py-2 text-[10px] font-semibold text-[#F2D5AD] transition hover:bg-[#433426] disabled:cursor-not-allowed disabled:opacity-40">Smart Center & Balance</button>
