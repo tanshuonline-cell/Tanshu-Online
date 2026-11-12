@@ -487,7 +487,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       throw new Error('The detected face is too small for reliable passport framing.');
     }
 
-    const aspectRatio = cropAspectRatio ?? 35 / 45;
+    const aspectRatio = photoWidthMm / photoHeightMm;
     const cropHeight = faceHeight / 0.66;
     const cropWidth = cropHeight * aspectRatio;
     const centerX = (minX + maxX) / 2;
