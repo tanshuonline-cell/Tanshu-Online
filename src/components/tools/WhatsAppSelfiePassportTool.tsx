@@ -597,13 +597,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                         const prompt = "You are a professional passport and visa photo preparation assistant. Edit the photograph I upload into one clean, realistic, professional passport-style photograph suitable for document-photo review. Preserve the same person's identity, facial structure, natural features, skin tone and age. Never replace the face or beautify it into a different person. Correct genuine camera tilt, eye-line tilt and perspective only when clearly supported by the image. Center the head and shoulders, use a plain pure-white background, natural even lighting, realistic color and clear detail. Improve an old, dim or mildly blurry image conservatively without inventing details. Keep the full face visible and proportions natural. Do not add text, logos, borders, watermarks or decorative effects. If the face is strongly turned sideways, partly hidden, blurred beyond recovery, or unsuitable for reliable correction, do not fabricate a frontal face or hidden features; explain that a new front-facing photo is needed. Return one edited image for review. Important: this is a passport-style preparation, not a guarantee of compliance with every country's official photo rules.";
                         const chatUrl = 'https://chatgpt.com/?q=' + encodeURIComponent(prompt);
                         const chatTab = window.open(chatUrl, '_blank', 'noopener,noreferrer');
-                        if (navigator.clipboard?.writeText) {
-                          void navigator.clipboard.writeText(prompt).then(() => setFaceMessage('ChatGPT opened with the prepared instruction. Attach your photo there and press Send.')).catch(() => setFaceMessage('ChatGPT opened with the prepared instruction. Attach your photo there and press Send.'));
-                        } else {
-                          setFaceMessage('ChatGPT opened in a new tab. Upload your photo there and ask it to prepare a passport-style photo while preserving identity.');
-                        }
-                        if (!chatTab) setFaceMessage('Allow pop-ups for this site, then open chatgpt.com. Attach your photo and press Send.');
-                      }} className="mt-3 w-full rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2.5 text-[10px] font-extrabold text-sky-100">Copy instructions & open ChatGPT</button>
+                        setFaceMessage(chatTab
+                          ? 'ChatGPT opened with the prepared instruction. Attach the customer photo there and press Send.'
+                          : 'Allow pop-ups for this site, then open chatgpt.com and attach the customer photo.');
+                      }} className="mt-3 w-full rounded-lg border border-sky-300/30 bg-sky-300/10 px-3 py-2.5 text-[10px] font-extrabold text-sky-100">Open ChatGPT with ready prompt</button>
                     </div>
                     <div className="mt-3 rounded-lg border border-white/10 bg-black/15 p-2.5">
                       <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-200">{faceStatus==='loading'?'PROCESSING':faceStatus==='aligned'?'FACE DETECTED & STRAIGHTENED':faceStatus==='no-face'?'FACE NOT DETECTED':faceStatus==='multiple'?'MULTIPLE FACES':faceStatus==='error'?'MODEL UNAVAILABLE':'READY'}</p>
