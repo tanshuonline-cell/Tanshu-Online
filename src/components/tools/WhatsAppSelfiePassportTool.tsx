@@ -81,8 +81,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <Camera size={21} />
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-[.22em] text-[#B9C3CC]">TANSHU ONLINE</p>
-              <h1 className="text-sm font-extrabold tracking-wide text-white sm:text-base">WHATSAPP SELFIE PHOTO STUDIO</h1>
+              
+              <h1 className="text-sm font-extrabold tracking-wide text-white sm:text-base">TANSHU ONLINE · WHATSAPP SELFIE PHOTO STUDIO</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -97,38 +97,18 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1680px] px-3 py-4 sm:px-5 sm:py-6">
-        <section className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#1B2927] via-[#1B2526] to-[#20262B] shadow-2xl shadow-black/20">
-          <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-            <div className="max-w-3xl">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[.16em] text-emerald-200">
-                <Sparkles size={12} /> Dedicated premium studio
-              </div>
-              <h2 className="text-xl font-black uppercase leading-tight tracking-tight text-white sm:text-2xl lg:text-3xl">WhatsApp Selfie to Passport Photo</h2>
-              <p className="mt-2 max-w-2xl text-xs leading-5 text-[#B7C3C7] sm:text-sm">A guided workspace for turning customer selfies into clean, properly framed passport-style photographs.</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:min-w-[330px]">
-              {[['01','Upload'],['02','Adjust'],['03','Print']].map(([number,label]) => (
-                <div key={number} className="rounded-xl border border-white/10 bg-black/15 px-3 py-3 text-center">
-                  <p className="text-lg font-black text-emerald-300">{number}</p>
-                  <p className="mt-0.5 text-[10px] font-semibold text-[#D2DADF]">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-2xl border border-[#343D44] bg-[#1A2025] shadow-2xl shadow-black/30">
+      <div className="mx-auto h-[calc(100vh-68px)] max-w-[1920px] overflow-hidden px-2 py-2 sm:px-3">
+        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#343D44] bg-[#1A2025] shadow-2xl shadow-black/30">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#343D44] bg-[#20272D] px-4 py-3 sm:px-5">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300"><Layers3 size={16}/></span>
               <div><p className="text-xs font-bold text-white">Studio Workspace</p><p className="text-[10px] text-[#8F9BA5]">Upload · Edit · Preview · Print</p></div>
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Step 1 of 5</div>
+            <div className="flex items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Studio ready</div>
           </div>
 
-          <div className="grid min-h-[690px] lg:grid-cols-[82px_minmax(0,1fr)_320px]">
-            <nav aria-label="Studio tools" className="flex flex-row gap-1 overflow-x-auto border-b border-[#343D44] bg-[#171D22] p-2 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:p-3">
+          <div className="grid min-h-0 flex-1 grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_310px]">
+            <nav aria-label="Studio tools" className="flex min-h-0 flex-col gap-1 overflow-y-auto overflow-x-hidden border-r border-[#343D44] bg-[#171D22] p-2 lg:p-3">
               {TOOL_ITEMS.map((tool) => {
                 const Icon = tool.icon;
                 const active = activeTool === tool.id;
@@ -143,7 +123,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <div className="hidden rounded-xl border border-white/5 bg-white/[.03] p-2 text-center lg:block"><ShieldCheck size={17} className="mx-auto text-emerald-400"/><p className="mt-1 text-[8px] font-semibold text-[#87939D]">LOCAL</p></div>
             </nav>
 
-            <section className="flex min-w-0 flex-col bg-[#12171B]">
+            <section className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-[#12171B] overscroll-contain">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#303941] px-4 py-3">
                 <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8C9AA4]">Live photo canvas</p><p className="mt-0.5 text-xs font-semibold text-[#E3E8EC]">{selectedFile ? selectedFile.name : 'Your photo preview will appear here'}</p></div>
                 <div className="flex items-center gap-1.5">
@@ -154,7 +134,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
               </div>
 
-              <div className="relative flex min-h-[440px] flex-1 items-center justify-center overflow-hidden p-5 sm:min-h-[540px] sm:p-8" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
+              <div onWheel={(event) => { if (selectedFile) { event.preventDefault(); setZoom(value => Math.max(50, Math.min(250, value + (event.deltaY < 0 ? 5 : -5)))); } }} className="relative flex min-h-[calc(100vh-190px)] flex-1 items-center justify-center overflow-hidden p-4 sm:min-h-[calc(100vh-190px)] sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
@@ -185,7 +165,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               </div>
             </section>
 
-            <aside className="border-t border-[#343D44] bg-[#1B2126] lg:border-l lg:border-t-0">
+            <aside className="hidden min-h-0 overflow-y-auto border-l border-[#343D44] bg-[#1B2126] overscroll-contain lg:block">
               <div className="border-b border-[#343D44] px-4 py-4">
                 <p className="text-[10px] font-bold uppercase tracking-[.17em] text-emerald-300">Tool settings</p>
                 <h3 className="mt-1 text-base font-extrabold text-white">{toolDescriptions[activeTool].title}</h3>
@@ -254,27 +234,6 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#343D44] bg-[#1A2025] p-4 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div><p className="text-[10px] font-bold uppercase tracking-[.17em] text-emerald-300">Studio workflow</p><h3 className="mt-1 text-sm font-extrabold text-white">Your photo preparation journey</h3></div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-semibold text-[#A8B3BB]">5 guided stages</span>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            {WORKFLOW_STEPS.map((step,index) => {
-              const Icon = step.icon;
-              const active = index === 0;
-              return <div key={step.label} className={active ? 'flex items-center gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/[.07] p-3' : 'flex items-center gap-3 rounded-xl border border-[#343D44] bg-[#20272D] p-3'}>
-                <span className={active ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#303940] text-[#8B98A1]'}><Icon size={17}/></span>
-                <div className="min-w-0"><p className={active ? 'text-[10px] font-extrabold text-emerald-300' : 'text-[10px] font-extrabold text-[#C4CDD3]'}>{step.label}</p><p className="mt-0.5 text-[9px] text-[#84919A]">{active ? 'Ready to start' : 'Coming in next stage'}</p></div>
-              </div>;
-            })}
-          </div>
-        </section>
-
-        <footer className="flex flex-wrap items-center justify-between gap-2 px-2 py-4 text-[9px] text-[#6F7C85]">
-          <span>TANSHU ONLINE · WHATSAPP SELFIE PHOTO STUDIO</span>
-          <span className="inline-flex items-center gap-1.5"><Maximize2 size={11}/> Designed for desktop studio workflow · Responsive on mobile</span>
-        </footer>
       </div>
     </main>
   );
