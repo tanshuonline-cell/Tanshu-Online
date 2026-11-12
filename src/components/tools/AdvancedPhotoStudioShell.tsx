@@ -18,6 +18,7 @@ type StudioPhoto = { id: string; file: File; url: string; width: number; height:
 type StudioPreset = 'india' | 'pan' | 'stamp' | 'passport-35x35' | 'square-51' | 'oci-51' | 'pcc-35x35' | 'frro-35x35' | 'dl-35x45' | 'voter-35x45' | 'exam-35x45' | 'custom';
 type StudioUnit = 'mm' | 'cm' | 'in';
 type SheetMode = 'single' | '3.5x5' | '4x6' | '5x7' | '6x8' | '8x10' | 'a6' | 'a5' | 'a4' | 'a3' | 'letter' | 'legal' | 'custom';
+type SheetOrientation = 'portrait'|'landscape';
 const SHEET_PRESETS: Record<Exclude<SheetMode, 'single' | 'custom'>, { label: string; widthMm: number; heightMm: number }> = {
   '3.5x5': { label: '3.5 × 5 Sheet', widthMm: 88.9, heightMm: 127 }, '4x6': { label: '4 × 6 Sheet', widthMm: 101.6, heightMm: 152.4 },
   '5x7': { label: '5 × 7 Sheet', widthMm: 127, heightMm: 177.8 }, '6x8': { label: '6 × 8 Sheet', widthMm: 152.4, heightMm: 203.2 },
@@ -27,7 +28,7 @@ const SHEET_PRESETS: Record<Exclude<SheetMode, 'single' | 'custom'>, { label: st
   legal: { label: 'Legal Sheet', widthMm: 215.9, heightMm: 355.6 }
 };
 type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number; locked?: boolean; mergeSources?: SheetSlot[] };
-type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: SheetMode; customSheetWidthMm: number; customSheetHeightMm: number; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
+type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: SheetMode; sheetOrientation: SheetOrientation; customSheetWidthMm: number; customSheetHeightMm: number; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetVerticalGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
 const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; widthMm: number; heightMm: number }> = {
   india: { label: 'India Passport / General form', widthMm: 35, heightMm: 45 },
   pan: { label: 'PAN card print', widthMm: 25, heightMm: 35 },
@@ -42,38 +43,38 @@ const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; w
   'exam-35x45': { label: 'Exam form · common print', widthMm: 35, heightMm: 45 }
 };
 const mmToUnit = (value: number, unit: StudioUnit) => value / (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
-const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number, margin: number, gap: number, others: SheetSlot[]) => {
-  const stepX = source.width + gap, stepY = source.height + gap;
+const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number, margin: number, gapX: number, gapY: number, others: SheetSlot[]) => {
+  const stepX = source.width + gapX, stepY = source.height + gapY;
   const candidates = [
     { x: source.x + stepX, y: source.y },
     { x: source.x, y: source.y + stepY },
     { x: source.x - stepX, y: source.y },
     { x: source.x, y: source.y - stepY },
   ];
-  const valid = (p: {x:number;y:number}) => p.x >= 0 && p.y >= 0 && p.x + source.width <= pageW && p.y + source.height <= pageH && !others.some(o => overlapsWithCutGap({...source,...p}, o, gap));
+  const valid = (p: {x:number;y:number}) => p.x >= 0 && p.y >= 0 && p.x + source.width <= pageW && p.y + source.height <= pageH && !others.some(o => overlapsWithCutGap({...source,...p}, o, gapX, gapY));
   const found = candidates.find(valid);
-  return found || getSmartSheetPosition(source.x + stepX, source.y, source, others, pageW, pageH, margin, gap);
+  return found || getSmartSheetPosition(source.x + stepX, source.y, source, others, pageW, pageH, margin, gapX, gapY);
 };
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 
-const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gap: number) =>
-  a.x < b.x + b.width + gap - 0.01 && a.x + a.width + gap > b.x + 0.01 &&
-  a.y < b.y + b.height + gap - 0.01 && a.y + a.height + gap > b.y + 0.01;
+const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gapX: number, gapY: number) =>
+  a.x < b.x + b.width + gapX - 0.01 && a.x + a.width + gapX > b.x + 0.01 &&
+  a.y < b.y + b.height + gapY - 0.01 && a.y + a.height + gapY > b.y + 0.01;
 
-const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gap: number) => {
+const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gapX: number, gapY: number) => {
   const maxX = Math.max(margin, pageW - margin - moving.width), maxY = Math.max(margin, pageH - margin - moving.height);
   const clamp = (value: number, max: number) => Math.max(margin, Math.min(max, value));
   const target = { ...moving, x: clamp(x, maxX), y: clamp(y, maxY) };
-  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gap));
+  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gapX, gapY));
   const xEdges = [margin, maxX], yEdges = [margin, maxY];
-  others.forEach(other => { xEdges.push(other.x - moving.width - gap, other.x + other.width + gap); yEdges.push(other.y - moving.height - gap, other.y + other.height + gap); });
+  others.forEach(other => { xEdges.push(other.x - moving.width - gapX, other.x + other.width + gapX); yEdges.push(other.y - moving.height - gapY, other.y + other.height + gapY); });
   const candidates: SheetSlot[] = [], seen = new Set<string>();
   const add = (cx: number, cy: number) => { const candidate = { ...moving, x: clamp(cx, maxX), y: clamp(cy, maxY) }; const key = candidate.x.toFixed(2)+':'+candidate.y.toFixed(2); if (!seen.has(key) && !collides(candidate)) { seen.add(key); candidates.push(candidate); } };
   xEdges.forEach(cx => yEdges.forEach(cy => add(cx, cy)));
-  const stepX = moving.width + gap, stepY = moving.height + gap;
+  const stepX = moving.width + gapX, stepY = moving.height + gapY;
   for (let row=0; row*stepY+margin<=maxY+0.01; row++) for (let col=0; col*stepX+margin<=maxX+0.01; col++) add(margin+col*stepX,margin+row*stepY);
   const nearest = candidates.sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
-  if (!nearest) return { x: target.x, y: target.y };
+  if (!nearest) return { x: moving.x, y: moving.y };
   const distance = Math.hypot(nearest.x-target.x,nearest.y-target.y);
   return collides(target)||distance<=4 ? {x:nearest.x,y:nearest.y} : {x:target.x,y:target.y};
 };
@@ -202,11 +203,13 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     ).slice(0, 8);
   }, [studioSearchQuery]);
   const [sheetMode, setSheetMode] = useState<SheetMode>('single');
+  const [sheetOrientation, setSheetOrientation] = useState<SheetOrientation>('portrait');
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
   const [sheetCopies, setSheetCopies] = useState(8);
   const [sheetMargin, setSheetMargin] = useState(5);
   const [sheetGap, setSheetGap] = useState(2);
+  const [sheetVerticalGap, setSheetVerticalGap] = useState(3);
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
   const [quickPrintLayout, setQuickPrintLayout] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -272,7 +275,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
     return { widthMm, heightMm, widthPx: Math.round(widthMm * 300 / 25.4), heightPx: Math.round(heightMm * 300 / 25.4) };
   }, [preset, customWidthMm, customHeightMm]);
-  const sheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
+  const baseSheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
+  const sheetDimensions = sheetMode === 'single' || (sheetOrientation === 'portrait' ? baseSheetDimensions.heightMm >= baseSheetDimensions.widthMm : baseSheetDimensions.widthMm >= baseSheetDimensions.heightMm) ? baseSheetDimensions : { ...baseSheetDimensions, widthMm: baseSheetDimensions.heightMm, heightMm: baseSheetDimensions.widthMm };
   const sheetWidthPx = Math.round(sheetDimensions.widthMm * 300 / 25.4);
   const sheetHeightPx = Math.round(sheetDimensions.heightMm * 300 / 25.4);
   const previewAspectRatio = sheetDimensions.widthMm / sheetDimensions.heightMm;
@@ -282,14 +286,19 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const previewPageWidth = previewPageHeight * previewAspectRatio;
   const marginPx = sheetMode === 'single' ? 0 : sheetMargin * 300 / 25.4;
   const gapPx = sheetMode === 'single' ? 0 : sheetGap * 300 / 25.4;
-  const sheetCols = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetWidthPx - marginPx * 2 + gapPx) / (documentSize.widthPx + gapPx)));
-  const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + gapPx) / (documentSize.heightPx + gapPx)));
+  const verticalGapPx = sheetMode === 'single' ? 0 : sheetVerticalGap * 300 / 25.4;
+  const layoutPhotoWidthMm = sheetSlots[0]?.width ?? documentSize.widthMm;
+  const layoutPhotoHeightMm = sheetSlots[0]?.height ?? documentSize.heightMm;
+  const layoutPhotoWidthPx = Math.round(layoutPhotoWidthMm * 300 / 25.4);
+  const layoutPhotoHeightPx = Math.round(layoutPhotoHeightMm * 300 / 25.4);
+  const sheetCols = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetWidthPx - marginPx * 2 + gapPx) / (layoutPhotoWidthPx + gapPx)));
+  const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + verticalGapPx) / (layoutPhotoHeightPx + verticalGapPx)));
   const sheetCapacity = sheetCols * sheetRows;
   const sheetAnchor = sheetSlots[0];
   const anchorX = sheetAnchor?.x ?? sheetMargin;
   const anchorY = sheetAnchor?.y ?? sheetMargin;
-  const anchoredCols = Math.max(1, Math.floor((sheetDimensions.widthMm - anchorX + sheetGap) / (documentSize.widthMm + sheetGap)));
-  const anchoredRows = Math.max(1, Math.floor((sheetDimensions.heightMm - anchorY + sheetGap) / (documentSize.heightMm + sheetGap)));
+  const anchoredCols = Math.max(1, Math.floor((sheetDimensions.widthMm - anchorX + sheetGap) / (layoutPhotoWidthMm + sheetGap)));
+  const anchoredRows = Math.max(1, Math.floor((sheetDimensions.heightMm - anchorY + sheetVerticalGap) / (layoutPhotoHeightMm + sheetVerticalGap)));
   const anchoredCapacity = Math.min(sheetCapacity, anchoredCols * anchoredRows);
   const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, anchoredCapacity);
   useEffect(() => { if (sheetMode !== 'single' && sheetCopies > anchoredCapacity) setSheetCopies(anchoredCapacity); }, [sheetMode, anchoredCapacity, sheetCopies]);
@@ -304,17 +313,26 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const element = previewStageRef.current;
-    if (!element) return;
+    if (studioMode !== 'auto') return;
     const handlePreviewWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return;
-      event.preventDefault();
+      const paper = previewStageRef.current?.querySelector<HTMLElement>('[data-auto-photo-maker-paper]');
+      if (!paper || event.deltaY === 0) return;
+      const rect = paper.getBoundingClientRect();
+      const pointerIsOverPaper =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      // Only the A4/photo sheet zooms. Outside the paper, normal page scrolling remains available.
+      if (!pointerIsOverPaper) return;
+      if (event.cancelable) event.preventDefault();
       const zoomStep = (current: number) => current < 200 ? 10 : current < 500 ? 25 : 50;
       setZoom(current => Math.max(10, Math.min(1600, current + (event.deltaY < 0 ? zoomStep(current) : -zoomStep(current)))));
     };
-    element.addEventListener('wheel', handlePreviewWheel, { passive: false });
-    return () => element.removeEventListener('wheel', handlePreviewWheel);
-  }, []);
+    // Capture phase ensures nested photo elements cannot swallow the sheet zoom gesture.
+    document.addEventListener('wheel', handlePreviewWheel, { passive: false, capture: true });
+    return () => document.removeEventListener('wheel', handlePreviewWheel, true);
+  }, [studioMode]);
 
   const uploadRef = useRef<HTMLInputElement>(null);
   const restoreFullscreenAfterUploadRef = useRef(false);
@@ -379,9 +397,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     finally { detector?.close?.(); }
   };
 
-  const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
-  const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setCustomSheetWidthMm(v.customSheetWidthMm ?? 102);setCustomSheetHeightMm(v.customSheetHeightMm ?? 152);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
-  const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>p.id),zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,customSheetWidthMm:v.customSheetWidthMm,customSheetHeightMm:v.customSheetHeightMm,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
+  const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, sheetOrientation, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
+  const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setSheetOrientation(v.sheetOrientation ?? 'portrait');setCustomSheetWidthMm(v.customSheetWidthMm ?? 102);setCustomSheetHeightMm(v.customSheetHeightMm ?? 152);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetVerticalGap(v.sheetVerticalGap ?? 3);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
+  const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>p.id),zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,sheetOrientation:v.sheetOrientation,customSheetWidthMm:v.customSheetWidthMm,customSheetHeightMm:v.customSheetHeightMm,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetVerticalGap:v.sheetVerticalGap,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
   const undo = () => { const v=undoStackRef.current.pop();if(!v)return;redoStackRef.current.push(captureSnapshot());applyingHistoryRef.current=true;applySnapshot(v);setCanUndo(undoStackRef.current.length>0);setCanRedo(true); };
   const redo = () => { const v=redoStackRef.current.pop();if(!v)return;undoStackRef.current.push(captureSnapshot());applyingHistoryRef.current=true;applySnapshot(v);setCanUndo(true);setCanRedo(redoStackRef.current.length>0); };
 
@@ -418,6 +436,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           setSheetCopies(saved.sheetCopies || 8);
           setSheetMargin(saved.sheetMargin ?? 5);
           setSheetGap(saved.sheetGap ?? 2);
+          setSheetVerticalGap(saved.sheetVerticalGap ?? 3);
           setSheetSlots(Array.isArray(saved.sheetSlots) ? saved.sheetSlots : []);
           setSignaturePlacement(saved.signaturePlacement || null);
           setBorderEnabled(saved.borderEnabled ?? false);
@@ -442,7 +461,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(STUDIO_STORE, 'readwrite');
-          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
           tx.onabort = () => reject(tx.error);
@@ -452,9 +471,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       } catch { setSaveState('error'); }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor]);
+  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor]);
 
-  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
+  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetVerticalGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => { if(!menuOpen)return;const close=(event:PointerEvent)=>{if(event.target instanceof Node&&!menuAreaRef.current?.contains(event.target))setMenuOpen(null);};document.addEventListener('pointerdown',close,true);return()=>document.removeEventListener('pointerdown',close,true); }, [menuOpen]);
   useEffect(() => {
@@ -485,10 +504,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const result = current.filter(slot => printablePhotos.some(photo => photo.id === slot.photoId)).slice(0, count).map(slot => ({...slot, photoId: printablePhotos.some(p => p.id === slot.photoId) ? slot.photoId : printablePhotos[0].id}));
       const pageW = sheetDimensions.widthMm;
       
-      while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:printablePhotos[i%printablePhotos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
+      while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:printablePhotos[i%printablePhotos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetVerticalGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
       return result;
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, quickPrintLayout]);
+  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, sheetVerticalGap, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
@@ -515,20 +534,16 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const autoArrangeSheet = () => {
     if (!sheetSlots.length) return;
-    const topY = Math.min(...sheetSlots.map(slot => slot.y));
-    const topRow = sheetSlots.filter(slot => Math.abs(slot.y - topY) <= Math.max(1, documentSize.heightMm * 0.35)).sort((a,b) => a.x - b.x);
-    const rowYs = [...new Set(sheetSlots.map(slot => Math.round(slot.y * 10) / 10))].sort((a,b) => a-b);
-    const measuredSteps = rowYs.slice(1).map((value,index) => value - rowYs[index]).filter(value => value >= documentSize.heightMm);
-    const rowStep = measuredSteps.length ? measuredSteps[0] : documentSize.heightMm + sheetGap;
-    const anchors = topRow.length ? topRow : [sheetSlots[0]];
-    const pageW = sheetDimensions.widthMm;
-    const pageH = sheetDimensions.heightMm;
-    setSheetSlots(current => current.map((slot,index) => {
-      const anchor = anchors[index % anchors.length];
-      const row = Math.floor(index / anchors.length);
-      return { ...slot, x: Math.max(sheetMargin, Math.min(pageW - sheetMargin - slot.width, anchor.x)), y: Math.max(sheetMargin, Math.min(pageH - sheetMargin - slot.height, topY + row * rowStep)) };
+    const pageW=sheetDimensions.widthMm,pageH=sheetDimensions.heightMm,anchor=sheetSlots[0];
+    const cols=Math.max(1,Math.floor((pageW-sheetMargin*2+sheetGap)/(anchor.width+sheetGap))),rows=Math.max(1,Math.floor((pageH-sheetMargin*2+sheetVerticalGap)/(anchor.height+sheetVerticalGap)));
+    if(sheetSlots.length>cols*rows){window.alert('Current photo size and spacing do not fit all copies on this page. Reduce the photo size or gap, or choose a larger sheet.');return;}
+    setSheetSlots(current=>current.map((slot,index)=>{
+      const col=index%cols,row=Math.floor(index/cols);
+      return {...slot,x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,sheetMargin+col*(anchor.width+sheetGap))),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,sheetMargin+row*(anchor.height+sheetVerticalGap)))};
     }));
   };
+
+  const smartCenterAndBalanceSheet = () => { if(!sheetSlots.length)return; const pageW=sheetDimensions.widthMm,pageH=sheetDimensions.heightMm; const minX=Math.min(...sheetSlots.map(slot=>slot.x)),minY=Math.min(...sheetSlots.map(slot=>slot.y)),maxX=Math.max(...sheetSlots.map(slot=>slot.x+slot.width)),maxY=Math.max(...sheetSlots.map(slot=>slot.y+slot.height)); const dx=(pageW-sheetMargin*2-(maxX-minX))/2-minX,dy=(pageH-sheetMargin*2-(maxY-minY))/2-minY; setSheetSlots(current=>current.map(slot=>({...slot,x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-slot.width,slot.x+dx)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-slot.height,slot.y+dy))}))); };
 
   const mergeSheetPhotos = async (mergeAll = false) => {
     const chosenIds = mergeAll ? sheetSlots.map(slot => slot.id) : selectedSlotIds;
@@ -579,7 +594,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const pageW=sheetDimensions.widthMm, pageH=sheetDimensions.heightMm;
     const additions:SheetSlot[]=[];
     for (const item of row.slice(0,room)) {
-      const position=getSmartSheetPosition(item.x,item.y+item.height+sheetGap,item,[...sheetSlots,...additions],pageW,pageH,sheetMargin,sheetGap);
+      const position=getSmartSheetPosition(item.x,item.y+item.height+sheetVerticalGap,item,[...sheetSlots,...additions],pageW,pageH,sheetMargin,sheetGap,sheetVerticalGap);
       additions.push({...item,id:'slot-row-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2),...position,locked:false});
     }
     if (!additions.length) return;
@@ -603,7 +618,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (!source || sheetSlots.length >= anchoredCapacity || sheetSlots.length >= 60) return;
     const pageW = sheetDimensions.widthMm;
     const pageH = sheetDimensions.heightMm;
-    const position = getPatternCopyPosition(source, pageW, pageH, sheetMargin, sheetGap, sheetSlots.filter(slot => slot.id !== source.id));
+    const position = getPatternCopyPosition(source, pageW, pageH, sheetMargin, sheetGap, sheetVerticalGap, sheetSlots.filter(slot => slot.id !== source.id));
     const copy = { ...source, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
     setSheetSlots(current => [...current, copy]);
     setSheetCopies(current => Math.min(60, sheetCapacity, current + 1));
@@ -728,7 +743,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     }
 
     const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + `-${sheetMode}-print`;
-    if (format === 'pdf') { const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[sheetDimensions.widthMm, sheetDimensions.heightMm] as any}); doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,sheetDimensions.widthMm,sheetDimensions.heightMm); doc.save(baseName+'.pdf'); return; }
+    if (format === 'pdf') { const doc = new jsPDF({orientation:sheetDimensions.widthMm>=sheetDimensions.heightMm?'landscape':'portrait', unit:'mm', format:[sheetDimensions.widthMm, sheetDimensions.heightMm] as any}); doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,sheetDimensions.widthMm,sheetDimensions.heightMm); doc.save(baseName+'.pdf'); return; }
     const mime = format === 'png' ? 'image/png' : 'image/jpeg'; const blob = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Sheet export failed.')),mime,0.96)); const url=URL.createObjectURL(blob), anchor=document.createElement('a'); anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click(); window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 
@@ -953,8 +968,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
         </header>
 
-        <nav ref={menuAreaRef} className="flex h-[48px] shrink-0 items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3">
-          <div className="relative flex items-center gap-1 text-[12px]">
+        <nav ref={menuAreaRef} className="flex min-h-[48px] h-auto shrink-0 flex-wrap items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3 py-1">
+          <div className="relative flex shrink-0 flex-wrap items-center gap-1 text-[12px]">
+            {studioMode !== 'manual' && <>
             {['File','Edit','Image','Canvas','Arrange','Merge','Select All','View','Help'].map(item=><div key={item} className="relative">
               {item==='Select All' ? <label className={'flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 studio-muted hover:text-white '+(sheetMode==='single'||!sheetSlots.length?'cursor-not-allowed opacity-40':'')}><input type="checkbox" checked={selectAllMode} disabled={sheetMode==='single'||!sheetSlots.length} onChange={event=>{const enabled=event.target.checked;setSelectAllMode(enabled);if(enabled){setSelectedSlotIds(sheetSlots.map(slot=>slot.id));setSelectedSlotId(sheetSlots[0]?.id??null);if(sheetSlots[0])setSelectedId(photos.find(photo=>photo.id===sheetSlots[0].photoId)?.id||selectedId);}else setSelectedSlotIds([]);}} className="h-3 w-3 accent-[#D0D7DE]"/><span>Select All</span></label> : <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>}
               {menuOpen===item && item!=='Select All' && <div className="absolute left-0 top-10 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
@@ -988,7 +1004,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 {item==='Edit' && studioMode !== 'manual' && <div className="mt-2 space-y-2 border-t border-[#3A4148] p-2"><div className="text-[9px] font-semibold tracking-[.12em] text-[#9AA4AE]">QUICK SETTINGS</div><label className="block text-[9px] text-[#AAB2BA]">Paper sheet<select aria-label="Edit menu paper sheet" value={sheetMode} onChange={event=>{setSheetMode(event.target.value as SheetMode);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option><option value="custom">Custom Paper Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Photo size<select aria-label="Edit menu photo size" value={preset} onChange={event=>{if(event.target.value==='india'&&!isStudioMember){showUpgradePrompt();return;}setPreset(event.target.value as StudioPreset);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="india">Passport / General · 35 × 45 mm</option><option value="pan">PAN · 25 × 35 mm</option><option value="voter-35x45">Voter ID · 35 × 45 mm</option><option value="dl-35x45">Driving Licence · 35 × 45 mm</option><option value="exam-35x45">Exam form · 35 × 45 mm</option><option value="stamp">Stamp · 25 × 30 mm</option><option value="square-51">Visa · 2 × 2 inch</option><option value="oci-51">OCI · 51 × 51 mm</option><option value="passport-35x35">Consular square · 35 × 35 mm</option><option value="pcc-35x35">PCC / Birth · 35 × 35 mm</option><option value="frro-35x35">FRRO · 35 × 35 mm</option><option value="custom">Custom Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Number of photos<select aria-label="Edit menu number of photos" value={sheetCopies} onChange={event=>{setSheetCopies(Math.min(anchoredCapacity,Number(event.target.value)));setQuickPrintLayout(false);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]">{Array.from({length:60},(_,index)=>index+1).map(count=><option key={count} value={count} disabled={count>1&&(sheetMode==='single'||count>anchoredCapacity)}>{count} {count===1?'Photo':'Photos'}</option>)}</select></label><p className="text-[8px] leading-4 text-[#87919B]">Custom dimensions appear beside the matching controls in the top toolbar.</p></div>}
               </div>}
             </div>)}
-            <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>
+            </>}
+            {studioMode !== 'manual' && <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>}
             <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <WandSparkles size={12}/> <span>Auto Photo Maker</span>
             </button>
@@ -1009,7 +1026,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <Move size={12}/> <span>Manual Photo Studio</span>
             </button>
           </div>
-          <div className="flex items-center gap-1.5">
+          {studioMode !== 'manual' && <div className="flex shrink-0 flex-wrap items-center gap-1.5">
             <label className="studio-control flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[10px]" title="Lock or unlock selected sheet photos"><input type="checkbox" checked={!!selectedSlotId && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).length>0 && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).every(slot=>slot.locked)} disabled={!selectedSlotId} onChange={toggleSelectedSlotsLock} className="accent-[#D0D7DE]"/> Lock Selected</label>
             <button type="button" title="Duplicate selected photo" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedSlot} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Duplicate</button>
             <button type="button" title="Copy selected row" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Copy Row</button>
@@ -1029,7 +1046,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               </div>}
             </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
-          </div>
+          </div>}
         </nav>
 
         {studioMode === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => setStudioMode('auto')} /> : (
@@ -1090,7 +1107,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                     {Array.from({length:60},(_,index)=>index+1).map(count => <option key={count} value={count} disabled={count > 1 && (sheetMode === 'single' || count > anchoredCapacity)}>{count} {count === 1 ? 'Photo' : 'Photos'}</option>)}
                   </select>
                 </label>
-                <button type="button" onClick={()=>{const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const source=selected||photos[0];if(!source)return;const id="slot-"+Date.now();if(source.kind==='signature'){const target=sheetSlots.find(slot=>photos.find(item=>item.id===slot.photoId)?.kind!=='signature')||sheetSlots[0];const width=Math.min(40,target?.width?target.width*.8:40);const ratio=source.width>0&&source.height>0?source.height/source.width:.25;const height=Math.max(3,Math.min(24,width*ratio));const x=target?target.x+(target.width-width)/2:sheetMargin;const y=target?target.y+target.height-height-2:sheetMargin;const slot={id,photoId:source.id,x:Math.max(0,Math.min(pageW-width,x)),y:Math.max(0,Math.min(pageH-height,y)),width,height,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}else{const anchor=sheetSlots[0]||{id:"anchor",photoId:source.id,x:sheetMargin,y:sheetMargin,width:documentSize.widthMm,height:documentSize.heightMm};const position=getPatternCopyPosition(anchor,pageW,pageH,sheetMargin,sheetGap,sheetSlots);const slot={id,photoId:source.id,...position,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}setSheetCopies(current=>Math.min(anchoredCapacity,current+1));}} disabled={!selected||sheetMode==="single"||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-35"><Plus size={12}/> Add Photo</button>
+                <button type="button" onClick={()=>{const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const source=selected||photos[0];if(!source)return;const id="slot-"+Date.now();if(source.kind==='signature'){const target=sheetSlots.find(slot=>photos.find(item=>item.id===slot.photoId)?.kind!=='signature')||sheetSlots[0];const width=Math.min(40,target?.width?target.width*.8:40);const ratio=source.width>0&&source.height>0?source.height/source.width:.25;const height=Math.max(3,Math.min(24,width*ratio));const x=target?target.x+(target.width-width)/2:sheetMargin;const y=target?target.y+target.height-height-2:sheetMargin;const slot={id,photoId:source.id,x:Math.max(0,Math.min(pageW-width,x)),y:Math.max(0,Math.min(pageH-height,y)),width,height,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}else{const anchor=sheetSlots[0]||{id:"anchor",photoId:source.id,x:sheetMargin,y:sheetMargin,width:documentSize.widthMm,height:documentSize.heightMm};const position=getPatternCopyPosition(anchor,pageW,pageH,sheetMargin,sheetGap,sheetVerticalGap,sheetSlots);const slot={id,photoId:source.id,...position,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}setSheetCopies(current=>Math.min(anchoredCapacity,current+1));}} disabled={!selected||sheetMode==="single"||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-35"><Plus size={12}/> Add Photo</button>
                 </>}
               </div>
             </div>
@@ -1107,8 +1124,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               {selected && sheetMode !== 'single' ? (
                 <div className="mx-auto flex w-max flex-col items-center gap-3">
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetDimensions.label.toUpperCase()} · {visibleCopies} / {sheetCopies} COPIES · {anchoredCapacity} MAX FIT</div>
-                  <div tabIndex={0} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}} onDrop={event=>handleSignatureDrop(event,sheetDimensions.widthMm,sheetDimensions.heightMm)} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
-                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);if(!isStudioMember){lockedSlotMoveStartRef.current={id:slot.id,x:event.clientX,y:event.clientY};return;}if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,sheetGap,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{if(lockedSlotMoveStartRef.current?.id===slot.id){if(Math.hypot(event.clientX-lockedSlotMoveStartRef.current.x,event.clientY-lockedSlotMoveStartRef.current.y)>4){lockedSlotMoveStartRef.current=null;showUpgradePrompt();}return;}const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>sheetMargin-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-sheetMargin-item.width));const minDy=Math.max(...groupBounds.map(item=>sheetMargin-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-sheetMargin-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=current[0]?.id===moving.id?0:sheetMargin;const targetX=Math.max(0,Math.min(pageW-moving.width,slotDrag.sx+dx));const targetY=Math.max(0,Math.min(pageH-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{lockedSlotMoveStartRef.current=null;setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:[borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'',isChosen?'0 0 0 1px rgba(201,149,85,.55), 0 5px 16px rgba(0,0,0,.22)':''].filter(Boolean).join(', ')||'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
+                  <div tabIndex={0} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}} onDrop={event=>handleSignatureDrop(event,sheetDimensions.widthMm,sheetDimensions.heightMm)} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." data-photo-sheet className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
+                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onWheel={event=>{if(!isChosen||slot.locked||!isStudioMember)return;event.preventDefault();event.stopPropagation();const requested=event.deltaY<0?1.03:0.97;setSheetSlots(current=>{const editable=current.filter(item=>!item.locked);if(!editable.length)return current;const minScale=Math.max(...editable.map(item=>Math.max(15/item.width,15/item.height))),maxScale=Math.min(...editable.map(item=>Math.min((pageW-sheetMargin*2)/item.width,(pageH-sheetMargin*2)/item.height)));const scale=Math.max(minScale,Math.min(maxScale,requested));return current.map(item=>{if(item.locked)return item;const width=item.width*scale,height=item.height*scale,cx=item.x+item.width/2,cy=item.y+item.height/2;return {...item,width,height,x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-width,cx-width/2)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-height,cy-height/2))};});});}} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);if(!isStudioMember){lockedSlotMoveStartRef.current={id:slot.id,x:event.clientX,y:event.clientY};return;}if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,sheetGap,sheetVerticalGap,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{if(lockedSlotMoveStartRef.current?.id===slot.id){if(Math.hypot(event.clientX-lockedSlotMoveStartRef.current.x,event.clientY-lockedSlotMoveStartRef.current.y)>4){lockedSlotMoveStartRef.current=null;showUpgradePrompt();}return;}const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const requestedScale=1+factor;setSheetSlots(current=>{const editable=current.filter(item=>!item.locked);if(!editable.length)return current;const minScale=Math.max(...editable.map(item=>Math.max(15/item.width,15/item.height))),maxScale=Math.min(...editable.map(item=>Math.min((pageW-sheetMargin*2)/item.width,(pageH-sheetMargin*2)/item.height)));const scale=Math.max(minScale,Math.min(maxScale,requestedScale));return current.map(item=>{if(item.locked)return item;const width=item.width*scale,height=item.height*scale;const cx=item.id===slotResize.id?(slotResize.corner.endsWith('w')?slotResize.x+slotResize.width:slotResize.x):item.x+item.width/2;const cy=item.id===slotResize.id?(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height:slotResize.y):item.y+item.height/2;const x=item.id===slotResize.id&&slotResize.corner.endsWith('w')?cx-width:cx-width/2;const y=item.id===slotResize.id&&slotResize.corner.startsWith('n')?cy-height:cy-height/2;return {...item,width,height,x:Math.max(sheetMargin,Math.min(pageW-sheetMargin-width,x)),y:Math.max(sheetMargin,Math.min(pageH-sheetMargin-height,y))};});});return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>sheetMargin-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-sheetMargin-item.width));const minDy=Math.max(...groupBounds.map(item=>sheetMargin-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-sheetMargin-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=current[0]?.id===moving.id?0:sheetMargin;const targetX=Math.max(0,Math.min(pageW-moving.width,slotDrag.sx+dx));const targetY=Math.max(0,Math.min(pageH-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap,sheetVerticalGap);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{lockedSlotMoveStartRef.current=null;setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:[borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'',isChosen?'0 0 0 1px rgba(201,149,85,.55), 0 5px 16px rgba(0,0,0,.22)':''].filter(Boolean).join(', ')||'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
                       <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className={'pointer-events-none h-full w-full '+(photo.kind==='signature'?'object-contain':'object-cover')} style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:photo.kind==='signature'?'none':'scale('+((slot.cropZoom ?? 100)/100)+')'}}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] overflow-hidden select-none">{!isStudioMember && isAdminAuthChecked && <><span className="absolute left-0.5 top-0.5 max-w-[48%] -translate-x-[2%] -translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span><span className="absolute bottom-0.5 right-0.5 max-w-[48%] translate-x-[2%] translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span></>}</div>{photo.kind!=='signature'&&renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm,selectedSlotId===slot.id,()=>setSelectedSlotId(slot.id))}<div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/pageW*previewPageWidth)}px solid ${borderColor}`:'none'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={selectAllMode?'Delete all photos from sheet':'Delete photo '+(i+1)+' from sheet'} title={selectAllMode?'Delete all photos from sheet':'Delete this photo'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();const ids=selectAllMode?sheetSlots.map(item=>item.id):[slot.id];const removedCount=sheetSlots.filter(item=>ids.includes(item.id)).length;setSheetSlots(current=>current.filter(item=>!ids.includes(item.id)));if(removedCount)setSheetCopies(count=>Math.max(0,count-removedCount));setSelectedSlotIds([]);setSelectedSlotId(null);setSelectAllMode(false);}} style={{transform:`scale(${100/zoom})`,transformOrigin:'top right'}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
                       {(isChosen)&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();if(!isStudioMember){showUpgradePrompt();return;}const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`studio-photo-resize-handle absolute z-30 h-4 w-4 rounded-sm border-0 bg-transparent shadow-none focus:outline-none focus-visible:outline-none ${corner==='nw'?'left-[-6px] top-[-6px]':corner==='ne'?'right-[-6px] top-[-6px]':corner==='sw'?'bottom-[-6px] left-[-6px]':'bottom-[-6px] right-[-6px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
@@ -1118,7 +1135,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 </div>
               ) : selected ? (
                 <div
-                  className="mx-auto relative overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl cursor-grab active:cursor-grabbing"
+                  data-photo-sheet className="mx-auto relative overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl cursor-grab active:cursor-grabbing"
                   style={{ zoom: zoom / 100, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: previewPageWidth, height: previewPageHeight, flexShrink: 0, touchAction: "none" }}
                   onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}}
                   onDrop={event=>handleSignatureDrop(event,documentSize.widthMm,documentSize.heightMm)}
@@ -1181,15 +1198,19 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 text-[10px] font-semibold tracking-[.12em] studio-muted">SHEET SPACING & COPIES</div>
+                <div className="mb-2 flex items-center justify-between text-[9px] studio-muted"><span>Canvas Orientation</span><div className="flex gap-1"><button type="button" aria-pressed={sheetOrientation==='portrait'} onClick={()=>setSheetOrientation('portrait')} disabled={sheetMode==='single'} className={'rounded px-2 py-1 '+(sheetOrientation==='portrait'?'bg-[#3A4148] text-white':'studio-control')+(sheetMode==='single'?' opacity-40':'')}>Portrait</button><button type="button" aria-pressed={sheetOrientation==='landscape'} onClick={()=>setSheetOrientation('landscape')} disabled={sheetMode==='single'} className={'rounded px-2 py-1 '+(sheetOrientation==='landscape'?'bg-[#3A4148] text-white':'studio-control')+(sheetMode==='single'?' opacity-40':'')}>Landscape</button></div></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="text-[9px] studio-muted">Margin ({sizeUnit})<input aria-label="Sheet margin" type="number" min="0" max="50" step="0.5" value={Number(mmToUnit(sheetMargin,sizeUnit).toFixed(2))} onChange={event=>setSheetMargin(Math.max(0,Math.min(50,unitToMm(Number(event.target.value)||0,sizeUnit))))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Photo Gap (mm)<input aria-label="Photo gap in millimetres" type="number" min="0" max="30" step="1" value={Number(sheetGap.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGap(next);setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+next)/(documentSize.widthMm+next)));return current.map((slot,index)=>index===0?slot:{...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+next),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+next)});});}} onWheel={event=>{event.preventDefault();setSheetGap(value=>{const next=Math.max(0,Math.min(30,Number((value+(event.deltaY<0?1:-1)).toFixed(1))));setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+next)/(documentSize.widthMm+next)));return current.map((slot,index)=>index===0?slot:{...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+next),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+next)});});return next;});}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted col-span-2">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Margin (mm) · printer safe<input aria-label="Printer safe margin in millimetres" type="number" min="0" max="50" step="0.5" value={Number(sheetMargin.toFixed(1))} onChange={event=>setSheetMargin(Math.max(0,Math.min(50,Number(event.target.value)||0)))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Horizontal Photo Gap (mm)<input aria-label="Horizontal Photo Gap (mm)" type="number" min="0" max="30" step="0.5" value={Number(sheetGap.toFixed(1))} onChange={event=>setSheetGap(Math.max(0,Math.min(30,Number(event.target.value)||0)))} onWheel={event=>{event.preventDefault();setSheetGap(v=>Math.max(0,Math.min(30,Number((v+(event.deltaY<0?0.5:-0.5)).toFixed(1)))));}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Vertical Photo Gap (mm)<input aria-label="Vertical Photo Gap (mm)" type="number" min="0" max="30" step="0.5" value={Number(sheetVerticalGap.toFixed(1))} onChange={event=>setSheetVerticalGap(Math.max(0,Math.min(30,Number(event.target.value)||0)))} onWheel={event=>{event.preventDefault();setSheetVerticalGap(v=>Math.max(0,Math.min(30,Number((v+(event.deltaY<0?0.5:-0.5)).toFixed(1)))));}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <button type="button" onClick={autoArrangeSheet} disabled={sheetMode==='single'||!sheetSlots.length} className="studio-control col-span-2 py-2 text-[10px] disabled:opacity-40">Arrange Photos Using Gaps</button>
+                  <button type="button" onClick={smartCenterAndBalanceSheet} disabled={sheetMode==='single'||!sheetSlots.length} className="studio-control col-span-2 py-2 text-[10px] disabled:opacity-40">Smart Center &amp; Balance</button>
                 </div>
-              </div>
+                </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">PHOTO BORDER</span><label className="flex items-center gap-1.5 text-[9px] studio-muted"><input type="checkbox" checked={borderEnabled} onChange={event=>setBorderEnabled(event.target.checked)} className="accent-[#D0D7DE]"/> Enable</label></div>
-                <label className="block text-[9px] studio-muted">Thickness · {borderWidthMm.toFixed(1)} mm<input type="range" min="0.1" max="10" step="0.1" value={borderWidthMm} onChange={event=>setBorderWidthMm(Number(event.target.value))} className="mt-1 w-full accent-[#D0D7DE]"/><div className="flex justify-between text-[8px]"><span>0.1 mm · Thin</span><span>10 mm · Thick</span></div></label>
+                <label className="block text-[9px] studio-muted">Thickness · {borderWidthMm.toFixed(1)} mm<input type="range" min="0.1" max="10" step="0.1" value={borderWidthMm} onChange={event=>setBorderWidthMm(Number(event.target.value))} onWheel={event=>{event.preventDefault();setBorderWidthMm(value=>Math.max(0.1,Math.min(10,Number((value+(event.deltaY<0?0.1:-0.1)).toFixed(1)))));}} className="mt-1 w-full accent-[#D0D7DE]"/><div className="flex justify-between text-[8px]"><span>0.1 mm · Thin</span><span>10 mm · Thick</span></div></label>
                 <div className="mt-2 grid grid-cols-2 gap-2"><label className="text-[9px] studio-muted">Border colour<select value={['#000000','#0000FF','#FF0000'].includes(borderColor)?borderColor:'custom'} onChange={event=>{if(event.target.value!=='custom')setBorderColor(event.target.value);else setBorderColor(customBorderColor);}} className="studio-control mt-1 h-8 w-full px-2"><option value="#000000">Black</option><option value="#0000FF">Blue</option><option value="#FF0000">Red</option><option value="custom">Custom</option></select></label><label className="text-[9px] studio-muted">Custom colour<input type="color" value={customBorderColor} onChange={event=>{setCustomBorderColor(event.target.value);setBorderColor(event.target.value);}} className="studio-control mt-1 h-8 w-full p-1"/></label></div>
                 <div className="mt-2 flex items-center justify-between border-t studio-line pt-2 text-[10px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
                 <div className="flex items-center justify-between border-t studio-line py-2 text-[10px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
