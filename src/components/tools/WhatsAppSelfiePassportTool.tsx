@@ -190,7 +190,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[9px] font-bold tracking-wide text-white">PREVIEW ONLY</span>
                     </div>
                   </div>
-                  )}
+                  )
                 )}
               </div>
 
