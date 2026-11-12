@@ -100,7 +100,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
   const handleSignatureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) { setSignatureFile(file); setSignatureProcessedUrl(''); setMergedPhotoUrl(''); setSignaturePosition({x:66,y:84}); setSignatureScale(1); setSignatureRotation(0); }
+    if (file && file.type.startsWith('image/')) { setSignatureFile(file); setSignatureProcessedUrl(''); setMergedPhotoUrl(''); setSignaturePosition({x:66,y:84}); setSignatureScale(1); setSignatureRotation(0); setSignatureVisible(true); }
     event.target.value = '';
   };
 
@@ -243,10 +243,22 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         const moduleUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/+esm';
         const visionTasks = await import(/* @vite-ignore */ moduleUrl);
         const vision = await visionTasks.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm');
-        segmenterRef.current = await visionTasks.ImageSegmenter.createFromOptions(vision, {
-          baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite', delegate: 'GPU' },
-          runningMode: 'IMAGE', outputCategoryMask: false, outputConfidenceMasks: true,
-        });
+        const segmenterOptions = {
+          runningMode: 'IMAGE' as const,
+          outputCategoryMask: false,
+          outputConfidenceMasks: true,
+        };
+        try {
+          segmenterRef.current = await visionTasks.ImageSegmenter.createFromOptions(vision, {
+            ...segmenterOptions,
+            baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite', delegate: 'GPU' },
+          });
+        } catch {
+          segmenterRef.current = await visionTasks.ImageSegmenter.createFromOptions(vision, {
+            ...segmenterOptions,
+            baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite', delegate: 'CPU' },
+          });
+        }
       }
       setBackgroundStatus('Removing background…');
       const image = await loadStudioImage(sourceUrl);
@@ -752,9 +764,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     <p className="mt-3 text-[8px] leading-4 text-[#83919A]">First use downloads the model and WASM files. Processing runs locally; no API key, account, payment or photo upload is used. Strong side-angle selfies cannot be turned into a true front-facing face by this tool.</p>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-3">
-                    <div className="flex items-center gap-2 text-amber-200"><Sparkles size={15}/><span className="text-[10px] font-extrabold uppercase tracking-wide">Next development stage</span></div>
-                    <p className="mt-2 text-[10px] leading-5 text-[#B5BFC5]">This tool is visible in the studio layout. Its full editing controls will be connected after the core crop and preview workflow is completed.</p>
+                  <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-3">
+                    <div className="flex items-center gap-2 text-emerald-200"><Sparkles size={15}/><span className="text-[10px] font-extrabold uppercase tracking-wide">Print layout workspace</span></div>
+                    <p className="mt-2 text-[10px] leading-5 text-[#C1CDD2]">Choose A4 or 4 × 6, set the number of copies, zoom the paper with the mouse wheel, then export the sheet. Print at 100% / Actual Size.</p>
                   </div>
                 )}
 
