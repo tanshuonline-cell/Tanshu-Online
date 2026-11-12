@@ -83,7 +83,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const photoWidthMm = photoSize === '2x2' ? 50.8 : 35;
   const photoHeightMm = photoSize === '35x45' ? 45 : photoSize === '2x2' ? 50.8 : 35;
   const paperDimensions: Record<string,{width:number;height:number;label:string}> = {
-    single:{width:photoWidthMm,height:photoHeightMm,label:'Single Photo'},
+    single:{width:photoWidthMm+horizontalMarginMm*2,height:photoHeightMm+verticalMarginMm*2,label:'Single Photo'},
     '3.5x5':{width:88.9,height:127,label:'3.5 × 5'},
     '4x6':{width:101.6,height:152.4,label:'4 × 6'},
     '5x7':{width:127,height:177.8,label:'5 × 7'},
