@@ -499,7 +499,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:printablePhotos[i%printablePhotos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetVerticalGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
       return result;
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, quickPrintLayout]);
+  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, sheetVerticalGap, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
