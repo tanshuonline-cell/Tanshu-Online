@@ -294,7 +294,7 @@ export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> 
     const base=selectedPhoto||current[0];
     if(!base){window.alert('पहले एक फोटो जोड़ें, फिर Count Photo सेट करें।');return;}
     if(current.some(layer=>layer.locked)){window.alert('Count Photo से ऑटो-अरेंज करने से पहले फोटो की Lock हटाएँ।');return;}
-    const gapX=page.horizontalPhotoGap??page.photoGap??2,gapY=page.verticalPhotoGap??page.photoGap??2,margin=Math.max(0,page.margin??3);
+    const gapX=page.horizontalPhotoGap??page.photoGap??2,gapY=page.verticalPhotoGap??page.photoGap??3,margin=Math.max(0,page.margin??3);
     const maxW=Math.max(base.w,...current.map(layer=>layer.w)),maxH=Math.max(base.h,...current.map(layer=>layer.h));
     const columns=Math.max(1,Math.floor((page.width-margin*2+gapX)/(maxW+gapX)));
     const rows=Math.max(1,Math.floor((page.height-margin*2+gapY)/(maxH+gapY)));
