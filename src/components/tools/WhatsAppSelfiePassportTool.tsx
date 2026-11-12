@@ -27,7 +27,7 @@ const TOOL_ITEMS: { id: StudioTool; label: string; short: string; icon: typeof C
 
 const toolDescriptions: Record<StudioTool, { title: string; description: string }> = {
   crop: { title: 'Crop & Position', description: 'Set the photo frame and position the customer’s face accurately.' },
-  face: { title: 'Face Alignment', description: 'The face guide will help keep the head straight and correctly placed.' },
+  face: { title: 'Free AI Face Alignment', description: 'Detect one face on this device, measure eye-line tilt and gently straighten the original photo.' },
   straighten: { title: 'Straighten & Rotate', description: 'Correct a tilted selfie before preparing the passport photo.' },
   background: { title: 'Background Studio', description: 'Prepare a clean, even background for the final photo.' },
   print: { title: 'Photo Size & Print', description: 'Choose a standard photo size and prepare print sheets.' },
@@ -58,6 +58,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [cropHasSelection,setCropHasSelection] = useState(false);
   const [photoOffset,setPhotoOffset] = useState({x:0,y:0});
   const [photoScale,setPhotoScale] = useState(1);
+  const [faceStatus,setFaceStatus] = useState<'idle'|'loading'|'aligned'|'no-face'|'multiple'|'error'>('idle');
+  const [faceMessage,setFaceMessage] = useState('Choose a photo, then run face alignment. Processing stays in this browser.');
+  const [detectedTilt,setDetectedTilt] = useState<number | null>(null);
+  const faceLandmarkerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -68,6 +72,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
+
+  useEffect(() => {
+    return () => { faceLandmarkerRef.current?.close?.(); faceLandmarkerRef.current = null; };
+  }, []);
 
   useEffect(() => {
     if (!signatureFile) { setSignatureUrl(''); return; }
@@ -95,6 +103,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setPhotoOffset({x:0,y:0});
     setPhotoScale(1);
     setIsCropping(false);
+    setFaceStatus('idle');
+    setFaceMessage('Photo changed. Run face alignment again.');
+    setDetectedTilt(null);
     event.target.value = '';
   };
 
@@ -191,6 +202,87 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }
   };
 
+  const runFreeFaceAlignment = async () => {
+    if (!previewUrl || faceStatus === 'loading') return;
+    setFaceStatus('loading');
+    setFaceMessage('Loading the free face model on this device. The first load may take a little longer.');
+    try {
+      if (!faceLandmarkerRef.current) {
+        const visionTasks = await import('@mediapipe/tasks-vision');
+        const vision = await visionTasks.FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm'
+        );
+        const options = {
+          runningMode: 'IMAGE' as const,
+          numFaces: 2,
+          minFaceDetectionConfidence: 0.55,
+          minFacePresenceConfidence: 0.55,
+          minTrackingConfidence: 0.55,
+          outputFaceBlendshapes: false,
+        };
+        try {
+          faceLandmarkerRef.current = await visionTasks.FaceLandmarker.createFromOptions(vision, {
+            ...options,
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+              delegate: 'GPU',
+            },
+          });
+        } catch {
+          faceLandmarkerRef.current = await visionTasks.FaceLandmarker.createFromOptions(vision, {
+            ...options,
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+              delegate: 'CPU',
+            },
+          });
+        }
+      }
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = previewUrl;
+      await image.decode();
+      const result = faceLandmarkerRef.current.detect(image);
+      const faces = result?.faceLandmarks ?? [];
+      if (faces.length === 0) {
+        setFaceStatus('no-face');
+        setFaceMessage('No clear face was detected. Try a front-facing, well-lit photo with the full face visible. Your original photo is unchanged.');
+        setDetectedTilt(null);
+        return;
+      }
+      if (faces.length > 1) {
+        setFaceStatus('multiple');
+        setFaceMessage('More than one face was detected. Please use a photo with only one person for passport framing.');
+        setDetectedTilt(null);
+        return;
+      }
+      const landmarks = faces[0];
+      const leftEye = landmarks[33];
+      const rightEye = landmarks[263];
+      if (!leftEye || !rightEye || !Number.isFinite(leftEye.x) || !Number.isFinite(rightEye.x)) {
+        throw new Error('Face landmarks were incomplete.');
+      }
+      const eyeLineTilt = Math.atan2(
+        (rightEye.y - leftEye.y) * image.naturalHeight,
+        (rightEye.x - leftEye.x) * image.naturalWidth
+      ) * (180 / Math.PI);
+      if (!Number.isFinite(eyeLineTilt)) throw new Error('Could not measure eye-line angle.');
+      setDetectedTilt(eyeLineTilt);
+      const correction = Math.max(-15, Math.min(15, -eyeLineTilt));
+      setRotation(current => current + correction);
+      setFaceStatus('aligned');
+      setFaceMessage(Math.abs(eyeLineTilt) > 15
+        ? 'Face detected. A gentle 15° correction was applied; check the result and fine-tune manually if needed. Strong head angles cannot be reconstructed safely.'
+        : 'One face detected. Eye-line tilt was measured and a gentle straightening correction was applied. Please review before using.');
+      setActiveTool('face');
+      setIsCropping(false);
+    } catch (error) {
+      console.error('Free face alignment failed:', error);
+      setFaceStatus('error');
+      setFaceMessage('Face alignment could not start. Check your internet connection for the first model download, then try again. The original photo remains unchanged.');
+    }
+  };
+
   const removeSelectedPhoto = () => {
     setSelectedFile(null);
     resetPreview();
@@ -265,6 +357,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <span className="w-10 text-center text-[10px] font-bold tabular-nums text-[#C8D1D9]">{zoom}%</span>
                   <button type="button" onClick={() => setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
                   {selectedFile&&activeTool==='crop'&&<button type="button" onClick={()=>setIsCropping(v=>!v)} className={isCropping?'ml-1 rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-2 text-[10px] font-bold text-emerald-200':'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] hover:bg-white/5'}>{isCropping?'Done':'Crop'}</button>}
+                  {selectedFile&&activeTool==='face'&&<button type="button" onClick={runFreeFaceAlignment} disabled={faceStatus==='loading'} className="ml-1 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-[10px] font-bold text-emerald-200 disabled:opacity-50">{faceStatus==='loading'?'Loading model…':'Detect & Straighten'}</button>}
                   <button type="button" onClick={() => setShowGuides(value => !value)} disabled={!selectedFile} className={showGuides ? 'ml-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 disabled:opacity-30' : 'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] disabled:opacity-30'}>Guides</button>
                 </div>
               </div>
@@ -356,6 +449,18 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <div className="mt-2 flex justify-between text-[9px] text-[#829099]"><span>50%</span><span>100%</span><span>180%</span></div>
                     <button type="button" onClick={() => setShowGuides(value => !value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[10px] font-semibold text-[#C3CDD3]"><span>Composition guides</span><span className={showGuides ? 'text-emerald-300' : 'text-[#7E8A93]'}>{showGuides ? 'ON' : 'OFF'}</span></button>
                     <button type="button" onClick={()=>setPhotoOffset({x:0,y:0})} className="mt-2 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[10px] font-semibold text-[#C3CDD3] hover:bg-white/5">Center photo position</button>
+                  </div>
+                ) : activeTool === 'face' ? (
+                  <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-3">
+                    <div className="mb-2 flex items-center gap-2 text-emerald-200"><ScanFace size={15}/><span className="text-[10px] font-extrabold uppercase tracking-wide">Free on-device face check</span></div>
+                    <p className="text-[10px] leading-5 text-[#C1CDD2]">Detects one face and measures the eye-line angle. It can gently straighten a tilted photo without changing facial features.</p>
+                    <button type="button" onClick={runFreeFaceAlignment} disabled={!selectedFile || faceStatus==='loading'} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">{faceStatus==='loading'?'Loading free model…':'Run free face alignment'}</button>
+                    <div className="mt-3 rounded-lg border border-white/10 bg-black/15 p-2.5">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-200">{faceStatus==='loading'?'PROCESSING':faceStatus==='aligned'?'FACE DETECTED & STRAIGHTENED':faceStatus==='no-face'?'FACE NOT DETECTED':faceStatus==='multiple'?'MULTIPLE FACES':faceStatus==='error'?'MODEL UNAVAILABLE':'READY'}</p>
+                      <p className="mt-1 text-[9px] leading-4 text-[#AAB8C0]">{faceMessage}</p>
+                      {detectedTilt!==null&&<p className="mt-2 text-[9px] font-semibold tabular-nums text-emerald-200">Measured eye-line tilt: {detectedTilt.toFixed(1)}°</p>}
+                    </div>
+                    <p className="mt-3 text-[8px] leading-4 text-[#83919A]">First use downloads the model and WASM files. Processing runs locally; no API key, account, payment or photo upload is used. Strong side-angle selfies cannot be turned into a true front-facing face by this tool.</p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-3">
