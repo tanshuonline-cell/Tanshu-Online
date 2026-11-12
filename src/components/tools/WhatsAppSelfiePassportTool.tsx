@@ -62,6 +62,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [faceMessage,setFaceMessage] = useState('Choose a photo, then run face alignment. Processing stays in this browser.');
   const [detectedTilt,setDetectedTilt] = useState<number | null>(null);
   const faceLandmarkerRef = useRef<any>(null);
+  const faceAppliedCorrectionRef = useRef(0);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -106,11 +107,13 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setFaceStatus('idle');
     setFaceMessage('Photo changed. Run face alignment again.');
     setDetectedTilt(null);
+    faceAppliedCorrectionRef.current = 0;
     event.target.value = '';
   };
 
   const resetPreview = () => {
     setZoom(100); setRotation(0); setFlipped(false);
+    faceAppliedCorrectionRef.current = 0;
     setCropRect({x:0,y:0,w:100,h:100}); setCropHasSelection(false); setPhotoOffset({x:0,y:0}); setPhotoScale(1); setIsCropping(false);
   };
   const startPhotoPan=(event:React.PointerEvent<HTMLImageElement>)=>{
@@ -270,7 +273,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       if (!Number.isFinite(eyeLineTilt)) throw new Error('Could not measure eye-line angle.');
       setDetectedTilt(eyeLineTilt);
       const correction = Math.max(-15, Math.min(15, -eyeLineTilt));
-      setRotation(current => current + correction);
+      const previousAutoCorrection = faceAppliedCorrectionRef.current;
+      faceAppliedCorrectionRef.current = correction;
+      setRotation(current => current - previousAutoCorrection + correction);
       setFaceStatus('aligned');
       setFaceMessage(Math.abs(eyeLineTilt) > 15
         ? 'Face detected. A gentle 15° correction was applied; check the result and fine-tune manually if needed. Strong head angles cannot be reconstructed safely.'
