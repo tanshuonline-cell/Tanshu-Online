@@ -36,6 +36,7 @@ const toolDescriptions: Record<StudioTool, { title: string; description: string 
 export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [processedPhotoUrl, setProcessedPhotoUrl] = useState('');
   const [activeTool, setActiveTool] = useState<StudioTool>('crop');
   const [photoSize, setPhotoSize] = useState('35x45');
   const [zoom, setZoom] = useState(100);
@@ -96,6 +97,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
     setSelectedFile(file);
+    setProcessedPhotoUrl('');
     setZoom(100);
     setRotation(0);
     setFlipped(false);
@@ -205,6 +207,73 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }
   };
 
+  const createPassportPhoto = (image: HTMLImageElement, landmarks: Array<{x:number;y:number;z?:number}>, correctionDegrees: number) => {
+    const sourceWidth = image.naturalWidth;
+    const sourceHeight = image.naturalHeight;
+    const radians = correctionDegrees * Math.PI / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const rotatedWidth = Math.ceil(Math.abs(sourceWidth * cos) + Math.abs(sourceHeight * sin));
+    const rotatedHeight = Math.ceil(Math.abs(sourceWidth * sin) + Math.abs(sourceHeight * cos));
+    const rotatedCanvas = document.createElement('canvas');
+    rotatedCanvas.width = rotatedWidth;
+    rotatedCanvas.height = rotatedHeight;
+    const rotatedContext = rotatedCanvas.getContext('2d');
+    if (!rotatedContext) throw new Error('Canvas is unavailable in this browser.');
+    rotatedContext.fillStyle = '#ffffff';
+    rotatedContext.fillRect(0, 0, rotatedWidth, rotatedHeight);
+    rotatedContext.translate(rotatedWidth / 2, rotatedHeight / 2);
+    rotatedContext.rotate(radians);
+    rotatedContext.drawImage(image, -sourceWidth / 2, -sourceHeight / 2, sourceWidth, sourceHeight);
+
+    const points = landmarks.map(point => {
+      const dx = point.x * sourceWidth - sourceWidth / 2;
+      const dy = point.y * sourceHeight - sourceHeight / 2;
+      return {
+        x: cos * dx - sin * dy + rotatedWidth / 2,
+        y: sin * dx + cos * dy + rotatedHeight / 2,
+      };
+    });
+    const minX = Math.min(...points.map(point => point.x));
+    const maxX = Math.max(...points.map(point => point.x));
+    const minY = Math.min(...points.map(point => point.y));
+    const maxY = Math.max(...points.map(point => point.y));
+    const faceWidth = maxX - minX;
+    const faceHeight = maxY - minY;
+    if (!Number.isFinite(faceHeight) || faceHeight < 24 || faceWidth < 18) {
+      throw new Error('The detected face is too small for reliable passport framing.');
+    }
+
+    const aspectRatio = photoSize === '2x2' ? 1 : photoSize === '35x35' ? 1 : 35 / 45;
+    const cropHeight = faceHeight / 0.66;
+    const cropWidth = cropHeight * aspectRatio;
+    const centerX = (minX + maxX) / 2;
+    const requestedX = centerX - cropWidth / 2;
+    const requestedY = minY - faceHeight * 0.28;
+    const cropX = Math.max(0, Math.min(rotatedWidth - cropWidth, requestedX));
+    const cropY = Math.max(0, Math.min(rotatedHeight - cropHeight, requestedY));
+    const safeCropWidth = Math.min(cropWidth, rotatedWidth);
+    const safeCropHeight = Math.min(cropHeight, rotatedHeight);
+
+    const outputWidth = photoSize === '2x2' ? 600 : 413;
+    const outputHeight = photoSize === '2x2' ? 600 : photoSize === '35x35' ? 413 : 531;
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = outputWidth;
+    outputCanvas.height = outputHeight;
+    const outputContext = outputCanvas.getContext('2d');
+    if (!outputContext) throw new Error('Could not create the passport photo preview.');
+    outputContext.fillStyle = '#ffffff';
+    outputContext.fillRect(0, 0, outputWidth, outputHeight);
+    outputContext.imageSmoothingEnabled = true;
+    outputContext.imageSmoothingQuality = 'high';
+    outputContext.drawImage(
+      rotatedCanvas,
+      cropX, cropY, safeCropWidth, safeCropHeight,
+      0, 0, outputWidth, outputHeight
+    );
+    return outputCanvas.toDataURL('image/jpeg', 0.94);
+  };
+
   const runFreeFaceAlignment = async () => {
     if (!previewUrl || faceStatus === 'loading') return;
     setFaceStatus('loading');
@@ -273,13 +342,17 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       if (!Number.isFinite(eyeLineTilt)) throw new Error('Could not measure eye-line angle.');
       setDetectedTilt(eyeLineTilt);
       const correction = Math.max(-15, Math.min(15, -eyeLineTilt));
-      const previousAutoCorrection = faceAppliedCorrectionRef.current;
-      faceAppliedCorrectionRef.current = correction;
-      setRotation(current => current - previousAutoCorrection + correction);
+      const passportPhoto = createPassportPhoto(image, landmarks, correction);
+      setProcessedPhotoUrl(passportPhoto);
+      faceAppliedCorrectionRef.current = 0;
+      setRotation(0);
+      setZoom(100);
+      setPhotoOffset({x:0,y:0});
+      setPhotoScale(1);
+      setCropRect({x:0,y:0,w:100,h:100});
+      setCropHasSelection(false);
       setFaceStatus('aligned');
-      setFaceMessage(Math.abs(eyeLineTilt) > 15
-        ? 'Face detected. A gentle 15° correction was applied; check the result and fine-tune manually if needed. Strong head angles cannot be reconstructed safely.'
-        : 'One face detected. Eye-line tilt was measured and a gentle straightening correction was applied. Please review before using.');
+      setFaceMessage('Passport photo created from the detected face. Review the framing, then open Print to arrange copies on A4 or 4 × 6. Your original upload remains unchanged.');
       setActiveTool('face');
       setIsCropping(false);
     } catch (error) {
@@ -313,8 +386,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               <ShieldCheck size={13} /> Browser-side preview
             </span>
             <button type="button" onClick={resetPreview} disabled={!selectedFile} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-[#C8D1D9] transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40">Reset</button>
-            <button type="button" disabled={!selectedFile} title="Export will be enabled after photo processing is implemented" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-lg shadow-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-40">
-              <Download size={14} /> Export
+            <button type="button" disabled={!processedPhotoUrl} onClick={() => { const link=document.createElement("a"); link.href=processedPhotoUrl; link.download="tanshu-indian-passport-photo.jpg"; link.click(); }} title="Download the processed passport photo" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-lg shadow-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-40">
+              <Download size={14} /> Export Photo
             </button>
           </div>
         </div>
@@ -384,7 +457,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px'}}>
                         <div className="grid grid-cols-3 content-start gap-3">
                           {Array.from({length:sheetSize==='A4'?12:4},(_,index)=><div key={index} className="relative overflow-hidden border border-slate-300 bg-slate-100" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9'}}>
-                            <img src={previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
+                            <img src={processedPhotoUrl || previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
                             {signatureUrl && signatureVisible && <img src={signatureUrl} alt="" className="absolute bottom-[8%] right-[8%] h-[12%] w-[38%] object-contain"/>}
                           </div>)}
                         </div>
@@ -394,7 +467,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   ) : (
                   <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
                     <div ref={cropViewportRef} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className={'relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50 '+(isCropping?'cursor-crosshair':'')} style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)',touchAction:'none'}}>
-                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+') scale('+photoScale+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
+                      <img src={processedPhotoUrl || previewUrl} alt="Customer passport photo preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+') scale('+photoScale+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
                       {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
                       {!isCropping&&activeTool==='crop'&&cropHasSelection&&<div className="pointer-events-none absolute z-10 border-2 border-sky-500" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%',transform:'scale('+photoScale+')',transformOrigin:'center'}}><span onPointerDown={event=>startPhotoResize(event,-1,-1)} className="pointer-events-auto absolute -left-2.5 -top-2.5 h-5 w-5 cursor-nwse-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/><span onPointerDown={event=>startPhotoResize(event,1,-1)} className="pointer-events-auto absolute -right-2.5 -top-2.5 h-5 w-5 cursor-nesw-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/><span onPointerDown={event=>startPhotoResize(event,-1,1)} className="pointer-events-auto absolute -bottom-2.5 -left-2.5 h-5 w-5 cursor-nesw-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/><span onPointerDown={event=>startPhotoResize(event,1,1)} className="pointer-events-auto absolute -bottom-2.5 -right-2.5 h-5 w-5 cursor-nwse-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/></div>}
                       {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/></div>}
@@ -466,7 +539,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       <p className="mt-1 text-[9px] leading-4 text-[#AAB8C0]">{faceMessage}</p>
                       {detectedTilt!==null&&<p className="mt-2 text-[9px] font-semibold tabular-nums text-emerald-200">Measured eye-line tilt: {detectedTilt.toFixed(1)}°</p>}
                     </div>
-                    <p className="mt-3 text-[8px] leading-4 text-[#83919A]">First use downloads the model and WASM files. Processing runs locally; no API key, account, payment or photo upload is used. Strong side-angle selfies cannot be turned into a true front-facing face by this tool.</p>
+                    {processedPhotoUrl && <div className="mt-3 space-y-2"><div className="rounded-lg border border-emerald-300/25 bg-emerald-300/10 p-2.5"><p className="text-[9px] font-extrabold text-emerald-200">INDIAN PASSPORT PHOTO READY</p><p className="mt-1 text-[9px] text-[#C1CDD2]">{photoSize==='35x45'?'35 × 45 mm':photoSize==='35x35'?'35 × 35 mm':'2 × 2 inch'} · White canvas · 300-DPI pixel dimensions</p></div><button type="button" onClick={()=>setActiveTool('print')} className="w-full rounded-lg border border-emerald-300/35 bg-emerald-400/10 px-3 py-2.5 text-[10px] font-extrabold text-emerald-200">Open A4 / 4 × 6 Print Sheet</button></div>}
+    <p className="mt-3 text-[8px] leading-4 text-[#83919A]">First use downloads the model and WASM files. Processing runs locally; no API key, account, payment or photo upload is used. Strong side-angle selfies cannot be turned into a true front-facing face by this tool.</p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-3">
