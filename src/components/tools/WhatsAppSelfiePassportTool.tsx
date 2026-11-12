@@ -26,6 +26,24 @@ const TOOL_ITEMS: { id: StudioTool; label: string; short: string; icon: typeof C
   { id: 'print', label: 'Photo Size & Print', short: 'PRINT', icon: FileImage },
 ];
 
+const PHOTO_SIZE_GROUPS = [
+  { label: 'Common India print sizes', options: [
+    { value: '35x45', label: 'Passport / General Form · 35 × 45 mm', width: 35, height: 45 },
+    { value: '25x35', label: 'PAN Card Print · 25 × 35 mm', width: 25, height: 35 },
+    { value: 'voter35x45', label: 'Voter ID / Form · 35 × 45 mm', width: 35, height: 45 },
+    { value: 'dl35x45', label: 'Driving Licence · 35 × 45 mm', width: 35, height: 45 },
+    { value: 'exam35x45', label: 'Exam Form Common · 35 × 45 mm', width: 35, height: 45 },
+    { value: '25x30', label: 'Stamp Photo · 25 × 30 mm', width: 25, height: 30 },
+  ]},
+  { label: 'Visa & consular sizes', options: [
+    { value: '2x2', label: 'Visa Photo · 2 × 2 inch (50.8 × 50.8 mm)', width: 50.8, height: 50.8 },
+    { value: '51x51', label: 'OCI Photo · 51 × 51 mm', width: 51, height: 51 },
+    { value: '35x35', label: 'Passport / Consular Square · 35 × 35 mm', width: 35, height: 35 },
+    { value: 'pcc35x35', label: 'PCC / Birth Certificate · 35 × 35 mm', width: 35, height: 35 },
+    { value: 'frro35x35', label: 'FRRO / Consular Form · 35 × 35 mm', width: 35, height: 35 },
+  ]},
+];
+const ALL_PHOTO_SIZES = PHOTO_SIZE_GROUPS.flatMap(group => group.options);
 const toolDescriptions: Record<StudioTool, { title: string; description: string }> = {
   crop: { title: 'Crop & Position', description: 'Set the photo frame and position the customer’s face accurately.' },
   face: { title: 'Free AI Face Alignment', description: 'Detect one face on this device, measure eye-line tilt and gently straighten the original photo.' },
@@ -51,6 +69,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [processedPhotoUrl, setProcessedPhotoUrl] = useState('');
   const [activeTool, setActiveTool] = useState<StudioTool>('crop');
   const [photoSize, setPhotoSize] = useState('35x45');
+  const [customPhotoWidthMm, setCustomPhotoWidthMm] = useState(35);
+  const [customPhotoHeightMm, setCustomPhotoHeightMm] = useState(45);
+  const [sourceDimensions, setSourceDimensions] = useState<{width:number;height:number}|null>(null);
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -80,8 +101,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [borderWidthMm, setBorderWidthMm] = useState(0.3);
   const [mergedPhotoUrl, setMergedPhotoUrl] = useState('');
   const [isMerging, setIsMerging] = useState(false);
-  const photoWidthMm = photoSize === '2x2' ? 50.8 : 35;
-  const photoHeightMm = photoSize === '35x45' ? 45 : photoSize === '2x2' ? 50.8 : 35;
+  const selectedPhotoPreset = ALL_PHOTO_SIZES.find(item => item.value === photoSize);
+  const photoWidthMm = photoSize === 'custom' ? customPhotoWidthMm : (selectedPhotoPreset?.width ?? 35);
+  const photoHeightMm = photoSize === 'custom' ? customPhotoHeightMm : (selectedPhotoPreset?.height ?? 45);
+  const cropAspectRatio = photoSize === 'custom' ? null : photoWidthMm / photoHeightMm;
   const paperDimensions: Record<string,{width:number;height:number;label:string}> = {
     single:{width:photoWidthMm+horizontalMarginMm*2,height:photoHeightMm+verticalMarginMm*2,label:'Single Photo'},
     '3.5x5':{width:88.9,height:127,label:'3.5 × 5'},
@@ -151,6 +174,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
     setSelectedFile(file);
+    setSourceDimensions(null);
     setProcessedPhotoUrl('');
     setMergedPhotoUrl('');
     setSignatureVisible(true);
@@ -187,33 +211,30 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     photoPanRef.current={startX:event.clientX,startY:event.clientY,offsetX:photoOffset.x,offsetY:photoOffset.y};
     event.currentTarget.setPointerCapture(event.pointerId);
   };
+  const makeAspectCropRect=(anchorX:number,anchorY:number,pointerX:number,pointerY:number,bounds:DOMRect,ratio:number)=>{
+    const ratioInPercent=ratio*bounds.height/bounds.width;
+    const directionX=pointerX>=anchorX?1:-1,directionY=pointerY>=anchorY?1:-1;
+    let width=Math.abs(pointerX-anchorX),height=Math.abs(pointerY-anchorY);
+    if(width>height*ratioInPercent)width=height*ratioInPercent;else height=width/ratioInPercent;
+    const maxWidth=directionX>0?100-anchorX:anchorX,maxHeight=directionY>0?100-anchorY:anchorY;
+    const scale=Math.min(1,maxWidth/Math.max(width,0.001),maxHeight/Math.max(height,0.001));
+    width*=scale;height*=scale;
+    return {x:directionX>0?anchorX:anchorX-width,y:directionY>0?anchorY:anchorY-height,w:width,h:height};
+  };
   const startCropDraw=(event:React.PointerEvent<HTMLDivElement>)=>{
     if(!isCropping||activeTool!=='crop')return;
-    const bounds=event.currentTarget.getBoundingClientRect();
-    if(!bounds.width||!bounds.height)return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const bounds=event.currentTarget.getBoundingClientRect();if(!bounds.width||!bounds.height)return;
+    event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);
     const px=Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100));
     const py=Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100));
     const valid=cropHasSelection&&cropRect.w>2&&cropRect.h>2;
     const inside=valid&&px>=cropRect.x&&px<=cropRect.x+cropRect.w&&py>=cropRect.y&&py<=cropRect.y+cropRect.h;
-    let mode:'draw'|'move'|'resize'='draw';
-    let cornerX=0,cornerY=0,anchorX=0,anchorY=0;
-    const corners=[
-      {id:'tl',x:cropRect.x,y:cropRect.y,cx:1,cy:1},
-      {id:'tr',x:cropRect.x+cropRect.w,y:cropRect.y,cx:-1,cy:1},
-      {id:'bl',x:cropRect.x,y:cropRect.y+cropRect.h,cx:1,cy:-1},
-      {id:'br',x:cropRect.x+cropRect.w,y:cropRect.y+cropRect.h,cx:-1,cy:-1},
-    ];
+    let mode:'draw'|'move'|'resize'='draw',cornerX=0,cornerY=0,anchorX=0,anchorY=0;
+    const corners=[{id:'tl',x:cropRect.x,y:cropRect.y,cx:1,cy:1},{id:'tr',x:cropRect.x+cropRect.w,y:cropRect.y,cx:-1,cy:1},{id:'bl',x:cropRect.x,y:cropRect.y+cropRect.h,cx:1,cy:-1},{id:'br',x:cropRect.x+cropRect.w,y:cropRect.y+cropRect.h,cx:-1,cy:-1}];
     const handle=(event.target as HTMLElement).closest('[data-crop-handle]')?.getAttribute('data-crop-handle');
     const hit=valid&&handle?corners.find(point=>point.id===handle):undefined;
-    if(hit){
-      mode='resize';cornerX=hit.cx;cornerY=hit.cy;
-      anchorX=hit.x+(hit.cx===1?cropRect.w:-cropRect.w);
-      anchorY=hit.y+(hit.cy===1?cropRect.h:-cropRect.h);
-    }else if(inside){
-      mode='move';
-    }
+    if(hit){mode='resize';cornerX=hit.cx;cornerY=hit.cy;anchorX=hit.x+(hit.cx===1?cropRect.w:-cropRect.w);anchorY=hit.y+(hit.cy===1?cropRect.h:-cropRect.h);}
+    else if(inside)mode='move';
     cropDrawRef.current={mode,startX:px,startY:py,bounds,initialRect:{...cropRect},anchorX,anchorY,cornerX,cornerY};
     if(mode==='draw')setCropRect({x:px,y:py,w:0,h:0});
   };
@@ -243,14 +264,14 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     const px=Math.max(0,Math.min(100,(event.clientX-draw.bounds.left)/draw.bounds.width*100));
     const py=Math.max(0,Math.min(100,(event.clientY-draw.bounds.top)/draw.bounds.height*100));
     if(draw.mode==='draw'){
-      setCropRect({x:Math.min(draw.startX,px),y:Math.min(draw.startY,py),w:Math.abs(px-draw.startX),h:Math.abs(py-draw.startY)});
+      setCropRect(cropAspectRatio?makeAspectCropRect(draw.startX,draw.startY,px,py,draw.bounds,cropAspectRatio):{x:Math.min(draw.startX,px),y:Math.min(draw.startY,py),w:Math.abs(px-draw.startX),h:Math.abs(py-draw.startY)});
     }else if(draw.mode==='move'){
       const x=Math.max(0,Math.min(100-draw.initialRect.w,draw.initialRect.x+px-draw.startX));
       const y=Math.max(0,Math.min(100-draw.initialRect.h,draw.initialRect.y+py-draw.startY));
       setCropRect({...draw.initialRect,x,y});
     }else{
-      const x=Math.min(draw.anchorX,px),y=Math.min(draw.anchorY,py);
-      setCropRect({x,y,w:Math.abs(px-draw.anchorX),h:Math.abs(py-draw.anchorY)});
+      if(cropAspectRatio)setCropRect(makeAspectCropRect(draw.anchorX,draw.anchorY,px,py,draw.bounds,cropAspectRatio));
+      else{const x=Math.min(draw.anchorX,px),y=Math.min(draw.anchorY,py);setCropRect({x,y,w:Math.abs(px-draw.anchorX),h:Math.abs(py-draw.anchorY)});}
     }
   };
   const endCropDrag=()=>{
@@ -268,6 +289,25 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
         }
       }
     }
+  };
+
+  const applyCropSelection=async()=>{
+    if(!cropHasSelection||cropRect.w<1||cropRect.h<1){setIsCropping(false);return;}
+    const sourceUrl=mergedPhotoUrl||processedPhotoUrl||previewUrl;if(!sourceUrl){setIsCropping(false);return;}
+    try{
+      const image=await loadStudioImage(sourceUrl);
+      const sx=Math.max(0,Math.round(cropRect.x/100*image.naturalWidth)),sy=Math.max(0,Math.round(cropRect.y/100*image.naturalHeight));
+      const sw=Math.max(1,Math.min(image.naturalWidth-sx,Math.round(cropRect.w/100*image.naturalWidth)));
+      const sh=Math.max(1,Math.min(image.naturalHeight-sy,Math.round(cropRect.h/100*image.naturalHeight)));
+      const canvas=document.createElement('canvas');canvas.width=sw;canvas.height=sh;
+      const context=canvas.getContext('2d');if(!context)throw new Error('Could not create crop canvas.');
+      context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,sx,sy,sw,sh,0,0,sw,sh);
+      setProcessedPhotoUrl(canvas.toDataURL('image/jpeg',0.94));setMergedPhotoUrl('');
+      if(photoSize==='custom')setCustomPhotoHeightMm(Number((customPhotoWidthMm/(sw/sh)).toFixed(2)));
+      setZoom(100);setRotation(0);setFlipped(false);setPhotoOffset({x:0,y:0});setPhotoScale(1);
+      setCropRect({x:0,y:0,w:100,h:100});setCropHasSelection(false);setIsCropping(false);
+      setFaceMessage('Crop applied. The selected framing is now used for preview and print export.');
+    }catch(error){console.error('Photo crop failed:',error);setFaceMessage('Could not apply this crop. Please try again.');setIsCropping(false);}
   };
 
   const getSheetPhotoPosition = (index:number) => photoPositions[index] ?? ({
@@ -447,7 +487,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       throw new Error('The detected face is too small for reliable passport framing.');
     }
 
-    const aspectRatio = photoSize === '2x2' ? 1 : photoSize === '35x35' ? 1 : 35 / 45;
+    const aspectRatio = cropAspectRatio ?? 35 / 45;
     const cropHeight = faceHeight / 0.66;
     const cropWidth = cropHeight * aspectRatio;
     const centerX = (minX + maxX) / 2;
@@ -462,8 +502,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     cropContext.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
     cropContext.drawImage(rotatedCanvas, -requestedX, -requestedY);
 
-    const outputWidth = photoSize === '2x2' ? 600 : 413;
-    const outputHeight = photoSize === '2x2' ? 600 : photoSize === '35x35' ? 413 : 531;
+    const outputWidth = Math.max(1,Math.round(photoWidthMm*300/25.4));
+    const outputHeight = Math.max(1,Math.round(photoHeightMm*300/25.4));
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = outputWidth;
     outputCanvas.height = outputHeight;
@@ -687,6 +727,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             </div>
             <button type="button" onClick={() => { setActiveTool('background'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2 text-[10px] font-extrabold text-emerald-200 disabled:opacity-40"><Eraser size={13} className="mr-1 inline"/>BG Remove</button>
             <button type="button" onClick={() => { setActiveTool('signature'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-[#3A444C] px-3 py-2 text-[10px] font-bold text-[#C8D1D9] disabled:opacity-40">Add Signature</button>
+            {activeTool==='crop'&&<div className="flex shrink-0 items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-400/[.05] px-2 py-1"><label className="text-[9px] font-bold text-[#AAB8C0]">CROP SIZE</label><select value={photoSize} onChange={event=>{setPhotoSize(event.target.value);setCropRect({x:0,y:0,w:100,h:100});setCropHasSelection(false);setIsCropping(false);}} className="h-8 max-w-[210px] rounded border border-[#46535C] bg-[#171D22] px-2 text-[9px] font-bold text-white">{PHOTO_SIZE_GROUPS.map(group=><optgroup key={group.label} label={group.label}>{group.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>)}<option value="custom">Custom Size · Free Crop</option></select></div>}
             {activeTool==='print'&&<div className="flex shrink-0 items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/[.05] px-2 py-1">
               <div className="flex shrink-0 items-center gap-1.5"><label className="text-[9px] font-bold text-[#AAB8C0]">SHEET</label><select value={sheetSize} onChange={event=>{setSheetSize(event.target.value);setPhotoPositions({});}} className="h-8 max-w-[150px] rounded border border-[#46535C] bg-[#171D22] px-2 text-[9px] font-bold text-white"><optgroup label="Common photo paper"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="A6">A6 Sheet</option><option value="A5">A5 Sheet</option><option value="A4">A4 Sheet</option><option value="A3">A3 Sheet</option><option value="Letter">Letter Sheet</option><option value="Legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select></div>
               <div className="min-w-0"><NumericStepper compact label="PHOTO COUNT" value={visiblePhotoCount} min={1} max={sheetCapacity} step={1} unit="copies" onChange={setPhotoCount}/></div>
@@ -723,7 +764,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <button type="button" onClick={() => activeTool==='print' ? setSheetZoom(value=>Math.max(50,value-10)) : setZoom(value => Math.max(50, value - 10))} disabled={!selectedFile} aria-label="Zoom out" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomOut size={14}/></button>
                   <span className="w-10 text-center text-[10px] font-bold tabular-nums text-[#C8D1D9]">{activeTool==='print'?sheetZoom:zoom}%</span>
                   <button type="button" onClick={() => activeTool==='print' ? setSheetZoom(value=>Math.min(250,value+10)) : setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
-                  {selectedFile&&activeTool==='crop'&&<button type="button" onClick={()=>setIsCropping(v=>!v)} className={isCropping?'ml-1 rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-2 text-[10px] font-bold text-emerald-200':'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] hover:bg-white/5'}>{isCropping?'Done':'Crop'}</button>}
+                  {selectedFile&&activeTool==='crop'&&<button type="button" onClick={()=>{if(isCropping)void applyCropSelection();else{setCropRect({x:0,y:0,w:100,h:100});setCropHasSelection(false);setIsCropping(true);}}} className={isCropping?'ml-1 rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-2 text-[10px] font-bold text-emerald-200':'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] hover:bg-white/5'}>{isCropping?'Done · Apply Crop':'Crop'}</button>}
                   {selectedFile&&activeTool==='face'&&<button type="button" onClick={runFreeFaceAlignment} disabled={faceStatus==='loading'} className="ml-1 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-[10px] font-bold text-emerald-200 disabled:opacity-50">{faceStatus==='loading'?'Loading model…':'Detect & Straighten'}</button>}
                   <button type="button" onClick={() => setShowGuides(value => !value)} disabled={!selectedFile} className={showGuides ? 'ml-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 disabled:opacity-30' : 'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] disabled:opacity-30'}>Guides</button>
                 </div>
@@ -755,8 +796,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     </div>
                   ) : (
                   <div className="relative flex h-full min-h-[420px] w-full items-center justify-center">
-                    <div ref={cropViewportRef} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className={'relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50 '+(isCropping?'cursor-crosshair':'')} style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)',touchAction:'none'}}>
-                      <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt="Customer passport photo preview" draggable={false} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+') scale('+photoScale+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
+                    <div ref={cropViewportRef} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className={'relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] '+(isCropping?'cursor-crosshair p-0':'p-2 shadow-2xl shadow-black/50')} style={isCropping&&sourceDimensions?{aspectRatio:sourceDimensions.width+' / '+sourceDimensions.height,width:'min(100%, 480px)',height:'auto',maxHeight:'min(76vh, 720px)',touchAction:'none'}:{aspectRatio:photoWidthMm+' / '+photoHeightMm,height:'min(76vh, 720px)',touchAction:'none'}}>
+                      <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt="Customer passport photo preview" draggable={false} onLoad={event=>setSourceDimensions({width:event.currentTarget.naturalWidth,height:event.currentTarget.naturalHeight})} onPointerDown={startPhotoPan} className={'h-full w-full select-none object-contain '+(isCropping?'pointer-events-none':'cursor-grab active:cursor-grabbing')} style={{transform:isCropping?'none':'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+') scale('+photoScale+')',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
                       {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
                       {!isCropping&&activeTool==='crop'&&cropHasSelection&&<div className="pointer-events-none absolute z-10 border-2 border-sky-500" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%',transform:'scale('+photoScale+')',transformOrigin:'center'}}><span onPointerDown={event=>startPhotoResize(event,-1,-1)} className="pointer-events-auto absolute -left-2.5 -top-2.5 h-5 w-5 cursor-nwse-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/><span onPointerDown={event=>startPhotoResize(event,1,-1)} className="pointer-events-auto absolute -right-2.5 -top-2.5 h-5 w-5 cursor-nesw-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/><span onPointerDown={event=>startPhotoResize(event,-1,1)} className="pointer-events-auto absolute -bottom-2.5 -left-2.5 h-5 w-5 cursor-nesw-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/><span onPointerDown={event=>startPhotoResize(event,1,1)} className="pointer-events-auto absolute -bottom-2.5 -right-2.5 h-5 w-5 cursor-nwse-resize rounded-full border-2 border-sky-600 bg-white shadow-md"/></div>}
                       {isCropping&&activeTool==='crop'&&cropRect.w>0&&cropRect.h>0&&<div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md"/></div>}
@@ -818,13 +859,13 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
 
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
-                  <label className="mb-2 block text-[10px] font-bold tracking-wide text-[#D4DCE1]" htmlFor="passport-photo-size">PASSPORT PHOTO SIZE</label>
-                  <select id="passport-photo-size" value={photoSize} onChange={event => { setPhotoSize(event.target.value); setFaceMessage('Print photo size updated. The sheet export will crop to the selected dimensions.'); }} className="h-10 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
-                    <option value="35x45">India Passport · 35 × 45 mm</option>
-                    <option value="2x2">Visa Photo · 2 × 2 inch</option>
-                    <option value="35x35">Square Photo · 35 × 35 mm</option>
+                  <label className="mb-2 block text-[10px] font-bold tracking-wide text-[#D4DCE1]" htmlFor="passport-photo-size">CROP / PASSPORT PHOTO SIZE</label>
+                  <select id="passport-photo-size" value={photoSize} onChange={event=>{setPhotoSize(event.target.value);setCropRect({x:0,y:0,w:100,h:100});setCropHasSelection(false);setIsCropping(false);setFaceMessage('Crop size updated. Start Crop to draw a frame with this exact aspect ratio.');}} className="h-10 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
+                    {PHOTO_SIZE_GROUPS.map(group=><optgroup key={group.label} label={group.label}>{group.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>)}
+                    <option value="custom">Custom Size · Free Crop</option>
                   </select>
-                  <p className="mt-2 text-[9px] leading-4 text-[#83919A]">The selected size is applied to each print photo at 300 DPI, with a matching crop on export.</p>
+                  {photoSize==='custom'&&<div className="mt-3 grid grid-cols-2 gap-2"><NumericStepper label="CUSTOM WIDTH" value={customPhotoWidthMm} min={5} max={100} step={0.5} onChange={setCustomPhotoWidthMm}/><NumericStepper label="CUSTOM HEIGHT" value={customPhotoHeightMm} min={5} max={150} step={0.5} onChange={setCustomPhotoHeightMm}/></div>}
+                  <p className="mt-2 text-[9px] leading-4 text-[#83919A]">Preset crop frames keep the exact selected ratio. Custom Size allows freeform cropping. Print output uses the selected millimetre dimensions at 300 DPI.</p>
                 </div>
 
                 {activeTool === 'background' ? (
