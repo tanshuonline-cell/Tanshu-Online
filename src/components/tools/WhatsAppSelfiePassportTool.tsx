@@ -4,7 +4,7 @@ import {
   ArrowLeft, Camera, Check, Crop, Download, Eraser, FileImage, FlipHorizontal,
   ImagePlus, Info, Layers3, RotateCcw, RotateCw, ScanFace,
   ShieldCheck, SlidersHorizontal, Sparkles, UploadCloud, WandSparkles,
-  X, ZoomIn, ZoomOut
+  X, ZoomIn, ZoomOut, Maximize2, Minimize2, Undo2, Redo2
 } from 'lucide-react';
 
 type StudioTool = 'crop' | 'face' | 'straighten' | 'background' | 'signature' | 'print';
@@ -53,6 +53,11 @@ const toolDescriptions: Record<StudioTool, { title: string; description: string 
   print: { title: 'Photo Size & Print', description: 'Choose a standard photo size and prepare print sheets.' },
 };
 
+const STUDIO_BACKUP_DB='tanshu-whatsapp-studio-backup';
+const openStudioBackupDb=()=>new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(STUDIO_BACKUP_DB,1);request.onupgradeneeded=()=>request.result.createObjectStore('sessions');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+const writeStudioBackup=async(value:unknown)=>{const db=await openStudioBackupDb();await new Promise<void>((resolve,reject)=>{const tx=db.transaction('sessions','readwrite');tx.objectStore('sessions').put(value,'current-session');tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();};
+const readStudioBackup=async()=>{const db=await openStudioBackupDb();const value=await new Promise<any>((resolve,reject)=>{const request=db.transaction('sessions','readonly').objectStore('sessions').get('current-session');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});db.close();return value;};
+
 const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;step:number;unit?:string;compact?:boolean;onChange:(value:number)=>void}> = ({label,value,min,max,step,unit='mm',compact=false,onChange}) => {
   const normalize=(next:number)=>step===1?Math.round(next):Number(next.toFixed(3));
   const adjust=(amount:number)=>onChange(normalize(Math.max(min,Math.min(max,value+amount))));
@@ -91,10 +96,10 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [backgroundStatus, setBackgroundStatus] = useState('');
   const [photoCount, setPhotoCount] = useState(8);
-  const [horizontalMarginMm, setHorizontalMarginMm] = useState(4);
-  const [verticalMarginMm, setVerticalMarginMm] = useState(4);
-  const [horizontalGapMm, setHorizontalGapMm] = useState(1.5);
-  const [verticalGapMm, setVerticalGapMm] = useState(1.5);
+  const [horizontalMarginMm, setHorizontalMarginMm] = useState(3);
+  const [verticalMarginMm, setVerticalMarginMm] = useState(3);
+  const [horizontalGapMm, setHorizontalGapMm] = useState(2);
+  const [verticalGapMm, setVerticalGapMm] = useState(2);
   const [photoPositions, setPhotoPositions] = useState<Record<number,{x:number;y:number}>>({});
   const [borderEnabled, setBorderEnabled] = useState(false);
   const [borderColor, setBorderColor] = useState('#000000');
@@ -142,6 +147,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [detectedTilt,setDetectedTilt] = useState<number | null>(null);
   const faceLandmarkerRef = useRef<any>(null);
   const faceAppliedCorrectionRef = useRef(0);
+  const backupReadyRef=useRef(false);
+  const historyReadyRef=useRef(false);
+  const historyRef=useRef<{past:any[];future:any[];current:string;skip:boolean}>({past:[],future:[],current:'',skip:false});
+  const [historyVersion,setHistoryVersion]=useState(0);
+  const [isFullscreen,setIsFullscreen]=useState(false);
+  const [backupStatus,setBackupStatus]=useState('Preparing local backup…');
   useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl('');
@@ -162,6 +173,14 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setSignatureUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [signatureFile]);
+
+  useEffect(()=>{let active=true;readStudioBackup().then(backup=>{if(!active)return;if(backup?.version===1){if(backup.selectedFile)setSelectedFile(backup.selectedFile);if(backup.signatureFile)setSignatureFile(backup.signatureFile);if(backup.processedPhotoUrl)setProcessedPhotoUrl(backup.processedPhotoUrl);if(backup.mergedPhotoUrl)setMergedPhotoUrl(backup.mergedPhotoUrl);const v=backup.state||{};if(v.photoSize)setPhotoSize(v.photoSize);if(v.customPhotoWidthMm)setCustomPhotoWidthMm(v.customPhotoWidthMm);if(v.customPhotoHeightMm)setCustomPhotoHeightMm(v.customPhotoHeightMm);if(v.sheetSize)setSheetSize(v.sheetSize);if(v.customSheetWidthMm)setCustomSheetWidthMm(v.customSheetWidthMm);if(v.customSheetHeightMm)setCustomSheetHeightMm(v.customSheetHeightMm);if(v.photoCount)setPhotoCount(v.photoCount);if(v.horizontalMarginMm!==undefined)setHorizontalMarginMm(v.horizontalMarginMm);if(v.verticalMarginMm!==undefined)setVerticalMarginMm(v.verticalMarginMm);if(v.horizontalGapMm!==undefined)setHorizontalGapMm(v.horizontalGapMm);if(v.verticalGapMm!==undefined)setVerticalGapMm(v.verticalGapMm);if(v.photoPositions)setPhotoPositions(v.photoPositions);if(v.rotation!==undefined)setRotation(v.rotation);if(v.zoom!==undefined)setZoom(v.zoom);if(v.flipped!==undefined)setFlipped(v.flipped);if(v.activeTool)setActiveTool(v.activeTool);if(v.backgroundColor)setBackgroundColor(v.backgroundColor);if(v.signatureVisible!==undefined)setSignatureVisible(v.signatureVisible);if(v.signaturePosition)setSignaturePosition(v.signaturePosition);if(v.signatureScale!==undefined)setSignatureScale(v.signatureScale);if(v.signatureRotation!==undefined)setSignatureRotation(v.signatureRotation);setBackupStatus('Previous session restored');}else setBackupStatus('Local backup ready');backupReadyRef.current=true;}).catch(error=>{console.warn('Studio backup restore failed:',error);if(active){backupReadyRef.current=true;setBackupStatus('Local backup unavailable');}});return()=>{active=false;};},[]);
+
+  useEffect(()=>{if(!backupReadyRef.current)return;const backup={version:1,selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,state:{photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,rotation,zoom,flipped,activeTool,backgroundColor,signatureVisible,signaturePosition,signatureScale,signatureRotation}};writeStudioBackup(backup).then(()=>setBackupStatus('Changes backed up on this device')).catch(error=>{console.warn('Studio backup save failed:',error);setBackupStatus('Backup storage unavailable or full');});},[selectedFile,signatureFile,processedPhotoUrl,mergedPhotoUrl,photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,rotation,zoom,flipped,activeTool,backgroundColor,signatureVisible,signaturePosition,signatureScale,signatureRotation]);
+
+  const makeHistorySnapshot=()=>JSON.stringify({photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,rotation,zoom,flipped,photoOffset,photoScale,signatureVisible,signaturePosition,signatureScale,signatureRotation});
+  useEffect(()=>{const snapshot=makeHistorySnapshot();if(!historyReadyRef.current){historyRef.current.current=snapshot;historyReadyRef.current=true;return;}if(historyRef.current.skip){historyRef.current.current=snapshot;historyRef.current.skip=false;setHistoryVersion(v=>v+1);return;}if(snapshot!==historyRef.current.current){historyRef.current.past=[...historyRef.current.past,historyRef.current.current].slice(-80);historyRef.current.future=[];historyRef.current.current=snapshot;setHistoryVersion(v=>v+1);}},[photoSize,customPhotoWidthMm,customPhotoHeightMm,sheetSize,customSheetWidthMm,customSheetHeightMm,photoCount,horizontalMarginMm,verticalMarginMm,horizontalGapMm,verticalGapMm,photoPositions,rotation,zoom,flipped,photoOffset,photoScale,signatureVisible,signaturePosition,signatureScale,signatureRotation]);
+  useEffect(()=>{const sync=()=>setIsFullscreen(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',sync);return()=>document.removeEventListener('fullscreenchange',sync);},[]);
 
   const handleSignatureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -310,6 +329,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     }catch(error){console.error('Photo crop failed:',error);setFaceMessage('Could not apply this crop. Please try again.');setIsCropping(false);}
   };
 
+  const applyHistorySnapshot=(snapshot:string)=>{const v=JSON.parse(snapshot);historyRef.current.skip=true;setPhotoSize(v.photoSize);setCustomPhotoWidthMm(v.customPhotoWidthMm);setCustomPhotoHeightMm(v.customPhotoHeightMm);setSheetSize(v.sheetSize);setCustomSheetWidthMm(v.customSheetWidthMm);setCustomSheetHeightMm(v.customSheetHeightMm);setPhotoCount(v.photoCount);setHorizontalMarginMm(v.horizontalMarginMm);setVerticalMarginMm(v.verticalMarginMm);setHorizontalGapMm(v.horizontalGapMm);setVerticalGapMm(v.verticalGapMm);setPhotoPositions(v.photoPositions);setRotation(v.rotation);setZoom(v.zoom);setFlipped(v.flipped);setPhotoOffset(v.photoOffset);setPhotoScale(v.photoScale);setSignatureVisible(v.signatureVisible);setSignaturePosition(v.signaturePosition);setSignatureScale(v.signatureScale);setSignatureRotation(v.signatureRotation);};
+  const undoStudio=()=>{const h=historyRef.current;if(!h.past.length)return;h.future=[h.current,...h.future].slice(0,80);h.current=h.past.pop()!;applyHistorySnapshot(h.current);setHistoryVersion(v=>v+1);};
+  const redoStudio=()=>{const h=historyRef.current;if(!h.future.length)return;h.past=[...h.past,h.current].slice(-80);h.current=h.future.shift()!;applyHistorySnapshot(h.current);setHistoryVersion(v=>v+1);};
+  const toggleStudioFullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.querySelector('main')?.requestFullscreen?.();}catch(error){console.warn('Fullscreen unavailable:',error);}};
+  const smartArrangePhotos=()=>{const margin=3,gap=2,width=sheetWidthMm,height=sheetHeightMm;const columns=Math.max(1,Math.floor((width-margin*2+gap)/(photoWidthMm+gap)));const rowsFit=Math.max(1,Math.floor((height-margin*2+gap)/(photoHeightMm+gap)));const count=Math.min(photoCount,columns*rowsFit),rows=Math.ceil(count/columns),totalHeight=rows*photoHeightMm+(rows-1)*gap,top=(height-totalHeight)/2;const arranged:Record<number,{x:number;y:number}>={};for(let row=0;row<rows;row++){const inRow=Math.min(columns,count-row*columns),rowWidth=inRow*photoWidthMm+(inRow-1)*gap,left=(width-rowWidth)/2;for(let col=0;col<inRow;col++)arranged[row*columns+col]={x:left+col*(photoWidthMm+gap),y:top+row*(photoHeightMm+gap)};}setHorizontalMarginMm(margin);setVerticalMarginMm(margin);setHorizontalGapMm(gap);setVerticalGapMm(gap);setPhotoCount(count);setPhotoPositions(arranged);setFaceMessage('Smart Arrange complete. Photos are centered, equal-sized and spaced with a minimum 3 mm page margin.');};
+
   const getSheetPhotoPosition = (index:number) => photoPositions[index] ?? ({
     x: horizontalMarginMm + (index % sheetColumns) * (photoWidthMm + horizontalGapMm),
     y: verticalMarginMm + Math.floor(index / sheetColumns) * (photoHeightMm + verticalGapMm),
@@ -323,8 +348,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const moveSheetPhotoDrag=(event:React.PointerEvent<HTMLDivElement>)=>{
     const drag=sheetPhotoDragRef.current;if(!drag)return;
     setPhotoPositions(current=>({...current,[drag.index]:{
-      x:Math.max(0,Math.min(sheetWidthMm-photoWidthMm,drag.initialX+(event.clientX-drag.startX)/drag.scale)),
-      y:Math.max(0,Math.min(sheetHeightMm-photoHeightMm,drag.initialY+(event.clientY-drag.startY)/drag.scale)),
+      x:Math.max(3,Math.min(sheetWidthMm-3-photoWidthMm,drag.initialX+(event.clientX-drag.startX)/drag.scale)),
+      y:Math.max(3,Math.min(sheetHeightMm-3-photoHeightMm,drag.initialY+(event.clientY-drag.startY)/drag.scale)),
     }}));
   };
   const endSheetPhotoDrag=()=>{sheetPhotoDragRef.current=null;};
