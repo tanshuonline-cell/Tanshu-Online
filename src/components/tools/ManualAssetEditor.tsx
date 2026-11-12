@@ -388,12 +388,10 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       };
       const image = await loadImage(asset.src);
       if (!image.naturalWidth || !image.naturalHeight) throw new Error('The selected photo is empty or invalid.');
-      const signature = signatureAsset ? {...signatureAsset, ...signaturePosition} : undefined;
-      if (signature) await loadImage(signature.src);
-      await onUseOnPage({...asset, signature});
-      if (signature) onSignatureApplied?.();
+      if (signatureAsset && !signedCroppedAssetRef.current) throw new Error('पहले Merge Signature दबाएँ, फिर Add to A4 करें।');
+      await onUseOnPage(asset);
       signedCroppedAssetRef.current = null;
-      setNotice(signature ? 'Photo and editable signature successfully added to the A4 page.' : 'Photo successfully added to the A4 page.');
+      setNotice('Merged photo successfully added to the A4 page.');
       onFinish();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not transfer the photo to A4. Please try again.');
