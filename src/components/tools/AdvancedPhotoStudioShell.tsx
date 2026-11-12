@@ -434,7 +434,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           setCustomSheetWidthMm(saved.customSheetWidthMm || 102);
           setCustomSheetHeightMm(saved.customSheetHeightMm || 152);
           setSheetCopies(saved.sheetCopies || 8);
-          setSheetMargin(saved.sheetMargin ?? 3);
+          setSheetMargin(saved.sheetMargin === 5 ? 3 : (saved.sheetMargin ?? 3));
           setSheetOrientation(saved.sheetOrientation === 'landscape' ? 'landscape' : 'portrait');
           setSheetGap(saved.sheetGap ?? 2);
           setSheetVerticalGap(saved.sheetVerticalGap ?? 3);
