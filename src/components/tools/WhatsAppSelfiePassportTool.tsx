@@ -162,11 +162,12 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     if(draw){
       cropDrawRef.current=null;
       if(draw.mode==='draw'){
-        setCropRect(r=>{
-          if(r.w<1||r.h<1)return {x:0,y:0,w:100,h:100};
+        if(cropRect.w<1||cropRect.h<1){
+          setCropRect({x:0,y:0,w:100,h:100});
+          setCropHasSelection(false);
+        }else{
           setCropHasSelection(true);
-          return r;
-        });
+        }
       }
     }
   };
