@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { TANSHU_PROFILE_PHOTO } from '../Header';
+import { PhotoFromPhotoTool } from './PhotoFromPhotoTool';
 import {
   ArrowLeft, Camera, Check, Crop, Download, Eraser, FileImage, FlipHorizontal,
   ImagePlus, Info, Layers3, RotateCcw, RotateCw, ScanFace,
-  ShieldCheck, SlidersHorizontal, Sparkles, UploadCloud, WandSparkles,
+  ShieldCheck, SlidersHorizontal, Sparkles, UploadCloud, WandSparkles, ScanLine,
   X, ZoomIn, ZoomOut, Maximize2, Minimize2, Undo2, Redo2, Trash2, Merge
 } from 'lucide-react';
 
-type StudioTool = 'crop' | 'face' | 'straighten' | 'background' | 'signature' | 'adjustments' | 'print';
+type StudioTool = 'crop' | 'face' | 'straighten' | 'background' | 'signature' | 'adjustments' | 'photoFromPhoto' | 'print';
 
 const WORKFLOW_STEPS = [
   { label: 'Upload Selfie', detail: 'Choose a customer photo', icon: Camera },
@@ -25,6 +26,7 @@ const TOOL_ITEMS: { id: StudioTool; label: string; short: string; icon: typeof C
   { id: 'background', label: 'BG Remove', short: 'BG', icon: Eraser },
   { id: 'signature', label: 'Signature Studio', short: 'SIGN', icon: FileImage },
   { id: 'adjustments', label: 'Photo Adjustments', short: 'ADJUST', icon: SlidersHorizontal },
+  { id: 'photoFromPhoto', label: 'Photo From Photo', short: 'PHOTO+', icon: ScanLine },
   { id: 'print', label: 'Photo Size & Print', short: 'PRINT', icon: FileImage },
 ];
 
@@ -53,6 +55,7 @@ const toolDescriptions: Record<StudioTool, { title: string; description: string 
   background: { title: 'Background Studio', description: 'Remove the original backdrop and apply a clean studio colour.' },
   signature: { title: 'Signature Studio', description: 'Clean, position, resize and rotate the customer signature.' },
   adjustments: { title: 'Photo Adjustments', description: 'Tune light, tone, colour and monochrome appearance before export.' },
+  photoFromPhoto: { title: 'Photo From Photo', description: 'Correct perspective from a photographed print, crop to passport dimensions and enhance the result.' },
   print: { title: 'Photo Size & Print', description: 'Choose a standard photo size and prepare print sheets.' },
 };
 
@@ -940,7 +943,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               </div>
 
               <div onWheel={(event) => { if (activeTool !== 'print' && selectedFile && (event.ctrlKey || event.metaKey)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className={'relative flex min-h-0 flex-1 overflow-auto p-4 sm:p-6 '+(activeTool==='print'?'items-start justify-start':'items-center justify-center')} style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
-                {!selectedFile ? (
+                {!selectedFile && activeTool !== 'photoFromPhoto' ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
                     <span className="text-lg font-extrabold text-white sm:text-xl">{inputMode === 'selfie' ? 'Upload Customer Selfie' : inputMode === 'existing' ? 'Upload Existing Photo' : 'Upload WhatsApp Photo'}</span>
@@ -950,7 +953,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange}/>
                   </label>
                 ) : (
-                  activeTool === 'print' ? (
+                  activeTool === 'photoFromPhoto' ? (
+                    <PhotoFromPhotoTool onApply={(file)=>{handleFileChange({target:{files:[file],value:''}} as unknown as React.ChangeEvent<HTMLInputElement>);setInputMode('existing');setActiveTool('crop');setIsCropping(false);}} />
+                  ) : activeTool === 'print' ? (
                     <div className="flex min-h-full min-w-full w-max items-start justify-start p-5">
                       <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative mx-0 my-0 shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
                         {Array.from({length:visiblePhotoCount},(_,index)=>{
@@ -996,7 +1001,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
               </div>
             </section>
 
-            <aside className="hidden min-h-0 overflow-y-auto border-l border-[#343D44] bg-[#1B2126] overscroll-contain lg:block">
+            <aside className={"hidden min-h-0 overflow-y-auto border-l border-[#343D44] bg-[#1B2126] overscroll-contain lg:block "+(activeTool==='photoFromPhoto'?'lg:!hidden':'')}>
               <div className="border-b border-[#343D44] px-4 py-4">
                 <p className="text-[10px] font-extrabold uppercase tracking-[.19em] text-[#71e4c1]">Studio Controls <span className="text-[#607a82]">/</span> Tool Settings</p>
                 <h3 className="mt-1 text-base font-extrabold text-white">{toolDescriptions[activeTool].title}</h3>
