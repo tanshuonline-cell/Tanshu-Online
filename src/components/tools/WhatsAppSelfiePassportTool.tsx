@@ -236,7 +236,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
   const removePhotoBackground = async () => {
     const sourceUrl = processedPhotoUrl || previewUrl;
-    if (!sourceUrl || backgroundStatus === 'Removing background…') return;
+    if (!sourceUrl || backgroundStatus === 'Removing background…' || backgroundStatus === 'Loading free background model…') return;
     setBackgroundStatus('Loading free background model…');
     try {
       if (!segmenterRef.current) {
@@ -625,7 +625,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 </div>
               </div>
 
-              <div onWheel={(event) => { if (selectedFile) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
+              <div onWheel={(event) => { if (selectedFile && Math.abs(event.deltaY) >= Math.abs(event.deltaX)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
@@ -712,7 +712,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <label className="mt-3 block text-[9px] font-bold text-[#D4DCE1]">BACKGROUND COLOUR</label>
                     <div className="mt-2 grid grid-cols-4 gap-2">{[{name:'White',value:'#ffffff'},{name:'Blue',value:'#4f8bc9'},{name:'Red',value:'#c83d42'},{name:'Light Grey',value:'#e7e7e7'}].map(item=><button key={item.value} type="button" onClick={()=>setBackgroundColor(item.value)} className={'rounded-lg border p-2 text-[9px] font-bold '+(backgroundColor===item.value?'border-emerald-300 ring-1 ring-emerald-300/50':'border-[#46535C]')}><span className="mx-auto mb-1 block h-6 w-full rounded" style={{background:item.value}}/>{item.name}</button>)}</div>
                     <label className="mt-3 block text-[9px] font-bold text-[#D4DCE1]">CUSTOM COLOUR</label><input type="color" value={backgroundColor} onChange={event=>setBackgroundColor(event.target.value)} className="mt-1 h-9 w-full cursor-pointer rounded-lg border border-[#46535C] bg-[#171D22] p-1"/>
-                    <button type="button" onClick={removePhotoBackground} disabled={!selectedFile||backgroundStatus==='Removing background…'} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-40">{backgroundStatus==='Removing background…'?'Removing…':'Remove Background & Apply Colour'}</button>
+                    <button type="button" onClick={removePhotoBackground} disabled={!selectedFile||backgroundStatus==='Removing background…'||backgroundStatus==='Loading free background model…'} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:opacity-40">{backgroundStatus==='Removing background…'?'Removing…':'Remove Background & Apply Colour'}</button>
                     {backgroundStatus&&<p className="mt-2 text-[9px] leading-4 text-emerald-200">{backgroundStatus}</p>}
                     <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Best results: clear person outline, good lighting and a visible head/shoulder boundary.</p>
                   </div>
