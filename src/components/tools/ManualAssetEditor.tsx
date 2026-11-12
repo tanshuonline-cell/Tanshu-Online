@@ -16,7 +16,7 @@ type Props = {
   onClose: (id: string) => void;
   onDuplicate: (id: string) => void;
   onReplaceSource: (id: string, src: string) => void;
-  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number }) => void | Promise<void>;
+  onUseOnPage: (asset: { name: string; src: string; widthMm: number; heightMm: number; signature?: {name:string;src:string;x:number;y:number;width:number} }) => void | Promise<void>;
   onFinish: () => void;
   signatureAsset?: { name: string; src: string } | null;
   onSignatureApplied?: () => void;
@@ -322,64 +322,34 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
   const applySignatureToCrop = async (): Promise<{src:string;widthMm:number;heightMm:number;name:string}|null> => {
     if (!signatureAsset || !croppedAsset) return null;
     try {
-      // Always composite onto the actual cropped image, not the visual overlay.
-      const photoSource = croppedAsset.src || workingSrc || active.src;
-      const [photo, signature] = await Promise.all([loadImage(photoSource), loadImage(signatureAsset.src)]);
-      const canvas = document.createElement('canvas');
-      canvas.width = photo.naturalWidth; canvas.height = photo.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas is unavailable.');
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(photo, 0, 0);
-      const drawWidth = Math.max(1, photo.naturalWidth * Math.max(1, Math.min(100, signaturePosition.width)) / 100);
-      const drawHeight = drawWidth * signature.naturalHeight / Math.max(1, signature.naturalWidth);
-      const left = Math.max(0, Math.min(photo.naturalWidth - drawWidth, photo.naturalWidth * signaturePosition.x / 100));
-      const top = Math.max(0, Math.min(photo.naturalHeight - drawHeight, photo.naturalHeight * signaturePosition.y / 100));
-      ctx.drawImage(signature, left, top, drawWidth, drawHeight);
-      const src = canvas.toDataURL('image/png');
-      if (!src || src === 'data:,') throw new Error('Signed photo could not be created.');
-      const baseName = (croppedAsset.name || active.name).replace(/\.[^.]+$/, '');
-      const nextAsset = {
-        src,
-        widthMm: croppedAsset.widthMm || photo.naturalWidth * 25.4 / 300,
-        heightMm: croppedAsset.heightMm || photo.naturalHeight * 25.4 / 300,
-        name: baseName + '-signed.png'
-      };
-      signedCroppedAssetRef.current = nextAsset;
-      const nextState = { src, box: {x:0,y:0,w:100,h:100}, croppedAsset: nextAsset, cutoutSrc: '', backgroundColor: null };
-      setHistory(prev => { const next = [...prev.slice(0, historyIndex + 1), nextState]; setHistoryIndex(next.length - 1); return next; });
-      setWorkingSrc(src); setCroppedAsset(nextAsset); setCutoutSrc(''); setBackgroundColor(null);
-      setBox(nextState.box); setSignaturePosition({x:54,y:70,width:30}); setSignatureDrag(null);
-      onSignatureApplied?.();
-      setNotice('Signature merged into the cropped photo. You can now add this merged image to A4.');
-      return nextAsset;
+      // Keep the signature as a separate editable layer. The crop preview shows
+      // it over the photo, and Add to A4 transfers both layers independently.
+      await Promise.all([loadImage(croppedAsset.src || workingSrc || active.src), loadImage(signatureAsset.src)]);
+      setNotice('Signature is placed on the cropped photo. Add to A4 to keep it independently editable and resizable.');
+      return croppedAsset;
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not merge the signature into the cropped photo.');
+      setNotice(error instanceof Error ? error.message : 'Could not prepare the signature for the cropped photo.');
       return null;
     }
   };
   const addCroppedToA4 = async () => {
     if (addingToA4) return;
     setAddingToA4(true);
-    setNotice('Preparing the final photo for A4…');
+    setNotice('Preparing the photo and signature for A4…');
     try {
-      let asset = signedCroppedAssetRef.current || croppedAsset || {
+      const asset = croppedAsset || {
         src: workingSrc || active.src,
         name: active.name,
         widthMm: naturalSize.width > 0 ? naturalSize.width * 25.4 / 300 : 45,
         heightMm: naturalSize.height > 0 ? naturalSize.height * 25.4 / 300 : 60
       };
-      // If the signature is still a separate draggable overlay, merge it first.
-      if (signatureAsset && croppedAsset && !signedCroppedAssetRef.current) {
-        const mergedAsset = await applySignatureToCrop();
-        if (!mergedAsset) throw new Error('Signature merge failed. The crop editor is still open; adjust the signature and try Merge Signature again.');
-        asset = mergedAsset;
-      }
       const image = await loadImage(asset.src);
       if (!image.naturalWidth || !image.naturalHeight) throw new Error('The selected photo is empty or invalid.');
-      await onUseOnPage({name:asset.name,src:asset.src,widthMm:asset.widthMm,heightMm:asset.heightMm});
+      const signature = signatureAsset ? {...signatureAsset, ...signaturePosition} : undefined;
+      if (signature) await loadImage(signature.src);
+      await onUseOnPage({...asset, signature});
       signedCroppedAssetRef.current = null;
-      setNotice('Merged photo successfully added to the A4 page.');
+      setNotice(signature ? 'Photo and editable signature successfully added to the A4 page.' : 'Photo successfully added to the A4 page.');
       onFinish();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not transfer the photo to A4. Please try again.');
@@ -467,7 +437,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       <button onClick={undoCrop} disabled={historyIndex===0} title="Undo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Undo2 size={13}/></button>
       <button onClick={redoCrop} disabled={historyIndex>=history.length-1} title="Redo" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 disabled:opacity-35"><Redo2 size={13}/></button>{croppedAsset&&<button onClick={()=>{applyHistory(0);setTargetW('0');setTargetH('0');setLockRatio(false);setDimensionEditing(false);setNotice('Original photo restored. Select a new crop, then press Crop / OK.');}} title="Restore the original source photo to make a fresh crop" className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]">Re-crop Original</button>}
       <button onClick={handleReset} className="shrink-0 rounded border border-[#53606c] px-2 py-1.5 text-[9px]"><RotateCcw size={11} className="mr-1 inline"/>Reset</button>
-      <button onClick={()=>{onActiveChange(active.id);void cropOnly();}} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>{signatureAsset&&<button disabled={!croppedAsset} title={croppedAsset?"Merge the positioned signature into this cropped photo":"पहले Crop / OK दबाकर फोटो क्रॉप करें"} onClick={()=>void applySignatureToCrop()} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Merge Signature</button>}
+      <button onClick={()=>{onActiveChange(active.id);void cropOnly();}} className="shrink-0 rounded bg-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#171b20]"><Check size={11} className="mr-1 inline"/>Crop / OK</button>{signatureAsset&&<button disabled={!croppedAsset} title={croppedAsset?"Merge the positioned signature into this cropped photo":"पहले Crop / OK दबाकर फोटो क्रॉप करें"} onClick={()=>void applySignatureToCrop()} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:cursor-not-allowed disabled:opacity-40">Apply Signature</button>}
       {<button onClick={()=>void addCroppedToA4()} disabled={!workspaceOpen||addingToA4} title={workspaceOpen?"Add the current photo to A4":"Photo is already on the A4 workspace"} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895] disabled:opacity-40">{addingToA4?'Adding…':'Add to A4'}</button>}{workspaceOpen?<button onClick={()=>{onClose(active.id);onFinish();}} title="Close photo workspace" className="shrink-0 rounded border border-[#53606c] p-1.5"><X size={13}/></button>:<button onClick={()=>{onActiveChange(active.id);onOpen?.();}} className="shrink-0 rounded border border-[#d5a66e] px-2 py-1.5 text-[9px] font-semibold text-[#f0c895]">Back to Crop</button>}
     </div>
     {workspaceOpen&&<div className="absolute bottom-0 left-[64px] right-[270px] top-[128px] z-30 flex min-h-0 items-center justify-center overflow-auto border-y border-[#414a54] bg-[#151b22] p-3">
@@ -483,7 +453,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
         <button disabled={!cutoutSrc} onClick={()=>void applyPhotoBackground()} className="w-full rounded-lg bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20] disabled:cursor-not-allowed disabled:opacity-40">OK · Apply to Cropped Photo</button>
       </div>}
       <div ref={stageRef} onPointerDown={startStagePointer} onPointerMove={moveCropBox} onPointerUp={e=>{setDrag(null);setSignatureDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>{setDrag(null);setSignatureDrag(null);}} onDragOver={e=>{if(e.dataTransfer.types.includes('application/x-tanshu-signature-src'))e.preventDefault();}} onDrop={e=>{const src=e.dataTransfer.getData('application/x-tanshu-signature-src')||e.dataTransfer.getData('text/plain');if(!src)return;e.preventDefault();const rect=getImageRect();if(rect?.width&&rect.height)setSignaturePosition(current=>({...current,x:Math.max(0,Math.min(100-current.width,(e.clientX-rect.left)/rect.width*100)),y:Math.max(0,Math.min(99,(e.clientY-rect.top)/rect.height*100))}));onSignatureDrop?.({name:'Cleaned Signature.png',src});}} className="relative flex h-full max-h-full max-w-full shrink-0 items-center justify-center select-none" style={{touchAction:'none'}}>
-        <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-full max-w-full object-contain"/>{signatureAsset&&croppedAsset&&<img data-signature-overlay src={signatureAsset.src} alt="Signature placement — drag to position" draggable={false} onPointerDown={e=>{e.preventDefault();e.stopPropagation();stageRef.current?.setPointerCapture(e.pointerId);setSignatureDrag({startX:e.clientX,startY:e.clientY,initial:{...signaturePosition}});}} onPointerUp={e=>{setSignatureDrag(null);if(stageRef.current?.hasPointerCapture(e.pointerId))stageRef.current.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setSignatureDrag(null)} className="absolute z-20 max-w-none cursor-grab touch-none active:cursor-grabbing" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:signaturePosition.width+'%',height:'auto',pointerEvents:'auto'}}/>}
+        <img ref={imageRef} src={workingSrc||active.src} alt={active.name} draggable={false} onLoad={e=>setNaturalSize({width:e.currentTarget.naturalWidth,height:e.currentTarget.naturalHeight})} className="block h-auto w-auto max-h-full max-w-full object-contain"/>{signatureAsset&&<img data-signature-overlay src={signatureAsset.src} alt="Signature placement — drag to position" draggable={false} onPointerDown={e=>{e.preventDefault();e.stopPropagation();stageRef.current?.setPointerCapture(e.pointerId);setSignatureDrag({startX:e.clientX,startY:e.clientY,initial:{...signaturePosition}});}} onPointerUp={e=>{setSignatureDrag(null);if(stageRef.current?.hasPointerCapture(e.pointerId))stageRef.current.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setSignatureDrag(null)} className="absolute z-20 max-w-none cursor-grab touch-none active:cursor-grabbing" style={{left:signaturePosition.x+'%',top:signaturePosition.y+'%',width:signaturePosition.width+'%',height:'auto',pointerEvents:'auto'}}/>}
         {cropMode&&<><div aria-hidden="true" className="pointer-events-none absolute z-[5] border-2 border-red-500 bg-red-500/[0.04]" style={{left:box.x+'%',top:box.y+'%',width:box.w+'%',height:box.h+'%'}}/>
           {!(box.x===0&&box.y===0&&box.w===100&&box.h===100)&&(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} aria-label={'Crop '+handle} title={'Resize crop '+handle} onPointerDown={e=>setCorner(e,handle)} onPointerMove={moveCorner} onPointerUp={e=>{setDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setDrag(null)} onClick={e=>e.stopPropagation()} className={'absolute z-10 rounded-full border-2 border-[#fecaca] bg-red-600 shadow-[0_0_0_2px_rgba(0,0,0,.45)] touch-none '+(handle==='n'||handle==='s'?'h-3 w-5':'h-5 w-3')} style={{left:handle.includes('w')?box.x+'%':handle.includes('e')?(box.x+box.w)+'%':(box.x+box.w/2)+'%',top:handle.includes('n')?box.y+'%':handle.includes('s')?(box.y+box.h)+'%':(box.y+box.h/2)+'%',transform:'translate(-50%,-50%)',touchAction:'none',cursor:handle==='n'||handle==='s'?'ns-resize':handle==='e'||handle==='w'?'ew-resize':handle==='nw'||handle==='se'?'nwse-resize':'nesw-resize'}}/>)}
         </>}
