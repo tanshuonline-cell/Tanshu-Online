@@ -659,7 +659,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             </nav>
 
             <section className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[#12171B] overscroll-contain">
-              <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-[#303941] bg-[#12171B]/95 px-4 py-3 backdrop-blur">
+              <div className="sticky top-0 z-20 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[#303941] bg-[#12171B]/95 px-4 py-3 backdrop-blur">
                 <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8C9AA4]">Live photo canvas</p><p className="mt-0.5 text-xs font-semibold text-[#E3E8EC]">{selectedFile ? 'Photo loaded · Ready to edit' : 'Your photo preview will appear here'}</p></div>
                 <div className="flex items-center gap-1.5">
                   {selectedFile && <>
@@ -669,14 +669,14 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   </>}
                   <button type="button" onClick={() => activeTool==='print' ? setSheetZoom(value=>Math.max(50,value-10)) : setZoom(value => Math.max(50, value - 10))} disabled={!selectedFile} aria-label="Zoom out" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomOut size={14}/></button>
                   <span className="w-10 text-center text-[10px] font-bold tabular-nums text-[#C8D1D9]">{activeTool==='print'?sheetZoom:zoom}%</span>
-                  <button type="button" onClick={() => activeTool==='print' ? setSheetZoom(value=>Math.min(160,value+10)) : setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
+                  <button type="button" onClick={() => activeTool==='print' ? setSheetZoom(value=>Math.min(250,value+10)) : setZoom(value => Math.min(180, value + 10))} disabled={!selectedFile} aria-label="Zoom in" className="rounded-lg border border-[#3A444C] p-2 text-[#AEB8C0] hover:bg-white/5 disabled:opacity-30"><ZoomIn size={14}/></button>
                   {selectedFile&&activeTool==='crop'&&<button type="button" onClick={()=>setIsCropping(v=>!v)} className={isCropping?'ml-1 rounded-lg border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-2 text-[10px] font-bold text-emerald-200':'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] hover:bg-white/5'}>{isCropping?'Done':'Crop'}</button>}
                   {selectedFile&&activeTool==='face'&&<button type="button" onClick={runFreeFaceAlignment} disabled={faceStatus==='loading'} className="ml-1 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-[10px] font-bold text-emerald-200 disabled:opacity-50">{faceStatus==='loading'?'Loading model…':'Detect & Straighten'}</button>}
                   <button type="button" onClick={() => setShowGuides(value => !value)} disabled={!selectedFile} className={showGuides ? 'ml-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-300 disabled:opacity-30' : 'ml-1 rounded-lg border border-[#3A444C] px-2.5 py-2 text-[10px] font-semibold text-[#AEB8C0] disabled:opacity-30'}>Guides</button>
                 </div>
               </div>
 
-              <div onWheel={(event) => { if (selectedFile && (event.ctrlKey || event.metaKey)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; if (activeTool === 'print') setSheetZoom(value => Math.max(50, Math.min(160, value + delta))); else setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
+              <div onWheel={(event) => { if (activeTool !== 'print' && selectedFile && (event.ctrlKey || event.metaKey)) { event.preventDefault(); const delta = event.deltaY < 0 ? 5 : -5; setZoom(value => Math.max(50, Math.min(250, value + delta))); } }} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-6" style={{backgroundImage:'radial-gradient(#34414a 1px, transparent 1px)',backgroundSize:'18px 18px'}}>
                 {!selectedFile ? (
                   <label className="group flex min-h-[390px] w-full max-w-[580px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#4B6260] bg-[#1A2527]/90 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-[#1D2B2B]">
                     <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-black/20 transition group-hover:scale-105"><UploadCloud size={35}/></span>
@@ -688,8 +688,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   </label>
                 ) : (
                   activeTool === 'print' ? (
-                    <div className="flex min-h-full min-w-full items-center justify-center overflow-auto p-5">
-                      <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px',padding:Math.max(4,sheetMarginMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
+                    <div className="flex min-h-full min-w-full w-max items-start p-5">
+                      <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative m-auto shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px',padding:Math.max(4,sheetMarginMm*sheetPreviewScale*sheetZoom/100)+'px'}}> 
                         <div className={sheetSize==='A4'?"grid grid-cols-3 content-start":"grid grid-cols-2 content-start"} style={{gap:Math.max(2,sheetGapMm*sheetPreviewScale*sheetZoom/100)+'px',gridTemplateColumns:'repeat('+sheetColumns+', minmax(0, 1fr))'}}>
                           {Array.from({length:visiblePhotoCount},(_,index)=><div key={index} className="relative overflow-hidden bg-slate-100" style={{width:Math.round(photoWidthMm*sheetPreviewScale*sheetZoom/100)+'px',margin:'0 auto',aspectRatio:photoWidthMm+' / '+photoHeightMm,border:borderEnabled?Math.max(1,borderWidthMm*sheetPreviewScale*sheetZoom/100)+'px solid '+borderColor:'none'}}>
                             <img src={mergedPhotoUrl || processedPhotoUrl || previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
@@ -817,7 +817,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 ) : (
                   <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-3">
                     <div className="flex items-center gap-2 text-emerald-200"><Sparkles size={15}/><span className="text-[10px] font-extrabold uppercase tracking-wide">Print layout workspace</span></div>
-                    <p className="mt-2 text-[10px] leading-5 text-[#C1CDD2]">Choose A4 or 4 × 6, set the number of copies, zoom the paper with the mouse wheel, then export the sheet. Print at 100% / Actual Size.</p>
+                    <p className="mt-2 text-[10px] leading-5 text-[#C1CDD2]">Choose A4 or 4 × 6, set the number of copies, hover over the paper and use the mouse wheel to zoom; outside the paper, scroll normally. Print at 100% / Actual Size.</p>
                   </div>
                 )}
 
@@ -839,8 +839,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER WIDTH · {borderWidthMm.toFixed(1)} mm</label><input type="range" min="0.1" max="1.5" step="0.1" value={borderWidthMm} onChange={event=>setBorderWidthMm(Number(event.target.value))} className="mt-1 w-full accent-emerald-400"/></>}
                   <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
                   <div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#D4DCE1]">SHEET ZOOM</span><span className="text-[9px] tabular-nums text-emerald-300">{sheetZoom}%</span></div>
-                  <input type="range" min="50" max="160" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
-                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Ctrl + mouse wheel zooms the paper. Normal wheel and side-scroll move around the sheet.</p>
+                  <input type="range" min="50" max="250" step="5" value={sheetZoom} onChange={event => setSheetZoom(Number(event.target.value))} className="mt-2 w-full accent-emerald-400"/>
+                  <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the paper zooms in/out. Outside the paper, the wheel scrolls the workspace normally.</p>
                 </div>
 
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
