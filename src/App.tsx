@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
+import { WhatsAppSelfiePassportTool } from './components/tools/WhatsAppSelfiePassportTool';
 import { Header, TANSHU_PROFILE_PHOTO } from './components/Header';
 import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
@@ -402,6 +403,11 @@ export default function App() {
   // Dedicated Instant Passport Photo Studio preview route.
   if (window.location.pathname === '/advanced-photo-studio-preview') {
     return <AdvancedPhotoStudioShell />;
+  }
+
+  // Dedicated WhatsApp Selfie to Passport Photo route — isolated from existing studios.
+  if (window.location.pathname === '/whatsapp-selfie-passport-photo') {
+    return <WhatsAppSelfiePassportTool />;
   }
 
   // ROUTE 1: ADMIN PANEL
