@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
-  ArrowLeft, ArrowRight, Camera, CheckCircle2, ChevronRight, Crop, ImagePlus,
-  Layers, LayoutGrid, Plus, Printer, RotateCw, Settings2, SlidersHorizontal,
+  ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Crop, ImagePlus,
+  LayoutGrid, Plus, Printer, RotateCw, Settings2, SlidersHorizontal,
   Sparkles, Trash2, Upload, Users, UserRound, X
 } from 'lucide-react';
 
