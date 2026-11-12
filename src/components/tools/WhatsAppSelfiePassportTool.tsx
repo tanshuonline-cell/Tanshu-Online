@@ -35,10 +35,10 @@ const toolDescriptions: Record<StudioTool, { title: string; description: string 
   print: { title: 'Photo Size & Print', description: 'Choose a standard photo size and prepare print sheets.' },
 };
 
-const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;step:number;unit?:string;onChange:(value:number)=>void}> = ({label,value,min,max,step,unit='mm',onChange}) => {
+const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;step:number;unit?:string;compact?:boolean;onChange:(value:number)=>void}> = ({label,value,min,max,step,unit='mm',compact=false,onChange}) => {
   const normalize=(next:number)=>step===1?Math.round(next):Number(next.toFixed(3));
   const adjust=(amount:number)=>onChange(normalize(Math.max(min,Math.min(max,value+amount))));
-  return <div className="min-w-0"><label className="mb-1 block text-[9px] font-bold text-[#D4DCE1]">{label}</label><div className="flex h-8 items-center overflow-hidden rounded-lg border border-[#46535C] bg-[#171D22]">
+  return <div className={compact?'flex min-w-0 items-center gap-1.5':'min-w-0'}><label className={compact?'shrink-0 text-[9px] font-bold text-[#AAB8C0]':'mb-1 block text-[9px] font-bold text-[#D4DCE1]'}>{label}</label><div className="flex h-8 min-w-0 items-center overflow-hidden rounded-lg border border-[#46535C] bg-[#171D22]">
     <button type="button" aria-label={label+' decrease'} onClick={()=>adjust(-step)} className="h-full w-7 shrink-0 text-sm font-bold text-[#C3CDD3] hover:bg-white/10">−</button>
     <input aria-label={label} type="number" min={min} max={max} step={step} value={value} onChange={event=>{const next=event.target.value;if(next!=='')onChange(normalize(Math.max(min,Math.min(max,Number(next)))));}} onWheel={event=>{event.preventDefault();event.stopPropagation();adjust(event.deltaY<0?step:-step);}} className="h-full min-w-0 w-full bg-transparent px-1 text-center text-[10px] font-bold tabular-nums text-white outline-none"/>
     <span className="shrink-0 text-[8px] text-[#829099]">{unit}</span><button type="button" aria-label={label+' increase'} onClick={()=>adjust(step)} className="h-full w-7 shrink-0 text-sm font-bold text-[#C3CDD3] hover:bg-white/10">+</button>
@@ -58,7 +58,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [inputMode, setInputMode] = useState<'selfie' | 'existing' | 'whatsapp'>('selfie');
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [signatureUrl, setSignatureUrl] = useState('');
-  const [sheetSize, setSheetSize] = useState<'A4' | '4x6'>('A4');
+  const [sheetSize, setSheetSize] = useState('A4');
+  const [customSheetWidthMm, setCustomSheetWidthMm] = useState(210);
+  const [customSheetHeightMm, setCustomSheetHeightMm] = useState(297);
   const [sheetZoom, setSheetZoom] = useState(100);
   const [signatureVisible, setSignatureVisible] = useState(true);
   const [signatureProcessedUrl, setSignatureProcessedUrl] = useState('');
@@ -80,12 +82,24 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const [isMerging, setIsMerging] = useState(false);
   const photoWidthMm = photoSize === '2x2' ? 50.8 : 35;
   const photoHeightMm = photoSize === '35x45' ? 45 : photoSize === '2x2' ? 50.8 : 35;
-  const sheetWidthMm = sheetSize === 'A4' ? 210 : 152.4;
-  const sheetHeightMm = sheetSize === 'A4' ? 297 : 101.6;
+  const paperDimensions: Record<string,{width:number;height:number;label:string}> = {
+    single:{width:photoWidthMm,height:photoHeightMm,label:'Single Photo'},
+    '3.5x5':{width:88.9,height:127,label:'3.5 × 5'},
+    '4x6':{width:101.6,height:152.4,label:'4 × 6'},
+    '5x7':{width:127,height:177.8,label:'5 × 7'},
+    '6x8':{width:152.4,height:203.2,label:'6 × 8'},
+    '8x10':{width:203.2,height:254,label:'8 × 10'},
+    A6:{width:105,height:148,label:'A6'}, A5:{width:148,height:210,label:'A5'},
+    A4:{width:210,height:297,label:'A4'}, A3:{width:297,height:420,label:'A3'},
+    Letter:{width:215.9,height:279.4,label:'Letter'}, Legal:{width:215.9,height:355.6,label:'Legal'},
+    custom:{width:customSheetWidthMm,height:customSheetHeightMm,label:'Custom'}
+  };
+  const sheetWidthMm = paperDimensions[sheetSize]?.width ?? 210;
+  const sheetHeightMm = paperDimensions[sheetSize]?.height ?? 297;
   const sheetColumns = Math.max(1, Math.floor((sheetWidthMm - horizontalMarginMm * 2 + horizontalGapMm) / (photoWidthMm + horizontalGapMm)));
   const sheetRows = Math.max(1, Math.floor((sheetHeightMm - verticalMarginMm * 2 + verticalGapMm) / (photoHeightMm + verticalGapMm)));
   const sheetCapacity = sheetColumns * sheetRows;
-  const sheetPreviewScale = sheetSize === 'A4' ? 2 : 360 / 152.4;
+  const sheetPreviewScale = 2;
   const visiblePhotoCount = Math.min(photoCount, sheetCapacity);
   const segmenterRef = useRef<any>(null);
   const signatureDragRef = useRef<{x:number;y:number;left:number;top:number}|null>(null);
@@ -562,8 +576,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       });
       const photo = await loadImage(mergedPhotoUrl || processedPhotoUrl || previewUrl);
       const signature = !mergedPhotoUrl && signatureUrl && signatureVisible ? await loadImage(signatureProcessedUrl || signatureUrl) : null;
-      const pageWidth = sheetSize === 'A4' ? 2480 : 1800;
-      const pageHeight = sheetSize === 'A4' ? 3508 : 1200;
+      const pageWidth = Math.round(sheetWidthMm * 300 / 25.4);
+      const pageHeight = Math.round(sheetHeightMm * 300 / 25.4);
       const horizontalMargin = Math.round(horizontalMarginMm * 300 / 25.4);
       const verticalMargin = Math.round(verticalMarginMm * 300 / 25.4);
       const horizontalGap = Math.round(horizontalGapMm * 300 / 25.4);
@@ -621,7 +635,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       }
       const link = document.createElement('a');
       link.href = canvas.toDataURL('image/png');
-      link.download = sheetSize === 'A4' ? 'tanshu-A4-passport-photo-sheet.png' : 'tanshu-4x6-passport-photo-sheet.png';
+      link.download = `tanshu-${sheetSize}-passport-photo-sheet.png`;
       link.click();
     } catch (error) {
       console.error('Print sheet export failed:', error);
@@ -674,9 +688,9 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
             <button type="button" onClick={() => { setActiveTool('background'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2 text-[10px] font-extrabold text-emerald-200 disabled:opacity-40"><Eraser size={13} className="mr-1 inline"/>BG Remove</button>
             <button type="button" onClick={() => { setActiveTool('signature'); setIsCropping(false); }} disabled={!selectedFile} className="rounded-lg border border-[#3A444C] px-3 py-2 text-[10px] font-bold text-[#C8D1D9] disabled:opacity-40">Add Signature</button>
             {activeTool==='print'&&<div className="flex shrink-0 items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/[.05] px-2 py-1">
-              <label className="text-[9px] font-bold text-[#AAB8C0]">SHEET</label><select value={sheetSize} onChange={event=>{setSheetSize(event.target.value as 'A4'|'4x6');setPhotoPositions({});}} className="h-7 rounded border border-[#46535C] bg-[#171D22] px-1.5 text-[9px] font-bold text-white"><option value="A4">A4</option><option value="4x6">4 × 6</option></select>
-              <div className="w-[118px]"><NumericStepper label="PHOTOS" value={visiblePhotoCount} min={1} max={sheetCapacity} step={1} unit="copies" onChange={setPhotoCount}/></div>
-              <div className="w-[112px]"><NumericStepper label="SHEET ZOOM" value={sheetZoom} min={50} max={250} step={5} unit="%" onChange={setSheetZoom}/></div>
+              <div className="flex shrink-0 items-center gap-1.5"><label className="text-[9px] font-bold text-[#AAB8C0]">SHEET</label><select value={sheetSize} onChange={event=>{setSheetSize(event.target.value);setPhotoPositions({});}} className="h-8 max-w-[150px] rounded border border-[#46535C] bg-[#171D22] px-2 text-[9px] font-bold text-white"><optgroup label="Common photo paper"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="A6">A6 Sheet</option><option value="A5">A5 Sheet</option><option value="A4">A4 Sheet</option><option value="A3">A3 Sheet</option><option value="Letter">Letter Sheet</option><option value="Legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select></div>
+              <div className="min-w-0"><NumericStepper compact label="PHOTO COUNT" value={visiblePhotoCount} min={1} max={sheetCapacity} step={1} unit="copies" onChange={setPhotoCount}/></div>
+              <div className="min-w-0"><NumericStepper compact label="SHEET ZOOM" value={sheetZoom} min={50} max={250} step={5} unit="%" onChange={setSheetZoom}/></div>
             </div>}
             <div className="flex shrink-0 items-center gap-2 text-[10px] text-[#9BA7B0]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{selectedFile ? 'Photo loaded locally' : 'Waiting for photo'}<span className="mx-1 text-[#4D5962]">|</span>Studio ready</div>
           </div>
@@ -851,13 +865,13 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       <p className="mt-1 text-[9px] leading-4 text-[#AAB8C0]">{faceMessage}</p>
                       {detectedTilt!==null&&<p className="mt-2 text-[9px] font-semibold tabular-nums text-emerald-200">Measured eye-line tilt: {detectedTilt.toFixed(1)}°</p>}
                     </div>
-                    {processedPhotoUrl && <div className="mt-3 space-y-2"><div className="rounded-lg border border-emerald-300/25 bg-emerald-300/10 p-2.5"><p className="text-[9px] font-extrabold text-emerald-200">INDIAN PASSPORT PHOTO READY</p><p className="mt-1 text-[9px] text-[#C1CDD2]">{photoSize==='35x45'?'35 × 45 mm':photoSize==='35x35'?'35 × 35 mm':'2 × 2 inch'} · White canvas · 300-DPI pixel dimensions</p></div><button type="button" onClick={()=>setActiveTool('print')} className="w-full rounded-lg border border-emerald-300/35 bg-emerald-400/10 px-3 py-2.5 text-[10px] font-extrabold text-emerald-200">Open A4 / 4 × 6 Print Sheet</button></div>}
+                    {processedPhotoUrl && <div className="mt-3 space-y-2"><div className="rounded-lg border border-emerald-300/25 bg-emerald-300/10 p-2.5"><p className="text-[9px] font-extrabold text-emerald-200">INDIAN PASSPORT PHOTO READY</p><p className="mt-1 text-[9px] text-[#C1CDD2]">{photoSize==='35x45'?'35 × 45 mm':photoSize==='35x35'?'35 × 35 mm':'2 × 2 inch'} · White canvas · 300-DPI pixel dimensions</p></div><button type="button" onClick={()=>setActiveTool('print')} className="w-full rounded-lg border border-emerald-300/35 bg-emerald-400/10 px-3 py-2.5 text-[10px] font-extrabold text-emerald-200">Open Print Sheet</button></div>}
     <p className="mt-3 text-[8px] leading-4 text-[#83919A]">First use downloads the model and WASM files. Processing runs locally; no API key, account, payment or photo upload is used. Strong side-angle selfies cannot be turned into a true front-facing face by this tool.</p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-3">
                     <div className="flex items-center gap-2 text-emerald-200"><Sparkles size={15}/><span className="text-[10px] font-extrabold uppercase tracking-wide">Print layout workspace</span></div>
-                    <p className="mt-2 text-[10px] leading-5 text-[#C1CDD2]">Choose A4 or 4 × 6, set the number of copies, hover over the paper and use the mouse wheel to zoom; outside the paper, scroll normally. Print at 100% / Actual Size.</p>
+                    <p className="mt-2 text-[10px] leading-5 text-[#C1CDD2]">Choose a paper size, set the photo count, hover over the paper and use the mouse wheel to zoom; outside the paper, scroll normally. Print at 100% / Actual Size.</p>
                   </div>
                 )}
 
@@ -871,6 +885,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
                 {activeTool==='print'&&<div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[.05] p-3">
                   <p className="mb-3 text-[10px] font-bold tracking-wide text-emerald-200">ADVANCED PRINT SETTINGS</p>
+                  {sheetSize==='custom'&&<div className="mb-3 grid grid-cols-2 gap-2"><NumericStepper label="PAPER WIDTH" value={customSheetWidthMm} min={50} max={500} step={1} onChange={setCustomSheetWidthMm}/><NumericStepper label="PAPER HEIGHT" value={customSheetHeightMm} min={50} max={700} step={1} onChange={setCustomSheetHeightMm}/></div>}
                   <p className="mb-3 text-[8px] leading-4 text-[#83919A]">Adjust spacing precisely. Drag each photo on the sheet to place it anywhere; the downloaded sheet follows the same positions.</p>
                   <div className="grid grid-cols-2 gap-2">
                     <NumericStepper label="HORIZONTAL MARGIN" value={horizontalMarginMm} min={0} max={30} step={0.5} onChange={setHorizontalMarginMm}/>
@@ -881,7 +896,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   <button type="button" onClick={()=>setBorderEnabled(value=>!value)} className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-semibold text-[#C3CDD3]"><span>Photo border</span><span className="text-emerald-200">{borderEnabled?'ON':'OFF'}</span></button>
                   {borderEnabled&&<><label className="mt-2 block text-[9px] font-bold text-[#D4DCE1]">BORDER COLOUR</label><input type="color" value={borderColor} onChange={event=>setBorderColor(event.target.value)} className="mt-1 h-8 w-full rounded border border-[#46535C] bg-[#171D22] p-1"/><NumericStepper label="BORDER WIDTH" value={borderWidthMm} min={0.1} max={2} step={0.1} onChange={setBorderWidthMm}/></>}
                   <button type="button" onClick={()=>setPhotoPositions({})} className="mt-3 w-full rounded-lg border border-[#46535C] px-3 py-2 text-[9px] font-bold text-[#C3CDD3]">Reset photo positions to grid</button>
-                  <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {sheetSize} Print Sheet (PNG)</button>
+                  <button type="button" onClick={downloadPrintSheet} disabled={!selectedFile} className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2.5 text-[10px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40">Download {paperDimensions[sheetSize]?.label ?? 'Custom'} Print Sheet (PNG)</button>
                   <p className="mt-2 text-[8px] leading-4 text-[#83919A]">Mouse wheel over the paper zooms; outside the paper, scroll normally. Use Actual Size / 100% when printing.</p>
                 </div>}
 
