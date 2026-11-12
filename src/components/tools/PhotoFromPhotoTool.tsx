@@ -157,7 +157,7 @@ export const PhotoFromPhotoTool: React.FC<Props> = ({onApply}) => {
         }else{
           const y=.299*r+.587*g+.114*b, cb=128-.168736*r-.331264*g+.5*b, cr=128+.5*r-.418688*g-.081312*b;
           const skin=cr>132&&cr<180&&cb>75&&cb<135&&y>45;
-          const mix=skin?.42:0;
+          const mix=skin ? 0.42 : 0;
           out.data[i]=Math.round(r*(1-mix)+sr*mix);out.data[i+1]=Math.round(g*(1-mix)+sg*mix);out.data[i+2]=Math.round(b*(1-mix)+sb*mix);
         }
         out.data[i+3]=original.data[i+3];
