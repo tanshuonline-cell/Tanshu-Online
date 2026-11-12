@@ -111,7 +111,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className={`text-sm font-bold ${active ? 'text-emerald-800' : 'text-slate-600'}`}>{step.label}</p>
-                        <p className="text-xs text-slate-500">{index === 0 ? 'Select the customer's selfie' : 'Planned for the next development stage'}</p>
+                        <p className="text-xs text-slate-500">{index === 0 ? 'Select the customer\u2019s selfie' : 'Planned for the next development stage'}</p>
                       </div>
                       {active && <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-800">Current</span>}
                     </div>
