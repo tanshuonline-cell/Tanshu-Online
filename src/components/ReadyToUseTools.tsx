@@ -127,6 +127,28 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
                     <a href="/whatsapp-selfie-passport-photo" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-800">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
                   </div>
                 </article>
+                <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-400 hover:shadow-xl">
+                  <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-100 p-4">
+                    <div className="absolute left-4 top-4 rounded-full bg-indigo-800 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white">Batch Studio</div>
+                    <div className="grid w-full max-w-[250px] grid-cols-3 gap-2">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <div key={index} className="flex aspect-[3/4] items-center justify-center rounded-lg border border-indigo-100 bg-white p-1.5 shadow-sm">
+                          <div className="flex h-full w-full flex-col items-center justify-center rounded-md bg-gradient-to-b from-slate-100 to-indigo-50">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700"><UserRound className="h-5 w-5" /></span>
+                            <span className="mt-1 h-1 w-8 rounded-full bg-indigo-200" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="absolute bottom-3 right-3 rounded-md bg-indigo-800 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">MULTI CUSTOMER → A4</span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-3.5">
+                    <div className="mb-2 flex items-center gap-2 text-indigo-700"><Layers className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
+                    <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">Instant Multi Customer Photo Maker</h3>
+                    <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Process multiple customers together with individual photo sizes, quantities and smart A4 print planning.</p>
+                    <a href="/instant-multi-customer-photo-maker" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-900">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
+                  </div>
+                </article>
               )}
               </React.Fragment>
             );
