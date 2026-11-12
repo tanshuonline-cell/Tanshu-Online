@@ -250,10 +250,14 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     const centerX = (minX + maxX) / 2;
     const requestedX = centerX - cropWidth / 2;
     const requestedY = minY - faceHeight * 0.28;
-    const cropX = Math.max(0, Math.min(rotatedWidth - cropWidth, requestedX));
-    const cropY = Math.max(0, Math.min(rotatedHeight - cropHeight, requestedY));
-    const safeCropWidth = Math.min(cropWidth, rotatedWidth);
-    const safeCropHeight = Math.min(cropHeight, rotatedHeight);
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = Math.max(1, Math.round(cropWidth));
+    cropCanvas.height = Math.max(1, Math.round(cropHeight));
+    const cropContext = cropCanvas.getContext('2d');
+    if (!cropContext) throw new Error('Could not create the passport crop.');
+    cropContext.fillStyle = '#ffffff';
+    cropContext.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropContext.drawImage(rotatedCanvas, -requestedX, -requestedY);
 
     const outputWidth = photoSize === '2x2' ? 600 : 413;
     const outputHeight = photoSize === '2x2' ? 600 : photoSize === '35x35' ? 413 : 531;
@@ -266,11 +270,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     outputContext.fillRect(0, 0, outputWidth, outputHeight);
     outputContext.imageSmoothingEnabled = true;
     outputContext.imageSmoothingQuality = 'high';
-    outputContext.drawImage(
-      rotatedCanvas,
-      cropX, cropY, safeCropWidth, safeCropHeight,
-      0, 0, outputWidth, outputHeight
-    );
+    outputContext.drawImage(cropCanvas, 0, 0, cropCanvas.width, cropCanvas.height, 0, 0, outputWidth, outputHeight);
     return outputCanvas.toDataURL('image/jpeg', 0.94);
   };
 
@@ -352,7 +352,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
       setCropRect({x:0,y:0,w:100,h:100});
       setCropHasSelection(false);
       setFaceStatus('aligned');
-      setFaceMessage('Passport photo created from the detected face. Review the framing, then open Print to arrange copies on A4 or 4 × 6. Your original upload remains unchanged.');
+      setFaceMessage('Passport photo created. Review the framing, then open Print to arrange copies on A4 or 4 × 6. The file is sized for a 300-DPI print workflow; your original upload remains unchanged.');
       setActiveTool('face');
       setIsCropping(false);
     } catch (error) {
@@ -455,8 +455,8 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   activeTool === 'print' ? (
                     <div className="flex min-h-full min-w-full items-center justify-center overflow-auto p-5">
                       <div className="relative shrink-0 rounded-sm bg-white p-5 shadow-2xl" style={{width:sheetSize==='A4'?Math.round(420*sheetZoom/100)+'px':Math.round(360*sheetZoom/100)+'px',minHeight:sheetSize==='A4'?Math.round(594*sheetZoom/100)+'px':Math.round(240*sheetZoom/100)+'px'}}>
-                        <div className="grid grid-cols-3 content-start gap-3">
-                          {Array.from({length:sheetSize==='A4'?12:4},(_,index)=><div key={index} className="relative overflow-hidden border border-slate-300 bg-slate-100" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9'}}>
+                        <div className={sheetSize==='A4'?"grid grid-cols-3 content-start gap-3":"grid grid-cols-2 content-start gap-3"}>
+                          {Array.from({length:sheetSize==='A4'?12:4},(_,index)=><div key={index} className="relative overflow-hidden border border-slate-300 bg-slate-100" style={{width:sheetSize==='A4'?'88px':'70px',margin:'0 auto',aspectRatio:photoSize==='2x2'||photoSize==='35x35'?'1 / 1':'7 / 9'}}>
                             <img src={processedPhotoUrl || previewUrl} alt="" className="h-full w-full object-cover" style={{transform:'rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')'}}/>
                             {signatureUrl && signatureVisible && <img src={signatureUrl} alt="" className="absolute bottom-[8%] right-[8%] h-[12%] w-[38%] object-contain"/>}
                           </div>)}
@@ -513,7 +513,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
                 <div className="rounded-xl border border-[#3A454D] bg-[#222A30] p-3">
                   <label className="mb-2 block text-[10px] font-bold tracking-wide text-[#D4DCE1]" htmlFor="passport-photo-size">PASSPORT PHOTO SIZE</label>
-                  <select id="passport-photo-size" value={photoSize} onChange={event => setPhotoSize(event.target.value)} className="h-10 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
+                  <select id="passport-photo-size" value={photoSize} onChange={event => { setPhotoSize(event.target.value); setProcessedPhotoUrl(''); setFaceStatus('idle'); setFaceMessage('Photo size changed. Run face alignment again to create the new size.'); }} className="h-10 w-full rounded-lg border border-[#46535C] bg-[#171D22] px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
                     <option value="35x45">India Passport · 35 × 45 mm</option>
                     <option value="2x2">Visa Photo · 2 × 2 inch</option>
                     <option value="35x35">Square Photo · 35 × 35 mm</option>
