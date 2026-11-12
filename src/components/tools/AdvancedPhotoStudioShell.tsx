@@ -1140,7 +1140,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </button>
             {studioMode !== 'manual' && <label className="studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px]" title="Choose the paper sheet orientation; None keeps automatic layout orientation.">Orientation<select aria-label="Auto Photo Maker sheet orientation" value={sheetOrientation} disabled={sheetMode==='single'} onChange={event=>setSheetOrientation(event.target.value as 'none'|'portrait'|'landscape')} className="h-6 max-w-[92px] bg-transparent text-[10px] text-[#E1E5E8] outline-none disabled:opacity-40"><option value="none">None</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>}
           </div>
-          {studioMode !== 'manual' && <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          {studioMode !== 'manual' && <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
             <label className="studio-control flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[10px]" title="Lock or unlock selected sheet photos"><input type="checkbox" checked={!!selectedSlotId && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).length>0 && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).every(slot=>slot.locked)} disabled={!selectedSlotId} onChange={toggleSelectedSlotsLock} className="accent-[#D0D7DE]"/> Lock Selected</label>
             <button type="button" title="Duplicate selected photo" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedSlot} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Duplicate</button>
             <button type="button" title="Copy selected row" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Copy Row</button>
@@ -1148,9 +1149,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             <button type="button" title="Automatically arrange sheet photos" disabled={!selected||sheetMode==='single'} onClick={()=>{if(!isStudioMember)showUpgradePrompt();else autoArrangeSheet();}} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Auto Arrange</button>
             <button type="button" title="Undo" aria-label="Undo" onClick={undo} disabled={!canUndo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Undo2 size={13}/></button>
             <button type="button" title="Redo" aria-label="Redo" onClick={redo} disabled={!canRedo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Redo2 size={13}/></button>
-            <button type="button" onClick={openUploadPicker} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] hover:text-white"><Upload size={12}/> Import File</button>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={openUploadPicker} className="flex h-7 items-center gap-1.5 rounded-md border border-[#9B713A] bg-[#332719] px-2.5 text-[10px] font-semibold text-[#F3D7A5] shadow-[inset_0_1px_0_rgba(255,226,173,.08),0_2px_8px_rgba(0,0,0,.18)] transition-colors hover:border-[#C99555] hover:bg-[#44331F] hover:text-[#FFE7BC]"><Upload size={12}/> Import File</button>
             <div className="relative">
-              <button type="button" disabled={!selected} onClick={()=>setMenuOpen(menuOpen==='print-export'?null:'print-export')} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] disabled:opacity-40"><Printer size={12}/> Print Actual Size <ChevronDown size={11}/></button>
+              <button type="button" disabled={!selected} onClick={()=>setMenuOpen(menuOpen==='print-export'?null:'print-export')} className="flex h-7 items-center gap-1.5 rounded-md border border-[#9B713A] bg-[#332719] px-2.5 text-[10px] font-semibold text-[#F3D7A5] shadow-[inset_0_1px_0_rgba(255,226,173,.08),0_2px_8px_rgba(0,0,0,.18)] transition-colors hover:border-[#C99555] hover:bg-[#44331F] hover:text-[#FFE7BC] disabled:opacity-40"><Printer size={12}/> Print Actual Size <ChevronDown size={11}/></button>
               {menuOpen==='print-export'&&<div className="absolute right-0 top-9 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
                 <div className="px-3 py-2 text-[9px] leading-4 text-[#929CA6]">{sheetDimensions.label} · {sheetDimensions.widthMm.toFixed(1)} × {sheetDimensions.heightMm.toFixed(1)} mm</div>
                 <button type="button" onClick={()=>{setMenuOpen(null);void printActualSize();}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#D9DEE1] hover:bg-[#30373E]">Print at Actual Size</button>
@@ -1158,6 +1161,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="px-3 py-1 text-[9px] text-[#929CA6]">Download current size</div>
                 {(['jpg','png','pdf'] as const).map(format=><button key={format} type="button" onClick={()=>{setMenuOpen(null);void (sheetMode==='single'?exportSelectedPhoto(format):exportPrintSheet(format));}} className="block w-full rounded px-3 py-2 text-left text-[10px] uppercase text-[#D9DDE1] hover:bg-[#30373E]">Download {format.toUpperCase()}</button>)}
               </div>}
+            </div>
             </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
           </div>}
