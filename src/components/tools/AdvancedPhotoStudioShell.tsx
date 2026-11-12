@@ -246,6 +246,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     ).slice(0, 8);
   }, [studioSearchQuery]);
   const [sheetMode, setSheetMode] = useState<SheetMode>('single');
+  const [sheetOrientation, setSheetOrientation] = useState<'none'|'portrait'|'landscape'>('none');
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
   const [sheetCopies, setSheetCopies] = useState(8);
@@ -318,7 +319,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     return { widthMm, heightMm, widthPx: Math.round(widthMm * 300 / 25.4), heightPx: Math.round(heightMm * 300 / 25.4) };
   }, [preset, customWidthMm, customHeightMm]);
   const baseSheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
-  const sheetDimensions = (() => {
+  const autoSheetDimensions = (() => {
     if (sheetMode === 'single') return baseSheetDimensions;
     const normal = getBalancedSheetLayout(sheetCopies, documentSize.widthMm, documentSize.heightMm, baseSheetDimensions.widthMm, baseSheetDimensions.heightMm, sheetMargin, sheetGap, sheetGapY);
     const rotated = getBalancedSheetLayout(sheetCopies, documentSize.widthMm, documentSize.heightMm, baseSheetDimensions.heightMm, baseSheetDimensions.widthMm, sheetMargin, sheetGap, sheetGapY);
@@ -331,6 +332,15 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       heightMm: baseSheetDimensions.widthMm,
       label: baseSheetDimensions.label + (baseSheetDimensions.widthMm >= baseSheetDimensions.heightMm ? ' · Portrait' : ' · Landscape')
     };
+  })();
+  const sheetDimensions = (() => {
+    if (sheetMode === 'single' || sheetOrientation === 'none') return autoSheetDimensions;
+    const wantsLandscape = sheetOrientation === 'landscape';
+    const isLandscape = autoSheetDimensions.widthMm > autoSheetDimensions.heightMm;
+    const dimensions = wantsLandscape === isLandscape
+      ? autoSheetDimensions
+      : { ...autoSheetDimensions, widthMm: autoSheetDimensions.heightMm, heightMm: autoSheetDimensions.widthMm };
+    return { ...dimensions, label: baseSheetDimensions.label + (wantsLandscape ? ' · Landscape' : ' · Portrait') };
   })();
   const sheetWidthPx = Math.round(sheetDimensions.widthMm * 300 / 25.4);
   const sheetHeightPx = Math.round(sheetDimensions.heightMm * 300 / 25.4);
@@ -1128,6 +1138,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             }} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='manual'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
               <Move size={12}/> <span>Manual Photo Studio</span>
             </button>
+            {studioMode !== 'manual' && <label className="studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px]" title="Choose the paper sheet orientation; None keeps automatic layout orientation.">Orientation<select aria-label="Auto Photo Maker sheet orientation" value={sheetOrientation} onChange={event=>setSheetOrientation(event.target.value as 'none'|'portrait'|'landscape')} className="h-6 max-w-[92px] bg-transparent text-[10px] text-[#E1E5E8] outline-none"><option value="none">None</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>}
           </div>
           {studioMode !== 'manual' && <div className="flex shrink-0 flex-wrap items-center gap-1.5">
             <label className="studio-control flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[10px]" title="Lock or unlock selected sheet photos"><input type="checkbox" checked={!!selectedSlotId && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).length>0 && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).every(slot=>slot.locked)} disabled={!selectedSlotId} onChange={toggleSelectedSlotsLock} className="accent-[#D0D7DE]"/> Lock Selected</label>
