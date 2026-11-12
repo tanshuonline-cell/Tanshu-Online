@@ -52,7 +52,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   const cropViewportRef = useRef<HTMLDivElement>(null);
   const cropDragRef = useRef<{mode:'pan'|'nw'|'ne'|'sw'|'se';startX:number;startY:number;startRect:{x:number;y:number;w:number;h:number};startOffset:{x:number;y:number}}|null>(null);
   const [isCropping,setIsCropping] = useState(false);
-  const [cropRect,setCropRect] = useState({x:10,y:10,w:80,h:80});
+  const [cropRect,setCropRect] = useState({x:0,y:0,w:100,h:100});
   const [photoOffset,setPhotoOffset] = useState({x:0,y:0});
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
     setZoom(100);
     setRotation(0);
     setFlipped(false);
-    setCropRect({x:10,y:10,w:80,h:80});
+    setCropRect({x:0,y:0,w:100,h:100});
     setPhotoOffset({x:0,y:0});
     setIsCropping(false);
     event.target.value = '';
@@ -94,7 +94,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
 
   const resetPreview = () => {
     setZoom(100); setRotation(0); setFlipped(false);
-    setCropRect({x:10,y:10,w:80,h:80}); setPhotoOffset({x:0,y:0}); setIsCropping(false);
+    setCropRect({x:0,y:0,w:100,h:100}); setPhotoOffset({x:0,y:0}); setIsCropping(false);
   };
   const startCropDrag=(mode:'pan'|'nw'|'ne'|'sw'|'se',event:React.PointerEvent<HTMLElement>)=>{
     if(!isCropping||activeTool!=='crop')return;
@@ -166,7 +166,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                 const Icon = tool.icon;
                 const active = activeTool === tool.id;
                 return (
-                  <button key={tool.id} type="button" onClick={() => setActiveTool(tool.id)} title={tool.label} aria-pressed={active} className={active ? 'group flex min-w-[66px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 px-2 py-3 text-emerald-300 ring-1 ring-emerald-400/25 lg:min-w-0 lg:flex-none' : 'group flex min-w-[66px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-[#87939D] transition hover:bg-white/5 hover:text-white lg:min-w-0 lg:flex-none'}>
+                  <button key={tool.id} type="button" onClick={() => { setActiveTool(tool.id); if(tool.id !== 'crop') setIsCropping(false); }} title={tool.label} aria-pressed={active} className={active ? 'group flex min-w-[66px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 px-2 py-3 text-emerald-300 ring-1 ring-emerald-400/25 lg:min-w-0 lg:flex-none' : 'group flex min-w-[66px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-[#87939D] transition hover:bg-white/5 hover:text-white lg:min-w-0 lg:flex-none'}>
                     <Icon size={19}/><span className="text-[9px] font-bold leading-tight">{tool.short}</span>
                     {active && <span className="hidden h-1 w-4 rounded-full bg-emerald-400 lg:block"/>}
                   </button>
@@ -219,7 +219,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                   ) : (
                   <div ref={cropViewportRef} onPointerMove={handleCropPointerMove} onPointerUp={endCropDrag} onPointerCancel={endCropDrag} className="relative flex h-full min-h-[420px] w-full items-center justify-center">
                     <div className="relative flex max-h-[calc(100vh-150px)] max-w-[min(100%,480px)] items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-[#E7E8E6] p-2 shadow-2xl shadow-black/50" style={{aspectRatio:photoSize==='2x2'?'1 / 1':'7 / 9',height:'min(76vh, 720px)'}}>
-                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={event=>startCropDrag('pan',event)} className={'h-full w-full select-none object-contain '+(isCropping?'cursor-grab active:cursor-grabbing':'transition-transform duration-200')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',touchAction:'none'}}/>
+                      <img src={previewUrl} alt="Customer selfie preview" draggable={false} onPointerDown={event=>startCropDrag('pan',event)} className={'h-full w-full select-none object-contain '+(isCropping?'cursor-grab active:cursor-grabbing':'transition-transform duration-200')} style={{transform:'translate('+photoOffset.x+'px, '+photoOffset.y+'px) rotate('+rotation+'deg) scale('+zoom/100+') scaleX('+(flipped?-1:1)+')',touchAction:'none',clipPath:(!isCropping&&(cropRect.x!==0||cropRect.y!==0||cropRect.w!==100||cropRect.h!==100))?'inset('+cropRect.y+'% '+(100-cropRect.x-cropRect.w)+'% '+(100-cropRect.y-cropRect.h)+'% '+cropRect.x+'%)':undefined}}/>
                       {showGuides&&!isCropping&&<div className="pointer-events-none absolute inset-[9%] rounded-md border border-dashed border-emerald-600/70"><div className="absolute left-1/2 top-0 h-full border-l border-dashed border-emerald-600/35"/><div className="absolute left-0 top-1/3 w-full border-t border-dashed border-emerald-600/35"/><div className="absolute left-0 top-2/3 w-full border-t border-dashed border-emerald-600/35"/></div>}
                       {isCropping&&activeTool==='crop'&&<div className="pointer-events-none absolute rounded-sm border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]" style={{left:cropRect.x+'%',top:cropRect.y+'%',width:cropRect.w+'%',height:cropRect.h+'%'}}>
                         {(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={'Resize crop '+corner} onPointerDown={event=>startCropDrag(corner,event)} className="pointer-events-auto absolute h-5 w-5 rounded-full border-2 border-emerald-950 bg-emerald-300 shadow-lg" style={{left:corner.endsWith('w')?'-10px':'auto',right:corner.endsWith('e')?'-10px':'auto',top:corner.startsWith('n')?'-10px':'auto',bottom:corner.startsWith('s')?'-10px':'auto',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}
