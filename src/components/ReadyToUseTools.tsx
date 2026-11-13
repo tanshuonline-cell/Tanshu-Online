@@ -17,17 +17,17 @@ const ACTIVE_TOOL_IDS = [
 const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: React.ReactNode }> = {
   'photo-signature-resizer': {
     title: 'PHOTO & SIGNATURE RESIZER',
-    subtitle: 'Set Photo Size &amp; KB · Resize Signature · JPG / PNG · Preview &amp; Download | फोटो का साइज व KB सेट करें · सिग्नेचर रिसाइज़ करें · प्रीव्यू व डाउनलोड',
+    subtitle: 'Set Photo Size & KB · Resize Signature · JPG / PNG · Preview & Download | फोटो का साइज व KB सेट करें · सिग्नेचर रिसाइज़ करें · प्रीव्यू व डाउनलोड',
     icon: <ImageIcon className="h-4 w-4" />,
   },
   'auto-document-cropper': {
     title: 'AUTO DOCUMENT CROPPER',
-    subtitle: 'Detect Document Edges · Auto Crop &amp; Straighten · Fine-Tune Corners · PNG / PDF Download | किनारे पहचानें · ऑटो क्रॉप व सीधा करें · कोने ठीक करें · डाउनलोड करें',
+    subtitle: 'Detect Document Edges · Auto Crop & Straighten · Fine-Tune Corners · PNG / PDF Download | किनारे पहचानें · ऑटो क्रॉप व सीधा करें · कोने ठीक करें · डाउनलोड करें',
     icon: <Crop className="h-4 w-4" />,
   },
   'document-scanner-image-rectifier': {
     title: 'DOCUMENT SCANNER & IMAGE RECTIFIER',
-    subtitle: 'Scan Document · Fix Perspective · B&amp;W / Magic Color · Under-200 KB Compression | डॉक्यूमेंट स्कैन · टेढ़ापन ठीक करें · ब्लैक-व्हाइट / मैजिक कलर · 200 KB से कम कम्प्रेशन',
+    subtitle: 'Scan Document · Fix Perspective · B&W / Magic Color · Under-200 KB Compression | डॉक्यूमेंट स्कैन · टेढ़ापन ठीक करें · ब्लैक-व्हाइट / मैजिक कलर · 200 KB से कम कम्प्रेशन',
     icon: <ScanLine className="h-4 w-4" />,
   },
 };
