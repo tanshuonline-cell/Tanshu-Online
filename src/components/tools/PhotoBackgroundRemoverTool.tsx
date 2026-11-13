@@ -227,10 +227,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const cropStageRef = useRef<HTMLDivElement>(null);
   const selectedPhotoSize = PHOTO_SIZE_PRESETS.find((item) => item.id === photoSizePreset);
-  // Custom is a simple square crop preset. The user controls the square crop
-  // box directly on the photo; no separate physical width/height fields.
-  const targetWidthMm = photoSizePreset === 'custom' ? 35 : (selectedPhotoSize?.widthMm ?? 35);
-  const targetHeightMm = photoSizePreset === 'custom' ? 35 : (selectedPhotoSize?.heightMm ?? 45);
+  // Custom crop is fully freeform; physical output dimensions are derived from
+  // the exact selected crop ratio rather than a forced preset.
+  const targetWidthMm = selectedPhotoSize?.widthMm ?? 35;
+  const targetHeightMm = selectedPhotoSize?.heightMm ?? 45;
 
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
@@ -292,43 +292,58 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       });
       const width = image.naturalWidth;
       const height = image.naturalHeight;
+      const selectedX = Math.max(0, Math.min(width - 1, width * cropRect.x / 100));
+      const selectedY = Math.max(0, Math.min(height - 1, height * cropRect.y / 100));
+      const selectedW = Math.max(1, Math.min(width - selectedX, width * cropRect.w / 100));
+      const selectedH = Math.max(1, Math.min(height - selectedY, height * cropRect.h / 100));
+
+      // Crop exactly the rectangle the user selected in the original image
+      // coordinate space. The preview stage is rotated with CSS, so its
+      // pointer handler maps the selection back into this same source space.
+      const selected = document.createElement('canvas');
+      selected.width = Math.max(1, Math.round(selectedW));
+      selected.height = Math.max(1, Math.round(selectedH));
+      const selectedContext = selected.getContext('2d');
+      if (!selectedContext) throw new Error('Your browser could not prepare this crop.');
+      selectedContext.drawImage(image, selectedX, selectedY, selectedW, selectedH, 0, 0, selected.width, selected.height);
+
+      // Rotate only the already-selected pixels. This prevents a second,
+      // differently-positioned crop from cutting into the user's chosen area.
       const radians = rotation * Math.PI / 180;
-      const rotatedWidth = Math.ceil(Math.abs(width * Math.cos(radians)) + Math.abs(height * Math.sin(radians)));
-      const rotatedHeight = Math.ceil(Math.abs(width * Math.sin(radians)) + Math.abs(height * Math.cos(radians)));
+      const rotatedWidth = Math.max(1, Math.ceil(Math.abs(selected.width * Math.cos(radians)) + Math.abs(selected.height * Math.sin(radians))));
+      const rotatedHeight = Math.max(1, Math.ceil(Math.abs(selected.width * Math.sin(radians)) + Math.abs(selected.height * Math.cos(radians))));
       const rotated = document.createElement('canvas');
       rotated.width = rotatedWidth;
       rotated.height = rotatedHeight;
-      const ctx = rotated.getContext('2d');
-      if (!ctx) throw new Error('Your browser could not prepare this image.');
-      ctx.translate(rotatedWidth / 2, rotatedHeight / 2);
-      ctx.rotate(radians);
-      ctx.drawImage(image, -width / 2, -height / 2);
-      if (!Number.isFinite(targetWidthMm) || !Number.isFinite(targetHeightMm) || targetWidthMm <= 0 || targetHeightMm <= 0) {
-        throw new Error('Choose a valid photo size preset.');
-      }
-      const selectedX = rotatedWidth * cropRect.x / 100;
-      const selectedY = rotatedHeight * cropRect.y / 100;
-      const selectedW = Math.max(1, rotatedWidth * cropRect.w / 100);
-      const selectedH = Math.max(1, rotatedHeight * cropRect.h / 100);
-      // Keep the user's crop position, then trim only the excess dimension from
-      // its centre to produce the exact selected photo aspect ratio.
-      const targetAspect = targetWidthMm / targetHeightMm;
-      let cropW = selectedW;
-      let cropH = selectedH;
-      if (cropW / cropH > targetAspect) cropW = cropH * targetAspect;
-      else cropH = cropW / targetAspect;
-      const cropX = selectedX + (selectedW - cropW) / 2;
-      const cropY = selectedY + (selectedH - cropH) / 2;
+      const rotatedContext = rotated.getContext('2d');
+      if (!rotatedContext) throw new Error('Your browser could not rotate this crop.');
+      rotatedContext.translate(rotatedWidth / 2, rotatedHeight / 2);
+      rotatedContext.rotate(radians);
+      rotatedContext.drawImage(selected, -selected.width / 2, -selected.height / 2);
 
-      // Render at the selected physical print size and DPI, capped at 1600 px
-      // for efficient on-device segmentation while preserving the exact ratio.
-      const requestedWidthPx = Math.max(1, Math.round((targetWidthMm / 25.4) * dpi));
-      const requestedHeightPx = Math.max(1, Math.round((targetHeightMm / 25.4) * dpi));
+      const isCustomCrop = photoSizePreset === 'custom';
       const maxProcessingEdge = 1600;
-      const scale = Math.min(1, maxProcessingEdge / Math.max(requestedWidthPx, requestedHeightPx));
+      let outputWidth: number;
+      let outputHeight: number;
+      if (isCustomCrop) {
+        // No ratio or physical dimensions are imposed in Custom. Preserve the
+        // exact crop ratio and use the selected DPI for output pixel density.
+        const scale = Math.min(1, maxProcessingEdge / Math.max(rotatedWidth, rotatedHeight));
+        outputWidth = Math.max(1, Math.round(rotatedWidth * scale));
+        outputHeight = Math.max(1, Math.round(rotatedHeight * scale));
+      } else {
+        if (!Number.isFinite(targetWidthMm) || !Number.isFinite(targetHeightMm) || targetWidthMm <= 0 || targetHeightMm <= 0) {
+          throw new Error('Choose a valid photo size preset.');
+        }
+        const requestedWidthPx = Math.max(1, Math.round((targetWidthMm / 25.4) * dpi));
+        const requestedHeightPx = Math.max(1, Math.round((targetHeightMm / 25.4) * dpi));
+        const scale = Math.min(1, maxProcessingEdge / Math.max(requestedWidthPx, requestedHeightPx));
+        outputWidth = Math.max(1, Math.round(requestedWidthPx * scale));
+        outputHeight = Math.max(1, Math.round(requestedHeightPx * scale));
+      }
       const output = document.createElement('canvas');
-      output.width = Math.max(1, Math.round(requestedWidthPx * scale));
-      output.height = Math.max(1, Math.round(requestedHeightPx * scale));
+      output.width = outputWidth;
+      output.height = outputHeight;
       const out = output.getContext('2d');
       if (!out) throw new Error('Your browser could not prepare this crop.');
       out.imageSmoothingEnabled = true;
@@ -340,7 +355,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       const placementY = cropApplied ? (photoOffset.y / 100) * output.height : 0;
       const drawWidth = output.width * placementScale;
       const drawHeight = output.height * placementScale;
-      out.drawImage(rotated, cropX, cropY, cropW, cropH, (output.width - drawWidth) / 2 + placementX, (output.height - drawHeight) / 2 + placementY, drawWidth, drawHeight);
+      out.drawImage(rotated, 0, 0, rotated.width, rotated.height, (output.width - drawWidth) / 2 + placementX, (output.height - drawHeight) / 2 + placementY, drawWidth, drawHeight);
       return await new Promise<Blob>((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
     } finally {
       URL.revokeObjectURL(originalUrl);
@@ -496,6 +511,17 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     };
   };
 
+  const makeFreeCropRect = (anchorX: number, anchorY: number, pointerX: number, pointerY: number): CropRect => {
+    const x = Math.min(anchorX, pointerX);
+    const y = Math.min(anchorY, pointerY);
+    return {
+      x: Math.max(0, Math.min(100, x)),
+      y: Math.max(0, Math.min(100, y)),
+      w: Math.max(0, Math.min(100 - x, Math.abs(pointerX - anchorX))),
+      h: Math.max(0, Math.min(100 - y, Math.abs(pointerY - anchorY))),
+    };
+  };
+
   const makeAspectCropRect = (anchorX: number, anchorY: number, pointerX: number, pointerY: number, bounds: DOMRect, ratio: number) => {
     const ratioInPercent = ratio * bounds.height / bounds.width;
     const directionX = pointerX >= anchorX ? 1 : -1;
@@ -555,15 +581,23 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     if (!point) return;
     const px = point.x;
     const py = point.y;
-    const ratio = (targetWidthMm / targetHeightMm);
+    const presetRatio = (targetWidthMm / targetHeightMm);
+    // Crop coordinates are stored in the unrotated source image space. At
+    // quarter-turn rotations, invert the locked preset ratio in that space.
+    const quarterTurn = Math.abs(rotation % 180) === 90;
+    const ratio = quarterTurn ? 1 / presetRatio : presetRatio;
     if (drag.mode === 'draw') {
-      setCropRect(makeAspectCropRect(drag.startX, drag.startY, px, py, drag.bounds, ratio));
+      setCropRect(photoSizePreset === 'custom'
+        ? makeFreeCropRect(drag.startX, drag.startY, px, py)
+        : makeAspectCropRect(drag.startX, drag.startY, px, py, drag.bounds, ratio));
     } else if (drag.mode === 'move') {
       const x = Math.max(0, Math.min(100 - drag.initialRect.w, drag.initialRect.x + px - drag.startX));
       const y = Math.max(0, Math.min(100 - drag.initialRect.h, drag.initialRect.y + py - drag.startY));
       setCropRect({ ...drag.initialRect, x, y });
     } else {
-      setCropRect(makeAspectCropRect(drag.anchorX, drag.anchorY, px, py, drag.bounds, ratio));
+      setCropRect(photoSizePreset === 'custom'
+        ? makeFreeCropRect(drag.anchorX, drag.anchorY, px, py)
+        : makeAspectCropRect(drag.anchorX, drag.anchorY, px, py, drag.bounds, ratio));
     }
   };
 
@@ -639,18 +673,18 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
                   resetCropForGeometryChange();
                 }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white">
                   {PHOTO_SIZE_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-                  <option value="custom">Custom · Square crop (1:1)</option>
+                  <option value="custom">Custom · Free crop</option>
                 </select>
               </label>
-              {photoSizePreset === 'custom' && <p className="mb-2 rounded-lg border border-cyan-300/20 bg-cyan-400/5 p-2 text-[10px] leading-4 text-cyan-100">Custom crop is square (1:1). फोटो पर जितना हिस्सा चाहिए उतना square box बनाइए; कोनों से आकार बदलें और बीच से खिसकाएँ। कोई Width / Height भरने की जरूरत नहीं है।</p>}
-              <p className="text-[9px] leading-4 text-blue-200">Preset चुनने पर crop उसी के fixed ratio में रहेगा। Custom में square 1:1 crop रहेगा। Portal-specific requirements may differ.</p>
+              {photoSizePreset === 'custom' && <p className="mb-2 rounded-lg border border-cyan-300/20 bg-cyan-400/5 p-2 text-[10px] leading-4 text-cyan-100">Custom में कोई ratio lock नहीं है। फोटो पर जितना लंबा या चौड़ा हिस्सा चाहिए, उतना crop box बनाएँ और कोनों से स्वतंत्र रूप से resize करें।</p>}
+              <p className="text-[9px] leading-4 text-blue-200">Preset चुनने पर उसका ratio लॉक रहेगा। Custom में पूरी तरह free crop होगा और चुना हुआ ratio डाउनलोड में भी सुरक्षित रहेगा।</p>
             </div>
             <div className="mb-2 flex items-center justify-between text-xs text-blue-100"><span>Rotate photo</span><b>{rotation}°</b></div>
             <div className="mb-4 grid grid-cols-4 gap-1.5">
               {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); resetCropForGeometryChange(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200">{index < 2 ? <RotateCcw size={16} /> : <RotateCw size={16} />}</span>{item.label}</button>)}
             </div>
-            <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>{photoSizePreset === 'custom' ? 'Square 1:1' : 'Preset ratio'}</b></div>
-            <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">फोटो पर किसी खाली जगह से माउस दबाकर खींचें और नया crop box बनाएँ। बने हुए बॉक्स को बीच से पकड़कर खिसकाएँ और चारों कोनों से उसका आकार बदलें। चुने हुए photo size का ratio लॉक रहेगा।</div>
+            <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>{photoSizePreset === 'custom' ? 'Free · Any ratio' : 'Preset ratio'}</b></div>
+            <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">फोटो पर किसी खाली जगह से माउस दबाकर खींचें और नया crop box बनाएँ। बने हुए बॉक्स को बीच से पकड़कर खिसकाएँ और चारों कोनों से उसका आकार बदलें। Preset में ratio लॉक रहेगा; Custom में कोई ratio लॉक नहीं है।</div>
             <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropHasSelection(false); setIsCropping(false); setCropApplied(false); setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; }); setPhotoOffset({ x: 0, y: 0 }); setPhotoScale(1); setRotation(0); cropDrawRef.current = null; photoTransformRef.current = null; setCroppedBlob(null); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
             <button type="button" onClick={async () => {
               if (isCropping) {
