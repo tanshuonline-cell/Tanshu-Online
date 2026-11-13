@@ -1375,4 +1375,20 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       '4×6 and A4 print sheets with manual layout and PDF export'
     ]
   },
+  {
+    id: 'photo-background-remover',
+    name: 'Photo Background Remover',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    isFeatured: false,
+    iconName: 'Eraser',
+    description: 'Remove or replace photo backgrounds, crop and prepare clean image exports.',
+    detailedInstructions: 'Upload a photo, refine the crop and background, choose a transparent or solid-color result, and download the processed image in your browser.',
+    keyFeatures: [
+      'Person background segmentation',
+      'Transparent or solid-color background output',
+      'Crop, straighten and photo positioning controls',
+      'PNG and JPG export presets'
+    ]
+  },
 ];
