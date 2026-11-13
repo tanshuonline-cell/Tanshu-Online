@@ -395,11 +395,28 @@ export const DocumentScannerTool: React.FC = () => {
       workingContext.imageSmoothingQuality = 'high';
       workingContext.drawImage(sourceCanvas, 0, 0, workingCanvas.width, workingCanvas.height);
 
-      let page: HTMLCanvasElement;
-      try { page = await autoRectifyPage(workingCanvas); }
-      catch { throw new Error('Automatic page detection could not start. Check your internet connection and try Scan again.'); }
-      const detected = page !== workingCanvas;
-      setStatus(detected ? 'Page corners detected. Cleaning and preparing the scanned result…' : 'No clear four page edges found. Preparing an enhanced result without forcing an inaccurate crop…');
+      let page: HTMLCanvasElement = workingCanvas;
+      let detected = false;
+      try {
+        // Edge detection is an optional enhancement. If the external OpenCV
+        // engine is blocked or stalls, do not leave the customer stuck on
+        // "Scanning…" or prevent the final enhanced image from being created.
+        page = await Promise.race([
+          autoRectifyPage(workingCanvas),
+          new Promise<HTMLCanvasElement>((_, reject) =>
+            window.setTimeout(() => reject(new Error('Page detection timed out.')), 10000)
+          ),
+        ]);
+        detected = page !== workingCanvas;
+      } catch {
+        page = workingCanvas;
+        setStatus('Auto edge detection is unavailable. Continuing with image enhancement…');
+      }
+      if (detected) {
+        setStatus('Page corners detected. Cleaning and preparing the scanned result…');
+      } else if (!status) {
+        setStatus('Preparing the enhanced result without forcing an inaccurate crop…');
+      }
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       const rotated = rotateCanvas(page, rotation);
       const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
