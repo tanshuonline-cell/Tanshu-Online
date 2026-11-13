@@ -16,18 +16,18 @@ const ACTIVE_TOOL_IDS = [
 
 const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: React.ReactNode }> = {
   'photo-signature-resizer': {
-    title: 'Photo & Signature Resizer',
-    subtitle: 'Resize, compress and prepare photos and signatures for online forms.',
+    title: 'PHOTO & SIGNATURE RESIZER',
+    subtitle: 'Set Photo Size &amp; KB · Resize Signature · JPG / PNG · Preview &amp; Download | फोटो का साइज व KB सेट करें · सिग्नेचर रिसाइज़ करें · प्रीव्यू व डाउनलोड',
     icon: <ImageIcon className="h-4 w-4" />,
   },
   'auto-document-cropper': {
-    title: 'Auto Document Cropper',
-    subtitle: 'Automatically crop, straighten and enhance document photos.',
+    title: 'AUTO DOCUMENT CROPPER',
+    subtitle: 'Detect Document Edges · Auto Crop &amp; Straighten · Fine-Tune Corners · PNG / PDF Download | किनारे पहचानें · ऑटो क्रॉप व सीधा करें · कोने ठीक करें · डाउनलोड करें',
     icon: <Crop className="h-4 w-4" />,
   },
   'document-scanner-image-rectifier': {
-    title: 'Document Scanner & Image Rectifier',
-    subtitle: 'Correct perspective and create clean document scans.',
+    title: 'DOCUMENT SCANNER & IMAGE RECTIFIER',
+    subtitle: 'Scan Document · Fix Perspective · B&amp;W / Magic Color · Under-200 KB Compression | डॉक्यूमेंट स्कैन · टेढ़ापन ठीक करें · ब्लैक-व्हाइट / मैजिक कलर · 200 KB से कम कम्प्रेशन',
     icon: <ScanLine className="h-4 w-4" />,
   },
 };
@@ -70,8 +70,8 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
             </div>
             <div className="flex flex-1 flex-col p-3.5">
               <div className="mb-2 flex items-center gap-2 text-rose-700"><Camera className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
-              <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">Instant Passport Photo Studio</h3>
-              <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Professional passport photo editing, positioning and print-ready sheets.</p>
+              <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">INSTANT PASSPORT PHOTO STUDIO</h3>
+              <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Upload Photo · Smart Crop &amp; Adjust · Signature Edit · 4×6 / A4 Print Sheet | फोटो अपलोड · स्मार्ट क्रॉप · सिग्नेचर एडिट · प्रिंट शीट</p>
               <a href="/advanced-photo-studio-preview" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-rose-900">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
             </div>
           </article>
@@ -140,8 +140,8 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
                   </div>
                   <div className="flex flex-1 flex-col p-3.5">
                     <div className="mb-2 flex items-center gap-2 text-sky-700"><Camera className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
-                    <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">Instant Multi Customer Photo Maker</h3>
-                    <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Prepare multiple customer photos in one workspace with quick batch editing and print-ready layouts.</p>
+                    <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">INSTANT MULTI CUSTOMER PHOTO MAKER</h3>
+                    <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Add Multiple Customers · Edit Photos in One Workspace · Batch Preparation · Print-Ready Layouts | कई ग्राहक जोड़ें · एक ही जगह फोटो एडिट करें · बैच में तैयार करें · प्रिंट लेआउट</p>
                     <a href="/instant-multi-customer-photo-maker" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-sky-700 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-sky-800">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
                   </div>
                 </article>
