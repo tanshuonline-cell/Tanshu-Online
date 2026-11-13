@@ -451,6 +451,23 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const checker = 'repeating-conic-gradient(#d8e0e9 0% 25%, #ffffff 0% 50%) 50% / 18px 18px';
 
+  const getCropPoint = (event: React.PointerEvent<HTMLElement>) => {
+    const stage = cropStageRef.current;
+    const bounds = stage?.getBoundingClientRect();
+    if (!stage || !bounds || !stage.offsetWidth || !stage.offsetHeight) return null;
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
+    const angle = -rotation * Math.PI / 180;
+    const dx = event.clientX - centerX;
+    const dy = event.clientY - centerY;
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle) + stage.offsetWidth / 2;
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle) + stage.offsetHeight / 2;
+    return {
+      x: Math.max(0, Math.min(100, localX / stage.offsetWidth * 100)),
+      y: Math.max(0, Math.min(100, localY / stage.offsetHeight * 100)),
+    };
+  };
+
   const makeAspectCropRect = (anchorX: number, anchorY: number, pointerX: number, pointerY: number, bounds: DOMRect, ratio: number) => {
     const ratioInPercent = ratio * bounds.height / bounds.width;
     const directionX = pointerX >= anchorX ? 1 : -1;
@@ -469,10 +486,13 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const startCropDraw = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isCropping || cropApplied || !file) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) return;
-    const px = Math.max(0, Math.min(100, (event.clientX - bounds.left) / bounds.width * 100));
-    const py = Math.max(0, Math.min(100, (event.clientY - bounds.top) / bounds.height * 100));
+    const stage = cropStageRef.current;
+    if (!stage || !stage.offsetWidth || !stage.offsetHeight) return;
+    const bounds = new DOMRect(0, 0, stage.offsetWidth, stage.offsetHeight);
+    const point = getCropPoint(event);
+    if (!point) return;
+    const px = point.x;
+    const py = point.y;
     const valid = cropHasSelection && cropRect.w > 2 && cropRect.h > 2;
     const inside = valid && px >= cropRect.x && px <= cropRect.x + cropRect.w && py >= cropRect.y && py <= cropRect.y + cropRect.h;
     let mode: 'draw' | 'move' | 'resize' = 'draw';
@@ -503,10 +523,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const handleCropPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = cropDrawRef.current;
     if (!drag) return;
-    const px = Math.max(0, Math.min(100, (event.clientX - drag.bounds.left) / drag.bounds.width * 100));
-    const py = Math.max(0, Math.min(100, (event.clientY - drag.bounds.top) / drag.bounds.height * 100));
-    const stage = cropStageRef.current;
-    if (!stage) return;
+    const point = getCropPoint(event);
+    if (!point) return;
+    const px = point.x;
+    const py = point.y;
     const ratio = (targetWidthMm / targetHeightMm);
     if (drag.mode === 'draw') {
       setCropRect(makeAspectCropRect(drag.startX, drag.startY, px, py, drag.bounds, ratio));
