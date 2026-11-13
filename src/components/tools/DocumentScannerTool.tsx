@@ -260,15 +260,19 @@ export const DocumentScannerTool: React.FC = () => {
   const scannedRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === getFullscreenTarget());
     document.addEventListener('fullscreenchange', syncFullscreen);
     return () => document.removeEventListener('fullscreenchange', syncFullscreen);
   }, []);
 
+  const getFullscreenTarget = () =>
+    document.querySelector<HTMLElement>('[data-document-scanner-modal="true"]') || workspaceRef.current;
+
   const toggleFullscreen = async () => {
     try {
-      if (document.fullscreenElement === workspaceRef.current) await document.exitFullscreen();
-      else if (workspaceRef.current?.requestFullscreen) await workspaceRef.current.requestFullscreen();
+      const target = getFullscreenTarget();
+      if (document.fullscreenElement === target) await document.exitFullscreen();
+      else if (target?.requestFullscreen) await target.requestFullscreen();
     } catch {
       setError('Fullscreen is not available in this browser. You can still use the normal workspace.');
     }
@@ -378,15 +382,33 @@ export const DocumentScannerTool: React.FC = () => {
     if (!sourceCanvas || busy) return;
     setBusy(true); setError(''); setStatus('Detecting document edges and straightening the page…');
     try {
+      // Run CPU-heavy edge detection and pixel enhancement on a bounded working
+      // copy so large phone photos do not lock the browser tab.
+      const maxWorkingDimension = 2200;
+      const workingScale = Math.min(1, maxWorkingDimension / Math.max(sourceCanvas.width, sourceCanvas.height));
+      const workingCanvas = document.createElement('canvas');
+      workingCanvas.width = Math.max(1, Math.round(sourceCanvas.width * workingScale));
+      workingCanvas.height = Math.max(1, Math.round(sourceCanvas.height * workingScale));
+      const workingContext = workingCanvas.getContext('2d');
+      if (!workingContext) throw new Error('Could not prepare this document for scanning.');
+      workingContext.imageSmoothingEnabled = true;
+      workingContext.imageSmoothingQuality = 'high';
+      workingContext.drawImage(sourceCanvas, 0, 0, workingCanvas.width, workingCanvas.height);
+
       let page: HTMLCanvasElement;
-      try { page = await autoRectifyPage(sourceCanvas); }
+      try { page = await autoRectifyPage(workingCanvas); }
       catch { throw new Error('Automatic page detection could not start. Check your internet connection and try Scan again.'); }
-      const detected = page !== sourceCanvas;
+      const detected = page !== workingCanvas;
       setStatus(detected ? 'Page corners detected. Cleaning and preparing the scanned result…' : 'No clear four page edges found. Preparing an enhanced result without forcing an inaccurate crop…');
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       const rotated = rotateCanvas(page, rotation);
       const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
-      const result = upscaleCanvas(enhanced, resolutionScale);
+      // Restore source pixel dimensions for export without processing every
+      // full-resolution pixel synchronously on the browser's main thread.
+      const sourceLongEdge = Math.max(sourceCanvas.width, sourceCanvas.height);
+      const processedLongEdge = Math.max(enhanced.width, enhanced.height);
+      const preserveSourceScale = sourceLongEdge / Math.max(1, processedLongEdge);
+      const result = upscaleCanvas(enhanced, preserveSourceScale * resolutionScale);
       setScannedCanvas(result);
       setSelectedPreview('scanned');
       setStatus(detected ? 'Scan complete. Page perspective was corrected and the scan is ready.' : 'Scan complete with enhancement. For straightening, capture the full page with all four edges visible.');
@@ -478,9 +500,9 @@ export const DocumentScannerTool: React.FC = () => {
   ];
 
   return (
-    <div ref={workspaceRef} className={`flex h-full min-h-0 flex-col gap-3 overflow-hidden bg-slate-100 p-3 sm:p-4 ${isFullscreen ? 'h-screen w-screen bg-slate-100' : ''}`}>
-      <div className="grid min-h-0 flex-1 items-start gap-4 overflow-hidden xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-28 max-h-[calc(100dvh-12rem)] overflow-y-auto overscroll-contain">
+    <div ref={workspaceRef} className={`flex min-h-full w-full flex-col gap-3 overflow-visible bg-slate-100 p-2 sm:p-3 ${isFullscreen ? 'bg-slate-100' : ''}`}>
+      <div className="grid min-h-0 flex-1 items-start gap-3 overflow-visible xl:grid-cols-[minmax(250px,300px)_minmax(0,1fr)]">
+        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4 xl:sticky xl:top-2 max-h-[42vh] xl:max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain">
           <div>
             <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-extrabold text-slate-900">1. Upload Document</h3><span className="text-[10px] font-semibold text-slate-500">IMAGE + PDF</span></div>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/*,application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void acceptFile(f); e.currentTarget.value = ''; }} />
@@ -520,7 +542,7 @@ export const DocumentScannerTool: React.FC = () => {
           </div>
         </aside>
 
-        <section className="min-w-0 space-y-4">
+        <section className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
             <div><h3 className="text-sm font-extrabold text-slate-900">Document Preview Studio</h3><p className="text-xs text-slate-500">Original · Live Preview · Scanned Result</p></div>
             <div className="flex items-center gap-2">
@@ -530,33 +552,33 @@ export const DocumentScannerTool: React.FC = () => {
               </button>
             </div>
           </div>
-          <div className="grid min-w-0 gap-3 lg:grid-cols-3">
+          {sourceCanvas && <div className="rounded-2xl border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">Scan & Download</h3><p className="text-xs text-slate-500">First scan the document. Download options become available for the completed result.</p></div><button type="button" onClick={runScan} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 disabled:opacity-50"><ScanLine className="h-4 w-4" />{busy ? 'Scanning…' : scannedCanvas ? 'Scan Again' : 'Scan Document'}</button></div>
+            {scannedCanvas && <div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={downloadImage} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow hover:bg-slate-800"><ImageIcon className="h-4 w-4" /> Download Scanned JPG</button><button type="button" onClick={downloadCurrentPdf} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow hover:bg-blue-800"><Download className="h-4 w-4" /> Download Scanned PDF</button>{sourceKind === 'pdf' && <button type="button" onClick={() => void downloadAllPdfPages()} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-50 sm:col-span-2"><FileText className="h-4 w-4" /> {busy ? 'Processing PDF…' : `Enhance & Export All ${pageCount} PDF Pages`}</button>}</div>}
+          </div>}
+          <div className="grid min-w-0 gap-3 xl:grid-cols-3">
             <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
               <div className="border-b border-slate-200 bg-slate-50 px-3 py-3"><h3 className="text-xs font-extrabold text-slate-900">1. Original Document</h3><p className="text-[10px] text-slate-500">Uploaded source · unchanged</p></div>
-              <div className="flex min-h-[360px] items-center justify-center overflow-auto bg-slate-200 p-2">
-                {sourceCanvas ? <canvas ref={originalRef} className="block h-auto max-h-[65vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Upload a photo or PDF to see the original here.</p>}
+              <div className="flex min-h-[170px] items-center justify-center overflow-auto bg-slate-200 p-2 sm:min-h-[200px]">
+                {sourceCanvas ? <canvas ref={originalRef} className="block h-auto max-h-[32vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Upload a photo or PDF to see the original here.</p>}
               </div>
             </div>
             <div className="min-w-0 overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
               <div className="border-b border-blue-100 bg-blue-50 px-3 py-3"><h3 className="text-xs font-extrabold text-blue-950">2. Live Clean Preview</h3><p className="text-[10px] text-blue-700">Updates with quality settings</p></div>
-              <div className="flex min-h-[360px] items-center justify-center overflow-auto bg-slate-200 p-2">
-                {sourceCanvas ? <canvas ref={outputRef} className="block h-auto max-h-[65vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Your live cleaned preview will appear here.</p>}
+              <div className="flex min-h-[170px] items-center justify-center overflow-auto bg-slate-200 p-2 sm:min-h-[200px]">
+                {sourceCanvas ? <canvas ref={outputRef} className="block h-auto max-h-[32vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Your live cleaned preview will appear here.</p>}
               </div>
             </div>
             <button type="button" onClick={() => setSelectedPreview('scanned')} className={`min-w-0 overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition ${selectedPreview === 'scanned' ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-emerald-200'}`}>
               <div className="border-b border-emerald-100 bg-emerald-50 px-3 py-3"><h3 className="text-xs font-extrabold text-emerald-950">3. Scanned Result · Click to view</h3><p className="text-[10px] text-emerald-700">Final result after pressing Scan</p></div>
-              <div className="flex min-h-[360px] items-center justify-center overflow-auto bg-slate-200 p-2">
-                {scannedCanvas ? <canvas ref={scannedRef} className="block h-auto max-h-[65vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Press “Scan Document” to create the final scanned page.</p>}
+              <div className="flex min-h-[170px] items-center justify-center overflow-auto bg-slate-200 p-2 sm:min-h-[200px]">
+                {scannedCanvas ? <canvas ref={scannedRef} className="block h-auto max-h-[32vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Press “Scan Document” to create the final scanned page.</p>}
               </div>
             </button>
           </div>
           {scannedCanvas && selectedPreview === 'scanned' && <div className="rounded-2xl border-2 border-emerald-300 bg-white p-3 shadow-sm">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-extrabold text-emerald-950">Scanned Result · Full Preview</h3><p className="text-xs text-slate-500">This is the corrected page that will be downloaded.</p></div><span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-800">SCAN READY</span></div>
             <canvas ref={(node) => { if (node && scannedCanvas) { node.width = scannedCanvas.width; node.height = scannedCanvas.height; const ctx = node.getContext('2d'); if (ctx) ctx.drawImage(scannedCanvas, 0, 0); } }} className="mx-auto block h-auto max-h-[75vh] max-w-full bg-white shadow-lg" />
-          </div>}
-          {sourceCanvas && <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">Scan & Download</h3><p className="text-xs text-slate-500">First scan the document. Download options become available for the completed result.</p></div><button type="button" onClick={runScan} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 disabled:opacity-50"><ScanLine className="h-4 w-4" />{busy ? 'Scanning…' : scannedCanvas ? 'Scan Again' : 'Scan Document'}</button></div>
-            {scannedCanvas && <div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={downloadImage} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow hover:bg-slate-800"><ImageIcon className="h-4 w-4" /> Download Scanned JPG</button><button type="button" onClick={downloadCurrentPdf} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow hover:bg-blue-800"><Download className="h-4 w-4" /> Download Scanned PDF</button>{sourceKind === 'pdf' && <button type="button" onClick={() => void downloadAllPdfPages()} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-50 sm:col-span-2"><FileText className="h-4 w-4" /> {busy ? 'Processing PDF…' : `Enhance & Export All ${pageCount} PDF Pages`}</button>}</div>}
           </div>}
           {busy && <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{status || 'Processing your document…'}</p>}
           {status && !busy && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">{status}</p>}
