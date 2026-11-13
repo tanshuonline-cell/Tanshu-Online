@@ -12,6 +12,7 @@ const ACTIVE_TOOL_IDS = [
   'photo-signature-resizer',
   'auto-document-cropper',
   'document-scanner-image-rectifier',
+  'photo-background-remover',
 ];
 
 const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: React.ReactNode }> = {
@@ -29,6 +30,11 @@ const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: Reac
     title: 'Document Scanner & Image Rectifier',
     subtitle: 'Correct perspective and create clean document scans.',
     icon: <ScanLine className="h-4 w-4" />,
+  },
+  'photo-background-remover': {
+    title: 'Photo Background Remover',
+    subtitle: 'Remove or replace photo backgrounds and export clean images.',
+    icon: <ImageIcon className="h-4 w-4" />,
   },
 };
 
@@ -82,6 +88,24 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
               <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">PVC Card Studio</h3>
               <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Smart Crop · Front &amp; Back · A4 Sheet · Print Setup</p>
               <a href="/id-pvc-studio/premium-desktop-preview.html" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-700 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-amber-800">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
+            </div>
+          </article>
+          <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl">
+            <div className="aspect-[4/3] overflow-hidden bg-slate-100"><img src={getToolPreviewImage('whatsapp-selfie-passport-photo', 'WhatsApp Selfie to Passport Photo', 'Photo Studio')} alt="WhatsApp Selfie to Passport Photo" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></div>
+            <div className="flex flex-1 flex-col p-3.5">
+              <div className="mb-2 flex items-center gap-2 text-rose-700"><ImageIcon className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">Ready to use</span></div>
+              <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">WhatsApp Selfie to Passport Photo</h3>
+              <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Prepare customer selfies as correctly sized passport photos and print sheets.</p>
+              <a href="/whatsapp-selfie-passport-photo" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-rose-900">Open Tool <ArrowUpRight className="h-3.5 w-3.5" /></a>
+            </div>
+          </article>
+          <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl">
+            <div className="aspect-[4/3] overflow-hidden bg-slate-100"><img src={getToolPreviewImage('instant-multi-customer-photo-maker', 'Instant Multi Customer Photo Maker', 'Photo Studio')} alt="Instant Multi Customer Photo Maker" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></div>
+            <div className="flex flex-1 flex-col p-3.5">
+              <div className="mb-2 flex items-center gap-2 text-rose-700"><Camera className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">Ready to use</span></div>
+              <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">Instant Multi Customer Photo Maker</h3>
+              <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Prepare multiple customers’ photos, signatures and print layouts in one workspace.</p>
+              <a href="/instant-multi-customer-photo-maker" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-rose-900">Open Tool <ArrowUpRight className="h-3.5 w-3.5" /></a>
             </div>
           </article>
           {activeTools.map((tool) => {
