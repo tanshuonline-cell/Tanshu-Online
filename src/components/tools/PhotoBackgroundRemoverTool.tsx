@@ -353,8 +353,12 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       const placementScale = cropApplied ? photoScale : 1;
       const placementX = cropApplied ? (photoOffset.x / 100) * output.width : 0;
       const placementY = cropApplied ? (photoOffset.y / 100) * output.height : 0;
-      const drawWidth = output.width * placementScale;
-      const drawHeight = output.height * placementScale;
+      // Fit the complete selected crop inside a preset's physical frame without
+      // stretching or trimming it. This also protects corners after small-angle
+      // rotations, where the rotated crop's bounding ratio can differ slightly.
+      const fitScale = Math.min(output.width / rotated.width, output.height / rotated.height);
+      const drawWidth = rotated.width * fitScale * placementScale;
+      const drawHeight = rotated.height * fitScale * placementScale;
       out.drawImage(rotated, 0, 0, rotated.width, rotated.height, (output.width - drawWidth) / 2 + placementX, (output.height - drawHeight) / 2 + placementY, drawWidth, drawHeight);
       return await new Promise<Blob>((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
     } finally {
