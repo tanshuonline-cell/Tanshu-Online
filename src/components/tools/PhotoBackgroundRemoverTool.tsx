@@ -120,17 +120,13 @@ async function removeBackgroundWithPersonMask(photo: Blob, onStatus: (message: s
 
 const PHOTO_SIZE_PRESETS = [
   { id: 'passport-35x45', label: 'India Passport / Visa · 35 × 45 mm', widthMm: 35, heightMm: 45 },
-  { id: 'pan-35x25', label: 'PAN application photo · 35 × 25 mm', widthMm: 35, heightMm: 25 },
-  { id: '35x35', label: 'Square ID / voter-form photo · 35 × 35 mm', widthMm: 35, heightMm: 35 },
-  { id: '40x50', label: 'Form photo · 40 × 50 mm', widthMm: 40, heightMm: 50 },
-  { id: '45x35', label: 'Landscape form photo · 45 × 35 mm', widthMm: 45, heightMm: 35 },
-  { id: '2x2', label: '2 × 2 inch · 51 × 51 mm', widthMm: 50.8, heightMm: 50.8 },
-  { id: '25x25', label: 'Square small · 25 × 25 mm', widthMm: 25, heightMm: 25 },
+  { id: 'pan-35x25', label: 'PAN application photo · 25 × 35 mm', widthMm: 25, heightMm: 35 },
+  { id: '35x35', label: 'Square photo · 35 × 35 mm', widthMm: 35, heightMm: 35 },
+  { id: '40x50', label: 'General portrait · 40 × 50 mm', widthMm: 40, heightMm: 50 },
+  { id: '45x35', label: 'General landscape · 45 × 35 mm', widthMm: 45, heightMm: 35 },
+  { id: '2x2', label: 'General square · 2 × 2 inch', widthMm: 50.8, heightMm: 50.8 },
+  { id: '25x25', label: 'General square · 25 × 25 mm', widthMm: 25, heightMm: 25 },
 ];
-
-type PhotoUnit = 'mm' | 'cm' | 'in';
-const mmToUnit = (value: number, unit: PhotoUnit) => unit === 'cm' ? value / 10 : unit === 'in' ? value / 25.4 : value;
-const unitToMm = (value: number, unit: PhotoUnit) => unit === 'cm' ? value * 10 : unit === 'in' ? value * 25.4 : value;
 
 const SWATCHES = ['#ffffff', '#f1f5f9', '#dbeafe', '#bfdbfe', '#dcfce7', '#fef3c7', '#fce7f3', '#e5e7eb', '#111827', '#000000'];
 
@@ -218,9 +214,6 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const cropDrawRef = useRef<{ mode: 'draw' | 'move' | 'resize'; startX: number; startY: number; bounds: DOMRect; initialRect: CropRect; anchorX: number; anchorY: number; cornerX: number; cornerY: number } | null>(null);
   const photoTransformRef = useRef<{ mode: 'move' | 'resize'; startX: number; startY: number; bounds: DOMRect; offset: { x: number; y: number }; scale: number; cornerX: number; cornerY: number } | null>(null);
   const [photoSizePreset, setPhotoSizePreset] = useState('passport-35x45');
-  const [photoUnit, setPhotoUnit] = useState<PhotoUnit>('mm');
-  const [customWidth, setCustomWidth] = useState('35');
-  const [customHeight, setCustomHeight] = useState('45');
   const [filename, setFilename] = useState('photo-background-removed');
   const [preset, setPreset] = useState<ExportPreset>('large');
   const [customSize, setCustomSize] = useState('20');
@@ -234,8 +227,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const cropStageRef = useRef<HTMLDivElement>(null);
   const selectedPhotoSize = PHOTO_SIZE_PRESETS.find((item) => item.id === photoSizePreset);
-  const targetWidthMm = photoSizePreset === 'custom' ? unitToMm(Number(customWidth), photoUnit) : (selectedPhotoSize?.widthMm ?? 35);
-  const targetHeightMm = photoSizePreset === 'custom' ? unitToMm(Number(customHeight), photoUnit) : (selectedPhotoSize?.heightMm ?? 45);
+  // Custom is a simple square crop preset. The user controls the square crop
+  // box directly on the photo; no separate physical width/height fields.
+  const targetWidthMm = photoSizePreset === 'custom' ? 35 : (selectedPhotoSize?.widthMm ?? 35);
+  const targetHeightMm = photoSizePreset === 'custom' ? 35 : (selectedPhotoSize?.heightMm ?? 45);
 
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
@@ -308,8 +303,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       ctx.translate(rotatedWidth / 2, rotatedHeight / 2);
       ctx.rotate(radians);
       ctx.drawImage(image, -width / 2, -height / 2);
-      if (!Number.isFinite(targetWidthMm) || !Number.isFinite(targetHeightMm) || targetWidthMm <= 0 || targetHeightMm <= 0 || targetWidthMm > 300 || targetHeightMm > 300) {
-        throw new Error('Enter a valid photo width and height (up to 300 mm each).');
+      if (!Number.isFinite(targetWidthMm) || !Number.isFinite(targetHeightMm) || targetWidthMm <= 0 || targetHeightMm <= 0) {
+        throw new Error('Choose a valid photo size preset.');
       }
       const selectedX = rotatedWidth * cropRect.x / 100;
       const selectedY = rotatedHeight * cropRect.y / 100;
@@ -649,36 +644,17 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
                   resetCropForGeometryChange();
                 }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white">
                   {PHOTO_SIZE_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-                  <option value="custom">Custom width &amp; height</option>
+                  <option value="custom">Custom · Square crop (1:1)</option>
                 </select>
               </label>
-              <div className="mb-2 grid grid-cols-[1fr_1fr_76px] gap-2">
-                <label className="text-[10px] text-blue-100">Width
-                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customWidth} onChange={(e) => { setCustomWidth(e.target.value); setPhotoSizePreset('custom'); resetCropForGeometryChange(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
-                </label>
-                <label className="text-[10px] text-blue-100">Height
-                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customHeight} onChange={(e) => { setCustomHeight(e.target.value); setPhotoSizePreset('custom'); resetCropForGeometryChange(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
-                </label>
-                <label className="text-[10px] text-blue-100">Unit
-                  <select value={photoUnit} onChange={(e) => {
-                    const nextUnit = e.target.value as PhotoUnit;
-                    setCustomWidth(String(Number(mmToUnit(targetWidthMm, nextUnit).toFixed(2))));
-                    setCustomHeight(String(Number(mmToUnit(targetHeightMm, nextUnit).toFixed(2))));
-                    setPhotoUnit(nextUnit);
-                    setPhotoSizePreset('custom');
-                    resetCropForGeometryChange();
-                  }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-1 py-2 text-[11px] text-white">
-                    <option value="mm">mm</option><option value="cm">cm</option><option value="in">inch</option>
-                  </select>
-                </label>
-              </div>
-              <p className="text-[9px] leading-4 text-blue-200">Final crop and downloaded frame use this exact width-to-height ratio. Custom sizes are supported in mm, cm and inches. Portal-specific requirements may differ.</p>
+              {photoSizePreset === 'custom' && <p className="mb-2 rounded-lg border border-cyan-300/20 bg-cyan-400/5 p-2 text-[10px] leading-4 text-cyan-100">Custom crop is square (1:1). फोटो पर जितना हिस्सा चाहिए उतना square box बनाइए; कोनों से आकार बदलें और बीच से खिसकाएँ। कोई Width / Height भरने की जरूरत नहीं है।</p>}
+              <p className="text-[9px] leading-4 text-blue-200">Preset चुनने पर crop उसी के fixed ratio में रहेगा। Custom में square 1:1 crop रहेगा। Portal-specific requirements may differ.</p>
             </div>
             <div className="mb-2 flex items-center justify-between text-xs text-blue-100"><span>Rotate photo</span><b>{rotation}°</b></div>
             <div className="mb-4 grid grid-cols-4 gap-1.5">
               {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); resetCropForGeometryChange(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200">{index < 2 ? <RotateCcw size={16} /> : <RotateCw size={16} />}</span>{item.label}</button>)}
             </div>
-            <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>Free</b></div>
+            <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>{photoSizePreset === 'custom' ? 'Square 1:1' : 'Preset ratio'}</b></div>
             <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">फोटो पर किसी खाली जगह से माउस दबाकर खींचें और नया crop box बनाएँ। बने हुए बॉक्स को बीच से पकड़कर खिसकाएँ और चारों कोनों से उसका आकार बदलें। चुने हुए photo size का ratio लॉक रहेगा।</div>
             <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropHasSelection(false); setIsCropping(false); setCropApplied(false); setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; }); setPhotoOffset({ x: 0, y: 0 }); setPhotoScale(1); setRotation(0); cropDrawRef.current = null; photoTransformRef.current = null; setCroppedBlob(null); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
             <button type="button" onClick={async () => {
