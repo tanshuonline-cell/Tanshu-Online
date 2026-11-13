@@ -120,8 +120,8 @@ async function removeBackgroundWithPersonMask(photo: Blob, onStatus: (message: s
 
 const PHOTO_SIZE_PRESETS = [
   { id: 'passport-35x45', label: 'India Passport / Visa · 35 × 45 mm', widthMm: 35, heightMm: 45 },
-  { id: 'pan-25x35', label: 'PAN / Small form photo · 25 × 35 mm', widthMm: 25, heightMm: 35 },
-  { id: '35x35', label: 'Square photo · 35 × 35 mm', widthMm: 35, heightMm: 35 },
+  { id: 'pan-35x25', label: 'PAN application photo · 35 × 25 mm', widthMm: 35, heightMm: 25 },
+  { id: '35x35', label: 'Square ID / voter-form photo · 35 × 35 mm', widthMm: 35, heightMm: 35 },
   { id: '40x50', label: 'Form photo · 40 × 50 mm', widthMm: 40, heightMm: 50 },
   { id: '45x35', label: 'Landscape form photo · 45 × 35 mm', widthMm: 45, heightMm: 35 },
   { id: '2x2', label: '2 × 2 inch · 51 × 51 mm', widthMm: 50.8, heightMm: 50.8 },
