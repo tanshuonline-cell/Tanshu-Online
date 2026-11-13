@@ -161,7 +161,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
         name:'Customer '+String(customers.length+index+1).padStart(2,'0'), size:'35x45', quantity:5, customWidth:35, customHeight:45,
         brightness:100, contrast:100, saturation:100, sharpness:0, clarity:0, beauty:0, faceTone:0, selectiveColor:0, lipTint:0, hairTone:0, colorGrade:0, qualityEnhance:0, hdEnhance:0, plump:0, blemish:0, smooth:0, skinTone:0, brightEyes:0, darkCircle:0, whitening:0, clear:0, brilliance:0, hslHue:0, hslSaturation:0, hslLightness:0, graphic:0, highlights:0, shadows:0, whites:0, blacks:0, temperature:0, hue:0, bgRemoved:false, signatureUrl:'', includeSignature:false, signatureScale:100, signatureX:0.5, signatureY:0.82, signatureMerged:false };
     });
-    setCustomers(current => [...current,...additions]); if (!selectedId && additions[0]) setSelectedId(additions[0].id);
+    setCustomers(current => [...current,...additions]); setPrintPages([]);setSelectedPrintPages([]); if (!selectedId && additions[0]) setSelectedId(additions[0].id);
     setActiveStep('upload'); setNotice(selectedFiles.length+' photo'+(selectedFiles.length===1?'':'s')+' added to this batch.');
     if (fileInputRef.current) fileInputRef.current.value='';
   };
@@ -232,7 +232,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   };
   const processBackground = async (all:boolean) => {
     const targets=all?customers:(activeCustomer?[activeCustomer]:[]); if(!targets.length)return;
-    setBusy(true); setBgProgress(0); setNotice('Removing background… 0%');
+    setBusy(true); setPrintPages([]);setSelectedPrintPages([]); setBgProgress(0); setNotice('Removing background… 0%');
     try {
       for(let index=0;index<targets.length;index++){
         const customer=targets[index];
@@ -286,6 +286,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const removeSignatureBackground=async(id:string)=>{const customer=customers.find(item=>item.id===id);if(!customer?.signatureUrl||busy)return;setBusy(true);setNotice('Removing signature background with AI…');try{const cleaned=await removePhotoBackground(customer.signatureUrl,()=>{});if(customer.signatureUrl.startsWith('blob:'))URL.revokeObjectURL(customer.signatureUrl);updateCustomer(id,{signatureUrl:cleaned,includeSignature:false});setPrintPages([]);setSelectedPrintPages([]);setNotice('Signature background removed. Transparent signature is ready; enable Include signature on print when required.');}catch(error){setNotice(error instanceof Error?'Could not remove signature background: '+error.message:'Could not remove signature background. Please try again.');}finally{setBusy(false);}};
   const removeSignature=(id:string)=>{const c=customers.find(item=>item.id===id);if(c?.signatureUrl.startsWith('blob:'))URL.revokeObjectURL(c.signatureUrl);updateCustomer(id,{signatureUrl:'',includeSignature:false});setPrintPages([]);};
   const handleReplacement=(id:string,file?:File)=>{if(!file||!file.type.startsWith('image/'))return;const url=URL.createObjectURL(file);const c=customers.find(item=>item.id===id);if(c){URL.revokeObjectURL(c.previewUrl);if(c.workingUrl!==c.previewUrl&&c.workingUrl.startsWith('blob:'))URL.revokeObjectURL(c.workingUrl);}updateCustomer(id,{file,previewUrl:url,workingUrl:url,bgRemoved:false});setPrintPages([]);setSelectedPrintPages([]);setNotice('Customer photo replaced. Size, quantity and signature settings are preserved.');};
+  useEffect(()=>{setPrintPages([]);setSelectedPrintPages([]);},[paperSize,customPaperWidth,customPaperHeight,sheetMargin,cutGap,photoScale,photoBorder,borderWidth,showPrintGuides,backgroundColor,customBackgroundColor]);
   const customersRef=useRef(customers); useEffect(()=>{customersRef.current=customers;},[customers]);
   useEffect(()=>()=>{customersRef.current.forEach(c=>{URL.revokeObjectURL(c.previewUrl);if(c.workingUrl!==c.previewUrl&&c.workingUrl.startsWith('blob:'))URL.revokeObjectURL(c.workingUrl);if(c.signatureUrl.startsWith('blob:'))URL.revokeObjectURL(c.signatureUrl);});},[]);
 
