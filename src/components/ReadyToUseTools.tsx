@@ -52,10 +52,10 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
               TANSHU ONLINE · LIVE NOW
             </p>
             <h2 id="ready-tools-title" className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-              Ready-to-Use Tools &amp; Studios
+              CSC &amp; CYBER CAFE TOOLKITS
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Powerful Tools. Smart Editing. Professional Results.
+              Essential digital service, cyber cafe and document tools — all in one place.
             </p>
           </div>
           <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
