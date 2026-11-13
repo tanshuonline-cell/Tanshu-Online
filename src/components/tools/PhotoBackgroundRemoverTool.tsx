@@ -196,7 +196,11 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [isCropping, setIsCropping] = useState(false);
   const [cropHasSelection, setCropHasSelection] = useState(false);
   const [cropApplied, setCropApplied] = useState(false);
+  const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
+  const [photoOffset, setPhotoOffset] = useState({ x: 0, y: 0 });
+  const [photoScale, setPhotoScale] = useState(1);
   const cropDrawRef = useRef<{ mode: 'draw' | 'move' | 'resize'; startX: number; startY: number; bounds: DOMRect; initialRect: CropRect; anchorX: number; anchorY: number; cornerX: number; cornerY: number } | null>(null);
+  const photoTransformRef = useRef<{ mode: 'move' | 'resize'; startX: number; startY: number; bounds: DOMRect; offset: { x: number; y: number }; scale: number; cornerX: number; cornerY: number } | null>(null);
   const [photoSizePreset, setPhotoSizePreset] = useState('passport-35x45');
   const [photoUnit, setPhotoUnit] = useState<PhotoUnit>('mm');
   const [customWidth, setCustomWidth] = useState('35');
@@ -219,6 +223,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => () => { if (cropPreviewUrl) URL.revokeObjectURL(cropPreviewUrl); }, [cropPreviewUrl]);
 
   const clearResult = () => {
     setResultBlob(null);
@@ -239,6 +244,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setIsCropping(false);
     setCropApplied(false);
     cropDrawRef.current = null;
+    photoTransformRef.current = null;
+    setPhotoOffset({ x: 0, y: 0 });
+    setPhotoScale(1);
+    setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
     setRotation(0);
     setError('');
     clearResult();
@@ -297,7 +306,12 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       if (!out) throw new Error('Your browser could not prepare this crop.');
       out.imageSmoothingEnabled = true;
       out.imageSmoothingQuality = 'high';
-      out.drawImage(rotated, cropX, cropY, cropW, cropH, 0, 0, output.width, output.height);
+      const placementScale = cropApplied ? photoScale : 1;
+      const placementX = cropApplied ? (photoOffset.x / 100) * output.width : 0;
+      const placementY = cropApplied ? (photoOffset.y / 100) * output.height : 0;
+      const drawWidth = output.width * placementScale;
+      const drawHeight = output.height * placementScale;
+      out.drawImage(rotated, cropX, cropY, cropW, cropH, (output.width - drawWidth) / 2 + placementX, (output.height - drawHeight) / 2 + placementY, drawWidth, drawHeight);
       return await new Promise<Blob>((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
     } finally {
       URL.revokeObjectURL(originalUrl);
@@ -512,6 +526,44 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       setCropHasSelection(cropRect.w >= 1 && cropRect.h >= 1);
     }
   };
+
+  const startPhotoTransform = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!cropApplied || isCropping || busy) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const handle = (event.target as HTMLElement).closest('[data-photo-resize]') as HTMLElement | null;
+    const corner = handle?.getAttribute('data-photo-resize');
+    photoTransformRef.current = {
+      mode: corner ? 'resize' : 'move',
+      startX: event.clientX,
+      startY: event.clientY,
+      bounds,
+      offset: { ...photoOffset },
+      scale: photoScale,
+      cornerX: corner?.includes('l') ? -1 : 1,
+      cornerY: corner?.includes('t') ? -1 : 1,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const movePhotoTransform = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = photoTransformRef.current;
+    if (!drag) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (drag.mode === 'move') {
+      setPhotoOffset({
+        x: Math.max(-100, Math.min(100, drag.offset.x + dx / drag.bounds.width * 100)),
+        y: Math.max(-100, Math.min(100, drag.offset.y + dy / drag.bounds.height * 100)),
+      });
+    } else {
+      const delta = (dx * drag.cornerX + dy * drag.cornerY) / (Math.max(drag.bounds.width, drag.bounds.height) * 1.15);
+      setPhotoScale(Math.max(0.5, Math.min(3, drag.scale + delta)));
+    }
+  };
+
+  const endPhotoTransform = () => { photoTransformRef.current = null; };
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#081629] text-slate-100">
