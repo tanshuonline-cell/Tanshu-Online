@@ -4,7 +4,7 @@ import { removeBackground } from '@bg0/browser';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Crop, ImagePlus,
   LayoutGrid, Plus, Printer, RotateCw, Settings2, SlidersHorizontal,
-  Sparkles, Trash2, Upload, Users, UserRound, X, WandSparkles
+  Sparkles, Trash2, Upload, Users, UserRound, X, WandSparkles, PenTool
 } from 'lucide-react';
 
 type CropBox = { x: number; y: number; w: number; h: number };
@@ -19,7 +19,7 @@ type CustomerPhoto = {
   skinTone: number; evenSkin: number; brightEyes: number; darkCircle: number; whitening: number; clear: number;
   brilliance: number; hslHue: number; hslSaturation: number; hslLightness: number;
   graphic: number; highlights: number; shadows: number; whites: number; blacks: number; temperature: number; hue: number;
-  bgRemoved: boolean; signatureUrl:string; includeSignature:boolean; signatureScale:number;
+  bgRemoved: boolean; signatureUrl:string; includeSignature:boolean; signatureScale:number; signatureX:number; signatureY:number; signatureMerged:boolean;
 };
 const PHOTO_SIZES = [
   {value:'35x45',label:'Passport / General Form · 35 × 45 mm',w:35,h:45},{value:'25x35',label:'PAN Card · 25 × 35 mm',w:25,h:35},
@@ -38,6 +38,7 @@ const WORKFLOW = [
   { id: 'upload', label: 'Upload Customers', hint: 'Add multiple photos', icon: Upload },
   { id: 'crop', label: 'Crop & Position', hint: 'Select and apply crop', icon: Crop },
   { id: 'background', label: 'Background', hint: 'Batch background cleanup', icon: Sparkles },
+  { id: 'signature', label: 'Signature Placement', hint: 'Drag, resize and merge signature', icon: PenTool },
   { id: 'adjust', label: 'Photo Adjustments', hint: 'Color and light settings', icon: SlidersHorizontal },
   { id: 'print', label: 'A4 Print Studio', hint: 'Quantity and smart layout', icon: Printer },
 ];
@@ -142,6 +143,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const [paperSize,setPaperSize]=useState('A4'); const [customPaperWidth,setCustomPaperWidth]=useState(210); const [customPaperHeight,setCustomPaperHeight]=useState(297);
   const [sheetMargin,setSheetMargin]=useState(5); const [cutGap,setCutGap]=useState(2); const [photoScale,setPhotoScale]=useState(100); const [photoBorder,setPhotoBorder]=useState(true); const [borderWidth,setBorderWidth]=useState(.2); const [showPrintGuides,setShowPrintGuides]=useState(true);
   const [printPages,setPrintPages]=useState<PrintPagePreview[]>([]); const [selectedPrintPages,setSelectedPrintPages]=useState<string[]>([]); const [signatureUploadTarget,setSignatureUploadTarget]=useState(''); const signatureInputRef=useRef<HTMLInputElement>(null); const [replaceTarget,setReplaceTarget]=useState(''); const replaceInputRef=useRef<HTMLInputElement>(null);
+  const signatureDragRef=useRef<{id:string;startX:number;startY:number;originX:number;originY:number}|null>(null);
   const [notice, setNotice] = useState('Upload several customer photos to start a batch.');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -149,7 +151,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const activeCustomer = customers.find(c => c.id === selectedId) || customers[0];
   const totalCopies = useMemo(() => customers.reduce((sum,c) => sum + Math.max(0,c.quantity || 0),0),[customers]);
 
-  const updateCustomer = (id:string, updates:Partial<CustomerPhoto>) => setCustomers(current => current.map(c => c.id===id ? {...c,...updates} : c));
+  const updateCustomer = (id:string, updates:Partial<CustomerPhoto>) => { setCustomers(current => current.map(c => c.id===id ? {...c,...updates} : c)); setPrintPages([]); setSelectedPrintPages([]); };
   const addFiles = (files: FileList | File[]) => {
     const selectedFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
     if (!selectedFiles.length) { setNotice('Please choose JPG, PNG or WEBP image files.'); return; }
@@ -157,7 +159,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
       const url=URL.createObjectURL(file);
       return { id: String(Date.now())+'-'+index+'-'+Math.random().toString(36).slice(2,8), file, previewUrl:url, workingUrl:url,
         name:'Customer '+String(customers.length+index+1).padStart(2,'0'), size:'35x45', quantity:5, customWidth:35, customHeight:45,
-        brightness:100, contrast:100, saturation:100, sharpness:0, clarity:0, beauty:0, faceTone:0, selectiveColor:0, lipTint:0, hairTone:0, colorGrade:0, qualityEnhance:0, hdEnhance:0, plump:0, blemish:0, smooth:0, skinTone:0, brightEyes:0, darkCircle:0, whitening:0, clear:0, brilliance:0, hslHue:0, hslSaturation:0, hslLightness:0, graphic:0, highlights:0, shadows:0, whites:0, blacks:0, temperature:0, hue:0, bgRemoved:false, signatureUrl:'', includeSignature:false, signatureScale:100 };
+        brightness:100, contrast:100, saturation:100, sharpness:0, clarity:0, beauty:0, faceTone:0, selectiveColor:0, lipTint:0, hairTone:0, colorGrade:0, qualityEnhance:0, hdEnhance:0, plump:0, blemish:0, smooth:0, skinTone:0, brightEyes:0, darkCircle:0, whitening:0, clear:0, brilliance:0, hslHue:0, hslSaturation:0, hslLightness:0, graphic:0, highlights:0, shadows:0, whites:0, blacks:0, temperature:0, hue:0, bgRemoved:false, signatureUrl:'', includeSignature:false, signatureScale:100, signatureX:0.5, signatureY:0.82, signatureMerged:false };
     });
     setCustomers(current => [...current,...additions]); if (!selectedId && additions[0]) setSelectedId(additions[0].id);
     setActiveStep('upload'); setNotice(selectedFiles.length+' photo'+(selectedFiles.length===1?'':'s')+' added to this batch.');
@@ -169,8 +171,8 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   };
   const handleStep = (stepId:string) => {
     setActiveStep(stepId); setCropBox(null);
-    if(stepId==='adjust') setAdjustmentOpen(true);
-    const messages:Record<string,string> = {upload:'Add or review customer photos in this batch.',crop:'Drag on the photo to select the crop area, then apply it.',background:'Choose the cleanup strength, background color and process one or all customer photos.',adjust:'Fine-tune light, detail, beauty and color for the selected customer.',print:'Review your quantities and create a print-ready sheet.'};
+    if(stepId==='adjust') setAdjustmentOpen(activeStep==='adjust'?!adjustmentOpen:true);
+    const messages:Record<string,string> = {upload:'Add or review customer photos in this batch.',crop:'Drag on the photo to select the crop area, then apply it.',background:'Choose the cleanup strength, background color and process one or all customer photos.',signature:'Upload each customer’s own signature, remove its background, then drag and resize it on the photo.',adjust:'Fine-tune light, detail, beauty and color for the selected customer.',print:'Review your quantities and create a print-ready sheet.'};
     setNotice(messages[stepId] || '');
   };
   const pointOnImage = (event:React.PointerEvent) => {
@@ -224,8 +226,8 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
     try {
       const box=cropBox; const targets=sameCrop?customers:customers.filter(c=>c.id===activeCustomer.id);
       const results=await Promise.all(targets.map(async c=>({id:c.id,url:await cropOne(c,box)})));
-      setCustomers(current=>current.map(c=>{const result=results.find(r=>r.id===c.id);return result?{...c,workingUrl:result.url}:c;}));
-      setCropBox(null); setNotice(sameCrop?'The selected crop was applied to all customers.':'Crop applied to the selected customer.');
+      setCustomers(current=>current.map(c=>{const result=results.find(r=>r.id===c.id);return result?{...c,workingUrl:result.url,signatureMerged:false}:c;}));
+      setPrintPages([]);setSelectedPrintPages([]);setCropBox(null); setNotice(sameCrop?'The selected crop was applied to all customers.':'Crop applied to the selected customer.');
     } catch {setNotice('Could not crop this image. Please try again.');} finally {setBusy(false);}
   };
   const processBackground = async (all:boolean) => {
@@ -241,7 +243,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
         setCustomers(current=>current.map(c=>c.id===customer.id?{...c,workingUrl:url,bgRemoved:true}:c));
         setBgProgress(Math.round(((index+1)/targets.length)*100));
       }
-      setBgProgress(100); setNotice('AI background removed. Choose a color below to preview it instantly.');
+      setPrintPages([]);setSelectedPrintPages([]);setBgProgress(100); setNotice('AI background removed. Choose a color below to preview it instantly.');
     } catch (error) {setNotice(error instanceof Error?'AI background removal failed: '+error.message:'AI background removal failed. Please check your internet connection and try again.');} finally {setBusy(false);}
   };
   const resetBackground = () => { if(activeCustomer) {updateCustomer(activeCustomer.id,{workingUrl:activeCustomer.previewUrl,bgRemoved:false});setNotice('Original background restored for this customer.');} };
@@ -258,7 +260,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const paperMm=paperSize==='single'&&activeCustomer?{label:'Single Photo',...mmFor(activeCustomer)}:(PAPER_SIZES[paperSize]||PAPER_SIZES.A4);
   const exportPrintPages=(ids?:string[])=>{const chosen=ids?.length?printPages.filter(p=>ids.includes(p.id)):printPages;if(!chosen.length){setNotice('Create a print sheet or select pages first.');return;}const defaultW=paperSize==='custom'?customPaperWidth:paperMm.w,defaultH=paperSize==='custom'?customPaperHeight:paperMm.h;const firstW=chosen[0].widthMm||defaultW,firstH=chosen[0].heightMm||defaultH;const pdf=new jsPDF({orientation:firstW>firstH?'landscape':'portrait',unit:'mm',format:[firstW,firstH],compress:true});chosen.forEach((p,i)=>{const w=p.widthMm||defaultW,h=p.heightMm||defaultH;if(i>0)pdf.addPage([w,h],w>h?'landscape':'portrait');pdf.addImage(p.dataUrl,'JPEG',0,0,w,h,undefined,'FAST');});pdf.save('tanshu-multi-customer-print-sheets.pdf');setNotice(chosen.length+' page(s) exported. Print at Actual Size / 100%.');};
   const buildPrintSheet=async()=>{if(!customers.length)return;setBusy(true);setNotice('Arranging customer photos on print sheets…');try{
-    if(paperSize==='single'){const singlePages:PrintPagePreview[]=[];for(const c of customers){const img=await loadImage(c.workingUrl);let source:CanvasImageSource=img;if(c.bgRemoved&&backgroundColor!=='transparent'){const bg=document.createElement('canvas');bg.width=img.naturalWidth;bg.height=img.naturalHeight;const bc=bg.getContext('2d');if(bc){bc.fillStyle=backgroundColor;bc.fillRect(0,0,bg.width,bg.height);bc.drawImage(img,0,0);source=bg;}}let sig:HTMLImageElement|null=null;if(c.includeSignature&&c.signatureUrl){try{sig=await loadImage(c.signatureUrl);}catch{sig=null;}}const mm=mmFor(c),w=Math.round(mm.w/25.4*300),h=Math.round(mm.h/25.4*300);for(let n=0;n<c.quantity;n++){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');if(!cx)continue;cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(source,0,0,w,h);if(sig){const sw=Math.min(w*.72,sig.naturalWidth),sh=sw*sig.naturalHeight/sig.naturalWidth,scale=Math.min(1,(h*.18*c.signatureScale/100)/Math.max(1,sh));cx.drawImage(sig,(w-sw*scale)/2,h-sh*scale-h*.025,sw*scale,sh*scale);}if(photoBorder){cx.strokeStyle='#9ca3af';cx.lineWidth=Math.max(1,borderWidth/25.4*300);cx.strokeRect(0,0,w,h);}singlePages.push({id:'single-'+Date.now()+'-'+singlePages.length,dataUrl:cv.toDataURL('image/jpeg',.94),widthMm:mm.w,heightMm:mm.h});}}setPrintPages(singlePages);setSelectedPrintPages(singlePages.map(p=>p.id));if(singlePages.length){const first=singlePages[0],pdf=new jsPDF({orientation:(first.widthMm||35)>(first.heightMm||45)?'landscape':'portrait',unit:'mm',format:[first.widthMm||35,first.heightMm||45],compress:true});singlePages.forEach((p,i)=>{const w=p.widthMm||35,h=p.heightMm||45;if(i>0)pdf.addPage([w,h],w>h?'landscape':'portrait');pdf.addImage(p.dataUrl,'JPEG',0,0,w,h,undefined,'FAST');});pdf.save('tanshu-single-customer-photos.pdf');}setNotice(singlePages.length+' individual photo page(s) created at each customer’s exact photo size.');return;}
+    if(paperSize==='single'){const singlePages:PrintPagePreview[]=[];for(const c of customers){const img=await loadImage(c.workingUrl);let source:CanvasImageSource=img;if(c.bgRemoved&&backgroundColor!=='transparent'){const bg=document.createElement('canvas');bg.width=img.naturalWidth;bg.height=img.naturalHeight;const bc=bg.getContext('2d');if(bc){bc.fillStyle=backgroundColor;bc.fillRect(0,0,bg.width,bg.height);bc.drawImage(img,0,0);source=bg;}}let sig:HTMLImageElement|null=null;if(c.includeSignature&&!c.signatureMerged&&c.signatureUrl){try{sig=await loadImage(c.signatureUrl);}catch{sig=null;}}const mm=mmFor(c),w=Math.round(mm.w/25.4*300),h=Math.round(mm.h/25.4*300);for(let n=0;n<c.quantity;n++){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');if(!cx)continue;cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(source,0,0,w,h);if(sig){const sw=Math.min(w*.72,sig.naturalWidth),sh=sw*sig.naturalHeight/sig.naturalWidth,scale=Math.min(1,(h*.18*c.signatureScale/100)/Math.max(1,sh));cx.drawImage(sig,(w-sw*scale)/2,h-sh*scale-h*.025,sw*scale,sh*scale);}if(photoBorder){cx.strokeStyle='#9ca3af';cx.lineWidth=Math.max(1,borderWidth/25.4*300);cx.strokeRect(0,0,w,h);}singlePages.push({id:'single-'+Date.now()+'-'+singlePages.length,dataUrl:cv.toDataURL('image/jpeg',.94),widthMm:mm.w,heightMm:mm.h});}}setPrintPages(singlePages);setSelectedPrintPages(singlePages.map(p=>p.id));if(singlePages.length){const first=singlePages[0],pdf=new jsPDF({orientation:(first.widthMm||35)>(first.heightMm||45)?'landscape':'portrait',unit:'mm',format:[first.widthMm||35,first.heightMm||45],compress:true});singlePages.forEach((p,i)=>{const w=p.widthMm||35,h=p.heightMm||45;if(i>0)pdf.addPage([w,h],w>h?'landscape':'portrait');pdf.addImage(p.dataUrl,'JPEG',0,0,w,h,undefined,'FAST');});pdf.save('tanshu-single-customer-photos.pdf');}setNotice(singlePages.length+' individual photo page(s) created at each customer’s exact photo size.');return;}
     const width=paperSize==='custom'?customPaperWidth:paperMm.w,height=paperSize==='custom'?customPaperHeight:paperMm.h,pageW=Math.round(width/25.4*300),pageH=Math.round(height/25.4*300),margin=sheetMargin/25.4*300,gap=cutGap/25.4*300;
     const pages:HTMLCanvasElement[]=[];let page=document.createElement('canvas');let ctx:CanvasRenderingContext2D|null=null;
     const fresh=()=>{page=document.createElement('canvas');page.width=pageW;page.height=pageH;ctx=page.getContext('2d');if(!ctx)throw Error('Canvas unavailable');ctx.fillStyle='#fff';ctx.fillRect(0,0,pageW,pageH);};fresh();let x=margin,y=margin,rowH=0;
@@ -278,7 +280,9 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
     setNotice(previews.length+' sheet(s) created. Customer names and phone numbers are never printed; signatures print only when individually enabled.');
   }catch{setNotice('Could not create print sheets. Check the selected photos and try again.');}finally{setBusy(false);}};
   const printSheet = async () => { await buildPrintSheet(); };
-  const handleSignatureFile=(id:string,file?:File)=>{if(!file)return;if(!file.type.startsWith('image/')){setNotice('Choose a signature image.');return;}updateCustomer(id,{signatureUrl:URL.createObjectURL(file),includeSignature:false});setNotice('Signature uploaded; it stays OFF on print until enabled.');};
+  const handleSignatureFile=(id:string,file?:File)=>{if(!file)return;if(!file.type.startsWith('image/')){setNotice('Choose a signature image.');return;}updateCustomer(id,{signatureUrl:URL.createObjectURL(file),includeSignature:false,signatureMerged:false});setNotice('Signature uploaded; remove its background, position it on the photo, then merge it.');};
+  const applySignatureToPhoto=async()=>{if(!activeCustomer?.signatureUrl||activeCustomer.signatureMerged)return;setBusy(true);try{const [photo,sig]=await Promise.all([loadImage(activeCustomer.workingUrl),loadImage(activeCustomer.signatureUrl)]);const canvas=document.createElement('canvas');canvas.width=photo.naturalWidth;canvas.height=photo.naturalHeight;const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas unavailable');ctx.drawImage(photo,0,0);const width=Math.min(canvas.width*.7,canvas.width*.3*activeCustomer.signatureScale/100),height=width*sig.naturalHeight/sig.naturalWidth;ctx.drawImage(sig,activeCustomer.signatureX*canvas.width-width/2,activeCustomer.signatureY*canvas.height-height/2,width,height);updateCustomer(activeCustomer.id,{workingUrl:canvasUrl(canvas),signatureMerged:true,includeSignature:false});setNotice('Signature merged into this customer photo. It will not be drawn twice on the print sheet.');}catch{setNotice('Could not merge the signature. Please try again.');}finally{setBusy(false);}};
+  const copySignaturePlacementToAll=()=>{if(!activeCustomer)return;setCustomers(current=>current.map(c=>({...c,signatureX:activeCustomer.signatureX,signatureY:activeCustomer.signatureY,signatureScale:activeCustomer.signatureScale})));setPrintPages([]);setSelectedPrintPages([]);setNotice('Signature position and size copied to all customers. Each customer keeps their own signature image.');};
   const removeSignatureBackground=async(id:string)=>{const customer=customers.find(item=>item.id===id);if(!customer?.signatureUrl||busy)return;setBusy(true);setNotice('Removing signature background with AI…');try{const cleaned=await removePhotoBackground(customer.signatureUrl,()=>{});if(customer.signatureUrl.startsWith('blob:'))URL.revokeObjectURL(customer.signatureUrl);updateCustomer(id,{signatureUrl:cleaned,includeSignature:false});setPrintPages([]);setSelectedPrintPages([]);setNotice('Signature background removed. Transparent signature is ready; enable Include signature on print when required.');}catch(error){setNotice(error instanceof Error?'Could not remove signature background: '+error.message:'Could not remove signature background. Please try again.');}finally{setBusy(false);}};
   const removeSignature=(id:string)=>{const c=customers.find(item=>item.id===id);if(c?.signatureUrl.startsWith('blob:'))URL.revokeObjectURL(c.signatureUrl);updateCustomer(id,{signatureUrl:'',includeSignature:false});setPrintPages([]);};
   const handleReplacement=(id:string,file?:File)=>{if(!file||!file.type.startsWith('image/'))return;const url=URL.createObjectURL(file);const c=customers.find(item=>item.id===id);if(c){URL.revokeObjectURL(c.previewUrl);if(c.workingUrl!==c.previewUrl&&c.workingUrl.startsWith('blob:'))URL.revokeObjectURL(c.workingUrl);}updateCustomer(id,{file,previewUrl:url,workingUrl:url,bgRemoved:false});setPrintPages([]);setSelectedPrintPages([]);setNotice('Customer photo replaced. Size, quantity and signature settings are preserved.');};
