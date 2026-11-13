@@ -229,7 +229,7 @@ body.studio-expanded .layout{height:calc(100vh - 116px);min-height:0}
 <script src="/id-pvc-studio/catalog-settings.js"></script><script src="/id-pvc-studio/preset-engine.js"></script><script src="/id-pvc-studio/pvc-engine.js"></script>
 
 <script>
-const btn=document.getElementById('studioFullscreenToggle');if(!btn)return;
+(()=>{const btn=document.getElementById('studioFullscreenToggle');if(!btn)return;
 const labels={enter:{en:'⛶ Full Screen',hi:'⛶ फुल स्क्रीन'},exit:{en:'⤢ Exit Full Screen',hi:'⤢ स्क्रीन छोटा करें'}};
 const currentLang=()=>document.documentElement.lang==='hi'?'hi':'en';
 const isExpanded=()=>!!document.fullscreenElement||document.body.classList.contains('studio-expanded');
