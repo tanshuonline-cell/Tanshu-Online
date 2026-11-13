@@ -9,7 +9,7 @@ type PdfJsDocument = { numPages: number; getPage: (page: number) => Promise<PdfJ
 type PdfJsLibrary = { getDocument: (args: { data: Uint8Array }) => { promise: Promise<PdfJsDocument> }; GlobalWorkerOptions: { workerSrc: string } };
 
 declare global {
-  interface Window { pdfjsLib?: PdfJsLibrary; }
+  interface Window { pdfjsLib?: PdfJsLibrary; cv?: any; }
 }
 
 const PDFJS_VERSION = '3.11.174';
@@ -40,6 +40,83 @@ function loadPdfJs(): Promise<PdfJsLibrary> {
     } else if (window.pdfjsLib) finish();
   });
   return pdfJsLoader;
+}
+
+let openCvLoader: Promise<any> | null = null;
+function loadOpenCv(): Promise<any> {
+  if (window.cv?.Mat) return Promise.resolve(window.cv);
+  if (openCvLoader) return openCvLoader;
+  openCvLoader = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-tanshu-opencv="true"]');
+    const script = existing || document.createElement('script');
+    const ready = () => {
+      if (window.cv?.Mat) resolve(window.cv);
+      else if (window.cv) window.cv.onRuntimeInitialized = () => resolve(window.cv);
+      else { openCvLoader = null; reject(new Error('Auto page detection is unavailable right now.')); }
+    };
+    script.addEventListener('load', ready, { once: true });
+    script.addEventListener('error', () => { openCvLoader = null; reject(new Error('Could not load the page-detection engine.')); }, { once: true });
+    if (!existing) {
+      script.src = 'https://docs.opencv.org/4.x/opencv.js';
+      script.async = true;
+      script.dataset.tanshuOpencv = 'true';
+      document.head.appendChild(script);
+    } else if (window.cv) ready();
+  });
+  return openCvLoader;
+}
+
+async function autoRectifyPage(source: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  const cv = await loadOpenCv();
+  let src: any, gray: any, blurred: any, edges: any, contours: any, hierarchy: any;
+  let transform: any, warped: any, srcPoints: any, dstPoints: any;
+  try {
+    src = cv.imread(source);
+    gray = new cv.Mat(); blurred = new cv.Mat(); edges = new cv.Mat();
+    contours = new cv.MatVector(); hierarchy = new cv.Mat();
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.Canny(blurred, edges, 45, 130);
+    cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    let bestArea = 0;
+    let corners: Array<{ x: number; y: number }> | null = null;
+    for (let i = 0; i < contours.size(); i++) {
+      const contour = contours.get(i);
+      const candidate = new cv.Mat();
+      cv.approxPolyDP(contour, candidate, 0.02 * cv.arcLength(contour, true), true);
+      const area = Math.abs(cv.contourArea(candidate));
+      if (candidate.rows === 4 && area > source.width * source.height * 0.12 && area > bestArea) {
+        const points = [];
+        for (let j = 0; j < 4; j++) points.push({ x: candidate.intPtr(j, 0)[0], y: candidate.intPtr(j, 0)[1] });
+        corners = points; bestArea = area;
+      }
+      candidate.delete(); contour.delete();
+    }
+    if (!corners || bestArea < source.width * source.height * 0.18) return source;
+    const sums = corners.map(p => p.x + p.y);
+    const diffs = corners.map(p => p.x - p.y);
+    const ordered = [
+      corners[sums.indexOf(Math.min(...sums))],
+      corners[diffs.indexOf(Math.max(...diffs))],
+      corners[sums.indexOf(Math.max(...sums))],
+      corners[diffs.indexOf(Math.min(...diffs))],
+    ];
+    const width = Math.round(Math.max(Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y), Math.hypot(ordered[2].x - ordered[3].x, ordered[2].y - ordered[3].y)));
+    const height = Math.round(Math.max(Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y), Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y)));
+    if (width < 120 || height < 120) return source;
+    srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, ordered.flatMap(p => [p.x, p.y]));
+    dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, width - 1, 0, width - 1, height - 1, 0, height - 1]);
+    transform = cv.getPerspectiveTransform(srcPoints, dstPoints);
+    warped = new cv.Mat();
+    cv.warpPerspective(src, warped, transform, new cv.Size(width, height), cv.INTER_CUBIC, cv.BORDER_REPLICATE);
+    const result = document.createElement('canvas');
+    cv.imshow(result, warped);
+    return result;
+  } finally {
+    [src, gray, blurred, edges, contours, hierarchy, transform, warped, srcPoints, dstPoints].forEach(item => {
+      if (item && typeof item.delete === 'function') item.delete();
+    });
+  }
 }
 
 function clamp(value: number, min = 0, max = 255) { return Math.max(min, Math.min(max, value)); }
@@ -145,6 +222,7 @@ export const DocumentScannerTool: React.FC = () => {
   const [sharpness, setSharpness] = useState(45);
   const [threshold, setThreshold] = useState(154);
   const [rotation, setRotation] = useState(0);
+  const [autoRectify, setAutoRectify] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -162,10 +240,11 @@ export const DocumentScannerTool: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Could not prepare this PDF page.');
     await pdfPage.render({ canvasContext: ctx, viewport }).promise;
-    setSourceCanvas(canvas);
+    const pageCanvas = autoRectify ? await autoRectifyPage(canvas).catch(() => canvas) : canvas;
+    setSourceCanvas(pageCanvas);
     setPageNumber(page);
     setRotation(0);
-  }, []);
+  }, [autoRectify]);
 
   const acceptFile = async (file: File) => {
     setError(''); setStatus(''); setBusy(true);
@@ -190,7 +269,8 @@ export const DocumentScannerTool: React.FC = () => {
         if (!ctx) throw new Error('Could not read this image.');
         ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         bitmap.close();
-        setSourceCanvas(canvas); setSourceKind('image'); setPageCount(1); setPageNumber(1); setRotation(0);
+        const rectified = autoRectify ? await autoRectifyPage(canvas).catch(() => canvas) : canvas;
+        setSourceCanvas(rectified); setSourceKind('image'); setPageCount(1); setPageNumber(1); setRotation(0);
         setStatus('Image loaded. Select an enhancement mode and review the new page.');
       } else {
         throw new Error('Please upload a JPG, JPEG, PNG, WEBP or PDF file.');
@@ -264,7 +344,8 @@ export const DocumentScannerTool: React.FC = () => {
         const rawCtx = raw.getContext('2d');
         if (!rawCtx) throw new Error(`Could not process PDF page ${page}.`);
         await pdfPage.render({ canvasContext: rawCtx, viewport }).promise;
-        const rotated = rotateCanvas(raw, rotation);
+        const pageCanvas = autoRectify ? await autoRectifyPage(raw).catch(() => raw) : raw;
+        const rotated = rotateCanvas(pageCanvas, rotation);
         const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
         const landscape = enhanced.width > enhanced.height;
         const w = landscape ? 297 : 210, h = landscape ? 210 : 297;
@@ -330,8 +411,9 @@ export const DocumentScannerTool: React.FC = () => {
               { label: 'Edge Sharpness', value: sharpness, min: 0, max: 100, set: setSharpness },
               ...(mode === 'bw' ? [{ label: 'B&W Threshold', value: threshold, min: 80, max: 210, set: setThreshold }] : []),
             ].map((item) => <label key={item.label} className="block"><span className="mb-1 flex justify-between text-xs text-slate-600"><span>{item.label}</span><strong className="font-mono text-slate-800">{item.value}</strong></span><input type="range" min={item.min} max={item.max} value={item.value} onChange={(e) => item.set(Number(e.target.value))} className="w-full accent-blue-700" /></label>)}
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges & straighten page</label>
             <div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-600">Page rotation</span><button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} disabled={!sourceCanvas} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"><RotateCw className="h-3.5 w-3.5" /> Rotate 90°</button></div>
-            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setThreshold(154); setRotation(0); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
+            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setThreshold(154); setRotation(0); setAutoRectify(true); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
           </div>
         </aside>
 
@@ -349,7 +431,7 @@ export const DocumentScannerTool: React.FC = () => {
         </section>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. It does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering loads the PDF.js library from a public CDN.</div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. It does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering and automatic page-edge detection load PDF.js and OpenCV.js from public CDNs.</div>
     </div>
   );
 };
