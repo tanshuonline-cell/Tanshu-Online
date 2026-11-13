@@ -272,10 +272,10 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       .finally(() => { if (active) setIsAdminAuthChecked(true); });
     return () => { active = false; };
   }, []);
-  // Customer membership verification will be connected in the payment phase.
-  // For this preview, only a server-verified Admin session bypasses customer locks.
-  const isStudioMember = isVerifiedStudioAdmin;
-  const showUpgradePrompt = () => { if (isAdminAuthChecked) setUpgradePromptOpen(true); };
+  // Temporary free preview: make every Studio feature available to all visitors.
+  // Membership pricing and upgrade prompts remain inactive until the planned launch.
+  const isStudioMember = true;
+  const showUpgradePrompt = () => {};
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
   const [cropDialogDrag, setCropDialogDrag] = useState<{x:number;y:number;left:number;top:number}|null>(null);
