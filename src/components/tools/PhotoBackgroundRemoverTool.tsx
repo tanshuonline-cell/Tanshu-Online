@@ -187,7 +187,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('transparent');
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('color');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [customColor, setCustomColor] = useState('#ffffff');
@@ -201,7 +201,6 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [photoUnit, setPhotoUnit] = useState<PhotoUnit>('mm');
   const [customWidth, setCustomWidth] = useState('35');
   const [customHeight, setCustomHeight] = useState('45');
-  const cropDragStart = useRef<{ x: number; y: number; rect: CropRect } | null>(null);
   const [filename, setFilename] = useState('photo-background-removed');
   const [preset, setPreset] = useState<ExportPreset>('large');
   const [customSize, setCustomSize] = useState('20');
@@ -337,7 +336,27 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setError('');
     try {
       if (exportFormat === 'png') {
-        const png = await addPngDpi(resultBlob, dpi);
+        let pngSource = resultBlob;
+        if (backgroundMode === 'color') {
+          const image = new Image();
+          const source = URL.createObjectURL(resultBlob);
+          await new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = () => reject(new Error('Could not prepare the passport photo background.'));
+            image.src = source;
+          });
+          const canvas = document.createElement('canvas');
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          const context = canvas.getContext('2d');
+          if (!context) throw new Error('Could not create the passport photo background.');
+          context.fillStyle = backgroundColor;
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0);
+          URL.revokeObjectURL(source);
+          pngSource = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG export failed.')), 'image/png'));
+        }
+        const png = await addPngDpi(pngSource, dpi);
         const url = URL.createObjectURL(png);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -417,24 +436,6 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   };
 
   const checker = 'repeating-conic-gradient(#d8e0e9 0% 25%, #ffffff 0% 50%) 50% / 18px 18px';
-
-  const getCropPointer = (event: React.PointerEvent<HTMLElement>) => {
-    const stage = cropStageRef.current;
-    const bounds = stage?.getBoundingClientRect();
-    if (!stage || !bounds || !stage.offsetWidth || !stage.offsetHeight) return null;
-    // Convert pointer coordinates back into the unrotated image coordinate space.
-    const centerX = bounds.left + bounds.width / 2;
-    const centerY = bounds.top + bounds.height / 2;
-    const angle = -rotation * Math.PI / 180;
-    const dx = event.clientX - centerX;
-    const dy = event.clientY - centerY;
-    const localX = dx * Math.cos(angle) - dy * Math.sin(angle) + stage.offsetWidth / 2;
-    const localY = dx * Math.sin(angle) + dy * Math.cos(angle) + stage.offsetHeight / 2;
-    return {
-      x: Math.max(0, Math.min(100, (localX / stage.offsetWidth) * 100)),
-      y: Math.max(0, Math.min(100, (localY / stage.offsetHeight) * 100)),
-    };
-  };
 
   const makeAspectCropRect = (anchorX: number, anchorY: number, pointerX: number, pointerY: number, bounds: DOMRect, ratio: number) => {
     const ratioInPercent = ratio * bounds.height / bounds.width;
