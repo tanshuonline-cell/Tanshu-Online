@@ -10,8 +10,8 @@ interface Props {
 
 const ACTIVE_TOOL_IDS = [
   'photo-signature-resizer',
-  'auto-document-cropper',
   'document-scanner-image-rectifier',
+  'auto-document-cropper',
 ];
 
 const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: React.ReactNode }> = {
