@@ -150,7 +150,7 @@ export const AutoDocumentCropperTool: React.FC = () => {
 
   return <div className="flex h-full min-h-0 flex-col bg-[#081629] text-slate-100">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-[#071426] to-[#123B5A] px-4 py-3 sm:px-6">
-      <div className="min-w-0"><div className="text-sm font-black tracking-wide text-white sm:text-base">TANSHU ONLINE <span className="text-cyan-300">· AUTO DOCUMENT CROPPER</span> <span className="ml-1 text-[10px] font-semibold text-blue-100">4-Corner Crop · HD Export · Browser-side</span></div></div>
+      <div className="min-w-0"><div className="text-xs font-bold tracking-wide text-blue-100 sm:text-sm">DOCUMENT WORKSPACE <span className="ml-2 text-[10px] font-medium text-cyan-200">Adjust · Preview · Export</span></div></div>
       <div className="flex items-center gap-2">
         <button onClick={()=>setExpanded(v=>!v)} className="rounded-lg border border-white/20 p-2 text-blue-100 hover:bg-white/10" title={expanded?'Restore studio':'Expand studio'}>{expanded?<Minimize2 size={16}/>:<Maximize2 size={16}/>}</button>
         <button onClick={()=>fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg bg-cyan-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-300"><Upload size={15}/>{imageUrl?'Change Photo':'Add Photo'}</button>
