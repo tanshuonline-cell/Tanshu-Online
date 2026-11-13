@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, Camera, CreditCard, Image as ImageIcon, ScanLine, Crop } from 'lucide-react';
+import { ArrowUpRight, Camera, CreditCard, Image as ImageIcon, ScanLine, Crop, MessageCircle, Smartphone, UserRound, Layers } from 'lucide-react';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { ToolItem } from '../types';
 import { getToolPreviewImage } from '../data/toolPreviewImages';
@@ -104,6 +104,53 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
                   </button>
                 </div>
               </article>
+              {tool.id === 'photo-signature-resizer' && (
+                <>
+                <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl">
+                  <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-100 p-4">
+                    <div className="relative flex h-[88%] w-[42%] items-center justify-center rounded-[1.35rem] border-[5px] border-slate-800 bg-white shadow-xl">
+                      <div className="absolute left-1/2 top-2 h-1 w-7 -translate-x-1/2 rounded-full bg-slate-300" />
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-[0.9rem] bg-gradient-to-b from-slate-50 to-emerald-50 pt-3">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><UserRound className="h-9 w-9" /></span>
+                        <span className="h-2 w-16 rounded-full bg-slate-300" />
+                        <span className="h-2 w-11 rounded-full bg-slate-200" />
+                      </div>
+                      <span className="absolute -right-7 bottom-5 flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-emerald-600 text-white shadow-lg"><MessageCircle className="h-6 w-6" /></span>
+                      <span className="absolute -left-7 top-7 flex h-10 w-10 items-center justify-center rounded-full bg-white text-emerald-700 shadow-md"><Camera className="h-5 w-5" /></span>
+                    </div>
+                    <span className="absolute bottom-3 left-3 rounded-md bg-emerald-800 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">SELFIE → PASSPORT</span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-3.5">
+                    <div className="mb-2 flex items-center gap-2 text-emerald-700"><Smartphone className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
+                    <h3 className="mb-1 text-sm font-extrabold uppercase leading-snug text-slate-900">WhatsApp Selfie to Passport Photo</h3>
+                    <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Create a passport-style photo from a selfie with a guided crop and face-alignment workflow.</p>
+                    <a href="/whatsapp-selfie-passport-photo" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-800">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
+                  </div>
+                </article>
+                <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-400 hover:shadow-xl">
+                  <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-100 p-4">
+                    <div className="absolute left-4 top-4 rounded-full bg-indigo-800 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white">Batch Studio</div>
+                    <div className="grid w-full max-w-[250px] grid-cols-3 gap-2">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <div key={index} className="flex aspect-[3/4] items-center justify-center rounded-lg border border-indigo-100 bg-white p-1.5 shadow-sm">
+                          <div className="flex h-full w-full flex-col items-center justify-center rounded-md bg-gradient-to-b from-slate-100 to-indigo-50">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700"><UserRound className="h-5 w-5" /></span>
+                            <span className="mt-1 h-1 w-8 rounded-full bg-indigo-200" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="absolute bottom-3 right-3 rounded-md bg-indigo-800 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">MULTI CUSTOMER → A4</span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-3.5">
+                    <div className="mb-2 flex items-center gap-2 text-indigo-700"><Layers className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
+                    <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">Instant Multi Customer Photo Maker</h3>
+                    <p className="mb-4 flex-1 text-xs leading-relaxed text-slate-600">Process multiple customers together with individual photo sizes, quantities and smart A4 print planning.</p>
+                    <a href="/instant-multi-customer-photo-maker" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-800 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-900">Open Studio <ArrowUpRight className="h-3.5 w-3.5" /></a>
+                  </div>
+                </article>
+                </>
+              )}
             );
           })}
 
