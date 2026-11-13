@@ -1,273 +1,632 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
-import { Upload, Download, RotateCw, Contrast, Sparkles, FileText, Check } from 'lucide-react';
+import { Upload, Download, RotateCw, FileText, Image as ImageIcon, ScanLine, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Maximize2, Minimize2 } from 'lucide-react';
+
+type ScanMode = 'ultra' | 'magic-color' | 'bw' | 'grayscale' | 'original';
+type PdfJsPage = { getViewport: (args: { scale: number }) => { width: number; height: number }; render: (args: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } };
+type PdfJsDocument = { numPages: number; getPage: (page: number) => Promise<PdfJsPage> };
+type PdfJsLibrary = { getDocument: (args: { data: Uint8Array }) => { promise: Promise<PdfJsDocument> }; GlobalWorkerOptions: { workerSrc: string } };
+
+declare global {
+  interface Window { pdfjsLib?: PdfJsLibrary; cv?: any; }
+}
+
+const PDFJS_VERSION = '3.11.174';
+let pdfJsLoader: Promise<PdfJsLibrary> | null = null;
+
+function loadPdfJs(): Promise<PdfJsLibrary> {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfJsLoader) return pdfJsLoader;
+  pdfJsLoader = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-tanshu-pdfjs="true"]');
+    const script = existing || document.createElement('script');
+    const finish = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
+        resolve(window.pdfjsLib);
+      } else {
+        pdfJsLoader = null;
+        reject(new Error('PDF engine could not be loaded. Please check your internet connection and try again.'));
+      }
+    };
+    script.addEventListener('load', finish, { once: true });
+    script.addEventListener('error', () => { pdfJsLoader = null; reject(new Error('Unable to load the PDF engine. Please try again.')); }, { once: true });
+    if (!existing) {
+      script.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
+      script.async = true;
+      script.dataset.tanshuPdfjs = 'true';
+      document.head.appendChild(script);
+    } else if (window.pdfjsLib) finish();
+  });
+  return pdfJsLoader;
+}
+
+let openCvLoader: Promise<any> | null = null;
+function loadOpenCv(): Promise<any> {
+  if (window.cv?.Mat) return Promise.resolve(window.cv);
+  if (openCvLoader) return openCvLoader;
+  openCvLoader = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-tanshu-opencv="true"]');
+    const script = existing || document.createElement('script');
+    const ready = () => {
+      if (window.cv?.Mat) resolve(window.cv);
+      else if (window.cv) window.cv.onRuntimeInitialized = () => resolve(window.cv);
+      else { openCvLoader = null; reject(new Error('Auto page detection is unavailable right now.')); }
+    };
+    script.addEventListener('load', ready, { once: true });
+    script.addEventListener('error', () => { openCvLoader = null; reject(new Error('Could not load the page-detection engine.')); }, { once: true });
+    if (!existing) {
+      script.src = 'https://docs.opencv.org/4.x/opencv.js';
+      script.async = true;
+      script.dataset.tanshuOpencv = 'true';
+      document.head.appendChild(script);
+    } else if (window.cv) ready();
+  });
+  return openCvLoader;
+}
+
+async function autoRectifyPage(source: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  const cv = await loadOpenCv();
+  let src: any, gray: any, blurred: any, edges: any, contours: any, hierarchy: any;
+  let transform: any, warped: any, srcPoints: any, dstPoints: any;
+  try {
+    src = cv.imread(source);
+    gray = new cv.Mat(); blurred = new cv.Mat(); edges = new cv.Mat();
+    contours = new cv.MatVector(); hierarchy = new cv.Mat();
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.Canny(blurred, edges, 45, 130);
+    cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    let bestArea = 0;
+    let corners: Array<{ x: number; y: number }> | null = null;
+    for (let i = 0; i < contours.size(); i++) {
+      const contour = contours.get(i);
+      const candidate = new cv.Mat();
+      cv.approxPolyDP(contour, candidate, 0.02 * cv.arcLength(contour, true), true);
+      const area = Math.abs(cv.contourArea(candidate));
+      if (candidate.rows === 4 && area > source.width * source.height * 0.12 && area > bestArea) {
+        const points = [];
+        for (let j = 0; j < 4; j++) points.push({ x: candidate.intPtr(j, 0)[0], y: candidate.intPtr(j, 0)[1] });
+        corners = points; bestArea = area;
+      }
+      candidate.delete(); contour.delete();
+    }
+    if (!corners || bestArea < source.width * source.height * 0.18) return source;
+    const sums = corners.map(p => p.x + p.y);
+    const diffs = corners.map(p => p.x - p.y);
+    const ordered = [
+      corners[sums.indexOf(Math.min(...sums))],
+      corners[diffs.indexOf(Math.max(...diffs))],
+      corners[sums.indexOf(Math.max(...sums))],
+      corners[diffs.indexOf(Math.min(...diffs))],
+    ];
+    const width = Math.round(Math.max(Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y), Math.hypot(ordered[2].x - ordered[3].x, ordered[2].y - ordered[3].y)));
+    const height = Math.round(Math.max(Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y), Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y)));
+    if (width < 120 || height < 120) return source;
+    srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, ordered.flatMap(p => [p.x, p.y]));
+    dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, width - 1, 0, width - 1, height - 1, 0, height - 1]);
+    transform = cv.getPerspectiveTransform(srcPoints, dstPoints);
+    warped = new cv.Mat();
+    cv.warpPerspective(src, warped, transform, new cv.Size(width, height), cv.INTER_CUBIC, cv.BORDER_REPLICATE);
+    const result = document.createElement('canvas');
+    cv.imshow(result, warped);
+    return result;
+  } finally {
+    [src, gray, blurred, edges, contours, hierarchy, transform, warped, srcPoints, dstPoints].forEach(item => {
+      if (item && typeof item.delete === 'function') item.delete();
+    });
+  }
+}
+
+function clamp(value: number, min = 0, max = 255) { return Math.max(min, Math.min(max, value)); }
+
+function enhanceCanvas(source: HTMLCanvasElement, mode: ScanMode, contrast: number, brightness: number, sharpness: number, threshold: number) {
+  const output = document.createElement('canvas');
+  output.width = source.width;
+  output.height = source.height;
+  const ctx = output.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return output;
+  ctx.drawImage(source, 0, 0);
+  if (mode === 'original') return output;
+
+  const image = ctx.getImageData(0, 0, output.width, output.height);
+  const pixels = image.data;
+  // Estimate broad page illumination at low resolution. Dividing by this smooth
+  // field reduces desk shadows and gentle fold shading without inventing letters.
+  const light = document.createElement('canvas');
+  light.width = 64;
+  light.height = 64;
+  const lightCtx = light.getContext('2d', { willReadFrequently: true });
+  if (lightCtx) {
+    lightCtx.filter = 'blur(2px)';
+    lightCtx.drawImage(source, 0, 0, light.width, light.height);
+    lightCtx.filter = 'none';
+  }
+  const lightData = lightCtx?.getImageData(0, 0, light.width, light.height).data;
+  const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+  const brightnessOffset = (brightness - 100) * 1.8;
+
+  for (let y = 0; y < output.height; y++) {
+    const ly = Math.min(63, Math.floor((y / output.height) * 64));
+    for (let x = 0; x < output.width; x++) {
+      const i = (y * output.width + x) * 4;
+      let r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+      let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (mode === 'ultra' && lightData) {
+        const lx = Math.min(63, Math.floor((x / output.width) * 64));
+        const li = (ly * 64 + lx) * 4;
+        const illumination = Math.max(72, 0.299 * lightData[li] + 0.587 * lightData[li + 1] + 0.114 * lightData[li + 2]);
+        const gain = 238 / illumination;
+        r = clamp(r * gain);
+        g = clamp(g * gain);
+        b = clamp(b * gain);
+        gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      }
+      if (mode === 'bw') {
+        const value = clamp((gray - 128) * (contrastFactor / 2.1) + 128 + brightnessOffset) >= threshold ? 255 : 0;
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = value;
+      } else if (mode === 'grayscale') {
+        const value = clamp(contrastFactor * (gray - 128) + 128 + brightnessOffset);
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = value;
+      } else if (mode === 'ultra') {
+        pixels[i] = clamp(contrastFactor * (r - 128) + 128 + brightnessOffset);
+        pixels[i + 1] = clamp(contrastFactor * (g - 128) + 128 + brightnessOffset);
+        pixels[i + 2] = clamp(contrastFactor * (b - 128) + 128 + brightnessOffset);
+      } else {
+        const rr = clamp(contrastFactor * (r - 128) + 128 + brightnessOffset);
+        const gg = clamp(contrastFactor * (g - 128) + 128 + brightnessOffset);
+        const bb = clamp(contrastFactor * (b - 128) + 128 + brightnessOffset);
+        const luminance = 0.299 * rr + 0.587 * gg + 0.114 * bb;
+        if (mode === 'magic-color' && luminance > 178) {
+          pixels[i] = clamp(rr + (255 - rr) * 0.35);
+          pixels[i + 1] = clamp(gg + (255 - gg) * 0.35);
+          pixels[i + 2] = clamp(bb + (255 - bb) * 0.35);
+        } else {
+          pixels[i] = rr; pixels[i + 1] = gg; pixels[i + 2] = bb;
+        }
+      }
+      pixels[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+
+  // Unsharp mask on a separate canvas. It strengthens existing edges only;
+  // it does not synthesize or replace document characters.
+  if (sharpness > 0 && mode !== 'bw') {
+    const blurred = document.createElement('canvas');
+    blurred.width = output.width; blurred.height = output.height;
+    const blurCtx = blurred.getContext('2d');
+    if (blurCtx) {
+      blurCtx.filter = 'blur(1.2px)';
+      blurCtx.drawImage(output, 0, 0);
+      blurCtx.filter = 'none';
+      const base = ctx.getImageData(0, 0, output.width, output.height);
+      const soft = blurCtx.getImageData(0, 0, output.width, output.height);
+      const amount = sharpness / 100;
+      for (let i = 0; i < base.data.length; i += 4) {
+        for (let c = 0; c < 3; c++) base.data[i + c] = clamp(base.data[i + c] + (base.data[i + c] - soft.data[i + c]) * amount);
+      }
+      ctx.putImageData(base, 0, 0);
+    }
+  }
+  return output;
+}
+
+// High-resolution output uses high-quality browser resampling with a restrained
+// final edge pass. It increases export pixel dimensions, but cannot recover detail
+// that was never captured in the original photograph.
+function upscaleCanvas(source: HTMLCanvasElement, requestedScale: number): HTMLCanvasElement {
+  if (requestedScale <= 1) return source;
+  // Keep output memory bounded on ordinary shop PCs and mobile devices.
+  const maxPixels = 16_000_000;
+  const sourcePixels = source.width * source.height;
+  const safeScale = Math.min(requestedScale, Math.sqrt(maxPixels / Math.max(1, sourcePixels)));
+  if (safeScale <= 1.01) return source;
+  const output = document.createElement('canvas');
+  output.width = Math.max(1, Math.round(source.width * safeScale));
+  output.height = Math.max(1, Math.round(source.height * safeScale));
+  const ctx = output.getContext('2d');
+  if (!ctx) return source;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, output.width, output.height);
+  return output;
+}
 
 export const DocumentScannerTool: React.FC = () => {
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [filterMode, setFilterMode] = useState<'magic-color' | 'bw' | 'grayscale' | 'original'>('magic-color');
-  const [threshold, setThreshold] = useState<number>(128);
-  const [contrastVal, setContrastVal] = useState<number>(120);
-  const [brightnessVal, setBrightnessVal] = useState<number>(105);
-  const [rotation, setRotation] = useState<number>(0);
+  const [sourceCanvas, setSourceCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [scannedCanvas, setScannedCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<'original' | 'live' | 'scanned'>('live');
+  const [sourceKind, setSourceKind] = useState<'image' | 'pdf' | null>(null);
+  const [pdfDocument, setPdfDocument] = useState<PdfJsDocument | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [mode, setMode] = useState<ScanMode>('ultra');
+  const [contrast, setContrast] = useState(118);
+  const [brightness, setBrightness] = useState(104);
+  const [sharpness, setSharpness] = useState(45);
+  const [resolutionScale, setResolutionScale] = useState(1);
+  const [threshold, setThreshold] = useState(154);
+  const [rotation, setRotation] = useState(0);
+  const [autoRectify, setAutoRectify] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const originalRef = useRef<HTMLCanvasElement>(null);
+  const outputRef = useRef<HTMLCanvasElement>(null);
+  const scannedRef = useRef<HTMLCanvasElement>(null);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === getFullscreenTarget());
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImageSrc(ev.target?.result as string);
-        setRotation(0);
-      };
-      reader.readAsDataURL(file);
+  const getFullscreenTarget = () =>
+    document.querySelector<HTMLElement>('[data-document-scanner-modal="true"]') || workspaceRef.current;
+
+  const toggleFullscreen = async () => {
+    try {
+      const target = getFullscreenTarget();
+      if (document.fullscreenElement === target) await document.exitFullscreen();
+      else if (target?.requestFullscreen) await target.requestFullscreen();
+    } catch {
+      setError('Fullscreen is not available in this browser. You can still use the normal workspace.');
     }
+  };
+
+  const renderPdfPage = useCallback(async (doc: PdfJsDocument, page: number) => {
+    const pdfPage = await doc.getPage(page);
+    const viewport = pdfPage.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not prepare this PDF page.');
+    await pdfPage.render({ canvasContext: ctx, viewport }).promise;
+    const pageCanvas = canvas;
+    setSourceCanvas(pageCanvas);
+    setPageNumber(page);
+    setRotation(0);
+  }, [autoRectify]);
+
+  const acceptFile = async (file: File) => {
+    setError(''); setStatus(''); setBusy(true); setScannedCanvas(null);
+    setPdfDocument(null);
+    try {
+      if (file.size > 35 * 1024 * 1024) throw new Error('File is larger than 35 MB. Please choose a smaller file.');
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        const pdfjs = await loadPdfJs();
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const doc = await pdfjs.getDocument({ data: bytes }).promise;
+        setPdfDocument(doc); setPageCount(doc.numPages); setSourceKind('pdf');
+        await renderPdfPage(doc, 1);
+        setStatus(`PDF loaded: ${doc.numPages} page(s). Choose a page or export the full PDF.`);
+      } else if (file.type.startsWith('image/')) {
+        const bitmap = await createImageBitmap(file);
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 4200 / Math.max(bitmap.width, bitmap.height));
+        canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not read this image.');
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+        const rectified = canvas;
+        setSourceCanvas(rectified); setSourceKind('image'); setPageCount(1); setPageNumber(1); setRotation(0);
+        setStatus('Image loaded. Select an enhancement mode and review the new page.');
+      } else {
+        throw new Error('Please upload a JPG, JPEG, PNG, WEBP or PDF file.');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not open this file.');
+    } finally { setBusy(false); }
+  };
+
+  const rotateCanvas = (source: HTMLCanvasElement, degrees: number) => {
+    const swap = degrees % 180 !== 0;
+    const canvas = document.createElement('canvas');
+    canvas.width = swap ? source.height : source.width;
+    canvas.height = swap ? source.width : source.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return source;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(degrees * Math.PI / 180);
+    ctx.drawImage(source, -source.width / 2, -source.height / 2);
+    return canvas;
   };
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!sourceCanvas || !outputRef.current) return;
+    // Render a lightweight live preview; keep the full-resolution source for exports.
+    const frame = window.requestAnimationFrame(() => {
+      const rotated = rotateCanvas(sourceCanvas, rotation);
+      const previewScale = Math.min(1, 1500 / Math.max(rotated.width, rotated.height));
+      const previewSource = document.createElement('canvas');
+      previewSource.width = Math.max(1, Math.round(rotated.width * previewScale));
+      previewSource.height = Math.max(1, Math.round(rotated.height * previewScale));
+      const previewCtx = previewSource.getContext('2d');
+      if (!previewCtx) return;
+      previewCtx.imageSmoothingEnabled = true;
+      previewCtx.imageSmoothingQuality = 'high';
+      previewCtx.drawImage(rotated, 0, 0, previewSource.width, previewSource.height);
+      const processed = enhanceCanvas(previewSource, mode, contrast, brightness, sharpness, threshold);
+      const target = outputRef.current;
+      if (!target) return;
+      target.width = processed.width; target.height = processed.height;
+      const ctx = target.getContext('2d');
+      if (ctx) ctx.drawImage(processed, 0, 0);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [sourceCanvas, mode, contrast, brightness, sharpness, threshold, rotation]);
 
-    if (!imageSrc) {
-      canvas.width = 600;
-      canvas.height = 800;
-      ctx.fillStyle = '#F8FAFC';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#94A3B8';
-      ctx.font = 'bold 16px Plus Jakarta Sans, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Upload Any Document or Certificate to Scan', canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = '13px Plus Jakarta Sans, sans-serif';
-      ctx.fillText('Removes dark shadows, improves contrast & text clarity', canvas.width / 2, canvas.height / 2 + 18);
-      return;
-    }
+  useEffect(() => {
+    const target = originalRef.current;
+    if (!target || !sourceCanvas) return;
+    target.width = sourceCanvas.width; target.height = sourceCanvas.height;
+    const ctx = target.getContext('2d');
+    if (ctx) ctx.drawImage(sourceCanvas, 0, 0);
+  }, [sourceCanvas]);
 
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = () => {
-      const isRotated = rotation === 90 || rotation === 270;
-      canvas.width = isRotated ? img.height : img.width;
-      canvas.height = isRotated ? img.width : img.height;
+  useEffect(() => {
+    const target = scannedRef.current;
+    if (!target || !scannedCanvas) return;
+    target.width = scannedCanvas.width; target.height = scannedCanvas.height;
+    const ctx = target.getContext('2d');
+    if (ctx) ctx.drawImage(scannedCanvas, 0, 0);
+  }, [scannedCanvas]);
 
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.drawImage(img, -img.width / 2, -img.height / 2);
-      ctx.restore();
+  const runScan = async () => {
+    if (!sourceCanvas || busy) return;
+    setBusy(true); setError(''); setStatus('Detecting document edges and straightening the page…');
+    try {
+      // Run CPU-heavy edge detection and pixel enhancement on a bounded working
+      // copy so large phone photos do not lock the browser tab.
+      // Keep the main-thread pixel loop small enough for ordinary shop PCs.
+      // The uploaded original remains untouched; only this working copy is processed.
+      const maxWorkingDimension = 1400;
+      const workingScale = Math.min(1, maxWorkingDimension / Math.max(sourceCanvas.width, sourceCanvas.height));
+      const workingCanvas = document.createElement('canvas');
+      workingCanvas.width = Math.max(1, Math.round(sourceCanvas.width * workingScale));
+      workingCanvas.height = Math.max(1, Math.round(sourceCanvas.height * workingScale));
+      const workingContext = workingCanvas.getContext('2d');
+      if (!workingContext) throw new Error('Could not prepare this document for scanning.');
+      workingContext.imageSmoothingEnabled = true;
+      workingContext.imageSmoothingQuality = 'high';
+      workingContext.drawImage(sourceCanvas, 0, 0, workingCanvas.width, workingCanvas.height);
 
-      if (filterMode === 'original') return;
-
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      // Apply image processing
-      const factor = (259 * (contrastVal + 255)) / (255 * (259 - contrastVal));
-      const bFactor = (brightnessVal - 100) * 1.5;
-
-      for (let i = 0; i < data.length; i += 4) {
-        let r = data[i] + bFactor;
-        let g = data[i + 1] + bFactor;
-        let b = data[i + 2] + bFactor;
-
-        // Contrast adjustment
-        r = factor * (r - 128) + 128;
-        g = factor * (g - 128) + 128;
-        b = factor * (b - 128) + 128;
-
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-
-        if (filterMode === 'bw') {
-          const val = gray > threshold ? 255 : 0;
-          data[i] = val;
-          data[i + 1] = val;
-          data[i + 2] = val;
-        } else if (filterMode === 'grayscale') {
-          const clamped = Math.min(255, Math.max(0, gray));
-          data[i] = clamped;
-          data[i + 1] = clamped;
-          data[i + 2] = clamped;
-        } else if (filterMode === 'magic-color') {
-          // Magic color: whiten background while boosting colors of text, seals & stamps
-          if (gray > 175) {
-            // Whiten background
-            data[i] = Math.min(255, r * 1.25);
-            data[i + 1] = Math.min(255, g * 1.25);
-            data[i + 2] = Math.min(255, b * 1.25);
-          } else {
-            // Sharpen text & color
-            data[i] = Math.max(0, Math.min(255, r * 0.9));
-            data[i + 1] = Math.max(0, Math.min(255, g * 0.9));
-            data[i + 2] = Math.max(0, Math.min(255, b * 0.9));
+      let page: HTMLCanvasElement = workingCanvas;
+      let detected = false;
+      let detectionFailed = false;
+      // OpenCV is an optional, heavy external engine. Do not load it at all
+      // unless the customer explicitly enables automatic edge detection.
+      if (autoRectify) {
+        setStatus('Checking document edges…');
+        try {
+          const detectionScale = Math.min(1, 1000 / Math.max(workingCanvas.width, workingCanvas.height));
+          const detectionCanvas = document.createElement('canvas');
+          detectionCanvas.width = Math.max(1, Math.round(workingCanvas.width * detectionScale));
+          detectionCanvas.height = Math.max(1, Math.round(workingCanvas.height * detectionScale));
+          const detectionContext = detectionCanvas.getContext('2d');
+          if (!detectionContext) throw new Error('Could not prepare edge detection.');
+          detectionContext.drawImage(workingCanvas, 0, 0, detectionCanvas.width, detectionCanvas.height);
+          const detectedPage = await Promise.race([
+            autoRectifyPage(detectionCanvas),
+            new Promise<HTMLCanvasElement>((_, reject) =>
+              window.setTimeout(() => reject(new Error('Page detection timed out.')), 8000)
+            ),
+          ]);
+          if (detectedPage !== detectionCanvas) {
+            page = document.createElement('canvas');
+            page.width = detectedPage.width;
+            page.height = detectedPage.height;
+            page.getContext('2d')?.drawImage(detectedPage, 0, 0);
+            detected = true;
           }
+        } catch {
+          detectionFailed = true;
+          setStatus('Auto edge detection is unavailable. Finishing the scan without edge correction…');
         }
       }
-
-      ctx.putImageData(imgData, 0, 0);
-    };
-  }, [imageSrc, filterMode, threshold, contrastVal, brightnessVal, rotation]);
-
-  const handleDownloadPdf = () => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const isLandscape = canvas.width > canvas.height;
-    const doc = new jsPDF({
-      orientation: isLandscape ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
-    const pdfW = isLandscape ? 297 : 210;
-    const pdfH = isLandscape ? 210 : 297;
-    doc.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
-    doc.save('tanshu_scanned_document.pdf');
+      if (detected) {
+        setStatus('Page corners detected. Preparing the scanned result…');
+      } else if (!detectionFailed) {
+        setStatus('Preparing the enhanced result…');
+      }
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const rotated = rotateCanvas(page, rotation);
+      const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+      // Restore source pixel dimensions for export without processing every
+      // full-resolution pixel synchronously on the browser's main thread.
+      const sourceLongEdge = Math.max(sourceCanvas.width, sourceCanvas.height);
+      const processedLongEdge = Math.max(enhanced.width, enhanced.height);
+      const preserveSourceScale = sourceLongEdge / Math.max(1, processedLongEdge);
+      const result = upscaleCanvas(enhanced, preserveSourceScale * resolutionScale);
+      setScannedCanvas(result);
+      setSelectedPreview('scanned');
+      setStatus(detected
+        ? 'Scan complete. Page perspective was corrected and the scan is ready.'
+        : detectionFailed
+          ? 'Scan complete with enhancement. Automatic edge detection was unavailable.'
+          : autoRectify
+            ? 'Scan complete with enhancement. All four page edges must be visible for automatic straightening.'
+            : 'Scan complete with enhancement.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not scan this document.');
+    } finally { setBusy(false); }
   };
 
-  const handleDownloadImage = () => {
-    if (!canvasRef.current) return;
+  useEffect(() => {
+    // A changed source or setting means the previous scan is no longer the current result.
+    setScannedCanvas(null);
+    setSelectedPreview('live');
+  }, [sourceCanvas, mode, contrast, brightness, sharpness, threshold, rotation, resolutionScale]);
+
+  const changePdfPage = async (next: number) => {
+    if (!pdfDocument || next < 1 || next > pageCount) return;
+    setBusy(true); setError('');
+    try { await renderPdfPage(pdfDocument, next); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not render this PDF page.'); }
+    finally { setBusy(false); }
+  };
+
+  const buildExportCanvas = () => {
+    if (!sourceCanvas) return null;
+    const rotated = rotateCanvas(sourceCanvas, rotation);
+    const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+    return upscaleCanvas(enhanced, resolutionScale);
+  };
+
+  const downloadImage = () => {
+    const canvas = scannedCanvas || buildExportCanvas();
+    if (!canvas) return;
     const link = document.createElement('a');
-    link.download = 'tanshu_scanned_document.jpg';
-    link.href = canvasRef.current.toDataURL('image/jpeg', 0.92);
+    link.download = 'tanshu_ultra_enhanced_scan.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.96);
     link.click();
   };
 
+  const downloadCurrentPdf = () => {
+    const canvas = scannedCanvas || buildExportCanvas();
+    if (!canvas) return;
+    const doc = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+    const w = canvas.width > canvas.height ? 297 : 210;
+    const h = canvas.width > canvas.height ? 210 : 297;
+    const ratio = Math.min(w / canvas.width, h / canvas.height);
+    const drawW = canvas.width * ratio, drawH = canvas.height * ratio;
+    doc.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', (w - drawW) / 2, (h - drawH) / 2, drawW, drawH);
+    doc.save(`tanshu_scanned_page_${pageNumber}.pdf`);
+  };
+
+  const downloadAllPdfPages = async () => {
+    if (!pdfDocument) return;
+    setBusy(true); setError(''); setStatus('Preparing enhanced PDF pages…');
+    try {
+      let output: jsPDF | null = null;
+      for (let page = 1; page <= pdfDocument.numPages; page++) {
+        const pdfPage = await pdfDocument.getPage(page);
+        const viewport = pdfPage.getViewport({ scale: 2 });
+        const raw = document.createElement('canvas');
+        raw.width = Math.round(viewport.width); raw.height = Math.round(viewport.height);
+        const rawCtx = raw.getContext('2d');
+        if (!rawCtx) throw new Error(`Could not process PDF page ${page}.`);
+        await pdfPage.render({ canvasContext: rawCtx, viewport }).promise;
+        const pageCanvas = autoRectify ? await autoRectifyPage(raw).catch(() => raw) : raw;
+        const rotated = rotateCanvas(pageCanvas, rotation);
+        const enhanced = upscaleCanvas(enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold), resolutionScale);
+        const landscape = enhanced.width > enhanced.height;
+        const w = landscape ? 297 : 210, h = landscape ? 210 : 297;
+        if (!output) output = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+        else output.addPage('a4', landscape ? 'landscape' : 'portrait');
+        const ratio = Math.min(w / enhanced.width, h / enhanced.height);
+        const dw = enhanced.width * ratio, dh = enhanced.height * ratio;
+        output.addImage(enhanced.toDataURL('image/jpeg', 0.94), 'JPEG', (w - dw) / 2, (h - dh) / 2, dw, dh);
+        setStatus(`Enhancing page ${page} of ${pdfDocument.numPages}…`);
+      }
+      output?.save('tanshu_ultra_enhanced_document.pdf');
+      setStatus('All PDF pages exported successfully.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not export all PDF pages.');
+    } finally { setBusy(false); }
+  };
+
+  const modes: { id: ScanMode; label: string; description: string }[] = [
+    { id: 'ultra', label: 'ULTRA ENHANCE', description: 'Shadow flattening · Text edge clarity' },
+    { id: 'magic-color', label: 'MAGIC COLOR', description: 'Bright page · Retain colored stamps' },
+    { id: 'bw', label: 'BLACK & WHITE', description: 'High-contrast document scan' },
+    { id: 'grayscale', label: 'CLEAN GRAYSCALE', description: 'Natural photocopy finish' },
+    { id: 'original', label: 'ORIGINAL', description: 'Keep source appearance' },
+  ];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-6">
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">1. Choose Document</label>
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:border-blue-600 transition-colors cursor-pointer"
-          >
-            <Upload className="w-4 h-4 text-blue-600" />
-            <span>{imageSrc ? 'Select Different Document' : 'Upload Document / Marksheet / Aadhaar'}</span>
-          </button>
-        </div>
-
-        {/* Scan Filter Preset */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">2. Scan Enhancement Filter</label>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: 'magic-color', label: 'Magic Color', desc: 'Whitens page, keeps color stamps' },
-              { id: 'bw', label: 'B & W Document', desc: 'Strict two-tone black & white' },
-              { id: 'grayscale', label: 'Clean Grayscale', desc: 'Smooth photocopier tone' },
-              { id: 'original', label: 'Original Photo', desc: 'No enhancement filter' }
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFilterMode(f.id as any)}
-                className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
-                  filterMode === f.id ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 bg-white'
-                }`}
-              >
-                <div className="text-xs font-bold text-slate-900">{f.label}</div>
-                <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{f.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Sliders */}
-        <div className="space-y-4 pt-2 border-t border-slate-200">
+    <div ref={workspaceRef} className={`flex min-h-full w-full flex-col gap-3 overflow-visible bg-slate-100 p-2 sm:p-3 ${isFullscreen ? 'bg-slate-100' : ''}`}>
+      <div className="grid min-h-0 flex-1 items-start gap-3 overflow-visible xl:grid-cols-[minmax(250px,300px)_minmax(0,1fr)]">
+        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4 xl:sticky xl:top-2 max-h-[42vh] xl:max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain">
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-xs text-slate-600">Contrast Boost</label>
-              <span className="text-xs font-mono text-slate-500">{contrastVal}%</span>
-            </div>
-            <input
-              type="range"
-              min="80"
-              max="160"
-              value={contrastVal}
-              onChange={(e) => setContrastVal(Number(e.target.value))}
-              className="w-full accent-blue-600"
-            />
+            <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-extrabold text-slate-900">1. Upload Document</h3><span className="text-[10px] font-semibold text-slate-500">IMAGE + PDF</span></div>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/*,application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void acceptFile(f); e.currentTarget.value = ''; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-5 text-left transition hover:border-blue-500 hover:bg-blue-50 disabled:opacity-60">
+              <span className="rounded-xl bg-blue-100 p-3 text-blue-700"><Upload className="h-5 w-5" /></span>
+              <span><strong className="block text-sm text-slate-900">{sourceCanvas ? 'Document loaded · Choose another to replace' : 'Choose Photo or PDF'}</strong><small className="text-xs text-slate-500">JPG · PNG · WEBP · Multi-page PDF · Max 35 MB</small></span>
+            </button>
+            {sourceKind === 'pdf' && <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2"><button type="button" onClick={() => void changePdfPage(pageNumber - 1)} disabled={pageNumber <= 1 || busy} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button><span className="text-xs font-bold text-slate-700">Page {pageNumber} of {pageCount}</span><button type="button" onClick={() => void changePdfPage(pageNumber + 1)} disabled={pageNumber >= pageCount || busy} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button></div>}
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-xs text-slate-600">Brightness Balance</label>
-              <span className="text-xs font-mono text-slate-500">{brightnessVal}%</span>
+          <div className="border-t border-slate-200 pt-4">
+            <h3 className="mb-3 text-sm font-extrabold text-slate-900">2. Scan Quality</h3>
+            <div className="grid grid-cols-1 gap-2">
+              {modes.map((item) => <button key={item.id} type="button" onClick={() => setMode(item.id)} className={`rounded-xl border p-3 text-left transition ${mode === item.id ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-100' : 'border-slate-200 bg-white hover:border-slate-300'}`}><span className="flex items-center justify-between gap-2"><strong className="text-xs font-extrabold text-slate-900">{item.label}</strong>{mode === item.id && <span className="rounded-full bg-blue-700 px-2 py-0.5 text-[9px] font-bold text-white">ACTIVE</span>}</span><small className="mt-1 block text-[11px] text-slate-500">{item.description}</small></button>)}
             </div>
-            <input
-              type="range"
-              min="80"
-              max="140"
-              value={brightnessVal}
-              onChange={(e) => setBrightnessVal(Number(e.target.value))}
-              className="w-full accent-blue-600"
-            />
           </div>
 
-          {filterMode === 'bw' && (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs text-slate-600">Black/White Threshold</label>
-                <span className="text-xs font-mono text-slate-500">{threshold}</span>
+          <div className="space-y-4 border-t border-slate-200 pt-4">
+            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 3. Fine Tune</div>
+            <div className="space-y-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+              <div className="text-xs font-bold text-slate-800">Output Resolution</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setResolutionScale(1)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 1 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>Standard 1×</button>
+                <button type="button" onClick={() => setResolutionScale(2)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 2 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>High Resolution up to 2×</button>
               </div>
-              <input
-                type="range"
-                min="50"
-                max="200"
-                value={threshold}
-                onChange={(e) => setThreshold(Number(e.target.value))}
-                className="w-full accent-blue-600"
-              />
+              <p className="text-[10px] leading-4 text-slate-500">2× uses high-quality resampling and a light detail pass. It improves output size, but cannot recreate details missing from a blurry original.</p>
             </div>
-          )}
+            {[
+              { label: 'Text / Contrast', value: contrast, min: 80, max: 165, set: setContrast },
+              { label: 'Page Brightness', value: brightness, min: 80, max: 130, set: setBrightness },
+              { label: 'Edge Sharpness', value: sharpness, min: 0, max: 100, set: setSharpness },
+              ...(mode === 'bw' ? [{ label: 'B&W Threshold', value: threshold, min: 80, max: 210, set: setThreshold }] : []),
+            ].map((item) => <label key={item.label} className="block"><span className="mb-1 flex justify-between text-xs text-slate-600"><span>{item.label}</span><strong className="font-mono text-slate-800">{item.value}</strong></span><input type="range" min={item.min} max={item.max} value={item.value} onChange={(e) => item.set(Number(e.target.value))} className="w-full accent-blue-700" /></label>)}
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Automatically straighten page during scan</label>
+            <div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-600">Page rotation</span><button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} disabled={!sourceCanvas} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"><RotateCw className="h-3.5 w-3.5" /> Rotate 90°</button></div>
+            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(true); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
+          </div>
+        </aside>
 
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs text-slate-600">Rotate Document</span>
-            <button
-              onClick={() => setRotation((r) => (r + 90) % 360)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium cursor-pointer"
-            >
-              <RotateCw className="w-3.5 h-3.5 text-blue-600" /> Rotate 90°
+        <section className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
+            <div><h3 className="text-sm font-extrabold text-slate-900">Document Preview Studio</h3><p className="text-xs text-slate-500">Original · Live Preview · Scanned Result</p></div>
+            <div className="flex items-center gap-2">
+              {sourceCanvas && <span className={`rounded-full px-3 py-1 text-[10px] font-bold ${scannedCanvas ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{scannedCanvas ? 'SCAN READY' : 'NOT SCANNED YET'}</span>}
+              <button type="button" onClick={() => void toggleFullscreen()} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100" title={isFullscreen ? 'Exit fullscreen' : 'Expand workspace'}>
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}{isFullscreen ? 'Exit Fullscreen' : 'Expand Screen'}
+              </button>
+            </div>
+          </div>
+          {sourceCanvas && <div className="rounded-2xl border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">Scan & Download</h3><p className="text-xs text-slate-500">First scan the document. Download options become available for the completed result.</p></div><button type="button" onClick={runScan} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 disabled:opacity-50"><ScanLine className="h-4 w-4" />{busy ? 'Scanning…' : scannedCanvas ? 'Scan Again' : 'Scan Document'}</button></div>
+            {scannedCanvas && <div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={downloadImage} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow hover:bg-slate-800"><ImageIcon className="h-4 w-4" /> Download Scanned JPG</button><button type="button" onClick={downloadCurrentPdf} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow hover:bg-blue-800"><Download className="h-4 w-4" /> Download Scanned PDF</button>{sourceKind === 'pdf' && <button type="button" onClick={() => void downloadAllPdfPages()} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-50 sm:col-span-2"><FileText className="h-4 w-4" /> {busy ? 'Processing PDF…' : `Enhance & Export All ${pageCount} PDF Pages`}</button>}</div>}
+          </div>}
+          <div className="grid min-w-0 gap-3 xl:grid-cols-3">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+              <div className="border-b border-slate-200 bg-slate-50 px-3 py-3"><h3 className="text-xs font-extrabold text-slate-900">1. Original Document</h3><p className="text-[10px] text-slate-500">Uploaded source · unchanged</p></div>
+              <div className="flex min-h-[170px] items-center justify-center overflow-auto bg-slate-200 p-2 sm:min-h-[200px]">
+                {sourceCanvas ? <canvas ref={originalRef} className="block h-auto max-h-[32vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Upload a photo or PDF to see the original here.</p>}
+              </div>
+            </div>
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
+              <div className="border-b border-blue-100 bg-blue-50 px-3 py-3"><h3 className="text-xs font-extrabold text-blue-950">2. Live Clean Preview</h3><p className="text-[10px] text-blue-700">Updates with quality settings</p></div>
+              <div className="flex min-h-[170px] items-center justify-center overflow-auto bg-slate-200 p-2 sm:min-h-[200px]">
+                {sourceCanvas ? <canvas ref={outputRef} className="block h-auto max-h-[32vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Your live cleaned preview will appear here.</p>}
+              </div>
+            </div>
+            <button type="button" onClick={() => setSelectedPreview('scanned')} className={`min-w-0 overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition ${selectedPreview === 'scanned' ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-emerald-200'}`}>
+              <div className="border-b border-emerald-100 bg-emerald-50 px-3 py-3"><h3 className="text-xs font-extrabold text-emerald-950">3. Scanned Result · Click to view</h3><p className="text-[10px] text-emerald-700">Final result after pressing Scan</p></div>
+              <div className="flex min-h-[170px] items-center justify-center overflow-auto bg-slate-200 p-2 sm:min-h-[200px]">
+                {scannedCanvas ? <canvas ref={scannedRef} className="block h-auto max-h-[32vh] max-w-full bg-white shadow-lg" /> : <p className="p-6 text-center text-xs text-slate-500">Press “Scan Document” to create the final scanned page.</p>}
+              </div>
             </button>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-2 pt-2">
-          <button
-            onClick={handleDownloadPdf}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors cursor-pointer shadow-sm"
-          >
-            <Download className="w-4 h-4" /> Download PDF (Optimized for Govt Portals)
-          </button>
-          <button
-            onClick={handleDownloadImage}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 rounded-lg text-xs font-medium transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-600" /> Save Clean JPG
-          </button>
-        </div>
+          {scannedCanvas && selectedPreview === 'scanned' && <div className="rounded-2xl border-2 border-emerald-300 bg-white p-3 shadow-sm">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-extrabold text-emerald-950">Scanned Result · Full Preview</h3><p className="text-xs text-slate-500">This is the corrected page that will be downloaded.</p></div><span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-800">SCAN READY</span></div>
+            <canvas ref={(node) => { if (node && scannedCanvas) { node.width = scannedCanvas.width; node.height = scannedCanvas.height; const ctx = node.getContext('2d'); if (ctx) ctx.drawImage(scannedCanvas, 0, 0); } }} className="mx-auto block h-auto max-h-[75vh] max-w-full bg-white shadow-lg" />
+          </div>}
+          {busy && <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{status || 'Processing your document…'}</p>}
+          {status && !busy && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">{status}</p>}
+          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">{error}</p>}
+        </section>
       </div>
 
-      <div className="lg:col-span-7 flex flex-col items-center">
-        <div className="w-full flex items-center justify-between mb-3 text-xs text-slate-500">
-          <span className="font-medium text-slate-700">Scanned Document Output</span>
-          <span className="font-mono">High-Definition Edge Enhancement</span>
-        </div>
-
-        <div className="w-full overflow-auto bg-slate-200/80 p-4 rounded-xl border border-slate-300 flex justify-center items-center max-h-[600px]">
-          <canvas
-            ref={canvasRef}
-            className="max-h-[540px] w-auto shadow-md bg-white rounded"
-            style={{ maxWidth: '100%' }}
-          />
-        </div>
-
-        <p className="mt-3 text-xs text-slate-500 text-center">
-          Adaptive thresholding removes shadows caused by desk lighting, producing crisp text compliant with official portal requirements.
-        </p>
-      </div>
     </div>
   );
 };
