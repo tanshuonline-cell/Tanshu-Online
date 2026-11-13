@@ -47,7 +47,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
 
   const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
   const isPhotoSignatureResizer = tool.id === 'photo-signature-resizer';
-  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer;
+  const isAutoDocumentCropper = tool.id === 'auto-document-cropper';
+  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer || isAutoDocumentCropper;
   const showWelcome = (isAdvancedStudio && !showAdvancedStudio) || (isPhotoSignatureResizer && !showPhotoSignatureStudio);
 
   const renderToolComponent = () => {
@@ -121,7 +122,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </button>
         </div>
 
-        <div data-copy-allowed="true" className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : isPhotoSignatureResizer ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
+        <div data-copy-allowed="true" className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : isAutoDocumentCropper ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isPhotoSignatureResizer || isAutoDocumentCropper) ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
           {isImmersiveTool ? (
             renderToolComponent()
           ) : (
