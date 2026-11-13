@@ -371,6 +371,11 @@ export const DocumentScannerTool: React.FC = () => {
     });
   };
 
+  useEffect(() => {
+    // A changed source or setting means the previous scan is no longer the current result.
+    setScannedCanvas(null);
+  }, [sourceCanvas, mode, contrast, brightness, sharpness, threshold, rotation, resolutionScale]);
+
   const changePdfPage = async (next: number) => {
     if (!pdfDocument || next < 1 || next > pageCount) return;
     setBusy(true); setError('');
