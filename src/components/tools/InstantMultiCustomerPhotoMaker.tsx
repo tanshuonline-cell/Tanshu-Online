@@ -323,7 +323,6 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
     const margin=Math.max(0,Math.min(Number(sheetMargin)||0,Math.min(paperWidth,paperHeight)/4));
     const gapX=Math.max(0,Math.min(20,Number(horizontalGap)||0));
     const gapY=Math.max(0,Math.min(20,Number(verticalGap)||0));
-    const rightEdge=paperWidth-margin,bottomEdge=paperHeight-margin;
     const usableW=Math.max(1,paperWidth-margin*2),usableH=Math.max(1,paperHeight-margin*2);
     type RowItem={item:SheetItem;w:number;h:number};
     const rows:{items:RowItem[];width:number;height:number}[]=[];
