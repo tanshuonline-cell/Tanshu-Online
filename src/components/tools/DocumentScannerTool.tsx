@@ -397,6 +397,7 @@ export const DocumentScannerTool: React.FC = () => {
 
       let page: HTMLCanvasElement = workingCanvas;
       let detected = false;
+      let detectionFailed = false;
       try {
         // Edge detection is an optional enhancement. If the external OpenCV
         // engine is blocked or stalls, do not leave the customer stuck on
@@ -410,11 +411,12 @@ export const DocumentScannerTool: React.FC = () => {
         detected = page !== workingCanvas;
       } catch {
         page = workingCanvas;
+        detectionFailed = true;
         setStatus('Auto edge detection is unavailable. Continuing with image enhancement…');
       }
       if (detected) {
         setStatus('Page corners detected. Cleaning and preparing the scanned result…');
-      } else if (!status) {
+      } else if (!detectionFailed) {
         setStatus('Preparing the enhanced result without forcing an inaccurate crop…');
       }
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
