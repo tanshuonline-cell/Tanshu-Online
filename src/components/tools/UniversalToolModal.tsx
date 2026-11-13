@@ -101,7 +101,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
 
   return (
     <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isImmersiveTool ? 'p-0' : 'p-3 sm:p-6'}`}>
-      <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isImmersiveTool ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
+      <div data-document-scanner-modal={isDocumentScanner ? 'true' : undefined} className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isImmersiveTool ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
         {isDocumentScanner ? (
           <div className="flex min-h-[76px] shrink-0 items-center justify-between gap-3 border-b border-blue-950/80 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-2.5 text-white shadow-md sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
@@ -146,7 +146,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </div>
         )}
 
-        <div data-copy-allowed="true" className={`${(isAdvancedStudio && !showWelcome) || isDocumentScanner ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isPhotoSignatureResizer || isDocumentScanner) ? 'p-0 bg-slate-100' : 'p-6 bg-white'}`}>
+        <div data-copy-allowed="true" className={`${isDocumentScanner ? 'min-h-0 overflow-y-auto overscroll-contain' : (isAdvancedStudio && !showWelcome) ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isPhotoSignatureResizer || isDocumentScanner) ? 'p-0 bg-slate-100' : 'p-6 bg-white'}`}>
           {isImmersiveTool ? (
             renderToolComponent()
           ) : (
