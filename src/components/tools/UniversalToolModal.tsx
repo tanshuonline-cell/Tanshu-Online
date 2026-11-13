@@ -8,6 +8,7 @@ import { PhotoSignatureResizerTool } from './PhotoSignatureResizerTool';
 import { PhotoSignatureResizerWelcome } from './PhotoSignatureResizerWelcome';
 import { AutoDocumentCropperTool } from './AutoDocumentCropperTool';
 import { DocumentScannerTool } from './DocumentScannerTool';
+import { PhotoBackgroundRemoverTool } from './PhotoBackgroundRemoverTool';
 import { PdfToPvcTool } from './PdfToPvcTool';
 import { IdCardPrintLayoutTool } from './IdCardPrintLayoutTool';
 import { InvoiceGeneratorTool } from './InvoiceGeneratorTool';
@@ -65,6 +66,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
         return <AutoDocumentCropperTool />;
       case 'document-scanner-image-rectifier':
         return <DocumentScannerTool />;
+      case 'photo-background-remover':
+        return <PhotoBackgroundRemoverTool />;
       case 'pdf-to-pvc-card-auto-cropper':
       case 'govt-id-card-print':
         return <PdfToPvcTool />;
