@@ -193,8 +193,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [customColor, setCustomColor] = useState('#ffffff');
   const [cropRect, setCropRect] = useState<CropRect>({ x: 0, y: 0, w: 100, h: 100 });
   const [rotation, setRotation] = useState(0);
-  const [dragCorner, setDragCorner] = useState<string | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
+  const [cropHasSelection, setCropHasSelection] = useState(false);
   const [cropApplied, setCropApplied] = useState(false);
+  const cropDrawRef = useRef<{ mode: 'draw' | 'move' | 'resize'; startX: number; startY: number; bounds: DOMRect; initialRect: CropRect; anchorX: number; anchorY: number; cornerX: number; cornerY: number } | null>(null);
   const [photoSizePreset, setPhotoSizePreset] = useState('passport-35x45');
   const [photoUnit, setPhotoUnit] = useState<PhotoUnit>('mm');
   const [customWidth, setCustomWidth] = useState('35');
@@ -234,7 +236,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setSourceUrl((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(next); });
     setFilename(next.name.replace(/\.[^.]+$/, '') || 'photo-background-removed');
     setCropRect({ x: 0, y: 0, w: 100, h: 100 });
+    setCropHasSelection(false);
+    setIsCropping(false);
     setCropApplied(false);
+    cropDrawRef.current = null;
     setRotation(0);
     setError('');
     clearResult();
@@ -431,98 +436,82 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     };
   };
 
-  const startCropCreate = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (cropApplied || !file || (event.target as HTMLElement).closest('[data-crop-interaction="true"]')) return;
-    const point = getCropPointer(event);
-    if (!point) return;
-    cropDragStart.current = { ...point, rect: { ...cropRect } };
-    setCropRect({ x: point.x, y: point.y, w: 0, h: 0 });
-    setDragCorner('draw');
+  const makeAspectCropRect = (anchorX: number, anchorY: number, pointerX: number, pointerY: number, bounds: DOMRect, ratio: number) => {
+    const ratioInPercent = ratio * bounds.height / bounds.width;
+    const directionX = pointerX >= anchorX ? 1 : -1;
+    const directionY = pointerY >= anchorY ? 1 : -1;
+    let width = Math.abs(pointerX - anchorX);
+    let height = Math.abs(pointerY - anchorY);
+    if (width > height * ratioInPercent) width = height * ratioInPercent;
+    else height = width / ratioInPercent;
+    const maxWidth = directionX > 0 ? 100 - anchorX : anchorX;
+    const maxHeight = directionY > 0 ? 100 - anchorY : anchorY;
+    const scale = Math.min(1, maxWidth / Math.max(width, 0.001), maxHeight / Math.max(height, 0.001));
+    width *= scale;
+    height *= scale;
+    return { x: directionX > 0 ? anchorX : anchorX - width, y: directionY > 0 ? anchorY : anchorY - height, w: width, h: height };
+  };
+
+  const startCropDraw = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isCropping || cropApplied || !file) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const px = Math.max(0, Math.min(100, (event.clientX - bounds.left) / bounds.width * 100));
+    const py = Math.max(0, Math.min(100, (event.clientY - bounds.top) / bounds.height * 100));
+    const valid = cropHasSelection && cropRect.w > 2 && cropRect.h > 2;
+    const inside = valid && px >= cropRect.x && px <= cropRect.x + cropRect.w && py >= cropRect.y && py <= cropRect.y + cropRect.h;
+    let mode: 'draw' | 'move' | 'resize' = 'draw';
+    let cornerX = 0, cornerY = 0, anchorX = 0, anchorY = 0;
+    const corners = [
+      { id: 'tl', x: cropRect.x, y: cropRect.y, cx: 1, cy: 1 },
+      { id: 'tr', x: cropRect.x + cropRect.w, y: cropRect.y, cx: -1, cy: 1 },
+      { id: 'bl', x: cropRect.x, y: cropRect.y + cropRect.h, cx: 1, cy: -1 },
+      { id: 'br', x: cropRect.x + cropRect.w, y: cropRect.y + cropRect.h, cx: -1, cy: -1 },
+    ];
+    const handle = (event.target as HTMLElement).closest('[data-crop-handle]')?.getAttribute('data-crop-handle');
+    const hit = valid && handle ? corners.find(point => point.id === handle) : undefined;
+    if (hit) {
+      mode = 'resize';
+      cornerX = hit.cx;
+      cornerY = hit.cy;
+      anchorX = hit.x + (hit.cx === 1 ? cropRect.w : -cropRect.w);
+      anchorY = hit.y + (hit.cy === 1 ? cropRect.h : -cropRect.h);
+    } else if (inside) {
+      mode = 'move';
+    }
+    cropDrawRef.current = { mode, startX: px, startY: py, bounds, initialRect: { ...cropRect }, anchorX, anchorY, cornerX, cornerY };
+    if (mode === 'draw') setCropRect({ x: px, y: py, w: 0, h: 0 });
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   };
 
-  const moveCropCorner = (event: React.PointerEvent<HTMLElement>) => {
-    if (!dragCorner) return;
-    const point = getCropPointer(event);
+  const handleCropPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = cropDrawRef.current;
+    if (!drag) return;
+    const px = Math.max(0, Math.min(100, (event.clientX - drag.bounds.left) / drag.bounds.width * 100));
+    const py = Math.max(0, Math.min(100, (event.clientY - drag.bounds.top) / drag.bounds.height * 100));
     const stage = cropStageRef.current;
-    if (!point || !stage) return;
-    const px = point.x;
-    const py = point.y;
-    const imageAspect = stage.offsetHeight > 0 ? stage.offsetWidth / stage.offsetHeight : 1;
-    const aspectInPercent = (targetWidthMm / targetHeightMm) / imageAspect;
-
-    if (dragCorner === 'draw' && cropDragStart.current) {
-      const anchor = cropDragStart.current;
-      const dx = px - anchor.x;
-      const dy = py - anchor.y;
-      let width = Math.abs(dx);
-      let height = Math.abs(dy);
-      if (width / Math.max(height, 0.001) > aspectInPercent) width = height * aspectInPercent;
-      else height = width / aspectInPercent;
-      const maxWidth = dx < 0 ? anchor.x : 100 - anchor.x;
-      const maxHeight = dy < 0 ? anchor.y : 100 - anchor.y;
-      const fit = Math.min(1, maxWidth / Math.max(width, 0.001), maxHeight / Math.max(height, 0.001));
-      width *= fit;
-      height *= fit;
-      setCropRect({
-        x: dx < 0 ? anchor.x - width : anchor.x,
-        y: dy < 0 ? anchor.y - height : anchor.y,
-        w: width,
-        h: height,
-      });
-      return;
+    if (!stage) return;
+    const imageAspect = stage.offsetWidth / Math.max(1, stage.offsetHeight);
+    const ratio = (targetWidthMm / targetHeightMm);
+    if (drag.mode === 'draw') {
+      setCropRect(makeAspectCropRect(drag.startX, drag.startY, px, py, drag.bounds, ratio));
+    } else if (drag.mode === 'move') {
+      const x = Math.max(0, Math.min(100 - drag.initialRect.w, drag.initialRect.x + px - drag.startX));
+      const y = Math.max(0, Math.min(100 - drag.initialRect.h, drag.initialRect.y + py - drag.startY));
+      setCropRect({ ...drag.initialRect, x, y });
+    } else {
+      setCropRect(makeAspectCropRect(drag.anchorX, drag.anchorY, px, py, drag.bounds, ratio));
     }
-
-    if (dragCorner === 'move' && cropDragStart.current) {
-      const dx = px - cropDragStart.current.x;
-      const dy = py - cropDragStart.current.y;
-      const start = cropDragStart.current.rect;
-      setCropRect({ ...start, x: Math.max(0, Math.min(100 - start.w, start.x + dx)), y: Math.max(0, Math.min(100 - start.h, start.y + dy)) });
-      return;
-    }
-    setCropRect((current) => {
-      const left = current.x;
-      const top = current.y;
-      const right = current.x + current.w;
-      const bottom = current.y + current.h;
-      const min = 3;
-      let rawW = dragCorner.includes('l') ? right - px : px - left;
-      let rawH = dragCorner.includes('t') ? bottom - py : py - top;
-      rawW = Math.max(min, rawW);
-      rawH = Math.max(min, rawH);
-      let width = rawW;
-      let height = rawH;
-      if (width / height > aspectInPercent) width = height * aspectInPercent;
-      else height = width / aspectInPercent;
-      const maxWidth = dragCorner.includes('l') ? right : 100 - left;
-      const maxHeight = dragCorner.includes('t') ? bottom : 100 - top;
-      const fitScale = Math.min(1, maxWidth / width, maxHeight / height);
-      width *= fitScale;
-      height *= fitScale;
-      if (dragCorner === 'tl') return { x: right - width, y: bottom - height, w: width, h: height };
-      if (dragCorner === 'tr') return { x: left, y: bottom - height, w: width, h: height };
-      if (dragCorner === 'bl') return { x: right - width, y: top, w: width, h: height };
-      return { x: left, y: top, w: width, h: height };
-    });
   };
 
-  const startCropMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (cropApplied) return;
-    event.stopPropagation();
-    const point = getCropPointer(event);
-    if (!point) return;
-    cropDragStart.current = { ...point, rect: { ...cropRect } };
-    setDragCorner('move');
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
+  const finishCropDrag = () => {
+    const drag = cropDrawRef.current;
+    cropDrawRef.current = null;
+    if (drag?.mode === 'draw') {
+      setCropHasSelection(cropRect.w >= 1 && cropRect.h >= 1);
+    }
   };
-
-  const finishCropDrag = () => { setDragCorner(null); cropDragStart.current = null; };
-
-  const cropHandle = (corner: string, left: number, top: number) => (
-    <button key={corner} type="button" data-crop-interaction="true" aria-label={'Drag ' + corner + ' crop corner'} title="Drag corner to resize crop" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); setDragCorner(corner); event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={moveCropCorner} onPointerUp={() => finishCropDrag()} onPointerCancel={finishCropDrag} className="pointer-events-auto absolute z-30 h-5 w-5 -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-[3px] border-yellow-200 bg-red-500 shadow-[0_0_0_2px_rgba(0,0,0,.9)]" style={{ left: left + '%', top: top + '%' }} />
-  );
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#081629] text-slate-100">
