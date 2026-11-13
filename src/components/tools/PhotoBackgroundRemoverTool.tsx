@@ -243,8 +243,17 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     if (!dragCorner) return;
     const bounds = cropStageRef.current?.getBoundingClientRect();
     if (!bounds) return;
-    const px = Math.max(0, Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100));
-    const py = Math.max(0, Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100));
+    const stage = cropStageRef.current;
+    if (!stage) return;
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
+    const angle = -rotation * Math.PI / 180;
+    const dx = event.clientX - centerX;
+    const dy = event.clientY - centerY;
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle) + stage.offsetWidth / 2;
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle) + stage.offsetHeight / 2;
+    const px = Math.max(0, Math.min(100, (localX / stage.offsetWidth) * 100));
+    const py = Math.max(0, Math.min(100, (localY / stage.offsetHeight) * 100));
     setCropRect((current) => {
       const left = current.x;
       const top = current.y;
