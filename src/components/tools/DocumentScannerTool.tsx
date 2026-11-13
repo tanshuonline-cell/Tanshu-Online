@@ -384,7 +384,9 @@ export const DocumentScannerTool: React.FC = () => {
     try {
       // Run CPU-heavy edge detection and pixel enhancement on a bounded working
       // copy so large phone photos do not lock the browser tab.
-      const maxWorkingDimension = 2200;
+      // Keep the main-thread pixel loop small enough for ordinary shop PCs.
+      // The uploaded original remains untouched; only this working copy is processed.
+      const maxWorkingDimension = 1400;
       const workingScale = Math.min(1, maxWorkingDimension / Math.max(sourceCanvas.width, sourceCanvas.height));
       const workingCanvas = document.createElement('canvas');
       workingCanvas.width = Math.max(1, Math.round(sourceCanvas.width * workingScale));
@@ -398,26 +400,40 @@ export const DocumentScannerTool: React.FC = () => {
       let page: HTMLCanvasElement = workingCanvas;
       let detected = false;
       let detectionFailed = false;
-      try {
-        // Edge detection is an optional enhancement. If the external OpenCV
-        // engine is blocked or stalls, do not leave the customer stuck on
-        // "Scanning…" or prevent the final enhanced image from being created.
-        page = await Promise.race([
-          autoRectifyPage(workingCanvas),
-          new Promise<HTMLCanvasElement>((_, reject) =>
-            window.setTimeout(() => reject(new Error('Page detection timed out.')), 10000)
-          ),
-        ]);
-        detected = page !== workingCanvas;
-      } catch {
-        page = workingCanvas;
-        detectionFailed = true;
-        setStatus('Auto edge detection is unavailable. Continuing with image enhancement…');
+      // OpenCV is an optional, heavy external engine. Do not load it at all
+      // unless the customer explicitly enables automatic edge detection.
+      if (autoRectify) {
+        setStatus('Checking document edges…');
+        try {
+          const detectionScale = Math.min(1, 1000 / Math.max(workingCanvas.width, workingCanvas.height));
+          const detectionCanvas = document.createElement('canvas');
+          detectionCanvas.width = Math.max(1, Math.round(workingCanvas.width * detectionScale));
+          detectionCanvas.height = Math.max(1, Math.round(workingCanvas.height * detectionScale));
+          const detectionContext = detectionCanvas.getContext('2d');
+          if (!detectionContext) throw new Error('Could not prepare edge detection.');
+          detectionContext.drawImage(workingCanvas, 0, 0, detectionCanvas.width, detectionCanvas.height);
+          const detectedPage = await Promise.race([
+            autoRectifyPage(detectionCanvas),
+            new Promise<HTMLCanvasElement>((_, reject) =>
+              window.setTimeout(() => reject(new Error('Page detection timed out.')), 8000)
+            ),
+          ]);
+          if (detectedPage !== detectionCanvas) {
+            page = document.createElement('canvas');
+            page.width = detectedPage.width;
+            page.height = detectedPage.height;
+            page.getContext('2d')?.drawImage(detectedPage, 0, 0);
+            detected = true;
+          }
+        } catch {
+          detectionFailed = true;
+          setStatus('Auto edge detection is unavailable. Finishing the scan without edge correction…');
+        }
       }
       if (detected) {
-        setStatus('Page corners detected. Cleaning and preparing the scanned result…');
+        setStatus('Page corners detected. Preparing the scanned result…');
       } else if (!detectionFailed) {
-        setStatus('Preparing the enhanced result without forcing an inaccurate crop…');
+        setStatus('Preparing the enhanced result…');
       }
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       const rotated = rotateCanvas(page, rotation);
@@ -430,7 +446,13 @@ export const DocumentScannerTool: React.FC = () => {
       const result = upscaleCanvas(enhanced, preserveSourceScale * resolutionScale);
       setScannedCanvas(result);
       setSelectedPreview('scanned');
-      setStatus(detected ? 'Scan complete. Page perspective was corrected and the scan is ready.' : 'Scan complete with enhancement. For straightening, capture the full page with all four edges visible.');
+      setStatus(detected
+        ? 'Scan complete. Page perspective was corrected and the scan is ready.'
+        : detectionFailed
+          ? 'Scan complete with enhancement. Automatic edge detection was unavailable.'
+          : autoRectify
+            ? 'Scan complete with enhancement. All four page edges must be visible for automatic straightening.'
+            : 'Scan complete with enhancement.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not scan this document.');
     } finally { setBusy(false); }
