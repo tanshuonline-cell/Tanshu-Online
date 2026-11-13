@@ -25,7 +25,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     name: 'Document Scanner & Image Rectifier',
     category: 'converter',
     categoryLabel: 'Image & Utilities',
-    isFeatured: true,
+    isFeatured: false,
     iconName: 'ScanLine',
     description: 'Transform angled phone photos into flat, high-contrast black & white or magic-color document scans suitable for official uploads.',
     detailedInstructions: 'Straighten skewed perspective and eliminate uneven ambient shadows using our client-side adaptive thresholding filters.',
