@@ -521,14 +521,67 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const smartCenterAndBalanceSheet = () => {
-    if (!sheetSlots.length) return;
-    const minX = Math.min(...sheetSlots.map(slot => slot.x));
-    const minY = Math.min(...sheetSlots.map(slot => slot.y));
-    const maxX = Math.max(...sheetSlots.map(slot => slot.x + slot.width));
-    const maxY = Math.max(...sheetSlots.map(slot => slot.y + slot.height));
-    const dx = (sheetDimensions.widthMm - sheetMargin * 2 - (maxX - minX)) / 2 - minX;
-    const dy = (sheetDimensions.heightMm - sheetMargin * 2 - (maxY - minY)) / 2 - minY;
-    setSheetSlots(current => current.map(slot => ({ ...slot, x: Math.max(sheetMargin, Math.min(sheetDimensions.widthMm - sheetMargin - slot.width, slot.x + dx)), y: Math.max(sheetMargin, Math.min(sheetDimensions.heightMm - sheetMargin - slot.height, slot.y + dy)) })));
+    if (!sheetSlots.length || sheetMode === 'single') return;
+    setSheetSlots(current => {
+      if (!current.length) return current;
+
+      // Keep every selected photo at its exact print size and protect all four
+      // sheet edges with at least 4 mm (or the larger margin already selected).
+      const pageW = sheetDimensions.widthMm;
+      const pageH = sheetDimensions.heightMm;
+      const safeMargin = Math.max(4, sheetMargin);
+      const horizontalGap = Math.max(0, sheetGap);
+      const verticalGap = Math.max(0, sheetVerticalGap);
+      const usableW = pageW - safeMargin * 2;
+      const usableH = pageH - safeMargin * 2;
+      if (usableW <= 0 || usableH <= 0) return current;
+
+      // Pack photos in their existing order, adding another row only when the
+      // next unchanged photo size cannot fit in the current row.
+      const rows: SheetSlot[][] = [];
+      let row: SheetSlot[] = [];
+      let rowWidth = 0;
+      for (const slot of current) {
+        if (slot.width > usableW || slot.height > usableH) return current;
+        const nextWidth = rowWidth + (row.length ? horizontalGap : 0) + slot.width;
+        if (row.length && nextWidth > usableW + 0.01) {
+          rows.push(row);
+          row = [];
+          rowWidth = 0;
+        }
+        if (row.length) rowWidth += horizontalGap;
+        row.push(slot);
+        rowWidth += slot.width;
+      }
+      if (row.length) rows.push(row);
+
+      const rowHeights = rows.map(items => Math.max(...items.map(slot => slot.height)));
+      const totalGridHeight = rowHeights.reduce((sum, height) => sum + height, 0)
+        + Math.max(0, rows.length - 1) * verticalGap;
+      // Never scale, crop or push a photo beyond the printable sheet.
+      if (totalGridHeight > usableH + 0.01) return current;
+
+      // A single row starts at the top safe margin for easy cutting.
+      // Multiple rows are vertically balanced; each individual row is centered.
+      const firstY = rows.length === 1
+        ? safeMargin
+        : Math.max(safeMargin, (pageH - totalGridHeight) / 2);
+
+      let y = firstY;
+      const positioned: SheetSlot[] = [];
+      rows.forEach((items, rowIndex) => {
+        const width = items.reduce((sum, slot) => sum + slot.width, 0)
+          + Math.max(0, items.length - 1) * horizontalGap;
+        let x = (pageW - width) / 2;
+        items.forEach(slot => {
+          positioned.push({ ...slot, x, y });
+          x += slot.width + horizontalGap;
+        });
+        y += rowHeights[rowIndex] + verticalGap;
+      });
+
+      return positioned;
+    });
   };
 
   const mergeSheetPhotos = async (mergeAll = false) => {
