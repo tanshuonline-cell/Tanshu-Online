@@ -20,22 +20,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Instant high-res PNG / PDF download'
     ]
   },
-  {
-    id: 'document-scanner-image-rectifier',
-    name: 'Document Scanner & Image Rectifier',
-    category: 'converter',
-    categoryLabel: 'Image & Utilities',
-    isFeatured: true,
-    iconName: 'ScanLine',
-    description: 'Transform angled phone photos into flat, high-contrast black & white or magic-color document scans suitable for official uploads.',
-    detailedInstructions: 'Straighten skewed perspective and eliminate uneven ambient shadows using our client-side adaptive thresholding filters.',
-    keyFeatures: [
-      'Perspective rectification engine',
-      'Black & White document thresholding',
-      'Magic color enhancement for stamps & seals',
-      'File size compressor under 200 KB for govt portals'
-    ]
-  },
+
   {
     id: 'pdf-to-pvc-card-auto-cropper',
     name: 'PDF to PVC Card Auto Cropper',
