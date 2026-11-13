@@ -111,7 +111,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                   <ShieldCheck className="w-3.5 h-3.5" /> {isImmersiveTool ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
                 </span>
               </div>
-              {!isImmersiveTool && <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
+              {(!isImmersiveTool || isDocumentScanner) && <h3 className="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">{isDocumentScanner ? 'TANSHU ONLINE · DOCUMENT SCANNER & IMAGE RECTIFIER' : tool.name}</h3>}
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
