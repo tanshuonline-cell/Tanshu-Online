@@ -18,6 +18,108 @@ const PRESETS: Record<ExportPreset, { label: string; bytes: number; quality: num
   largest: { label: 'Largest · 4 MB', bytes: 4 * 1024 * 1024, quality: 0.97 },
 };
 
+// Reuse the same lightweight MediaPipe selfie-segmentation approach as the existing
+// Selfie Photo Studio. Keep one model instance per browser session for faster repeat use.
+let sharedPersonSegmenter: any = null;
+let sharedPersonSegmenterPromise: Promise<any> | null = null;
+
+async function getPersonSegmenter() {
+  if (sharedPersonSegmenter) return sharedPersonSegmenter;
+  if (!sharedPersonSegmenterPromise) {
+    sharedPersonSegmenterPromise = (async () => {
+      const moduleUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/+esm';
+      const visionTasks = await import(/* @vite-ignore */ moduleUrl);
+      const vision = await visionTasks.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm'
+      );
+      const options = {
+        runningMode: 'IMAGE' as const,
+        outputCategoryMask: false,
+        outputConfidenceMasks: true,
+      };
+      try {
+        return await visionTasks.ImageSegmenter.createFromOptions(vision, {
+          ...options,
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
+            delegate: 'GPU',
+          },
+        });
+      } catch {
+        return await visionTasks.ImageSegmenter.createFromOptions(vision, {
+          ...options,
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
+            delegate: 'CPU',
+          },
+        });
+      }
+    })();
+  }
+  try {
+    sharedPersonSegmenter = await sharedPersonSegmenterPromise;
+    return sharedPersonSegmenter;
+  } catch (error) {
+    sharedPersonSegmenterPromise = null;
+    throw error;
+  }
+}
+
+async function removeBackgroundWithPersonMask(photo: Blob, onStatus: (message: string) => void): Promise<Blob> {
+  onStatus('Loading the fast person-segmentation model…');
+  const segmenter = await getPersonSegmenter();
+  const imageUrl = URL.createObjectURL(photo);
+  try {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('The prepared photo could not be opened.'));
+      image.src = imageUrl;
+    });
+    onStatus('Detecting the person and preserving the full photo frame…');
+    const result = segmenter.segment(image);
+    const mask = result?.confidenceMasks?.[0];
+    if (!mask) throw new Error('The AI did not return a person mask. Please try another photo.');
+    const maskData = mask.getAsFloat32Array();
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = mask.width;
+    maskCanvas.height = mask.height;
+    const maskContext = maskCanvas.getContext('2d');
+    if (!maskContext) throw new Error('Could not prepare the person mask.');
+    const pixels = maskContext.createImageData(mask.width, mask.height);
+    for (let i = 0; i < maskData.length; i += 1) {
+      // Match the confidence-mask edge handling used in Selfie Photo Studio.
+      const alpha = Math.max(0, Math.min(255, Math.round(((maskData[i] - 0.18) / 0.64) * 255)));
+      const p = i * 4;
+      pixels.data[p] = 255;
+      pixels.data[p + 1] = 255;
+      pixels.data[p + 2] = 255;
+      pixels.data[p + 3] = alpha;
+    }
+    maskContext.putImageData(pixels, 0, 0);
+
+    // The output canvas always keeps the prepared photo's complete width/height.
+    // Only the person mask changes alpha; no subject-side or bottom-frame crop is applied.
+    const output = document.createElement('canvas');
+    output.width = image.naturalWidth;
+    output.height = image.naturalHeight;
+    const context = output.getContext('2d');
+    if (!context) throw new Error('Could not create the transparent photo.');
+    context.drawImage(image, 0, 0, output.width, output.height);
+    context.globalCompositeOperation = 'destination-in';
+    context.filter = 'blur(1.2px)';
+    context.drawImage(maskCanvas, 0, 0, output.width, output.height);
+    context.filter = 'none';
+    context.globalCompositeOperation = 'source-over';
+    onStatus('Finishing transparent PNG…');
+    return await new Promise<Blob>((resolve, reject) => {
+      output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not finish the transparent PNG.')), 'image/png');
+    });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
 const SWATCHES = ['#ffffff', '#f1f5f9', '#dbeafe', '#bfdbfe', '#dcfce7', '#fef3c7', '#fce7f3', '#e5e7eb', '#111827', '#000000'];
 
 function safeFilename(value: string) {
@@ -184,15 +286,12 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     clearResult();
     try {
       const prepared = await preparePhoto();
-      setStatus('Loading AI model and removing background…');
-      const result = await removeBackground(prepared, {
-        quality: 'quality',
-        onProgress: ({ progress: value, message }) => {
-          setProgress(Math.max(0, Math.min(100, Math.round(value * 100))));
-          setStatus(message || 'Removing background…');
-        },
+      setProgress(15);
+      const removed = await removeBackgroundWithPersonMask(prepared, (message) => {
+        setStatus(message);
+        setProgress(message.includes('Finishing') ? 90 : message.includes('Detecting') ? 65 : 25);
       });
-      setResultBlob(result.blob);
+      setResultBlob(removed);
       setResultUrl(URL.createObjectURL(result.blob));
       setProgress(100);
       setStatus('Background removed successfully');
@@ -378,7 +477,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-200"><Eraser size={15} /> AI background removal</div>
             <button type="button" onClick={runRemoval} disabled={!file || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-cyan-300 disabled:opacity-40">{busy ? <Loader2 size={16} className="animate-spin" /> : <Eraser size={16} />}{busy ? 'Processing…' : resultUrl ? 'Remove Again' : 'Remove Background'}</button>
             {(busy || status) && <div className="mt-3"><div className="mb-1 flex justify-between gap-2 text-[10px] text-blue-100"><span>{status}</span><b>{progress}%</b></div><div className="h-2 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-cyan-400 transition-all" style={{ width: progress + '%' }} /></div></div>}
-            <p className="mt-3 text-[10px] leading-4 text-blue-200">First use downloads the AI model to your browser. The photo itself is not uploaded.</p>
+            <p className="mt-3 text-[10px] leading-4 text-blue-200">First use downloads the lightweight AI model to your browser. Later photos reuse it in this tab. The photo itself is not uploaded.</p>
           </section>
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-cyan-200">Download settings</div>
