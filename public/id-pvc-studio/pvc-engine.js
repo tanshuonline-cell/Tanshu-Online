@@ -467,7 +467,7 @@ async function printSheets(calibration=false){
   root.append(page);
  }}
 }
-function translate(){document.querySelectorAll('[data-en]').forEach(e=>{const value=S.lang==='hi'?(e.dataset.hi||e.dataset.en):e.dataset.en;if(e.children.length===0)e.textContent=value;else if(e.firstChild&&e.firstChild.nodeType===3)e.firstChild.nodeValue=value+' ';});document.documentElement.lang=S.lang;}
+function translate(){document.querySelectorAll('[data-en]').forEach(e=>{const value=S.lang==='hi'?(e.dataset.hi||e.dataset.en):e.dataset.en;if(e.children.length===0)e.textContent=value;else{const node=[...e.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());if(node){const lead=(node.textContent.match(/^\\s*/)||[''])[0],trail=(node.textContent.match(/\\s*$/)||[''])[0];node.nodeValue=lead+value+trail;}}});document.documentElement.lang=S.lang;}
 
 function bindWhatsAppPerspectiveCrop(){
  const modal=$('whatsAppPhotoCrop'),input=$('perspectivePhotoInput'),canvas=$('perspectiveCanvas'),ctx=canvas.getContext('2d',{willReadFrequently:true}),apply=$('applyPerspective'),status=$('perspectiveStatus');
