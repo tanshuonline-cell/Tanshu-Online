@@ -75,7 +75,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('transparent');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [customColor, setCustomColor] = useState('#ffffff');
-  const [cropRect, setCropRect] = useState<CropRect>({ x: 4, y: 4, w: 92, h: 92 });
+  const [cropRect, setCropRect] = useState<CropRect>({ x: 0, y: 0, w: 100, h: 100 });
   const [rotation, setRotation] = useState(0);
   const [dragCorner, setDragCorner] = useState<string | null>(null);
   const [filename, setFilename] = useState('photo-background-removed');
@@ -106,7 +106,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setFile(next);
     setSourceUrl((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(next); });
     setFilename(next.name.replace(/\.[^.]+$/, '') || 'photo-background-removed');
-    setCropRect({ x: 4, y: 4, w: 92, h: 92 });
+    setCropRect({ x: 0, y: 0, w: 100, h: 100 });
     setRotation(0);
     setError('');
     clearResult();
@@ -239,7 +239,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const checker = 'repeating-conic-gradient(#d8e0e9 0% 25%, #ffffff 0% 50%) 50% / 18px 18px';
 
-  const moveCropCorner = (event: React.PointerEvent<HTMLDivElement>) => {
+  const moveCropCorner = (event: React.PointerEvent<HTMLElement>) => {
     if (!dragCorner) return;
     const bounds = cropStageRef.current?.getBoundingClientRect();
     if (!bounds) return;
@@ -290,7 +290,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-200"><Crop size={15} /> Crop &amp; straighten</div>
             <div className="mb-2 flex items-center justify-between text-xs text-blue-100"><span>Rotate photo</span><b>{rotation}°</b></div>
             <div className="mb-4 grid grid-cols-4 gap-1.5">
-              {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); clearResult(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200"><RotateCcw size={index === 0 || index === 1 ? 16 : 16} /></span>{item.label}</button>)}
+              {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); clearResult(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200">{index < 2 ? <RotateCcw size={16} /> : <RotateCw size={16} />}</span>{item.label}</button>)}
             </div>
             <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag four corners</span><b>Free</b></div>
             <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">Preview में लाल-पीले handles पकड़कर जितना हिस्सा चाहिए उतना चुनें।</div>
