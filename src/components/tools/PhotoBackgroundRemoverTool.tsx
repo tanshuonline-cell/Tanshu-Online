@@ -8,6 +8,7 @@ import {
 
 type BackgroundMode = 'transparent' | 'color';
 type ExportPreset = 'small' | 'medium' | 'large' | 'largest';
+type CropRect = { x: number; y: number; w: number; h: number };
 
 const PRESETS: Record<ExportPreset, { label: string; bytes: number; quality: number }> = {
   small: { label: 'Small · 20 KB', bytes: 20 * 1024, quality: 0.52 },
@@ -74,8 +75,9 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('transparent');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [customColor, setCustomColor] = useState('#ffffff');
-  const [crop, setCrop] = useState(0);
+  const [cropRect, setCropRect] = useState<CropRect>({ x: 4, y: 4, w: 92, h: 92 });
   const [rotation, setRotation] = useState(0);
+  const [dragCorner, setDragCorner] = useState<string | null>(null);
   const [filename, setFilename] = useState('photo-background-removed');
   const [preset, setPreset] = useState<ExportPreset>('large');
   const [dpi, setDpi] = useState(300);
@@ -103,7 +105,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setFile(next);
     setSourceUrl((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(next); });
     setFilename(next.name.replace(/\.[^.]+$/, '') || 'photo-background-removed');
-    setCrop(0);
+    setCropRect({ x: 4, y: 4, w: 92, h: 92 });
     setRotation(0);
     setError('');
     clearResult();
@@ -132,14 +134,16 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       ctx.translate(rotatedWidth / 2, rotatedHeight / 2);
       ctx.rotate(radians);
       ctx.drawImage(image, -width / 2, -height / 2);
-      const insetX = Math.round(rotatedWidth * crop / 200);
-      const insetY = Math.round(rotatedHeight * crop / 200);
+      const sx = Math.round(rotatedWidth * cropRect.x / 100);
+      const sy = Math.round(rotatedHeight * cropRect.y / 100);
+      const sw = Math.max(1, Math.round(rotatedWidth * cropRect.w / 100));
+      const sh = Math.max(1, Math.round(rotatedHeight * cropRect.h / 100));
       const output = document.createElement('canvas');
-      output.width = Math.max(1, rotatedWidth - insetX * 2);
-      output.height = Math.max(1, rotatedHeight - insetY * 2);
+      output.width = sw;
+      output.height = sh;
       const out = output.getContext('2d');
       if (!out) throw new Error('Your browser could not prepare this crop.');
-      out.drawImage(rotated, insetX, insetY, output.width, output.height, 0, 0, output.width, output.height);
+      out.drawImage(rotated, sx, sy, sw, sh, 0, 0, output.width, output.height);
       return await new Promise<Blob>((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
     } finally {
       URL.revokeObjectURL(originalUrl);
@@ -234,6 +238,28 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const checker = 'repeating-conic-gradient(#d8e0e9 0% 25%, #ffffff 0% 50%) 50% / 18px 18px';
 
+  const moveCropCorner = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragCorner) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const px = Math.max(0, Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100));
+    const py = Math.max(0, Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100));
+    setCropRect((current) => {
+      const left = current.x;
+      const top = current.y;
+      const right = current.x + current.w;
+      const bottom = current.y + current.h;
+      const min = 8;
+      if (dragCorner === 'tl') { const x = Math.min(px, right - min); const y = Math.min(py, bottom - min); return { x, y, w: right - x, h: bottom - y }; }
+      if (dragCorner === 'tr') { const x = Math.max(px, left + min); const y = Math.min(py, bottom - min); return { x: left, y, w: x - left, h: bottom - y }; }
+      if (dragCorner === 'bl') { const x = Math.min(px, right - min); const y = Math.max(py, top + min); return { x, y: top, w: right - x, h: y - top }; }
+      const x = Math.max(px, left + min); const y = Math.max(py, top + min); return { x: left, y: top, w: x - left, h: y - top };
+    });
+  };
+
+  const cropHandle = (corner: string, position: string) => (
+    <button key={corner} type="button" aria-label={'Drag ' + corner + ' crop corner'} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); setDragCorner(corner); event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)} onPointerCancel={() => setDragCorner(null)} className={'absolute z-20 h-5 w-5 -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-[3px] border-yellow-300 bg-red-500 shadow-[0_0_0_2px_rgba(0,0,0,.8)] ' + position} />
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#081629] text-slate-100">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-3 sm:px-6">
@@ -251,11 +277,14 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         {!expanded && <aside className="order-2 space-y-3 lg:order-1 lg:overflow-y-auto">
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-200"><Crop size={15} /> Crop &amp; straighten</div>
-            <label className="mb-4 block text-xs text-blue-100"><span className="mb-1 flex justify-between"><span>Rotate photo</span><b>{rotation}°</b></span><input className="w-full accent-cyan-400" type="range" min={-15} max={15} step={1} value={rotation} onChange={(e) => { setRotation(+e.target.value); clearResult(); }} /></label>
-            <div className="mb-1 flex justify-between text-xs text-blue-100"><span>Crop tighter</span><b>{crop}%</b></div>
-            <input className="w-full accent-cyan-400" type="range" min={0} max={20} step={1} value={crop} onChange={(e) => { setCrop(+e.target.value); clearResult(); }} />
-            <button type="button" onClick={() => { setCrop(0); setRotation(0); clearResult(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
-            <p className="mt-3 text-[10px] leading-4 text-blue-200">Crop and straighten are optional. Adjust first, then click Remove Background.</p>
+            <div className="mb-2 flex items-center justify-between text-xs text-blue-100"><span>Rotate photo</span><b>{rotation}°</b></div>
+            <div className="mb-4 grid grid-cols-4 gap-1.5">
+              {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); clearResult(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200"><RotateCcw size={index === 0 || index === 1 ? 16 : 16} /></span>{item.label}</button>)}
+            </div>
+            <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag four corners</span><b>Free</b></div>
+            <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">Preview में लाल-पीले handles पकड़कर जितना हिस्सा चाहिए उतना चुनें।</div>
+            <button type="button" onClick={() => { setCropRect({ x: 4, y: 4, w: 92, h: 92 }); setRotation(0); clearResult(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
+            <p className="mt-3 text-[10px] leading-4 text-blue-200">Crop frame is adjustable from all four corners. Apply it with Remove Background.</p>
           </section>
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-cyan-200">Background color</div>
@@ -272,7 +301,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-bold text-white"><ImageIcon size={15} className="text-cyan-300" />{resultUrl ? 'Background removed · Preview' : 'Photo preview'}</div><span className="text-[10px] text-blue-200">{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'Upload a photo to begin'}</span></div>
           <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto rounded-lg bg-[#06101f] p-3">
             {resultUrl ? <div className="flex max-h-full max-w-full items-center justify-center overflow-auto rounded-lg p-4" style={{ background: backgroundMode === 'transparent' ? checker : backgroundColor }}><img src={resultUrl} alt="Background removed preview" className="max-h-[65vh] max-w-full object-contain" /></div>
-              : sourceUrl ? <img src={sourceUrl} alt="Original photo preview" className="max-h-[65vh] max-w-full rounded-lg object-contain" style={{ transform: 'rotate(' + rotation + 'deg)', clipPath: crop ? 'inset(' + crop + '%)' : undefined }} />
+              : sourceUrl ? <div className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)} onPointerCancel={() => setDragCorner(null)}><img src={sourceUrl} alt="Original photo preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ transform: 'rotate(' + rotation + 'deg)' }} /><div className="absolute border-[2px] border-dashed border-yellow-300" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%', boxShadow: '0 0 0 9999px rgba(0,0,0,.38)', pointerEvents: 'none' }} /><div className="absolute inset-0" onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)}>{cropHandle('tl', 'left-[' + cropRect.x + '%] top-[' + cropRect.y + '%]')}{cropHandle('tr', 'left-[' + (cropRect.x + cropRect.w) + '%] top-[' + cropRect.y + '%]')}{cropHandle('bl', 'left-[' + cropRect.x + '%] top-[' + (cropRect.y + cropRect.h) + '%]')}{cropHandle('br', 'left-[' + (cropRect.x + cropRect.w) + '%] top-[' + (cropRect.y + cropRect.h) + '%]')}</div></div>
               : <button type="button" onClick={() => inputRef.current?.click()} className="flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-400/5 px-8 py-12 text-center hover:bg-cyan-400/10"><Upload size={34} className="mb-3 text-cyan-300" /><b className="text-sm text-white">Upload your photo</b><span className="mt-2 text-xs text-blue-200">JPG · PNG · WEBP · Up to 40 MB</span></button>}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
