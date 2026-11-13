@@ -138,6 +138,20 @@ function safeFilename(value: string) {
   return value.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').replace(/-+/g, '-') || 'photo-background-removed';
 }
 
+function triggerBlobDownload(blob: Blob, filename: string) {
+  if (!(blob instanceof Blob) || blob.size === 0) throw new Error('The photo file is empty and could not be downloaded. Please try again.');
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  // Keep the object URL alive briefly so browsers can start the download.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 function crc32(bytes: Uint8Array) {
   let crc = -1;
   for (const byte of bytes) {
@@ -324,6 +338,13 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       if (!out) throw new Error('Your browser could not prepare this crop.');
       out.imageSmoothingEnabled = true;
       out.imageSmoothingQuality = 'high';
+      // Composite the selected solid background at crop-apply time so the
+      // crop preview and the final saved image both retain the exact color.
+      // Transparent mode intentionally leaves the canvas alpha untouched.
+      if (backgroundMode === 'color') {
+        out.fillStyle = backgroundColor;
+        out.fillRect(0, 0, output.width, output.height);
+      }
       const placementScale = cropApplied ? photoScale : 1;
       const placementX = cropApplied ? (photoOffset.x / 100) * output.width : 0;
       const placementY = cropApplied ? (photoOffset.y / 100) * output.height : 0;
@@ -396,12 +417,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         URL.revokeObjectURL(source);
         const pngSource = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG export failed.')), 'image/png'));
         const png = await addPngDpi(pngSource, dpi);
-        const url = URL.createObjectURL(png);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = safeFilename(filename) + '.png';
-        anchor.click();
-        URL.revokeObjectURL(url);
+        triggerBlobDownload(png, safeFilename(filename) + '.png');
       } else {
         const image = new Image();
         const source = URL.createObjectURL(exportBlob);
@@ -462,12 +478,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         }
         if (best.size > target) throw new Error('Could not meet the selected file-size limit. Please choose a larger size.');
         const jpeg = best;
-        const url = URL.createObjectURL(jpeg);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = safeFilename(filename) + '.jpg';
-        anchor.click();
-        URL.revokeObjectURL(url);
+        triggerBlobDownload(jpeg, safeFilename(filename) + '.jpg');
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not export this photo.');
@@ -721,7 +732,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-bold text-white"><ImageIcon size={15} className="text-cyan-300" />{resultUrl ? 'Background removed · Preview' : 'Photo preview'}</div><span className="text-[10px] text-blue-200">{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'Upload a photo to begin'}</span></div>
           <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto rounded-lg bg-[#06101f] p-3">
             {cropApplied && cropPreviewUrl ? <div className="relative max-h-[65vh] max-w-full overflow-hidden rounded-lg border-2 border-dashed border-cyan-300 bg-white touch-none select-none" style={{ width: 'min(100%, 420px)', aspectRatio: targetWidthMm + ' / ' + targetHeightMm, cursor: 'move' }} onPointerDown={startPhotoTransform} onPointerMove={movePhotoTransform} onPointerUp={endPhotoTransform} onPointerCancel={endPhotoTransform}><img src={cropPreviewUrl} alt="Passport photo crop preview — drag to reposition" draggable={false} className="pointer-events-none h-full w-full select-none object-cover" style={{ transform: 'translate(' + photoOffset.x + '%, ' + photoOffset.y + '%) scale(' + photoScale + ')', transformOrigin: 'center' }} /><span data-photo-resize="tl" className="absolute left-0 top-0 z-20 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="tr" className="absolute right-0 top-0 z-20 h-5 w-5 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="bl" className="absolute bottom-0 left-0 z-20 h-5 w-5 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="br" className="absolute bottom-0 right-0 z-20 h-5 w-5 translate-x-1/2 translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /></div>
-              : resultUrl && backgroundSaved ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)', cursor: isCropping ? 'crosshair' : 'grab' }} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag}><img src={resultUrl} alt="Background-removed photo — crop preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ pointerEvents: 'none' }} />{isCropping && cropRect.w > 0 && cropRect.h > 0 && <div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,.48)]" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%' }}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /></div>}</div>
+              : resultUrl && backgroundSaved ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)', cursor: isCropping ? 'crosshair' : 'grab', background: backgroundMode === 'color' ? backgroundColor : checker }} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag}><img src={resultUrl} alt="Background-removed photo — crop preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ pointerEvents: 'none' }} />{isCropping && cropRect.w > 0 && cropRect.h > 0 && <div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,.48)]" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%' }}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /></div>}</div>
               : resultUrl ? <div className="flex max-h-full max-w-full items-center justify-center overflow-auto rounded-lg p-4" style={{ background: backgroundMode === 'transparent' ? checker : backgroundColor }}><img src={resultUrl} alt="Background removed preview — save it to unlock cropping" className="max-h-[65vh] max-w-full object-contain" /></div>
               : sourceUrl ? <div className="flex max-h-full max-w-full items-center justify-center"><img src={sourceUrl} alt="Original photo preview" className="max-h-[65vh] max-w-full object-contain" /></div>
               : <button type="button" onClick={() => inputRef.current?.click()} className="flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-400/5 px-8 py-12 text-center hover:bg-cyan-400/10"><Upload size={34} className="mb-3 text-cyan-300" /><b className="text-sm text-white">Upload your photo</b><span className="mt-2 text-xs text-blue-200">JPG · PNG · WEBP · Up to 40 MB</span></button>}
