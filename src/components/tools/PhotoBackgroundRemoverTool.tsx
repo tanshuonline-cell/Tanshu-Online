@@ -8,6 +8,7 @@ import {
 
 type BackgroundMode = 'transparent' | 'color';
 type ExportPreset = 'small' | 'medium' | 'large' | 'largest';
+type ExportFormat = 'png' | 'jpg';
 type CropRect = { x: number; y: number; w: number; h: number };
 
 const PRESETS: Record<ExportPreset, { label: string; bytes: number; quality: number }> = {
@@ -73,6 +74,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('transparent');
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [customColor, setCustomColor] = useState('#ffffff');
   const [cropRect, setCropRect] = useState<CropRect>({ x: 0, y: 0, w: 100, h: 100 });
@@ -207,7 +209,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setBusy(true);
     setError('');
     try {
-      if (backgroundMode === 'transparent') {
+      if (exportFormat === 'png') {
         const png = await addPngDpi(resultBlob, dpi);
         const url = URL.createObjectURL(png);
         const anchor = document.createElement('a');
@@ -228,7 +230,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         canvas.height = image.naturalHeight;
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Your browser could not create the download.');
-        ctx.fillStyle = backgroundColor;
+        ctx.fillStyle = backgroundMode === 'color' ? backgroundColor : '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0);
         URL.revokeObjectURL(source);
@@ -383,8 +385,12 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             <label className="mb-3 block text-xs text-blue-100">File name<input value={filename} onChange={(e) => setFilename(e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white outline-none focus:border-cyan-300" placeholder="Enter file name" /></label>
             <label className="mb-3 block text-xs text-blue-100">Image size / quality<select value={preset} onChange={(e) => setPreset(e.target.value as ExportPreset)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white"><option value="small">Small · 20 KB</option><option value="medium">Medium · 200 KB</option><option value="large">Large · 2 MB</option><option value="largest">Largest · 4 MB</option></select></label>
             <label className="mb-3 block text-xs text-blue-100">Print resolution<select value={dpi} onChange={(e) => setDpi(+e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white"><option value={72}>72 DPI · Screen</option><option value={150}>150 DPI · Standard</option><option value={300}>300 DPI · Print quality</option></select></label>
-            <button type="button" onClick={exportPhoto} disabled={!resultUrl || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><Download size={16} /> Download {backgroundMode === 'transparent' ? 'PNG' : 'JPG'}</button>
-            <p className="mt-2 text-[10px] leading-4 text-blue-200">{backgroundMode === 'transparent' ? 'Transparent PNG is lossless; its final size depends on image detail. Size presets apply to JPG with a solid background.' : 'JPG compression targets the selected size; complex photos may remain above the target to protect quality.'} 300 DPI metadata is embedded in the exported file.</p>
+            <div className="mb-2 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setExportFormat('png')} className={'rounded-lg border px-3 py-2.5 text-xs font-extrabold ' + (exportFormat === 'png' ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/15 bg-white/5 text-blue-100')}>PNG · Transparent</button>
+              <button type="button" onClick={() => setExportFormat('jpg')} className={'rounded-lg border px-3 py-2.5 text-xs font-extrabold ' + (exportFormat === 'jpg' ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/15 bg-white/5 text-blue-100')}>JPG · Photo</button>
+            </div>
+            <button type="button" onClick={exportPhoto} disabled={!resultUrl || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><Download size={16} /> Download {exportFormat.toUpperCase()}</button>
+            <p className="mt-2 text-[10px] leading-4 text-blue-200">{exportFormat === 'png' ? 'PNG keeps the removed background transparent and preserves full image quality. JPG always uses a solid background (selected color, or white).' : 'JPG uses the selected solid background color; when Transparent is selected above, white is used. Size presets apply to JPG.'} 300 DPI metadata is embedded in the exported file.</p>
           </section>
           {error && <div role="alert" className="rounded-lg border border-rose-400/30 bg-rose-400/10 p-3 text-xs text-rose-200">{error}</div>}
         </aside>}
