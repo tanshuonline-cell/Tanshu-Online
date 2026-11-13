@@ -11,7 +11,6 @@ interface Props {
 const ACTIVE_TOOL_IDS = [
   'photo-signature-resizer',
   'auto-document-cropper',
-  'document-scanner-image-rectifier',
   'photo-background-remover',
 ];
 
