@@ -9,6 +9,7 @@ import {
 
 type CropBox = { x: number; y: number; w: number; h: number };
 type PrintPagePreview = { id:string; dataUrl:string; widthMm?:number; heightMm?:number };
+type SheetItem = { id:string; customerId:string; copyNo:number; page:number; x:number; y:number; w:number; h:number; scale:number; selected:boolean; groupId?:string };
 type CustomerPhoto = {
   id: string; file: File; previewUrl: string; workingUrl: string; name: string;
   size: string; quantity: number; customWidth: number; customHeight: number;
@@ -176,7 +177,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const [adjustmentClosing, setAdjustmentClosing] = useState(false);
   const [paperSize,setPaperSize]=useState('A4'); const [customPaperWidth,setCustomPaperWidth]=useState(210); const [customPaperHeight,setCustomPaperHeight]=useState(297);
   const [sheetMargin,setSheetMargin]=useState(5); const [cutGap,setCutGap]=useState(2); const [photoScale,setPhotoScale]=useState(100); const [photoBorder,setPhotoBorder]=useState(false); const [borderWidth,setBorderWidth]=useState(.2); const [showPrintGuides,setShowPrintGuides]=useState(false);
-  const [printPages,setPrintPages]=useState<PrintPagePreview[]>([]); const [selectedPrintPages,setSelectedPrintPages]=useState<string[]>([]); const [signatureUploadTarget,setSignatureUploadTarget]=useState(''); const signatureInputRef=useRef<HTMLInputElement>(null); const [replaceTarget,setReplaceTarget]=useState(''); const replaceInputRef=useRef<HTMLInputElement>(null);
+  const [printPages,setPrintPages]=useState<PrintPagePreview[]>([]); const [selectedPrintPages,setSelectedPrintPages]=useState<string[]>([]); const [sheetItems,setSheetItems]=useState<SheetItem[]>([]); const [sheetPage,setSheetPage]=useState(0); const [deleteMode,setDeleteMode]=useState(false); const [sheetFullscreen,setSheetFullscreen]=useState(false); const [horizontalGap,setHorizontalGap]=useState(2); const [verticalGap,setVerticalGap]=useState(2); const [sheetHistory,setSheetHistory]=useState<SheetItem[][]>([]); const [sheetFuture,setSheetFuture]=useState<SheetItem[][]>([]); const sheetDragRef=useRef<{id:string;startX:number;startY:number;x:number;y:number;unit:number}|null>(null); const sheetResizeRef=useRef<{id:string;startX:number;startY:number;scale:number;unit:number}|null>(null); const sheetCanvasRef=useRef<HTMLDivElement>(null); const [signatureUploadTarget,setSignatureUploadTarget]=useState(''); const signatureInputRef=useRef<HTMLInputElement>(null); const [replaceTarget,setReplaceTarget]=useState(''); const replaceInputRef=useRef<HTMLInputElement>(null);
   const signatureDragRef=useRef<{id:string;startX:number;startY:number;originX:number;originY:number;originScale:number;mode:'move'|'resize'}|null>(null);
   const [notice, setNotice] = useState('Upload several customer photos to start a batch.');
   const fileInputRef = useRef<HTMLInputElement>(null); const keepCurrentStepOnAddRef=useRef(false);
