@@ -191,7 +191,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const activeCustomer = customers.find(c => c.id === selectedId) || customers[0];
   const totalCopies = useMemo(() => customers.reduce((sum,c) => sum + Math.max(0,c.quantity || 0),0),[customers]);
 
-  const updateCustomer = (id:string, updates:Partial<CustomerPhoto>) => { setCustomers(current => current.map(c => c.id===id ? {...c,...updates} : c)); setPrintPages([]); setSelectedPrintPages([]); };
+  const updateCustomer = (id:string, updates:Partial<CustomerPhoto>) => { setCustomers(current => {const next=current.map(c => c.id===id ? {...c,...updates} : c);if(activeStep==='print'&&(['quantity','size','customWidth','customHeight'] as (keyof CustomerPhoto)[]).some(key=>updates[key]!==undefined))window.setTimeout(()=>arrangeSheetItems(next),80);return next;}); setPrintPages([]); setSelectedPrintPages([]); };
   const addFiles = (files: FileList | File[]) => {
     const selectedFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
     if (!selectedFiles.length) { setNotice('Please choose JPG, PNG or WEBP image files.'); return; }
@@ -303,12 +303,12 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const paperWidth=paperSize==='custom'?customPaperWidth:paperMm.w;
   const paperHeight=paperSize==='custom'?customPaperHeight:paperMm.h;
   const rememberSheet=(next:SheetItem[])=>{setSheetHistory(history=>[...history,sheetItems].slice(-30));setSheetFuture([]);setSheetItems(next);};
-  const arrangeSheetItems=()=>{
-    if(!customers.length)return;
+  const arrangeSheetItems=(sourceCustomers:CustomerPhoto[]=customers)=>{
+    if(!sourceCustomers.length)return;
     const margin=sheetMargin,gapX=horizontalGap,gapY=verticalGap,usableW=paperWidth-margin*2,usableH=paperHeight-margin*2;
     type RowItem={item:SheetItem;w:number;h:number};const rows:{items:RowItem[];width:number;height:number}[]=[];let row:RowItem[]=[],rowW=0,rowH=0;
     const flush=()=>{if(row.length){rows.push({items:row,width:rowW,height:rowH});row=[];rowW=0;rowH=0;}};
-    customers.forEach(customer=>{const mm=mmFor(customer);let w=mm.w*photoScale/100,h=mm.h*photoScale/100;const fit=Math.min(1,usableW/w,usableH/h);w*=fit;h*=fit;for(let copy=1;copy<=Math.max(0,Math.min(500,customer.quantity));copy++){if(row.length&&rowW+gapX+w>usableW)flush();row.push({item:{id:customer.id+'-'+copy,customerId:customer.id,copyNo:copy,page:0,x:0,y:0,w,h,scale:fit*photoScale/100,selected:false},w,h});rowW+=w+(row.length>1?gapX:0);rowH=Math.max(rowH,h);}flush();});
+    sourceCustomers.forEach(customer=>{const mm=mmFor(customer);let w=mm.w*photoScale/100,h=mm.h*photoScale/100;const fit=Math.min(1,usableW/w,usableH/h);w*=fit;h*=fit;for(let copy=1;copy<=Math.max(0,Math.min(500,customer.quantity));copy++){if(row.length&&rowW+gapX+w>usableW)flush();row.push({item:{id:customer.id+'-'+copy,customerId:customer.id,copyNo:copy,page:0,x:0,y:0,w,h,scale:fit*photoScale/100,selected:false},w,h});rowW+=w+(row.length>1?gapX:0);rowH=Math.max(rowH,h);}flush();});
     flush();const pageRows:{rows:typeof rows;usedHeight:number}[]=[];let currentRows:typeof rows=[];let usedHeight=0;rows.forEach(r=>{const needed=r.height+(currentRows.length?gapY:0);if(currentRows.length&&usedHeight+needed>usableH){pageRows.push({rows:currentRows,usedHeight});currentRows=[];usedHeight=0;}currentRows.push(r);usedHeight+=r.height+(currentRows.length>1?gapY:0);});if(currentRows.length)pageRows.push({rows:currentRows,usedHeight});const arranged:SheetItem[]=[];pageRows.forEach((pageData,page)=>{let y=(paperHeight-pageData.usedHeight)/2;pageData.rows.forEach(r=>{let x=(paperWidth-r.width)/2;r.items.forEach(entry=>{arranged.push({...entry.item,page,x,y,w:entry.w,h:entry.h});x+=entry.w+gapX;});y+=r.height+gapY;});});
     rememberSheet(arranged);setSheetPage(0);setPrintPages([]);setSelectedPrintPages([]);setNotice('Smart Arrange complete: maximum photos per row, balanced left/right margins, equal spacing and automatic next-page flow.');
   };
