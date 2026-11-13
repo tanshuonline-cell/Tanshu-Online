@@ -87,6 +87,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const cropStageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
@@ -240,7 +241,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const moveCropCorner = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!dragCorner) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
+    const bounds = cropStageRef.current?.getBoundingClientRect();
+    if (!bounds) return;
     const px = Math.max(0, Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100));
     const py = Math.max(0, Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100));
     setCropRect((current) => {
@@ -256,8 +258,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     });
   };
 
-  const cropHandle = (corner: string, position: string) => (
-    <button key={corner} type="button" aria-label={'Drag ' + corner + ' crop corner'} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); setDragCorner(corner); event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)} onPointerCancel={() => setDragCorner(null)} className={'absolute z-20 h-5 w-5 -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-[3px] border-yellow-300 bg-red-500 shadow-[0_0_0_2px_rgba(0,0,0,.8)] ' + position} />
+  const cropHandle = (corner: string, left: number, top: number) => (
+    <button key={corner} type="button" aria-label={'Drag ' + corner + ' crop corner'} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); setDragCorner(corner); event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)} onPointerCancel={() => setDragCorner(null)} className="absolute z-20 h-5 w-5 -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-[3px] border-yellow-300 bg-red-500 shadow-[0_0_0_2px_rgba(0,0,0,.8)]" style={{ left: left + '%', top: top + '%' }} />
   );
 
   return (
@@ -301,7 +303,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-bold text-white"><ImageIcon size={15} className="text-cyan-300" />{resultUrl ? 'Background removed · Preview' : 'Photo preview'}</div><span className="text-[10px] text-blue-200">{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'Upload a photo to begin'}</span></div>
           <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto rounded-lg bg-[#06101f] p-3">
             {resultUrl ? <div className="flex max-h-full max-w-full items-center justify-center overflow-auto rounded-lg p-4" style={{ background: backgroundMode === 'transparent' ? checker : backgroundColor }}><img src={resultUrl} alt="Background removed preview" className="max-h-[65vh] max-w-full object-contain" /></div>
-              : sourceUrl ? <div className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)} onPointerCancel={() => setDragCorner(null)}><img src={sourceUrl} alt="Original photo preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ transform: 'rotate(' + rotation + 'deg)' }} /><div className="absolute border-[2px] border-dashed border-yellow-300" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%', boxShadow: '0 0 0 9999px rgba(0,0,0,.38)', pointerEvents: 'none' }} /><div className="absolute inset-0" onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)}>{cropHandle('tl', 'left-[' + cropRect.x + '%] top-[' + cropRect.y + '%]')}{cropHandle('tr', 'left-[' + (cropRect.x + cropRect.w) + '%] top-[' + cropRect.y + '%]')}{cropHandle('bl', 'left-[' + cropRect.x + '%] top-[' + (cropRect.y + cropRect.h) + '%]')}{cropHandle('br', 'left-[' + (cropRect.x + cropRect.w) + '%] top-[' + (cropRect.y + cropRect.h) + '%]')}</div></div>
+              : sourceUrl ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)' }} onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)} onPointerCancel={() => setDragCorner(null)}><img src={sourceUrl} alt="Original photo preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" /><div className="absolute border-[2px] border-dashed border-yellow-300" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%', boxShadow: '0 0 0 9999px rgba(0,0,0,.38)', pointerEvents: 'none' }} /><div className="absolute inset-0" onPointerMove={moveCropCorner} onPointerUp={() => setDragCorner(null)}>{cropHandle('tl', cropRect.x, cropRect.y)}{cropHandle('tr', cropRect.x + cropRect.w, cropRect.y)}{cropHandle('bl', cropRect.x, cropRect.y + cropRect.h)}{cropHandle('br', cropRect.x + cropRect.w, cropRect.y + cropRect.h)}</div></div>
               : <button type="button" onClick={() => inputRef.current?.click()} className="flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-400/5 px-8 py-12 text-center hover:bg-cyan-400/10"><Upload size={34} className="mb-3 text-cyan-300" /><b className="text-sm text-white">Upload your photo</b><span className="mt-2 text-xs text-blue-200">JPG · PNG · WEBP · Up to 40 MB</span></button>}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
