@@ -492,7 +492,6 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     const py = Math.max(0, Math.min(100, (event.clientY - drag.bounds.top) / drag.bounds.height * 100));
     const stage = cropStageRef.current;
     if (!stage) return;
-    const imageAspect = stage.offsetWidth / Math.max(1, stage.offsetHeight);
     const ratio = (targetWidthMm / targetHeightMm);
     if (drag.mode === 'draw') {
       setCropRect(makeAspectCropRect(drag.startX, drag.startY, px, py, drag.bounds, ratio));
@@ -575,28 +574,21 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             </div>
             <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>Free</b></div>
             <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">फोटो पर किसी खाली जगह से माउस दबाकर खींचें और नया crop box बनाएँ। बने हुए बॉक्स को बीच से पकड़कर खिसकाएँ और चारों कोनों से उसका आकार बदलें। चुने हुए photo size का ratio लॉक रहेगा।</div>
-            <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropApplied(false); setRotation(0); clearResult(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
+            <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropHasSelection(false); setIsCropping(false); setCropApplied(false); setRotation(0); cropDrawRef.current = null; clearResult(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
             <button type="button" onClick={() => {
-              const stageImage = cropStageRef.current?.querySelector('img') as HTMLImageElement | null;
-              if (stageImage?.naturalWidth && stageImage?.naturalHeight) {
-                const quarterTurn = Math.abs(rotation % 180) === 90;
-                const rotatedW = quarterTurn ? stageImage.naturalHeight : stageImage.naturalWidth;
-                const rotatedH = quarterTurn ? stageImage.naturalWidth : stageImage.naturalHeight;
-                const aspectInPercent = (targetWidthMm / targetHeightMm) * (rotatedH / rotatedW);
-                setCropRect((current) => {
-                  let width = current.w;
-                  let height = current.h;
-                  if (width / height > aspectInPercent) width = height * aspectInPercent;
-                  else height = width / aspectInPercent;
-                  return { x: current.x + (current.w - width) / 2, y: current.y + (current.h - height) / 2, w: width, h: height };
-                });
+              if (isCropping) {
+                finishCropDrag();
+                setIsCropping(false);
+                setCropApplied(true);
+                setCropHasSelection(cropRect.w >= 1 && cropRect.h >= 1);
+              } else {
+                if (!cropHasSelection) setCropRect({ x: 0, y: 0, w: 100, h: 100 });
+                setCropApplied(false);
+                setIsCropping(true);
               }
-              setCropApplied(true);
-              finishCropDrag();
               clearResult();
-            }} disabled={!file || cropApplied} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><CheckCircle2 size={14} /> {cropApplied ? 'Crop Applied' : 'Done · Apply Crop'}</button>
-            {cropApplied && <button type="button" onClick={() => { setCropApplied(false); clearResult(); }} className="mt-2 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold">Edit Crop Again</button>}
-            <p className="mt-3 text-[10px] leading-4 text-blue-200">Done करने पर crop selection lock हो जाएगा और handles छिप जाएँगे। Remove Background पर वही crop लागू होगा।</p>
+            }} disabled={!file} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40">{isCropping ? <CheckCircle2 size={14} /> : <Crop size={14} />} {isCropping ? 'Done · Apply Crop' : cropApplied ? 'Edit Crop' : 'Crop'}</button>
+            <p className="mt-3 text-[10px] leading-4 text-blue-200">{isCropping ? 'फोटो पर ड्रैग करके क्रॉप बनाएँ। बने हुए बॉक्स के अंदर से खिसकाएँ और चारों कोनों से आकार बदलें। Done दबाकर लागू करें।' : 'Crop दबाएँ, फोटो पर ड्रैग करके फ्रेम बनाएँ, फिर अंदर से उसे खिसकाएँ और कोनों से resize करें। Done दबाने पर यही passport-size crop डाउनलोड में लागू होगा।'}</p>
           </section>
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-cyan-200">Background color</div>
@@ -613,7 +605,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-bold text-white"><ImageIcon size={15} className="text-cyan-300" />{resultUrl ? 'Background removed · Preview' : 'Photo preview'}</div><span className="text-[10px] text-blue-200">{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'Upload a photo to begin'}</span></div>
           <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto rounded-lg bg-[#06101f] p-3">
             {resultUrl ? <div className="flex max-h-full max-w-full items-center justify-center overflow-auto rounded-lg p-4" style={{ background: backgroundMode === 'transparent' ? checker : backgroundColor }}><img src={resultUrl} alt="Background removed preview" className="max-h-[65vh] max-w-full object-contain" /></div>
-              : sourceUrl ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)', cursor: cropApplied ? 'default' : 'crosshair' }} onPointerDown={startCropCreate} onPointerMove={moveCropCorner} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag}><img src={sourceUrl} alt="Original photo preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ clipPath: cropApplied ? 'inset(' + cropRect.y + '% ' + (100 - cropRect.x - cropRect.w) + '% ' + (100 - cropRect.y - cropRect.h) + '% ' + cropRect.x + '%)' : undefined }} />{!cropApplied && <div className="absolute border-[2px] border-dashed border-yellow-300" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%', boxShadow: '0 0 0 9999px rgba(0,0,0,.38)', pointerEvents: 'none' }} />}{!cropApplied && <><div data-crop-interaction="true" className="absolute z-10 cursor-move touch-none rounded-sm" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%', background: 'rgba(250,204,21,.06)', pointerEvents: 'auto' }} onPointerDown={startCropMove} onPointerMove={moveCropCorner} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag} /><div className="pointer-events-none absolute inset-0 z-20">{cropHandle('tl', cropRect.x, cropRect.y)}{cropHandle('tr', cropRect.x + cropRect.w, cropRect.y)}{cropHandle('bl', cropRect.x, cropRect.y + cropRect.h)}{cropHandle('br', cropRect.x + cropRect.w, cropRect.y + cropRect.h)}</div></>}</div>
+              : sourceUrl ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)', cursor: isCropping ? 'crosshair' : cropApplied ? 'default' : 'grab' }} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag}><img src={sourceUrl} alt="Original photo preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ clipPath: cropApplied ? 'inset(' + cropRect.y + '% ' + (100 - cropRect.x - cropRect.w) + '% ' + (100 - cropRect.y - cropRect.h) + '% ' + cropRect.x + '%)' : undefined, pointerEvents: 'none' }} />{isCropping && cropRect.w > 0 && cropRect.h > 0 && <div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,.48)]" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%' }}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /></div>}</div>
               : <button type="button" onClick={() => inputRef.current?.click()} className="flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-400/5 px-8 py-12 text-center hover:bg-cyan-400/10"><Upload size={34} className="mb-3 text-cyan-300" /><b className="text-sm text-white">Upload your photo</b><span className="mt-2 text-xs text-blue-200">JPG · PNG · WEBP · Up to 40 MB</span></button>}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
