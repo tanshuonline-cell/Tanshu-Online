@@ -131,7 +131,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           <div className="flex min-h-[70px] shrink-0 items-center justify-between gap-3 border-b border-blue-950/80 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-2.5 text-white sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-10 w-10 shrink-0 rounded-full border-2 border-cyan-300/80 object-cover" />
-              <div className="min-w-0"><div className="text-sm font-black tracking-wide sm:text-base">TANSHU <span className="text-cyan-300">ONLINE</span></div><div className="text-[11px] font-semibold text-blue-100 sm:text-xs">Auto Document Cropper Studio · Browser-side processing</div></div>
+              <div className="min-w-0"><div className="text-sm font-black tracking-wide sm:text-base">TANSHU <span className="text-cyan-300">ONLINE</span></div><div className="text-[11px] font-semibold text-blue-100 sm:text-xs">Auto Document Cropper Studio · Browser-side processing · 4-Corner Crop · Document Framing · HD Image Export</div></div>
             </div>
             <button onClick={onClose} className="shrink-0 rounded-lg p-2 text-blue-100 hover:bg-white/10 hover:text-white" title="Close Tool (Esc)"><X className="h-5 w-5" /></button>
           </div>
