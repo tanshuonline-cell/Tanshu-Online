@@ -51,15 +51,29 @@ export const AutoDocumentCropperTool: React.FC = () => {
     window.setTimeout(()=>{
       try{
         const c=corners;
-        const left=Math.max(0,Math.min(c[0].x,c[1].x,c[2].x,c[3].x));
-        const top=Math.max(0,Math.min(c[0].y,c[1].y,c[2].y,c[3].y));
-        const right=Math.min(imageSize.width,Math.max(c[0].x,c[1].x,c[2].x,c[3].x));
-        const bottom=Math.min(imageSize.height,Math.max(c[0].y,c[1].y,c[2].y,c[3].y));
+        const width=Math.max(1,Math.round((Math.hypot(c[1].x-c[0].x,c[1].y-c[0].y)+Math.hypot(c[2].x-c[3].x,c[2].y-c[3].y))/2));
+        const height=Math.max(1,Math.round((Math.hypot(c[3].x-c[0].x,c[3].y-c[0].y)+Math.hypot(c[2].x-c[1].x,c[2].y-c[1].y))/2));
+        const scale=Math.min(1,3200/Math.max(width,height));
         const canvas=document.createElement('canvas');
-        canvas.width=Math.max(1,Math.round(right-left));canvas.height=Math.max(1,Math.round(bottom-top));
+        canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
         const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas unavailable');
         ctx.filter='brightness('+(100+brightness)+'%) contrast('+(100+contrast)+'%)';
-        ctx.drawImage(imageRef.current!,left,top,right-left,bottom-top,0,0,canvas.width,canvas.height);
+        const dst: Point[]=[{x:0,y:0},{x:canvas.width,y:0},{x:canvas.width,y:canvas.height},{x:0,y:canvas.height}];
+        const drawTriangle=(ids:number[])=>{
+          const p0=c[ids[0]],p1=c[ids[1]],p2=c[ids[2]],q0=dst[ids[0]],q1=dst[ids[1]],q2=dst[ids[2]];
+          const den=p0.x*(p1.y-p2.y)+p1.x*(p2.y-p0.y)+p2.x*(p0.y-p1.y);
+          if(Math.abs(den)<1e-6)throw new Error('कृपया चारों crop points सही जगह रखें।');
+          const affine=(v0:number,v1:number,v2:number)=>{
+            const aa=(v0*(p1.y-p2.y)+v1*(p2.y-p0.y)+v2*(p0.y-p1.y))/den;
+            const bb=(v0*(p2.x-p1.x)+v1*(p0.x-p2.x)+v2*(p1.x-p0.x))/den;
+            const cc=(v0*(p1.x*p2.y-p2.x*p1.y)+v1*(p2.x*p0.y-p0.x*p2.y)+v2*(p0.x*p1.y-p1.x*p0.y))/den;
+            return [aa,bb,cc];
+          };
+          const ax=affine(q0.x,q1.x,q2.x),ay=affine(q0.y,q1.y,q2.y);
+          ctx.save();ctx.beginPath();ctx.moveTo(q0.x,q0.y);ctx.lineTo(q1.x,q1.y);ctx.lineTo(q2.x,q2.y);ctx.closePath();ctx.clip();
+          ctx.setTransform(ax[0],ay[0],ax[1],ay[1],ax[2],ay[2]);ctx.drawImage(imageRef.current!,0,0);ctx.restore();
+        };
+        drawTriangle([0,1,2]);drawTriangle([0,2,3]);
         canvas.toBlob(blob=>{
           if(!blob){setError('फोटो तैयार नहीं हो पाया।');setBusy(false);return;}
           setResultUrl(old=>{if(old)URL.revokeObjectURL(old);return URL.createObjectURL(blob);});setBusy(false);
