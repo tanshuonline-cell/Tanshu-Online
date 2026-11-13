@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { ToolItem, ToolCategory } from '../types';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
+
+const DISABLED_TOOL_IDS = new Set(['document-scanner-image-rectifier']);
 import { TOOL_HINDI_TRANSLATIONS } from '../data/toolTranslations';
 import { getToolPreviewImage } from '../data/toolPreviewImages';
 import { useLanguage } from '../context/LanguageContext';
@@ -154,12 +156,13 @@ export const AllToolsDirectory: React.FC<Props> = ({
 
   // Six different tool cards for the initial homepage All Tools section
   const initialSixTools = useMemo(() => {
-    return CONFIRMED_TOOLS.filter((t) => !featuredToolIds.has(t.id)).slice(0, 6);
+    return CONFIRMED_TOOLS.filter((t) => !DISABLED_TOOL_IDS.has(t.id) && !featuredToolIds.has(t.id)).slice(0, 6);
   }, [featuredToolIds]);
 
   // Filtered tools across all 90 tools (active inside the modal)
   const filteredTools = useMemo(() => {
     return CONFIRMED_TOOLS.filter((tool) => {
+      if (DISABLED_TOOL_IDS.has(tool.id)) return false;
       const effectiveCategory =
         selectedCategory === 'scanning' ? 'converter' :
         selectedCategory === 'legal-docs' ? 'business' :
