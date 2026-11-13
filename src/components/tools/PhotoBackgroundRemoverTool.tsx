@@ -118,6 +118,20 @@ async function removeBackgroundWithPersonMask(photo: Blob, onStatus: (message: s
   }
 }
 
+const PHOTO_SIZE_PRESETS = [
+  { id: 'passport-35x45', label: 'India Passport / Visa · 35 × 45 mm', widthMm: 35, heightMm: 45 },
+  { id: 'pan-25x35', label: 'PAN / Small form photo · 25 × 35 mm', widthMm: 25, heightMm: 35 },
+  { id: '35x35', label: 'Square photo · 35 × 35 mm', widthMm: 35, heightMm: 35 },
+  { id: '40x50', label: 'Form photo · 40 × 50 mm', widthMm: 40, heightMm: 50 },
+  { id: '45x35', label: 'Landscape form photo · 45 × 35 mm', widthMm: 45, heightMm: 35 },
+  { id: '2x2', label: '2 × 2 inch · 51 × 51 mm', widthMm: 50.8, heightMm: 50.8 },
+  { id: '25x25', label: 'Square small · 25 × 25 mm', widthMm: 25, heightMm: 25 },
+];
+
+type PhotoUnit = 'mm' | 'cm' | 'in';
+const mmToUnit = (value: number, unit: PhotoUnit) => unit === 'cm' ? value / 10 : unit === 'in' ? value / 25.4 : value;
+const unitToMm = (value: number, unit: PhotoUnit) => unit === 'cm' ? value * 10 : unit === 'in' ? value * 25.4 : value;
+
 const SWATCHES = ['#ffffff', '#f1f5f9', '#dbeafe', '#bfdbfe', '#dcfce7', '#fef3c7', '#fce7f3', '#e5e7eb', '#111827', '#000000'];
 
 function safeFilename(value: string) {
@@ -181,6 +195,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [rotation, setRotation] = useState(0);
   const [dragCorner, setDragCorner] = useState<string | null>(null);
   const [cropApplied, setCropApplied] = useState(false);
+  const [photoSizePreset, setPhotoSizePreset] = useState('passport-35x45');
+  const [photoUnit, setPhotoUnit] = useState<PhotoUnit>('mm');
+  const [customWidth, setCustomWidth] = useState('35');
+  const [customHeight, setCustomHeight] = useState('45');
   const cropDragStart = useRef<{ x: number; y: number; rect: CropRect } | null>(null);
   const [filename, setFilename] = useState('photo-background-removed');
   const [preset, setPreset] = useState<ExportPreset>('large');
@@ -194,6 +212,9 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const cropStageRef = useRef<HTMLDivElement>(null);
+  const selectedPhotoSize = PHOTO_SIZE_PRESETS.find((item) => item.id === photoSizePreset);
+  const targetWidthMm = photoSizePreset === 'custom' ? unitToMm(Number(customWidth), photoUnit) : (selectedPhotoSize?.widthMm ?? 35);
+  const targetHeightMm = photoSizePreset === 'custom' ? unitToMm(Number(customHeight), photoUnit) : (selectedPhotoSize?.heightMm ?? 45);
 
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
@@ -242,36 +263,38 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       ctx.translate(rotatedWidth / 2, rotatedHeight / 2);
       ctx.rotate(radians);
       ctx.drawImage(image, -width / 2, -height / 2);
-      const sx = Math.round(rotatedWidth * cropRect.x / 100);
-      const sy = Math.round(rotatedHeight * cropRect.y / 100);
-      const sw = Math.max(1, Math.round(rotatedWidth * cropRect.w / 100));
-      const sh = Math.max(1, Math.round(rotatedHeight * cropRect.h / 100));
+      if (!Number.isFinite(targetWidthMm) || !Number.isFinite(targetHeightMm) || targetWidthMm <= 0 || targetHeightMm <= 0 || targetWidthMm > 300 || targetHeightMm > 300) {
+        throw new Error('Enter a valid photo width and height (up to 300 mm each).');
+      }
+      const selectedX = rotatedWidth * cropRect.x / 100;
+      const selectedY = rotatedHeight * cropRect.y / 100;
+      const selectedW = Math.max(1, rotatedWidth * cropRect.w / 100);
+      const selectedH = Math.max(1, rotatedHeight * cropRect.h / 100);
+      // Keep the user's crop position, then trim only the excess dimension from
+      // its centre to produce the exact selected photo aspect ratio.
+      const targetAspect = targetWidthMm / targetHeightMm;
+      let cropW = selectedW;
+      let cropH = selectedH;
+      if (cropW / cropH > targetAspect) cropW = cropH * targetAspect;
+      else cropH = cropW / targetAspect;
+      const cropX = selectedX + (selectedW - cropW) / 2;
+      const cropY = selectedY + (selectedH - cropH) / 2;
+
+      // Render at the selected physical print size and DPI, capped at 1600 px
+      // for efficient on-device segmentation while preserving the exact ratio.
+      const requestedWidthPx = Math.max(1, Math.round((targetWidthMm / 25.4) * dpi));
+      const requestedHeightPx = Math.max(1, Math.round((targetHeightMm / 25.4) * dpi));
+      const maxProcessingEdge = 1600;
+      const scale = Math.min(1, maxProcessingEdge / Math.max(requestedWidthPx, requestedHeightPx));
       const output = document.createElement('canvas');
-      output.width = sw;
-      output.height = sh;
+      output.width = Math.max(1, Math.round(requestedWidthPx * scale));
+      output.height = Math.max(1, Math.round(requestedHeightPx * scale));
       const out = output.getContext('2d');
       if (!out) throw new Error('Your browser could not prepare this crop.');
-      out.drawImage(rotated, sx, sy, sw, sh, 0, 0, output.width, output.height);
-
-      // Keep very large phone/camera images from exhausting memory on ordinary
-      // laptops and mobiles. 1600px is ample for passport-photo printing, while
-      // the AI still receives the exact user-selected crop and keeps quality mode.
-      const maxProcessingEdge = 1600;
-      const longestEdge = Math.max(output.width, output.height);
-      let processingCanvas = output;
-      if (longestEdge > maxProcessingEdge) {
-        const scale = maxProcessingEdge / longestEdge;
-        const resized = document.createElement('canvas');
-        resized.width = Math.max(1, Math.round(output.width * scale));
-        resized.height = Math.max(1, Math.round(output.height * scale));
-        const resizedContext = resized.getContext('2d');
-        if (!resizedContext) throw new Error('Your browser could not optimize this photo.');
-        resizedContext.imageSmoothingEnabled = true;
-        resizedContext.imageSmoothingQuality = 'high';
-        resizedContext.drawImage(output, 0, 0, resized.width, resized.height);
-        processingCanvas = resized;
-      }
-      return await new Promise<Blob>((resolve, reject) => processingCanvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
+      out.imageSmoothingEnabled = true;
+      out.imageSmoothingQuality = 'high';
+      out.drawImage(rotated, cropX, cropY, cropW, cropH, 0, 0, output.width, output.height);
+      return await new Promise<Blob>((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
     } finally {
       URL.revokeObjectURL(originalUrl);
     }
@@ -465,6 +488,45 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         {!expanded && <aside className="order-2 space-y-3 lg:order-1 lg:overflow-y-auto">
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-200"><Crop size={15} /> Crop &amp; straighten</div>
+            <div className="mb-3 rounded-lg border border-cyan-300/20 bg-cyan-400/5 p-3">
+              <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-cyan-100">Passport / Form photo size</div>
+              <label className="mb-2 block text-[10px] text-blue-100">Choose common size
+                <select value={photoSizePreset} onChange={(e) => {
+                  const next = e.target.value;
+                  setPhotoSizePreset(next);
+                  const presetSize = PHOTO_SIZE_PRESETS.find((item) => item.id === next);
+                  if (presetSize) {
+                    setCustomWidth(String(Number(mmToUnit(presetSize.widthMm, photoUnit).toFixed(2))));
+                    setCustomHeight(String(Number(mmToUnit(presetSize.heightMm, photoUnit).toFixed(2))));
+                  }
+                  clearResult();
+                }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white">
+                  {PHOTO_SIZE_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                  <option value="custom">Custom width &amp; height</option>
+                </select>
+              </label>
+              <div className="mb-2 grid grid-cols-[1fr_1fr_76px] gap-2">
+                <label className="text-[10px] text-blue-100">Width
+                  <input type="number" min="1" max="300" step="0.1" value={customWidth} onChange={(e) => { setCustomWidth(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
+                </label>
+                <label className="text-[10px] text-blue-100">Height
+                  <input type="number" min="1" max="300" step="0.1" value={customHeight} onChange={(e) => { setCustomHeight(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
+                </label>
+                <label className="text-[10px] text-blue-100">Unit
+                  <select value={photoUnit} onChange={(e) => {
+                    const nextUnit = e.target.value as PhotoUnit;
+                    setCustomWidth(String(Number(mmToUnit(targetWidthMm, nextUnit).toFixed(2))));
+                    setCustomHeight(String(Number(mmToUnit(targetHeightMm, nextUnit).toFixed(2))));
+                    setPhotoUnit(nextUnit);
+                    setPhotoSizePreset('custom');
+                    clearResult();
+                  }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-1 py-2 text-[11px] text-white">
+                    <option value="mm">mm</option><option value="cm">cm</option><option value="in">inch</option>
+                  </select>
+                </label>
+              </div>
+              <p className="text-[9px] leading-4 text-blue-200">Final crop and downloaded frame use this exact width-to-height ratio. Custom sizes are supported in mm, cm and inches. Portal-specific requirements may differ.</p>
+            </div>
             <div className="mb-2 flex items-center justify-between text-xs text-blue-100"><span>Rotate photo</span><b>{rotation}°</b></div>
             <div className="mb-4 grid grid-cols-4 gap-1.5">
               {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); clearResult(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200">{index < 2 ? <RotateCcw size={16} /> : <RotateCw size={16} />}</span>{item.label}</button>)}
