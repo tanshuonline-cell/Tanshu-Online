@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, ShieldCheck, Info, ArrowLeft } from 'lucide-react';
+import { X, ShieldCheck, Info, ArrowLeft, ScanLine } from 'lucide-react';
+import { TANSHU_PROFILE_PHOTO } from '../Header';
 import { ToolItem } from '../../types';
 import { PassportPhotoTool } from './PassportPhotoTool';
 import { AdvancedPassportPhotoStudio } from './AdvancedPassportPhotoStudio';
@@ -101,23 +102,49 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   return (
     <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isImmersiveTool ? 'p-0' : 'p-3 sm:p-6'}`}>
       <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isImmersiveTool ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
-        <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isImmersiveTool ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
-                <span>{tool.categoryLabel}</span>
-                <span className="text-slate-300">·</span>
-                <span className="text-emerald-700 font-medium flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> {isImmersiveTool ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
-                </span>
+        {isDocumentScanner ? (
+          <div className="flex min-h-[76px] shrink-0 items-center justify-between gap-3 border-b border-blue-950/80 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-2.5 text-white shadow-md sm:px-7">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-cyan-300/80 bg-slate-800 shadow-md">
+                <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE profile" className="h-full w-full object-cover object-center" />
               </div>
-              {(!isImmersiveTool || isDocumentScanner) && <h3 className="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">{isDocumentScanner ? 'TANSHU ONLINE · DOCUMENT SCANNER & IMAGE RECTIFIER' : tool.name}</h3>}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className="text-sm font-black tracking-wide text-white sm:text-base">TANSHU</span>
+                  <span className="text-sm font-black tracking-wide text-cyan-300 sm:text-base">ONLINE</span>
+                  <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-200">
+                    <ShieldCheck className="h-3 w-3" /> Browser-side Scan Processing
+                  </span>
+                </div>
+                <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-blue-100 sm:text-xs">
+                  <ScanLine className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                  <span className="truncate">Turn Document, Photo &amp; PDF into Clean Scans</span>
+                </div>
+              </div>
             </div>
+            <button onClick={onClose} className="shrink-0 rounded-lg p-2 text-blue-100 transition-colors hover:bg-white/10 hover:text-white" title="Close Tool (Esc)">
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        ) : (
+          <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isImmersiveTool ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
+                  <span>{tool.categoryLabel}</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-emerald-700 font-medium flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> {isImmersiveTool ? 'Browser-side processing' : '100% Client-Side In-Browser Processing'}
+                  </span>
+                </div>
+                {!isImmersiveTool && <h3 className="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">{tool.name}</h3>}
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Close Tool (Esc)">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         <div data-copy-allowed="true" className={`${(isAdvancedStudio && !showWelcome) || isDocumentScanner ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isPhotoSignatureResizer || isDocumentScanner) ? 'p-0 bg-slate-100' : 'p-6 bg-white'}`}>
           {isImmersiveTool ? (
