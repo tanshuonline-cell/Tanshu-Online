@@ -234,7 +234,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   };
   const onCropDown = (event:React.PointerEvent) => {
     if(activeStep!=='crop'||!activeCustomer) return;
-    const p=pointOnImage(event); if(!p) return; event.preventDefault(); (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); cropDragSnapshotRef.current=snapshotCropState();
+    const p=pointOnImage(event); if(!p) return; event.preventDefault(); (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); cropBoxRef.current=cropBox; cropDragSnapshotRef.current=snapshotCropState();
     const handle=0.045;
     let resizeMode:typeof cropDragMode|null=null;
     if(cropBox){
