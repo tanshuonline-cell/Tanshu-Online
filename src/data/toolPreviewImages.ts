@@ -3,6 +3,21 @@
 
 import passportImg from '../assets/images/tool_passport_photos_1793211936275.jpg';
 import autoCropperImg from '../assets/images/tool_auto_cropper_1793211936700.jpg';
+
+const backgroundRemoverImg = svgToDataUri(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="480" height="360">
+    <defs><linearGradient id="bg0" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#123b5a"/></linearGradient><pattern id="checks" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#fff"/><rect width="10" height="10" fill="#dbe4ee"/><rect x="10" y="10" width="10" height="10" fill="#dbe4ee"/></pattern></defs>
+    <rect width="480" height="360" rx="24" fill="#e8eef5"/><rect x="18" y="18" width="444" height="324" rx="20" fill="url(#bg0)"/>
+    <rect x="38" y="38" width="404" height="48" rx="10" fill="#102746" stroke="#38bdf8" stroke-opacity=".45"/><text x="58" y="68" font-family="Arial" font-size="19" font-weight="bold" fill="#fff">TANSHU <tspan fill="#67e8f9">ONLINE</tspan></text>
+    <text x="58" y="112" font-family="Arial" font-size="17" font-weight="bold" fill="#a5f3fc">PHOTO BACKGROUND REMOVER</text>
+    <rect x="54" y="132" width="172" height="166" rx="12" fill="#1e3654"/><rect x="244" y="132" width="182" height="166" rx="12" fill="url(#checks)"/>
+    <circle cx="140" cy="190" r="36" fill="#d9a783"/><path d="M95 277c4-45 20-66 45-66s41 21 45 66" fill="#2563eb"/><path d="M117 161c8-22 45-25 56 0" fill="#1f2937"/>
+    <circle cx="330" cy="190" r="36" fill="#d9a783"/><path d="M285 277c4-45 20-66 45-66s41 21 45 66" fill="#2563eb"/><path d="M307 161c8-22 45-25 56 0" fill="#1f2937"/>
+    <path d="M228 212h22m-8-8 8 8-8 8" fill="none" stroke="#67e8f9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="54" y="310" width="372" height="18" rx="9" fill="#164e63"/><rect x="54" y="310" width="310" height="18" rx="9" fill="#22d3ee"/><text x="240" y="323" font-family="Arial" font-size="10" font-weight="bold" fill="#071426" text-anchor="middle">AI BACKGROUND REMOVAL · 300 DPI</text>
+  </svg>
+`);
+
 import scannerImg from '../assets/images/tool_doc_scanner_rectifier_1793211938346.jpg';
 import pvcCropperImg from '../assets/images/tool_pdf_to_pvc_cropper_1793211938406.jpg';
 import idLayoutImg from '../assets/images/tool_id_front_back_layout_1793211939391.jpg';
@@ -1211,6 +1226,8 @@ export function getToolPreviewImage(toolId: string, toolName?: string, categoryL
       return passportImg;
     case 'auto-document-cropper':
       return autoCropperImg;
+    case 'photo-background-remover':
+      return backgroundRemoverImg;
     case 'document-scanner-image-rectifier':
       return scannerImg;
     case 'pdf-to-pvc-card-auto-cropper':
