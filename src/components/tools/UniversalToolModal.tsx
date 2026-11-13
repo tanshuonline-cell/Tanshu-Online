@@ -127,6 +127,14 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
               <X className="h-5 w-5" />
             </button>
           </div>
+        ) : isAutoDocumentCropper ? (
+          <div className="flex min-h-[70px] shrink-0 items-center justify-between gap-3 border-b border-blue-950/80 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-2.5 text-white sm:px-7">
+            <div className="flex min-w-0 items-center gap-3">
+              <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-10 w-10 shrink-0 rounded-full border-2 border-cyan-300/80 object-cover" />
+              <div className="min-w-0"><div className="text-sm font-black tracking-wide sm:text-base">TANSHU <span className="text-cyan-300">ONLINE</span></div><div className="text-[11px] font-semibold text-blue-100 sm:text-xs">Auto Document Cropper Studio · Browser-side processing</div></div>
+            </div>
+            <button onClick={onClose} className="shrink-0 rounded-lg p-2 text-blue-100 hover:bg-white/10 hover:text-white" title="Close Tool (Esc)"><X className="h-5 w-5" /></button>
+          </div>
         ) : (
           <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isImmersiveTool ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
             <div className="flex items-center gap-3">
@@ -147,7 +155,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </div>
         )}
 
-        <div data-copy-allowed="true" className={`${isDocumentScanner ? 'min-h-0 overflow-y-auto overscroll-contain' : (isAdvancedStudio && !showWelcome) ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isPhotoSignatureResizer || isDocumentScanner) ? 'p-0 bg-slate-100' : 'p-6 bg-white'}`}>
+        <div data-copy-allowed="true" className={`${isDocumentScanner ? 'min-h-0 overflow-y-auto overscroll-contain' : (isAdvancedStudio && !showWelcome) ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isPhotoSignatureResizer || isDocumentScanner || isAutoDocumentCropper) ? 'min-h-0 p-0 bg-[#081629]' : 'p-6 bg-white'}`}>
           {isImmersiveTool ? (
             renderToolComponent()
           ) : (
@@ -164,7 +172,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           )}
         </div>
 
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        {!isAutoDocumentCropper && <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
           {((isAdvancedStudio && showAdvancedStudio) || (isPhotoSignatureResizer && showPhotoSignatureStudio)) && (
             <button
               type="button"
@@ -184,7 +192,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
             <span>{isPhotoSignatureResizer ? 'Photo and signature files are processed locally in your browser.' : isAdvancedStudio ? 'Photos are processed in your browser in this studio.' : 'Zero files or citizen documents are uploaded to cloud servers.'}</span>
           </div>
           <button onClick={onClose} className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Close Workspace</button>
-        </div>
+        </div>}
       </div>
     </div>
   );
