@@ -93,6 +93,52 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
 .top .tagline{transition:color .16s ease,font-weight .16s ease}
 .top .tagline:hover{color:#fff;font-weight:700}
 @media(prefers-reduced-motion:reduce){button:not(:disabled):hover::after,button:not(:disabled):focus-visible::after,.home-back:hover::after,.home-back:focus-visible::after{animation:none;opacity:.22;transform:none}}
+/* INSTANT PVC CARD MAKER · low-glare desktop workspace palette.
+   Color-only overrides: preserve all existing dimensions, scrolling, zoom and interactions. */
+:root{color:#e7edf5;background:#1d2939}
+body{color:#e7edf5;background:#1d2939}
+.top{background:linear-gradient(180deg,#172438 0%,#111c2d 100%);border-bottom:1px solid #3b4b63}
+.toolbar{background:#29384c;border-bottom-color:#40516a}
+.panel{background:#2b394d;border-color:#46566e;color:#e7edf5;box-shadow:0 5px 18px #07132335}
+.panel h3{color:#f2f5fa}
+.panel .hint,.panel small,.preview-note,.field label{color:#b7c4d6}
+.center-panel{background:#202d40;border-color:#40516a}
+.preview-wrap{background:#1b2738}
+.source-box,.status,.catalog-toggle{background:#34445a;border-color:#50627b;color:#e8eef6}
+.catalog-toggle:hover{background:#3b4e66}
+.profile{background:#2b394d;color:#e7edf5}
+.profile:hover,.thumb.active{background:#3a4d66}
+.thumb{border-bottom-color:#43536a;color:#e7edf5}
+.thumb img{background:#1b2738}
+.source-wrap{background:#1b2738}
+.field input,.field select,.field>select,.field textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,textarea{background:#1e2b3d;color:#edf3fb;border-color:#50617a;color-scheme:dark}
+.field input:focus,.field select:focus,.field textarea:focus,
+input:focus,select:focus,textarea:focus{outline-color:#83a9f5;border-color:#83a9f5}
+.field input::placeholder,textarea::placeholder{color:#93a3b8}
+.btn{background:linear-gradient(145deg,#3a4b62 0%,#2c3b50 100%);border-color:#566982;color:#edf3fb;box-shadow:0 1px 2px #07132355}
+.btn:hover:not(:disabled){background:linear-gradient(145deg,#4a5d75,#35475e);border-color:#c9a85f;color:#ff7777}
+.btn.primary{background:linear-gradient(135deg,#426fce 0%,#3156a3 58%,#253f79 100%);border-color:#668cdb;color:#fff}
+.btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#5685e4,#3d65b8 58%,#2d4c8c);border-color:#e0c47c;color:#fff}
+.lang-switch{background:#1c2a3e;border-color:#566982}
+.lang-switch button{color:#cbd7e7}
+.lang-switch button.active{background:#e6edf8;color:#1b2a3d}
+.home-back{background:linear-gradient(180deg,#3a506f,#263951);border-color:#667d9e}
+.home-back:hover{background:linear-gradient(180deg,#4a668c,#304866)}
+.panel h3:hover,.panel label:hover,.panel .section-title:hover,.panel .tool-title:hover{color:#ff7373}
+.panel small:hover,.panel .hint:hover,.panel .help-text:hover,.panel .muted:hover{color:#f3f6fb}
+.crop-workspace-dialog,.magic-dialog,.perspective-dialog,.printer-setup-dialog{background:#27364a;color:#e7edf5;border-color:#465a73}
+.crop-workspace-head,.magic-head,.perspective-head,.printer-setup-head{background:#142238;color:#f3f6fb}
+.crop-workspace-source,.crop-workspace-live,.magic-preview,.magic-controls,.printer-setup-main,.printer-setup-help,.perspective-help{background:#2b3b51;border-color:#465a73;color:#e7edf5}
+.crop-workspace-actions,.magic-actions,.magic-foot,.perspective-actions,.printer-setup-actions{background:#223147;border-top-color:#465a73;color:#e7edf5}
+.crop-workspace .hint,.magic-dialog .hint,.perspective-dialog .hint,.printer-setup-dialog .hint{color:#b9c7d9}
+.magic-preview canvas,.crop-workspace-live canvas{background:#1b2738;border-color:#50617a}
+.cardthumb{background:#253449;border-color:#4b5d76;color:#e7edf5}
+.cardthumb img{background:#1b2738}
+.printer-profile-note{background:#34465c;color:#e7edf5;border-color:#50617a}
+@media(prefers-reduced-motion:reduce){.btn,.home-back{transition:none}}
+
 </style></head><body>
 <header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · PVC CARD STUDIO</span></strong></div><span class="tagline" data-en="Original page · Manual crop · A4 print" data-hi="मूल पेज · मैनुअल क्रॉप · A4 प्रिंट">मूल पेज · मैनुअल क्रॉप · A4 प्रिंट</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Studio demo">← डेमो पर वापस</a><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
 <nav class="toolbar" aria-label="Main tools">
