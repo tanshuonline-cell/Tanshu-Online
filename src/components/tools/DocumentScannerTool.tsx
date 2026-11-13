@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
-import { Upload, Download, RotateCw, FileText, Image as ImageIcon, ScanLine, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, ShieldCheck, WandSparkles } from 'lucide-react';
+import { Upload, Download, RotateCw, FileText, Image as ImageIcon, ScanLine, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Maximize2, Minimize2 } from 'lucide-react';
 
 type ScanMode = 'ultra' | 'magic-color' | 'bw' | 'grayscale' | 'original';
 type PdfJsPage = { getViewport: (args: { scale: number }) => { width: number; height: number }; render: (args: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } };
@@ -252,10 +252,27 @@ export const DocumentScannerTool: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const originalRef = useRef<HTMLCanvasElement>(null);
   const outputRef = useRef<HTMLCanvasElement>(null);
   const scannedRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement === workspaceRef.current) await document.exitFullscreen();
+      else if (workspaceRef.current?.requestFullscreen) await workspaceRef.current.requestFullscreen();
+    } catch {
+      setError('Fullscreen is not available in this browser. You can still use the normal workspace.');
+    }
+  };
 
   const renderPdfPage = useCallback(async (doc: PdfJsDocument, page: number) => {
     const pdfPage = await doc.getPage(page);
@@ -461,19 +478,8 @@ export const DocumentScannerTool: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-slate-100 p-3 sm:p-5 lg:p-6">
-      <div className="relative z-10 shrink-0 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-lg sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-cyan-300"><ScanLine className="h-4 w-4" /> TANSHU ONLINE · DOCUMENT WORKSPACE</div>
-            <h2 className="text-xl font-extrabold sm:text-2xl">Document Scanner & Image Rectifier</h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-300">Turn document photos and PDF pages into clean, straight, scan-style pages with Ultra Enhance.</p>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200"><ShieldCheck className="h-4 w-4" /> Browser-side processing</div>
-        </div>
-      </div>
-
-      <div className="grid min-h-0 flex-1 items-start gap-5 overflow-hidden xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
+    <div ref={workspaceRef} className={`flex h-full min-h-0 flex-col gap-3 overflow-hidden bg-slate-100 p-3 sm:p-4 ${isFullscreen ? 'h-screen w-screen bg-slate-100' : ''}`}>
+      <div className="grid min-h-0 flex-1 items-start gap-4 overflow-hidden xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
         <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-28 max-h-[calc(100dvh-12rem)] overflow-y-auto overscroll-contain">
           <div>
             <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-extrabold text-slate-900">1. Upload Document</h3><span className="text-[10px] font-semibold text-slate-500">IMAGE + PDF</span></div>
@@ -515,9 +521,14 @@ export const DocumentScannerTool: React.FC = () => {
         </aside>
 
         <section className="min-w-0 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3">
-            <div><h3 className="text-sm font-extrabold text-slate-900">Document Preview Studio</h3><p className="text-xs text-slate-500">Original, live adjustments and completed scan stay visible side by side.</p></div>
-            {sourceCanvas && <span className={`rounded-full px-3 py-1 text-[10px] font-bold ${scannedCanvas ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{scannedCanvas ? 'SCAN READY' : 'NOT SCANNED YET'}</span>}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
+            <div><h3 className="text-sm font-extrabold text-slate-900">Document Preview Studio</h3><p className="text-xs text-slate-500">Original · Live Preview · Scanned Result</p></div>
+            <div className="flex items-center gap-2">
+              {sourceCanvas && <span className={`rounded-full px-3 py-1 text-[10px] font-bold ${scannedCanvas ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{scannedCanvas ? 'SCAN READY' : 'NOT SCANNED YET'}</span>}
+              <button type="button" onClick={() => void toggleFullscreen()} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100" title={isFullscreen ? 'Exit fullscreen' : 'Expand workspace'}>
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}{isFullscreen ? 'Exit Fullscreen' : 'Expand Screen'}
+              </button>
+            </div>
           </div>
           <div className="grid min-w-0 gap-3 lg:grid-cols-3">
             <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
@@ -553,7 +564,6 @@ export const DocumentScannerTool: React.FC = () => {
         </section>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting while preserving document colors, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. High Resolution uses up to 2× careful resampling within a safe memory limit; it does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering and automatic page-edge detection load PDF.js and OpenCV.js from public CDNs.</div>
     </div>
   );
 };
