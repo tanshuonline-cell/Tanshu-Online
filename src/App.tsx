@@ -15,6 +15,8 @@ import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { LegalInformationPage, LEGAL_PAGE_PATHS } from './components/LegalInformationPage';
 import { UniversalToolModal } from './components/tools/UniversalToolModal';
+import { WhatsAppSelfiePassportTool } from './components/tools/WhatsAppSelfiePassportTool';
+import { InstantMultiCustomerPhotoMaker } from './components/tools/InstantMultiCustomerPhotoMaker';
 import { VideoLearningCenter } from './components/video/VideoLearningCenter';
 import { CompleteVideoCatalog } from './components/video/CompleteVideoCatalog';
 import { VideoDetailPage } from './components/video/VideoDetailPage';
@@ -401,6 +403,16 @@ export default function App() {
   // Dedicated Instant Passport Photo Studio preview route.
   if (window.location.pathname === '/advanced-photo-studio-preview') {
     return <AdvancedPhotoStudioShell />;
+  }
+
+  // Dedicated WhatsApp Selfie to Passport Photo Studio.
+  if (window.location.pathname === '/whatsapp-selfie-passport-photo') {
+    return <WhatsAppSelfiePassportTool />;
+  }
+
+  // Dedicated Instant Multi Customer Photo Maker.
+  if (window.location.pathname === '/instant-multi-customer-photo-maker') {
+    return <InstantMultiCustomerPhotoMaker />;
   }
 
   // ROUTE 1: ADMIN PANEL
