@@ -525,8 +525,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     setSheetSlots(current => {
       if (!current.length) return current;
 
-      // Keep the selected photo dimensions unchanged and reserve a printer/cutting-safe
-      // edge margin. A larger user-selected margin is always respected.
+      // Keep every selected photo at its exact print size and protect all four
+      // sheet edges with at least 4 mm (or the larger margin already selected).
       const pageW = sheetDimensions.widthMm;
       const pageH = sheetDimensions.heightMm;
       const safeMargin = Math.max(4, sheetMargin);
@@ -534,34 +534,46 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const verticalGap = Math.max(0, sheetVerticalGap);
       const usableW = pageW - safeMargin * 2;
       const usableH = pageH - safeMargin * 2;
-      const maxPhotoWidth = Math.max(...current.map(slot => slot.width));
-      if (usableW <= 0 || usableH <= 0 || maxPhotoWidth > usableW) return current;
+      if (usableW <= 0 || usableH <= 0) return current;
 
-      // Fill each row to the maximum number of unchanged photo sizes that fit.
-      const columns = Math.max(1, Math.floor((usableW + horizontalGap) / (maxPhotoWidth + horizontalGap)));
+      // Pack photos in their existing order, adding another row only when the
+      // next unchanged photo size cannot fit in the current row.
       const rows: SheetSlot[][] = [];
-      for (let index = 0; index < current.length; index += columns) {
-        rows.push(current.slice(index, index + columns));
+      let row: SheetSlot[] = [];
+      let rowWidth = 0;
+      for (const slot of current) {
+        if (slot.width > usableW || slot.height > usableH) return current;
+        const nextWidth = rowWidth + (row.length ? horizontalGap : 0) + slot.width;
+        if (row.length && nextWidth > usableW + 0.01) {
+          rows.push(row);
+          row = [];
+          rowWidth = 0;
+        }
+        if (row.length) rowWidth += horizontalGap;
+        row.push(slot);
+        rowWidth += slot.width;
       }
+      if (row.length) rows.push(row);
 
-      const rowHeights = rows.map(row => Math.max(...row.map(slot => slot.height)));
+      const rowHeights = rows.map(items => Math.max(...items.map(slot => slot.height)));
       const totalGridHeight = rowHeights.reduce((sum, height) => sum + height, 0)
         + Math.max(0, rows.length - 1) * verticalGap;
-      if (totalGridHeight > usableH) return current;
+      // Never scale, crop or push a photo beyond the printable sheet.
+      if (totalGridHeight > usableH + 0.01) return current;
 
-      // A single row stays near the top so a small order does not waste the sheet.
-      // Multi-row layouts are vertically balanced; every row is horizontally centered.
+      // A single row starts at the top safe margin for easy cutting.
+      // Multiple rows are vertically balanced; each individual row is centered.
       const firstY = rows.length === 1
         ? safeMargin
         : Math.max(safeMargin, (pageH - totalGridHeight) / 2);
 
       let y = firstY;
       const positioned: SheetSlot[] = [];
-      rows.forEach((row, rowIndex) => {
-        const rowWidth = row.reduce((sum, slot) => sum + slot.width, 0)
-          + Math.max(0, row.length - 1) * horizontalGap;
-        let x = (pageW - rowWidth) / 2;
-        row.forEach(slot => {
+      rows.forEach((items, rowIndex) => {
+        const width = items.reduce((sum, slot) => sum + slot.width, 0)
+          + Math.max(0, items.length - 1) * horizontalGap;
+        let x = (pageW - width) / 2;
+        items.forEach(slot => {
           positioned.push({ ...slot, x, y });
           x += slot.width + horizontalGap;
         });
