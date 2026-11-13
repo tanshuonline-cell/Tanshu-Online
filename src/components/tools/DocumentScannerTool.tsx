@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
-import { Upload, Download, RotateCw, FileText, Image as ImageIcon, Sparkles, ScanLine, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, ShieldCheck, WandSparkles } from 'lucide-react';
+import { Upload, Download, RotateCw, FileText, Image as ImageIcon, ScanLine, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, ShieldCheck, WandSparkles } from 'lucide-react';
 
 type ScanMode = 'ultra' | 'magic-color' | 'bw' | 'grayscale' | 'original';
-type PdfPage = { pageNumber: number; width: number; height: number };
 type PdfJsPage = { getViewport: (args: { scale: number }) => { width: number; height: number }; render: (args: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } };
 type PdfJsDocument = { numPages: number; getPage: (page: number) => Promise<PdfJsPage> };
 type PdfJsLibrary = { getDocument: (args: { data: Uint8Array }) => { promise: Promise<PdfJsDocument> }; GlobalWorkerOptions: { workerSrc: string } };
@@ -229,7 +228,6 @@ export const DocumentScannerTool: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLCanvasElement>(null);
-  const pdfBytesRef = useRef<Uint8Array | null>(null);
 
   const renderPdfPage = useCallback(async (doc: PdfJsDocument, page: number) => {
     const pdfPage = await doc.getPage(page);
@@ -248,7 +246,7 @@ export const DocumentScannerTool: React.FC = () => {
 
   const acceptFile = async (file: File) => {
     setError(''); setStatus(''); setBusy(true);
-    setPdfDocument(null); pdfBytesRef.current = null; setPreviewUrl(null);
+    setPdfDocument(null); setPreviewUrl(null);
     try {
       if (file.size > 35 * 1024 * 1024) throw new Error('File is larger than 35 MB. Please choose a smaller file.');
       setSourceName(file.name);
@@ -256,7 +254,6 @@ export const DocumentScannerTool: React.FC = () => {
         const pdfjs = await loadPdfJs();
         const bytes = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data: bytes }).promise;
-        pdfBytesRef.current = bytes;
         setPdfDocument(doc); setPageCount(doc.numPages); setSourceKind('pdf');
         await renderPdfPage(doc, 1);
         setStatus(`PDF loaded: ${doc.numPages} page(s). Choose a page or export the full PDF.`);
