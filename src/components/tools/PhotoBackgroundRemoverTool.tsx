@@ -523,10 +523,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
               </label>
               <div className="mb-2 grid grid-cols-[1fr_1fr_76px] gap-2">
                 <label className="text-[10px] text-blue-100">Width
-                  <input type="number" min="1" max="300" step="0.1" value={customWidth} onChange={(e) => { setCustomWidth(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
+                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customWidth} onChange={(e) => { setCustomWidth(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
                 </label>
                 <label className="text-[10px] text-blue-100">Height
-                  <input type="number" min="1" max="300" step="0.1" value={customHeight} onChange={(e) => { setCustomHeight(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
+                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customHeight} onChange={(e) => { setCustomHeight(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
                 </label>
                 <label className="text-[10px] text-blue-100">Unit
                   <select value={photoUnit} onChange={(e) => {
