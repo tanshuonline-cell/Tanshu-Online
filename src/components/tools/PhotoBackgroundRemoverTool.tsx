@@ -509,6 +509,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const startCropMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (cropApplied) return;
+    event.stopPropagation();
     const point = getCropPointer(event);
     if (!point) return;
     cropDragStart.current = { ...point, rect: { ...cropRect } };
