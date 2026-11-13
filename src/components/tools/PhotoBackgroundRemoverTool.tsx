@@ -119,13 +119,33 @@ async function removeBackgroundWithPersonMask(photo: Blob, onStatus: (message: s
 }
 
 const PHOTO_SIZE_PRESETS = [
-  { id: 'passport-35x45', label: 'India Passport / Visa · 35 × 45 mm', widthMm: 35, heightMm: 45 },
-  { id: 'pan-35x25', label: 'PAN application photo · 35 × 25 mm', widthMm: 35, heightMm: 25 },
-  { id: '35x35', label: 'Square photo · 35 × 35 mm', widthMm: 35, heightMm: 35 },
-  { id: '40x50', label: 'General portrait · 40 × 50 mm', widthMm: 40, heightMm: 50 },
-  { id: '45x35', label: 'General landscape · 45 × 35 mm', widthMm: 45, heightMm: 35 },
-  { id: '2x2', label: 'General square · 2 × 2 inch', widthMm: 50.8, heightMm: 50.8 },
-  { id: '25x25', label: 'General square · 25 × 25 mm', widthMm: 25, heightMm: 25 },
+  // Official physical sizes where the issuing authority publishes one.
+  { id: 'passport-35x45', label: 'Indian Passport / Visa · 35 × 45 mm (where requested)', widthMm: 35, heightMm: 45 },
+  { id: 'passport-minor-45x35', label: 'Indian Passport · Child under 4 · 45 × 35 mm', widthMm: 45, heightMm: 35 },
+  { id: 'pan-35x25', label: 'PAN Card application · 35 × 25 mm', widthMm: 35, heightMm: 25 },
+  { id: 'voter-24x18', label: 'Voter ID / EPIC · 24 × 18 mm (older ECI spec; verify current portal)', widthMm: 24, heightMm: 18 },
+
+  // Common portrait crops for portals that say "passport-size" but do not
+  // publish a universal physical measurement. Always follow the live form.
+  { id: 'exam-35x45', label: 'Exam Form Photo · NEET / JEE / CUET / Entrance (35 × 45 mm crop; portal rules vary)', widthMm: 35, heightMm: 45 },
+  { id: 'upsc-35x45', label: 'UPSC / Government Exam · Passport-style crop 35 × 45 mm (check pixel/KB rules)', widthMm: 35, heightMm: 45 },
+  { id: 'ssc-35x45', label: 'SSC / Recruitment Form · Portrait crop 35 × 45 mm (live-photo rules may apply)', widthMm: 35, heightMm: 45 },
+  { id: 'state-exam-35x45', label: 'State Govt Exam / Police / Teacher Recruitment · 35 × 45 mm crop', widthMm: 35, heightMm: 45 },
+  { id: 'admission-35x45', label: 'School / College / University Admission · 35 × 45 mm crop', widthMm: 35, heightMm: 45 },
+  { id: 'scholarship-35x45', label: 'Scholarship / Student Credit Card Form · 35 × 45 mm crop', widthMm: 35, heightMm: 45 },
+  { id: 'job-35x45', label: 'Job / Employment Application · 35 × 45 mm crop', widthMm: 35, heightMm: 45 },
+  { id: 'ration-35x45', label: 'Ration Card Application · 35 × 45 mm crop (state portal rules vary)', widthMm: 35, heightMm: 45 },
+  { id: 'wb-ration-35x45', label: 'West Bengal Ration Card · 35 × 45 mm crop (check portal upload rules)', widthMm: 35, heightMm: 45 },
+  { id: 'aadhaar-35x45', label: 'Aadhaar-related form · 35 × 45 mm crop only (UIDAI enrolment photo is captured at centre)', widthMm: 35, heightMm: 45 },
+  { id: 'pension-35x45', label: 'Pension / Social Welfare Form · 35 × 45 mm crop', widthMm: 35, heightMm: 45 },
+
+  // General studio sizes retained for other forms and print workflows.
+  { id: '35x35', label: 'General ID / Application · Square · 35 × 35 mm', widthMm: 35, heightMm: 35 },
+  { id: '40x50', label: 'General Portrait · 40 × 50 mm', widthMm: 40, heightMm: 50 },
+  { id: '45x35', label: 'General Landscape · 45 × 35 mm', widthMm: 45, heightMm: 35 },
+  { id: '2x2', label: '2 × 2 inch · 50.8 × 50.8 mm (where requested)', widthMm: 50.8, heightMm: 50.8 },
+  { id: '25x25', label: 'General Square · 25 × 25 mm', widthMm: 25, heightMm: 25 },
+  { id: 'postcard-4x6', label: 'Exam / Document Postcard Print · 4 × 6 inch (print size; not an upload standard)', widthMm: 101.6, heightMm: 152.4 },
 ];
 
 const SWATCHES = ['#ffffff', '#f1f5f9', '#dbeafe', '#bfdbfe', '#dcfce7', '#fef3c7', '#fce7f3', '#e5e7eb', '#111827', '#000000'];
