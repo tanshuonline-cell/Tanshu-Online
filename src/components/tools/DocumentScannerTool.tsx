@@ -131,8 +131,6 @@ function enhanceCanvas(source: HTMLCanvasElement, mode: ScanMode, contrast: numb
 
   const image = ctx.getImageData(0, 0, output.width, output.height);
   const pixels = image.data;
-  const totalPixels = output.width * output.height;
-
   // Estimate broad page illumination at low resolution. Dividing by this smooth
   // field reduces desk shadows and gentle fold shading without inventing letters.
   const light = document.createElement('canvas');
@@ -158,8 +156,11 @@ function enhanceCanvas(source: HTMLCanvasElement, mode: ScanMode, contrast: numb
         const lx = Math.min(63, Math.floor((x / output.width) * 64));
         const li = (ly * 64 + lx) * 4;
         const illumination = Math.max(72, 0.299 * lightData[li] + 0.587 * lightData[li + 1] + 0.114 * lightData[li + 2]);
-        gray = clamp((gray / illumination) * 238);
-        r = g = b = gray;
+        const gain = 238 / illumination;
+        r = clamp(r * gain);
+        g = clamp(g * gain);
+        b = clamp(b * gain);
+        gray = 0.299 * r + 0.587 * g + 0.114 * b;
       }
       if (mode === 'bw') {
         const value = clamp((gray - 128) * (contrastFactor / 2.1) + 128 + brightnessOffset) >= threshold ? 255 : 0;
@@ -204,7 +205,41 @@ function enhanceCanvas(source: HTMLCanvasElement, mode: ScanMode, contrast: numb
       ctx.putImageData(base, 0, 0);
     }
   }
-  void totalPixels;
+  return output;
+}
+
+// High-resolution output uses high-quality browser resampling with a restrained
+// final edge pass. It increases export pixel dimensions, but cannot recover detail
+// that was never captured in the original photograph.
+function upscaleCanvas(source: HTMLCanvasElement, requestedScale: number): HTMLCanvasElement {
+  if (requestedScale <= 1) return source;
+  const maxPixels = 24_000_000;
+  const sourcePixels = source.width * source.height;
+  const safeScale = Math.min(requestedScale, Math.sqrt(maxPixels / Math.max(1, sourcePixels)));
+  if (safeScale <= 1.01) return source;
+  const output = document.createElement('canvas');
+  output.width = Math.max(1, Math.round(source.width * safeScale));
+  output.height = Math.max(1, Math.round(source.height * safeScale));
+  const ctx = output.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return source;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, output.width, output.height);
+  const softened = document.createElement('canvas');
+  softened.width = output.width;
+  softened.height = output.height;
+  const softCtx = softened.getContext('2d');
+  if (softCtx) {
+    softCtx.filter = 'blur(0.7px)';
+    softCtx.drawImage(output, 0, 0);
+    softCtx.filter = 'none';
+    const base = ctx.getImageData(0, 0, output.width, output.height);
+    const blur = softCtx.getImageData(0, 0, output.width, output.height);
+    for (let i = 0; i < base.data.length; i += 4) {
+      for (let c = 0; c < 3; c++) base.data[i + c] = clamp(base.data[i + c] + (base.data[i + c] - blur.data[i + c]) * 0.22);
+    }
+    ctx.putImageData(base, 0, 0);
+  }
   return output;
 }
 
@@ -219,6 +254,7 @@ export const DocumentScannerTool: React.FC = () => {
   const [contrast, setContrast] = useState(118);
   const [brightness, setBrightness] = useState(104);
   const [sharpness, setSharpness] = useState(45);
+  const [resolutionScale, setResolutionScale] = useState(1);
   const [threshold, setThreshold] = useState(154);
   const [rotation, setRotation] = useState(0);
   const [autoRectify, setAutoRectify] = useState(true);
@@ -293,13 +329,14 @@ export const DocumentScannerTool: React.FC = () => {
   useEffect(() => {
     if (!sourceCanvas || !outputRef.current) return;
     const rotated = rotateCanvas(sourceCanvas, rotation);
-    const processed = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+    const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+    const processed = upscaleCanvas(enhanced, resolutionScale);
     const target = outputRef.current;
     target.width = processed.width; target.height = processed.height;
     const ctx = target.getContext('2d');
     if (ctx) ctx.drawImage(processed, 0, 0);
     setPreviewUrl(processed.toDataURL('image/jpeg', 0.92));
-  }, [sourceCanvas, mode, contrast, brightness, sharpness, threshold, rotation]);
+  }, [sourceCanvas, mode, contrast, brightness, sharpness, resolutionScale, threshold, rotation]);
 
   const changePdfPage = async (next: number) => {
     if (!pdfDocument || next < 1 || next > pageCount) return;
@@ -343,7 +380,7 @@ export const DocumentScannerTool: React.FC = () => {
         await pdfPage.render({ canvasContext: rawCtx, viewport }).promise;
         const pageCanvas = autoRectify ? await autoRectifyPage(raw).catch(() => raw) : raw;
         const rotated = rotateCanvas(pageCanvas, rotation);
-        const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+        const enhanced = upscaleCanvas(enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold), resolutionScale);
         const landscape = enhanced.width > enhanced.height;
         const w = landscape ? 297 : 210, h = landscape ? 210 : 297;
         if (!output) output = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
@@ -402,6 +439,14 @@ export const DocumentScannerTool: React.FC = () => {
 
           <div className="space-y-4 border-t border-slate-200 pt-4">
             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> 3. Fine Tune</div>
+            <div className="space-y-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+              <div className="text-xs font-bold text-slate-800">Output Resolution</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setResolutionScale(1)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 1 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>Standard 1×</button>
+                <button type="button" onClick={() => setResolutionScale(2)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 2 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>High Resolution 2×</button>
+              </div>
+              <p className="text-[10px] leading-4 text-slate-500">2× uses high-quality resampling and a light detail pass. It improves output size, but cannot recreate details missing from a blurry original.</p>
+            </div>
             {[
               { label: 'Text / Contrast', value: contrast, min: 80, max: 165, set: setContrast },
               { label: 'Page Brightness', value: brightness, min: 80, max: 130, set: setBrightness },
@@ -410,7 +455,7 @@ export const DocumentScannerTool: React.FC = () => {
             ].map((item) => <label key={item.label} className="block"><span className="mb-1 flex justify-between text-xs text-slate-600"><span>{item.label}</span><strong className="font-mono text-slate-800">{item.value}</strong></span><input type="range" min={item.min} max={item.max} value={item.value} onChange={(e) => item.set(Number(e.target.value))} className="w-full accent-blue-700" /></label>)}
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges & straighten page</label>
             <div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-600">Page rotation</span><button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} disabled={!sourceCanvas} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"><RotateCw className="h-3.5 w-3.5" /> Rotate 90°</button></div>
-            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setThreshold(154); setRotation(0); setAutoRectify(true); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
+            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(true); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
           </div>
         </aside>
 
@@ -428,7 +473,7 @@ export const DocumentScannerTool: React.FC = () => {
         </section>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. It does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering and automatic page-edge detection load PDF.js and OpenCV.js from public CDNs.</div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting while preserving document colors, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. High Resolution 2× uses careful resampling; it does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering and automatic page-edge detection load PDF.js and OpenCV.js from public CDNs.</div>
     </div>
   );
 };
