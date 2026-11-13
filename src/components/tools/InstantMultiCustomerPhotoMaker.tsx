@@ -57,7 +57,7 @@ const fromMm = (value:number,unit:'mm'|'cm'|'in'='mm') => unit==='cm'?value/10:u
 const unitStep = (unit:'mm'|'cm'|'in'='mm') => unit==='mm'?'1':unit==='cm'?'0.1':'0.01';
 const mmFor = (customer: CustomerPhoto) => {
   const preset = PHOTO_SIZES.find(s => s.value === customer.size);
-  return customer.size === 'custom' ? { w: toMm(customer.customWidth,customer.customUnit||'mm'), h: toMm(customer.customHeight,customer.customUnit||'mm') } : { w: preset?.w || 35, h: preset?.h || 45 };
+  return customer.size === 'custom' ? { w: customer.customWidth, h: customer.customHeight } : { w: preset?.w || 35, h: preset?.h || 45 };
 };
 const ADJUSTMENT_GROUPS = [
   { title: 'Quality & Detail', hint: 'Overall image detail and definition', controls: [
