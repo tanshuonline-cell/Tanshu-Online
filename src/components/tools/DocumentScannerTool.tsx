@@ -248,7 +248,7 @@ export const DocumentScannerTool: React.FC = () => {
   const [resolutionScale, setResolutionScale] = useState(1);
   const [threshold, setThreshold] = useState(154);
   const [rotation, setRotation] = useState(0);
-  const [autoRectify, setAutoRectify] = useState(false);
+  const [autoRectify, setAutoRectify] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -287,7 +287,7 @@ export const DocumentScannerTool: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Could not prepare this PDF page.');
     await pdfPage.render({ canvasContext: ctx, viewport }).promise;
-    const pageCanvas = autoRectify ? await autoRectifyPage(canvas).catch(() => canvas) : canvas;
+    const pageCanvas = canvas;
     setSourceCanvas(pageCanvas);
     setPageNumber(page);
     setRotation(0);
@@ -314,7 +314,7 @@ export const DocumentScannerTool: React.FC = () => {
         if (!ctx) throw new Error('Could not read this image.');
         ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         bitmap.close();
-        const rectified = autoRectify ? await autoRectifyPage(canvas).catch(() => canvas) : canvas;
+        const rectified = canvas;
         setSourceCanvas(rectified); setSourceKind('image'); setPageCount(1); setPageNumber(1); setRotation(0);
         setStatus('Image loaded. Select an enhancement mode and review the new page.');
       } else {
@@ -579,7 +579,7 @@ export const DocumentScannerTool: React.FC = () => {
             ].map((item) => <label key={item.label} className="block"><span className="mb-1 flex justify-between text-xs text-slate-600"><span>{item.label}</span><strong className="font-mono text-slate-800">{item.value}</strong></span><input type="range" min={item.min} max={item.max} value={item.value} onChange={(e) => item.set(Number(e.target.value))} className="w-full accent-blue-700" /></label>)}
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges on upload (Scan also detects edges)</label>
             <div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-600">Page rotation</span><button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} disabled={!sourceCanvas} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"><RotateCw className="h-3.5 w-3.5" /> Rotate 90°</button></div>
-            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(false); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
+            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(true); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
           </div>
         </aside>
 
