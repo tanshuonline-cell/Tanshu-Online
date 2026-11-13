@@ -236,6 +236,7 @@ function upscaleCanvas(source: HTMLCanvasElement, requestedScale: number): HTMLC
 export const DocumentScannerTool: React.FC = () => {
   const [sourceCanvas, setSourceCanvas] = useState<HTMLCanvasElement | null>(null);
   const [scannedCanvas, setScannedCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<'original' | 'live' | 'scanned'>('live');
   const [sourceKind, setSourceKind] = useState<'image' | 'pdf' | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PdfJsDocument | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -356,24 +357,31 @@ export const DocumentScannerTool: React.FC = () => {
     if (ctx) ctx.drawImage(scannedCanvas, 0, 0);
   }, [scannedCanvas]);
 
-  const runScan = () => {
+  const runScan = async () => {
     if (!sourceCanvas || busy) return;
-    setBusy(true); setError(''); setStatus('Scanning and preparing your document…');
-    window.requestAnimationFrame(() => {
-      try {
-        const result = buildExportCanvas();
-        if (!result) throw new Error('Please upload a document first.');
-        setScannedCanvas(result);
-        setStatus('Scan complete. Review the scanned result, then download it.');
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not scan this document.');
-      } finally { setBusy(false); }
-    });
+    setBusy(true); setError(''); setStatus('Detecting document edges and straightening the page…');
+    try {
+      let page: HTMLCanvasElement;
+      try { page = await autoRectifyPage(sourceCanvas); }
+      catch { throw new Error('Automatic page detection could not start. Check your internet connection and try Scan again.'); }
+      const detected = page !== sourceCanvas;
+      setStatus(detected ? 'Page corners detected. Cleaning and preparing the scanned result…' : 'No clear four page edges found. Preparing an enhanced result without forcing an inaccurate crop…');
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const rotated = rotateCanvas(page, rotation);
+      const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+      const result = upscaleCanvas(enhanced, resolutionScale);
+      setScannedCanvas(result);
+      setSelectedPreview('scanned');
+      setStatus(detected ? 'Scan complete. Page perspective was corrected and the scan is ready.' : 'Scan complete with enhancement. For straightening, capture the full page with all four edges visible.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not scan this document.');
+    } finally { setBusy(false); }
   };
 
   useEffect(() => {
     // A changed source or setting means the previous scan is no longer the current result.
     setScannedCanvas(null);
+    setSelectedPreview('live');
   }, [sourceCanvas, mode, contrast, brightness, sharpness, threshold, rotation, resolutionScale]);
 
   const changePdfPage = async (next: number) => {
@@ -453,8 +461,8 @@ export const DocumentScannerTool: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-full flex-col gap-4 bg-slate-100 p-3 sm:p-5 lg:p-6">
-      <div className="sticky top-0 z-30 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-lg sm:p-6">
+    <div className="flex min-h-0 flex-col gap-4 overflow-hidden bg-slate-100 p-3 sm:p-5 lg:p-6">
+      <div className="relative z-10 shrink-0 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-lg sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-cyan-300"><ScanLine className="h-4 w-4" /> TANSHU ONLINE · DOCUMENT WORKSPACE</div>
@@ -465,8 +473,8 @@ export const DocumentScannerTool: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid min-h-0 items-start gap-5 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-28 xl:max-h-[calc(100vh-8.5rem)] xl:overflow-y-auto xl:overscroll-contain">
+      <div className="grid min-h-0 flex-1 items-start gap-5 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
+        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-28 xl:max-h-[calc(100dvh-12rem)] xl:overflow-y-auto xl:overscroll-contain">
           <div>
             <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-extrabold text-slate-900">1. Upload Document</h3><span className="text-[10px] font-semibold text-slate-500">IMAGE + PDF</span></div>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/*,application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void acceptFile(f); e.currentTarget.value = ''; }} />
@@ -500,7 +508,7 @@ export const DocumentScannerTool: React.FC = () => {
               { label: 'Edge Sharpness', value: sharpness, min: 0, max: 100, set: setSharpness },
               ...(mode === 'bw' ? [{ label: 'B&W Threshold', value: threshold, min: 80, max: 210, set: setThreshold }] : []),
             ].map((item) => <label key={item.label} className="block"><span className="mb-1 flex justify-between text-xs text-slate-600"><span>{item.label}</span><strong className="font-mono text-slate-800">{item.value}</strong></span><input type="range" min={item.min} max={item.max} value={item.value} onChange={(e) => item.set(Number(e.target.value))} className="w-full accent-blue-700" /></label>)}
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges & straighten next upload</label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges on upload (Scan also detects edges)</label>
             <div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-600">Page rotation</span><button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} disabled={!sourceCanvas} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"><RotateCw className="h-3.5 w-3.5" /> Rotate 90°</button></div>
             <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(false); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
           </div>
