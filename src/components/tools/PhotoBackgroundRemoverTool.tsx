@@ -247,7 +247,6 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     cropDrawRef.current = null;
     photoTransformRef.current = null;
     setCroppedBlob(null);
-    setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
   };
 
   const chooseFile = (next?: File) => {
@@ -375,7 +374,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setError('');
     try {
       if (exportFormat === 'png') {
-        let pngSource = resultBlob;
+        let pngSource = exportBlob;
         if (backgroundMode === 'color') {
           const image = new Image();
           const source = URL.createObjectURL(exportBlob);
