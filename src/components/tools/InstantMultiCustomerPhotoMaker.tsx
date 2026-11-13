@@ -202,7 +202,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
         brightness:100, contrast:100, saturation:100, sharpness:0, clarity:0, beauty:0, faceTone:0, selectiveColor:0, lipTint:0, hairTone:0, colorGrade:0, qualityEnhance:0, hdEnhance:0, plump:0, blemish:0, smooth:0, skinTone:0, brightEyes:0, darkCircle:0, whitening:0, clear:0, brilliance:0, hslHue:0, hslSaturation:0, hslLightness:0, graphic:0, highlights:0, shadows:0, whites:0, blacks:0, temperature:0, hue:0, bgRemoved:false, signatureUrl:'', includeSignature:false, signatureScale:100, signatureX:0.5, signatureY:0.82, signatureMerged:false };
     });
     setCustomers(current => [...current,...additions]); setPrintPages([]);setSelectedPrintPages([]); if (!selectedId && additions[0]) setSelectedId(additions[0].id);
-    if(keepCurrentStepOnAddRef.current){keepCurrentStepOnAddRef.current=false;}else{setActiveStep('upload');} setNotice(selectedFiles.length+' photo'+(selectedFiles.length===1?'':'s')+' added to this batch.');
+    if(keepCurrentStepOnAddRef.current){keepCurrentStepOnAddRef.current=false;if(activeStep==='print')window.setTimeout(()=>arrangeSheetItems([...customers,...additions]),100);}else{setActiveStep('upload');} setNotice(selectedFiles.length+' photo'+(selectedFiles.length===1?'':'s')+' added to this batch.');
     if (fileInputRef.current) fileInputRef.current.value='';
   };
   const removeCustomer = (id:string) => {
