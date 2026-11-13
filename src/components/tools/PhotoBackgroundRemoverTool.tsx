@@ -148,7 +148,26 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       const out = output.getContext('2d');
       if (!out) throw new Error('Your browser could not prepare this crop.');
       out.drawImage(rotated, sx, sy, sw, sh, 0, 0, output.width, output.height);
-      return await new Promise<Blob>((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
+
+      // Keep very large phone/camera images from exhausting memory on ordinary
+      // laptops and mobiles. 1600px is ample for passport-photo printing, while
+      // the AI still receives the exact user-selected crop and keeps quality mode.
+      const maxProcessingEdge = 1600;
+      const longestEdge = Math.max(output.width, output.height);
+      let processingCanvas = output;
+      if (longestEdge > maxProcessingEdge) {
+        const scale = maxProcessingEdge / longestEdge;
+        const resized = document.createElement('canvas');
+        resized.width = Math.max(1, Math.round(output.width * scale));
+        resized.height = Math.max(1, Math.round(output.height * scale));
+        const resizedContext = resized.getContext('2d');
+        if (!resizedContext) throw new Error('Your browser could not optimize this photo.');
+        resizedContext.imageSmoothingEnabled = true;
+        resizedContext.imageSmoothingQuality = 'high';
+        resizedContext.drawImage(output, 0, 0, resized.width, resized.height);
+        processingCanvas = resized;
+      }
+      return await new Promise<Blob>((resolve, reject) => processingCanvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare the photo.')), 'image/png'));
     } finally {
       URL.revokeObjectURL(originalUrl);
     }
