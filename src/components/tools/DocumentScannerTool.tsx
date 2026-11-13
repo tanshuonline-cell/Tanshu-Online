@@ -461,7 +461,7 @@ export const DocumentScannerTool: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-0 flex-col gap-4 overflow-hidden bg-slate-100 p-3 sm:p-5 lg:p-6">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-slate-100 p-3 sm:p-5 lg:p-6">
       <div className="relative z-10 shrink-0 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-lg sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -473,8 +473,8 @@ export const DocumentScannerTool: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 items-start gap-5 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-28 xl:max-h-[calc(100dvh-12rem)] xl:overflow-y-auto xl:overscroll-contain">
+      <div className="grid min-h-0 flex-1 items-start gap-5 overflow-hidden xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
+        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-28 max-h-[calc(100dvh-12rem)] overflow-y-auto overscroll-contain">
           <div>
             <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-extrabold text-slate-900">1. Upload Document</h3><span className="text-[10px] font-semibold text-slate-500">IMAGE + PDF</span></div>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/*,application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void acceptFile(f); e.currentTarget.value = ''; }} />
