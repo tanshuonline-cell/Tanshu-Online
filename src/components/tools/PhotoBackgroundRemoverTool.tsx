@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 type BackgroundMode = 'transparent' | 'color';
-type ExportPreset = 'small' | 'medium' | 'large' | 'largest';
+type ExportPreset = 'small' | 'medium' | 'large' | 'largest' | 'custom';
 type ExportFormat = 'png' | 'jpg';
 type CropRect = { x: number; y: number; w: number; h: number };
 
@@ -184,6 +184,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const cropDragStart = useRef<{ x: number; y: number; rect: CropRect } | null>(null);
   const [filename, setFilename] = useState('photo-background-removed');
   const [preset, setPreset] = useState<ExportPreset>('large');
+  const [customSize, setCustomSize] = useState('20');
+  const [customSizeUnit, setCustomSizeUnit] = useState<'KB' | 'MB'>('KB');
   const [dpi, setDpi] = useState(300);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
@@ -331,19 +333,31 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0);
         URL.revokeObjectURL(source);
-        const target = PRESETS[preset].bytes;
-        const encode = (quality: number) => new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('JPEG export failed.')), 'image/jpeg', quality));
-        let low = 0.25;
-        let high = 0.99;
-        let best = await encode(PRESETS[preset].quality);
-        if (best.size > target) {
-          for (let i = 0; i < 9; i++) {
-            const mid = (low + high) / 2;
-            const candidate = await encode(mid);
-            if (candidate.size <= target) { best = candidate; low = mid; } else high = mid;
-          }
+        const target = preset === 'custom'
+          ? Math.round(Number(customSize) * (customSizeUnit === 'MB' ? 1024 * 1024 : 1024))
+          : PRESETS[preset].bytes;
+        if (!Number.isFinite(target) || target < 1024 || target > 20 * 1024 * 1024) {
+          throw new Error('Choose a target size between 1 KB and 20 MB.');
         }
-        const jpeg = await addJpegDpi(best, dpi);
+        const encodeWithDpi = async (quality: number) => {
+          const encoded = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('JPEG export failed.')), 'image/jpeg', quality));
+          return addJpegDpi(encoded, dpi);
+        };
+        // Search for the highest JPEG quality whose FINAL file (including DPI metadata)
+        // does not exceed the requested byte limit. A smaller file is acceptable.
+        let low = 0.03;
+        let high = 0.98;
+        let best = await encodeWithDpi(low);
+        if (best.size > target) {
+          throw new Error('This photo cannot fit within that size at the current dimensions. Choose a larger KB/MB limit.');
+        }
+        for (let i = 0; i < 16; i++) {
+          const mid = (low + high) / 2;
+          const candidate = await encodeWithDpi(mid);
+          if (candidate.size <= target) { best = candidate; low = mid; } else { high = mid; }
+        }
+        if (best.size > target) throw new Error('Could not meet the selected file-size limit. Please choose a larger size.');
+        const jpeg = best;
         const url = URL.createObjectURL(jpeg);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -480,14 +494,15 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-cyan-200">Download settings</div>
             <label className="mb-3 block text-xs text-blue-100">File name<input value={filename} onChange={(e) => setFilename(e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white outline-none focus:border-cyan-300" placeholder="Enter file name" /></label>
-            <label className="mb-3 block text-xs text-blue-100">Image size / quality<select value={preset} onChange={(e) => setPreset(e.target.value as ExportPreset)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white"><option value="small">Small · 20 KB</option><option value="medium">Medium · 200 KB</option><option value="large">Large · 2 MB</option><option value="largest">Largest · 4 MB</option></select></label>
+            <label className="mb-3 block text-xs text-blue-100">Target file size (JPG)<select value={preset} onChange={(e) => setPreset(e.target.value as ExportPreset)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white"><option value="small">20 KB (Government forms)</option><option value="medium">200 KB</option><option value="large">2 MB</option><option value="largest">4 MB</option><option value="custom">Custom size</option></select></label>
+            {preset === 'custom' && <div className="mb-3 grid grid-cols-[minmax(0,1fr)_90px] gap-2"><label className="text-xs text-blue-100">Enter size<input type="number" min="1" max={customSizeUnit === 'MB' ? 20 : 20480} step="1" value={customSize} onChange={(e) => setCustomSize(e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white" placeholder="e.g. 20" /></label><label className="text-xs text-blue-100">Unit<select value={customSizeUnit} onChange={(e) => setCustomSizeUnit(e.target.value as 'KB' | 'MB')} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-xs text-white"><option value="KB">KB</option><option value="MB">MB</option></select></label></div>}
             <label className="mb-3 block text-xs text-blue-100">Print resolution<select value={dpi} onChange={(e) => setDpi(+e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-3 py-2 text-xs text-white"><option value={72}>72 DPI · Screen</option><option value={150}>150 DPI · Standard</option><option value={300}>300 DPI · Print quality</option></select></label>
             <div className="mb-2 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setExportFormat('png')} className={'rounded-lg border px-3 py-2.5 text-xs font-extrabold ' + (exportFormat === 'png' ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/15 bg-white/5 text-blue-100')}>PNG · Transparent</button>
               <button type="button" onClick={() => setExportFormat('jpg')} className={'rounded-lg border px-3 py-2.5 text-xs font-extrabold ' + (exportFormat === 'jpg' ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/15 bg-white/5 text-blue-100')}>JPG · Photo</button>
             </div>
             <button type="button" onClick={exportPhoto} disabled={!resultUrl || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><Download size={16} /> Download {exportFormat.toUpperCase()}</button>
-            <p className="mt-2 text-[10px] leading-4 text-blue-200">{exportFormat === 'png' ? 'PNG keeps the removed background transparent and preserves full image quality. JPG always uses a solid background (selected color, or white).' : 'JPG uses the selected solid background color; when Transparent is selected above, white is used. Size presets apply to JPG.'} 300 DPI metadata is embedded in the exported file.</p>
+            <p className="mt-2 text-[10px] leading-4 text-blue-200">{exportFormat === 'png' ? 'PNG keeps the removed background transparent and preserves full image quality. JPG always uses a solid background (selected color, or white).' : 'JPG uses the selected solid background color; when Transparent is selected above, white is used. JPG size presets and custom limits are enforced on the final downloaded file. PNG is lossless, so its file size depends on the photo and cannot be forced to an exact KB/MB target.'} 300 DPI metadata is embedded in the exported file.</p>
           </section>
           {error && <div role="alert" className="rounded-lg border border-rose-400/30 bg-rose-400/10 p-3 text-xs text-rose-200">{error}</div>}
         </aside>}
