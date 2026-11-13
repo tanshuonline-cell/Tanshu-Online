@@ -165,9 +165,13 @@ function enhanceCanvas(source: HTMLCanvasElement, mode: ScanMode, contrast: numb
       if (mode === 'bw') {
         const value = clamp((gray - 128) * (contrastFactor / 2.1) + 128 + brightnessOffset) >= threshold ? 255 : 0;
         pixels[i] = pixels[i + 1] = pixels[i + 2] = value;
-      } else if (mode === 'grayscale' || mode === 'ultra') {
+      } else if (mode === 'grayscale') {
         const value = clamp(contrastFactor * (gray - 128) + 128 + brightnessOffset);
         pixels[i] = pixels[i + 1] = pixels[i + 2] = value;
+      } else if (mode === 'ultra') {
+        pixels[i] = clamp(contrastFactor * (r - 128) + 128 + brightnessOffset);
+        pixels[i + 1] = clamp(contrastFactor * (g - 128) + 128 + brightnessOffset);
+        pixels[i + 2] = clamp(contrastFactor * (b - 128) + 128 + brightnessOffset);
       } else {
         const rr = clamp(contrastFactor * (r - 128) + 128 + brightnessOffset);
         const gg = clamp(contrastFactor * (g - 128) + 128 + brightnessOffset);
