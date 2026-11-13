@@ -391,7 +391,9 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           if (!context) throw new Error('Could not create the passport photo background.');
           context.fillStyle = backgroundColor;
           context.fillRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, 0, 0);
+          const drawWidth = canvas.width * photoScale;
+          const drawHeight = canvas.height * photoScale;
+          context.drawImage(image, (canvas.width - drawWidth) / 2 + (photoOffset.x / 100) * canvas.width, (canvas.height - drawHeight) / 2 + (photoOffset.y / 100) * canvas.height, drawWidth, drawHeight);
           URL.revokeObjectURL(source);
           pngSource = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG export failed.')), 'image/png'));
         }
@@ -417,7 +419,9 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         if (!ctx) throw new Error('Your browser could not create the download.');
         ctx.fillStyle = backgroundMode === 'color' ? backgroundColor : '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(image, 0, 0);
+        const drawWidth = canvas.width * photoScale;
+        const drawHeight = canvas.height * photoScale;
+        ctx.drawImage(image, (canvas.width - drawWidth) / 2 + (photoOffset.x / 100) * canvas.width, (canvas.height - drawHeight) / 2 + (photoOffset.y / 100) * canvas.height, drawWidth, drawHeight);
         URL.revokeObjectURL(source);
         const target = preset === 'custom'
           ? Math.round(Number(customSize) * (customSizeUnit === 'MB' ? 1024 * 1024 : 1024))
