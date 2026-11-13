@@ -217,33 +217,19 @@ function enhanceCanvas(source: HTMLCanvasElement, mode: ScanMode, contrast: numb
 // that was never captured in the original photograph.
 function upscaleCanvas(source: HTMLCanvasElement, requestedScale: number): HTMLCanvasElement {
   if (requestedScale <= 1) return source;
-  const maxPixels = 24_000_000;
+  // Keep output memory bounded on ordinary shop PCs and mobile devices.
+  const maxPixels = 16_000_000;
   const sourcePixels = source.width * source.height;
   const safeScale = Math.min(requestedScale, Math.sqrt(maxPixels / Math.max(1, sourcePixels)));
   if (safeScale <= 1.01) return source;
   const output = document.createElement('canvas');
   output.width = Math.max(1, Math.round(source.width * safeScale));
   output.height = Math.max(1, Math.round(source.height * safeScale));
-  const ctx = output.getContext('2d', { willReadFrequently: true });
+  const ctx = output.getContext('2d');
   if (!ctx) return source;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, output.width, output.height);
-  const softened = document.createElement('canvas');
-  softened.width = output.width;
-  softened.height = output.height;
-  const softCtx = softened.getContext('2d');
-  if (softCtx) {
-    softCtx.filter = 'blur(0.7px)';
-    softCtx.drawImage(output, 0, 0);
-    softCtx.filter = 'none';
-    const base = ctx.getImageData(0, 0, output.width, output.height);
-    const blur = softCtx.getImageData(0, 0, output.width, output.height);
-    for (let i = 0; i < base.data.length; i += 4) {
-      for (let c = 0; c < 3; c++) base.data[i + c] = clamp(base.data[i + c] + (base.data[i + c] - blur.data[i + c]) * 0.22);
-    }
-    ctx.putImageData(base, 0, 0);
-  }
   return output;
 }
 
@@ -447,7 +433,7 @@ export const DocumentScannerTool: React.FC = () => {
               <div className="text-xs font-bold text-slate-800">Output Resolution</div>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setResolutionScale(1)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 1 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>Standard 1×</button>
-                <button type="button" onClick={() => setResolutionScale(2)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 2 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>High Resolution 2×</button>
+                <button type="button" onClick={() => setResolutionScale(2)} className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${resolutionScale === 2 ? 'border-blue-600 bg-white text-blue-800 ring-1 ring-blue-200' : 'border-slate-200 bg-white text-slate-600'}`}>High Resolution up to 2×</button>
               </div>
               <p className="text-[10px] leading-4 text-slate-500">2× uses high-quality resampling and a light detail pass. It improves output size, but cannot recreate details missing from a blurry original.</p>
             </div>
@@ -477,7 +463,7 @@ export const DocumentScannerTool: React.FC = () => {
         </section>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting while preserving document colors, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. High Resolution 2× uses careful resampling; it does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering and automatic page-edge detection load PDF.js and OpenCV.js from public CDNs.</div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><div className="mb-1 flex items-center gap-2 font-extrabold"><WandSparkles className="h-4 w-4" /> About Ultra Enhance</div>Ultra Enhance balances page lighting while preserving document colors, reduces broad shadows and strengthens existing text edges for a cleaner, more readable scan. High Resolution uses up to 2× careful resampling within a safe memory limit; it does not recreate missing letters or guarantee recovery of text hidden by deep folds, blur or damage. For best results, use a sharp, well-lit photo and review the output before submitting it to an official portal. Files are processed in your browser; PDF rendering and automatic page-edge detection load PDF.js and OpenCV.js from public CDNs.</div>
     </div>
   );
 };
