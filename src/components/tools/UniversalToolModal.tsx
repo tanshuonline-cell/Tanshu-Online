@@ -48,7 +48,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
   const isPhotoSignatureResizer = tool.id === 'photo-signature-resizer';
   const isDocumentScanner = tool.id === 'document-scanner-image-rectifier';
-  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer || isDocumentScanner;
+  const isAutoDocumentCropper = tool.id === 'auto-document-cropper';
+  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer || isDocumentScanner || isAutoDocumentCropper;
   const showWelcome = (isAdvancedStudio && !showAdvancedStudio) || (isPhotoSignatureResizer && !showPhotoSignatureStudio);
 
   const renderToolComponent = () => {
