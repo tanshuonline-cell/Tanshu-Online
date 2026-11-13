@@ -290,7 +290,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         setProgress(message.includes('Finishing') ? 90 : message.includes('Detecting') ? 65 : 25);
       });
       setResultBlob(removed);
-      setResultUrl(URL.createObjectURL(result.blob));
+      setResultUrl(URL.createObjectURL(removed));
       setProgress(100);
       setStatus('Background removed successfully');
     } catch (e) {
