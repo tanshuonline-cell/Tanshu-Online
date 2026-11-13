@@ -207,7 +207,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   };
   const removeCustomer = (id:string) => {
     const target=customers.find(c=>c.id===id); if (target) { URL.revokeObjectURL(target.previewUrl); if(target.workingUrl!==target.previewUrl && target.workingUrl.startsWith('blob:')) URL.revokeObjectURL(target.workingUrl); if(target.signatureUrl.startsWith('blob:'))URL.revokeObjectURL(target.signatureUrl); }
-    const remaining=customers.filter(c=>c.id!==id); setCustomers(remaining); if(selectedId===id) setSelectedId(remaining[0]?.id||''); setPrintPages([]);setSelectedPrintPages([]);setNotice('Customer photo removed from this batch.');
+    const remaining=customers.filter(c=>c.id!==id); setCustomers(remaining); if(selectedId===id) setSelectedId(remaining[0]?.id||''); setPrintPages([]);setSelectedPrintPages([]);if(activeStep==='print')window.setTimeout(()=>arrangeSheetItems(remaining),80);setNotice('Customer photo removed from this batch.');
   };
   const handleStep = (stepId:string) => {
     setActiveStep(stepId); setCropBox(null);
