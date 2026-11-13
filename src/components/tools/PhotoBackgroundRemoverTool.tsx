@@ -440,11 +440,27 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
       const top = current.y;
       const right = current.x + current.w;
       const bottom = current.y + current.h;
+      const stage = cropStageRef.current;
+      const imageAspect = stage && stage.offsetHeight > 0 ? stage.offsetWidth / stage.offsetHeight : 1;
+      const aspectInPercent = (targetWidthMm / targetHeightMm) / imageAspect;
       const min = 8;
-      if (dragCorner === 'tl') { const x = Math.min(px, right - min); const y = Math.min(py, bottom - min); return { x, y, w: right - x, h: bottom - y }; }
-      if (dragCorner === 'tr') { const x = Math.max(px, left + min); const y = Math.min(py, bottom - min); return { x: left, y, w: x - left, h: bottom - y }; }
-      if (dragCorner === 'bl') { const x = Math.min(px, right - min); const y = Math.max(py, top + min); return { x, y: top, w: right - x, h: y - top }; }
-      const x = Math.max(px, left + min); const y = Math.max(py, top + min); return { x: left, y: top, w: x - left, h: y - top };
+      let rawW = dragCorner.includes('l') ? right - px : px - left;
+      let rawH = dragCorner.includes('t') ? bottom - py : py - top;
+      rawW = Math.max(min, rawW);
+      rawH = Math.max(min, rawH);
+      let width = rawW;
+      let height = rawH;
+      if (width / height > aspectInPercent) width = height * aspectInPercent;
+      else height = width / aspectInPercent;
+      const maxWidth = dragCorner.includes('l') ? right : 100 - left;
+      const maxHeight = dragCorner.includes('t') ? bottom : 100 - top;
+      const fitScale = Math.min(1, maxWidth / width, maxHeight / height);
+      width *= fitScale;
+      height *= fitScale;
+      if (dragCorner === 'tl') return { x: right - width, y: bottom - height, w: width, h: height };
+      if (dragCorner === 'tr') return { x: left, y: bottom - height, w: width, h: height };
+      if (dragCorner === 'bl') return { x: right - width, y: top, w: width, h: height };
+      return { x: left, y: top, w: width, h: height };
     });
   };
 
@@ -534,7 +550,25 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag four corners</span><b>Free</b></div>
             <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">चारों कोनों से आकार बदलें और चयन के बीच में पकड़कर पूरा crop box कहीं भी खिसकाएँ। फिर Done दबाएँ।</div>
             <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropApplied(false); setRotation(0); clearResult(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
-            <button type="button" onClick={() => { setCropApplied(true); finishCropDrag(); clearResult(); }} disabled={!file || cropApplied} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><CheckCircle2 size={14} /> {cropApplied ? 'Crop Applied' : 'Done · Apply Crop'}</button>
+            <button type="button" onClick={() => {
+              const stageImage = cropStageRef.current?.querySelector('img') as HTMLImageElement | null;
+              if (stageImage?.naturalWidth && stageImage?.naturalHeight) {
+                const quarterTurn = Math.abs(rotation % 180) === 90;
+                const rotatedW = quarterTurn ? stageImage.naturalHeight : stageImage.naturalWidth;
+                const rotatedH = quarterTurn ? stageImage.naturalWidth : stageImage.naturalHeight;
+                const aspectInPercent = (targetWidthMm / targetHeightMm) * (rotatedH / rotatedW);
+                setCropRect((current) => {
+                  let width = current.w;
+                  let height = current.h;
+                  if (width / height > aspectInPercent) width = height * aspectInPercent;
+                  else height = width / aspectInPercent;
+                  return { x: current.x + (current.w - width) / 2, y: current.y + (current.h - height) / 2, w: width, h: height };
+                });
+              }
+              setCropApplied(true);
+              finishCropDrag();
+              clearResult();
+            }} disabled={!file || cropApplied} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><CheckCircle2 size={14} /> {cropApplied ? 'Crop Applied' : 'Done · Apply Crop'}</button>
             {cropApplied && <button type="button" onClick={() => { setCropApplied(false); clearResult(); }} className="mt-2 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold">Edit Crop Again</button>}
             <p className="mt-3 text-[10px] leading-4 text-blue-200">Done करने पर crop selection lock हो जाएगा और handles छिप जाएँगे। Remove Background पर वही crop लागू होगा।</p>
           </section>
