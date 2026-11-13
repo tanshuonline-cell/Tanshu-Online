@@ -247,11 +247,10 @@ export const DocumentScannerTool: React.FC = () => {
   const [resolutionScale, setResolutionScale] = useState(1);
   const [threshold, setThreshold] = useState(154);
   const [rotation, setRotation] = useState(0);
-  const [autoRectify, setAutoRectify] = useState(true);
+  const [autoRectify, setAutoRectify] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLCanvasElement>(null);
 
@@ -272,7 +271,7 @@ export const DocumentScannerTool: React.FC = () => {
 
   const acceptFile = async (file: File) => {
     setError(''); setStatus(''); setBusy(true);
-    setPdfDocument(null); setPreviewUrl(null);
+    setPdfDocument(null);
     try {
       if (file.size > 35 * 1024 * 1024) throw new Error('File is larger than 35 MB. Please choose a smaller file.');
       setSourceName(file.name);
@@ -286,7 +285,7 @@ export const DocumentScannerTool: React.FC = () => {
       } else if (file.type.startsWith('image/')) {
         const bitmap = await createImageBitmap(file);
         const canvas = document.createElement('canvas');
-        const scale = Math.min(1, 3600 / Math.max(bitmap.width, bitmap.height));
+        const scale = Math.min(1, 4200 / Math.max(bitmap.width, bitmap.height));
         canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not read this image.');
@@ -318,15 +317,27 @@ export const DocumentScannerTool: React.FC = () => {
 
   useEffect(() => {
     if (!sourceCanvas || !outputRef.current) return;
-    const rotated = rotateCanvas(sourceCanvas, rotation);
-    const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
-    const processed = upscaleCanvas(enhanced, resolutionScale);
-    const target = outputRef.current;
-    target.width = processed.width; target.height = processed.height;
-    const ctx = target.getContext('2d');
-    if (ctx) ctx.drawImage(processed, 0, 0);
-    setPreviewUrl(processed.toDataURL('image/jpeg', 0.92));
-  }, [sourceCanvas, mode, contrast, brightness, sharpness, resolutionScale, threshold, rotation]);
+    // Render a lightweight live preview; keep the full-resolution source for exports.
+    const frame = window.requestAnimationFrame(() => {
+      const rotated = rotateCanvas(sourceCanvas, rotation);
+      const previewScale = Math.min(1, 1500 / Math.max(rotated.width, rotated.height));
+      const previewSource = document.createElement('canvas');
+      previewSource.width = Math.max(1, Math.round(rotated.width * previewScale));
+      previewSource.height = Math.max(1, Math.round(rotated.height * previewScale));
+      const previewCtx = previewSource.getContext('2d');
+      if (!previewCtx) return;
+      previewCtx.imageSmoothingEnabled = true;
+      previewCtx.imageSmoothingQuality = 'high';
+      previewCtx.drawImage(rotated, 0, 0, previewSource.width, previewSource.height);
+      const processed = enhanceCanvas(previewSource, mode, contrast, brightness, sharpness, threshold);
+      const target = outputRef.current;
+      if (!target) return;
+      target.width = processed.width; target.height = processed.height;
+      const ctx = target.getContext('2d');
+      if (ctx) ctx.drawImage(processed, 0, 0);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [sourceCanvas, mode, contrast, brightness, sharpness, threshold, rotation]);
 
   const changePdfPage = async (next: number) => {
     if (!pdfDocument || next < 1 || next > pageCount) return;
@@ -336,16 +347,25 @@ export const DocumentScannerTool: React.FC = () => {
     finally { setBusy(false); }
   };
 
-  const downloadImage = (canvas: HTMLCanvasElement, name = 'tanshu_scanned_page.jpg') => {
+  const buildExportCanvas = () => {
+    if (!sourceCanvas) return null;
+    const rotated = rotateCanvas(sourceCanvas, rotation);
+    const enhanced = enhanceCanvas(rotated, mode, contrast, brightness, sharpness, threshold);
+    return upscaleCanvas(enhanced, resolutionScale);
+  };
+
+  const downloadImage = () => {
+    const canvas = buildExportCanvas();
+    if (!canvas) return;
     const link = document.createElement('a');
-    link.download = name;
+    link.download = 'tanshu_ultra_enhanced_scan.jpg';
     link.href = canvas.toDataURL('image/jpeg', 0.96);
     link.click();
   };
 
   const downloadCurrentPdf = () => {
-    const canvas = outputRef.current;
-    if (!canvas || !sourceCanvas) return;
+    const canvas = buildExportCanvas();
+    if (!canvas) return;
     const doc = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
     const w = canvas.width > canvas.height ? 297 : 210;
     const h = canvas.width > canvas.height ? 210 : 297;
@@ -396,7 +416,7 @@ export const DocumentScannerTool: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="flex min-h-full flex-col gap-4 bg-slate-100 p-3 sm:p-5 lg:p-6">
       <div className="rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-lg sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -415,7 +435,7 @@ export const DocumentScannerTool: React.FC = () => {
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/*,application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void acceptFile(f); e.currentTarget.value = ''; }} />
             <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-5 text-left transition hover:border-blue-500 hover:bg-blue-50 disabled:opacity-60">
               <span className="rounded-xl bg-blue-100 p-3 text-blue-700"><Upload className="h-5 w-5" /></span>
-              <span><strong className="block text-sm text-slate-900">{sourceName || 'Choose Photo or PDF'}</strong><small className="text-xs text-slate-500">JPG · PNG · WEBP · Multi-page PDF · Max 35 MB</small></span>
+              <span><strong className="block text-sm text-slate-900">{sourceName ? (sourceName.length > 34 ? sourceName.slice(0, 16) + '…' + sourceName.slice(-12) : sourceName) : 'Choose Photo or PDF'}</strong><small className="text-xs text-slate-500">JPG · PNG · WEBP · Multi-page PDF · Max 35 MB</small></span>
             </button>
             {sourceKind === 'pdf' && <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2"><button type="button" onClick={() => void changePdfPage(pageNumber - 1)} disabled={pageNumber <= 1 || busy} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button><span className="text-xs font-bold text-slate-700">Page {pageNumber} of {pageCount}</span><button type="button" onClick={() => void changePdfPage(pageNumber + 1)} disabled={pageNumber >= pageCount || busy} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button></div>}
           </div>
@@ -451,12 +471,12 @@ export const DocumentScannerTool: React.FC = () => {
 
         <section className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-extrabold text-slate-900">Live Clean Page Preview</h3><p className="text-xs text-slate-500">The output updates as you adjust quality settings.</p></div>{sourceCanvas && <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700">READY TO REVIEW</span>}</div>
-          <div className="flex min-h-[420px] items-center justify-center overflow-auto rounded-2xl border border-slate-300 bg-slate-200 p-3 sm:p-5">
-            <canvas ref={outputRef} className="h-auto max-h-[720px] max-w-full bg-white shadow-xl" style={{ width: 'auto' }} />
+          <div className="flex min-h-[min(72vh,820px)] items-center justify-center overflow-auto rounded-2xl border border-slate-300 bg-slate-200 p-3 sm:p-5">
+            <canvas ref={outputRef} className="block h-auto max-h-[min(76vh,900px)] max-w-full bg-white shadow-xl" style={{ width: 'auto' }} />
             {!sourceCanvas && <div className="max-w-sm py-12 text-center"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-blue-700 shadow"><FileText className="h-8 w-8" /></div><h4 className="text-base font-extrabold text-slate-700">Your new document page will appear here</h4><p className="mt-2 text-xs leading-5 text-slate-500">Upload a crumpled, shadowed or angled document photo, or choose a PDF. Start with Ultra Enhance and inspect the text at full zoom.</p></div>}
           </div>
-          {previewUrl && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><span>Output: {outputRef.current?.width.toLocaleString()} × {outputRef.current?.height.toLocaleString()} px</span><span>Zoom in to inspect fine text before saving.</span></div>}
-          {sourceCanvas && <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => outputRef.current && downloadImage(outputRef.current)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow hover:bg-slate-800"><ImageIcon className="h-4 w-4" /> Download Enhanced JPG</button><button type="button" onClick={downloadCurrentPdf} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow hover:bg-blue-800"><Download className="h-4 w-4" /> Download Current Page PDF</button>{sourceKind === 'pdf' && <button type="button" onClick={() => void downloadAllPdfPages()} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-50 sm:col-span-2"><FileText className="h-4 w-4" /> {busy ? 'Processing PDF…' : `Enhance & Export All ${pageCount} PDF Pages`}</button>}</div>}
+          {sourceCanvas && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><span>Live preview: {outputRef.current?.width.toLocaleString()} × {outputRef.current?.height.toLocaleString()} px</span><span>Full-resolution source is used for downloads.</span></div>}
+          {sourceCanvas && <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={downloadImage} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow hover:bg-slate-800"><ImageIcon className="h-4 w-4" /> Download Enhanced JPG</button><button type="button" onClick={downloadCurrentPdf} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow hover:bg-blue-800"><Download className="h-4 w-4" /> Download Current Page PDF</button>{sourceKind === 'pdf' && <button type="button" onClick={() => void downloadAllPdfPages()} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-50 sm:col-span-2"><FileText className="h-4 w-4" /> {busy ? 'Processing PDF…' : `Enhance & Export All ${pageCount} PDF Pages`}</button>}</div>}
           {busy && <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{status || 'Processing your document…'}</p>}
           {status && !busy && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">{status}</p>}
           {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">{error}</p>}
