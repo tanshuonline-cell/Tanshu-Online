@@ -235,7 +235,6 @@ function upscaleCanvas(source: HTMLCanvasElement, requestedScale: number): HTMLC
 
 export const DocumentScannerTool: React.FC = () => {
   const [sourceCanvas, setSourceCanvas] = useState<HTMLCanvasElement | null>(null);
-  const [sourceName, setSourceName] = useState('');
   const [sourceKind, setSourceKind] = useState<'image' | 'pdf' | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PdfJsDocument | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -274,7 +273,6 @@ export const DocumentScannerTool: React.FC = () => {
     setPdfDocument(null);
     try {
       if (file.size > 35 * 1024 * 1024) throw new Error('File is larger than 35 MB. Please choose a smaller file.');
-      setSourceName(file.name);
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         const pdfjs = await loadPdfJs();
         const bytes = new Uint8Array(await file.arrayBuffer());
@@ -435,7 +433,7 @@ export const DocumentScannerTool: React.FC = () => {
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/*,application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void acceptFile(f); e.currentTarget.value = ''; }} />
             <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-5 text-left transition hover:border-blue-500 hover:bg-blue-50 disabled:opacity-60">
               <span className="rounded-xl bg-blue-100 p-3 text-blue-700"><Upload className="h-5 w-5" /></span>
-              <span><strong className="block text-sm text-slate-900">{sourceName ? (sourceName.length > 34 ? sourceName.slice(0, 16) + '…' + sourceName.slice(-12) : sourceName) : 'Choose Photo or PDF'}</strong><small className="text-xs text-slate-500">JPG · PNG · WEBP · Multi-page PDF · Max 35 MB</small></span>
+              <span><strong className="block text-sm text-slate-900">{sourceCanvas ? 'Document loaded · Choose another to replace' : 'Choose Photo or PDF'}</strong><small className="text-xs text-slate-500">JPG · PNG · WEBP · Multi-page PDF · Max 35 MB</small></span>
             </button>
             {sourceKind === 'pdf' && <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2"><button type="button" onClick={() => void changePdfPage(pageNumber - 1)} disabled={pageNumber <= 1 || busy} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button><span className="text-xs font-bold text-slate-700">Page {pageNumber} of {pageCount}</span><button type="button" onClick={() => void changePdfPage(pageNumber + 1)} disabled={pageNumber >= pageCount || busy} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button></div>}
           </div>
@@ -463,9 +461,9 @@ export const DocumentScannerTool: React.FC = () => {
               { label: 'Edge Sharpness', value: sharpness, min: 0, max: 100, set: setSharpness },
               ...(mode === 'bw' ? [{ label: 'B&W Threshold', value: threshold, min: 80, max: 210, set: setThreshold }] : []),
             ].map((item) => <label key={item.label} className="block"><span className="mb-1 flex justify-between text-xs text-slate-600"><span>{item.label}</span><strong className="font-mono text-slate-800">{item.value}</strong></span><input type="range" min={item.min} max={item.max} value={item.value} onChange={(e) => item.set(Number(e.target.value))} className="w-full accent-blue-700" /></label>)}
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges & straighten page</label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={autoRectify} onChange={(e) => setAutoRectify(e.target.checked)} className="h-4 w-4 accent-blue-700" /> Auto detect edges & straighten next upload</label>
             <div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-600">Page rotation</span><button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} disabled={!sourceCanvas} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40"><RotateCw className="h-3.5 w-3.5" /> Rotate 90°</button></div>
-            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(true); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
+            <button type="button" onClick={() => { setMode('ultra'); setContrast(118); setBrightness(104); setSharpness(45); setResolutionScale(1); setThreshold(154); setRotation(0); setAutoRectify(false); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"><RefreshCw className="h-3.5 w-3.5" /> Reset enhancements</button>
           </div>
         </aside>
 
