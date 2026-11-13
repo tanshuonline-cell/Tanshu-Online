@@ -339,17 +339,33 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         if (!Number.isFinite(target) || target < 1024 || target > 20 * 1024 * 1024) {
           throw new Error('Choose a target size between 1 KB and 20 MB.');
         }
+        let exportCanvas = canvas;
         const encodeWithDpi = async (quality: number) => {
-          const encoded = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('JPEG export failed.')), 'image/jpeg', quality));
+          const encoded = await new Promise<Blob>((resolve, reject) => exportCanvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('JPEG export failed.')), 'image/jpeg', quality));
           return addJpegDpi(encoded, dpi);
         };
-        // Search for the highest JPEG quality whose FINAL file (including DPI metadata)
-        // does not exceed the requested byte limit. A smaller file is acceptable.
+        // If even low JPEG quality is too large, reduce pixel dimensions gradually
+        // while preserving the complete photo frame and aspect ratio.
         let low = 0.03;
         let high = 0.98;
         let best = await encodeWithDpi(low);
+        let resizeAttempts = 0;
+        while (best.size > target && resizeAttempts < 12 && Math.min(exportCanvas.width, exportCanvas.height) > 160) {
+          const scaled = document.createElement('canvas');
+          const factor = 0.82;
+          scaled.width = Math.max(1, Math.round(exportCanvas.width * factor));
+          scaled.height = Math.max(1, Math.round(exportCanvas.height * factor));
+          const scaledContext = scaled.getContext('2d');
+          if (!scaledContext) throw new Error('Your browser could not resize the photo for this file-size limit.');
+          scaledContext.imageSmoothingEnabled = true;
+          scaledContext.imageSmoothingQuality = 'high';
+          scaledContext.drawImage(exportCanvas, 0, 0, scaled.width, scaled.height);
+          exportCanvas = scaled;
+          best = await encodeWithDpi(low);
+          resizeAttempts += 1;
+        }
         if (best.size > target) {
-          throw new Error('This photo cannot fit within that size at the current dimensions. Choose a larger KB/MB limit.');
+          throw new Error('This target is too small for this photo. Please choose a larger KB/MB limit.');
         }
         for (let i = 0; i < 16; i++) {
           const mid = (low + high) / 2;
