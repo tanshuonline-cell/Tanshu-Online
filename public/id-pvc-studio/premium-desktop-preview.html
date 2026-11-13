@@ -218,68 +218,74 @@ body.studio-expanded{position:fixed;inset:0;width:100vw;height:100vh;min-height:
 body.studio-expanded .layout{height:calc(100vh - 116px);min-height:0}
 @media(max-width:850px){body.studio-expanded{overflow:auto}body.studio-expanded .layout{height:auto}}
 
-/* Premium pearl-slate-teal visual refresh: presentation only */
-:root{color-scheme:light;background:#f1f4f6;color:#263548}
-body{background:#f1f4f6;color:#263548}
-.top{background:linear-gradient(110deg,#172b3b 0%,#243d4b 58%,#1b4c4a 100%);border-bottom:1px solid #35545b}
-.top .tagline{color:#c4d5d7}
-.home-back{background:linear-gradient(135deg,#365568,#263f50);border-color:#58747b;box-shadow:0 2px 8px #102b3533}
-.home-back:hover{background:linear-gradient(135deg,#426a78,#2e4c5c);border-color:#8eaaa8}
-.lang-switch{background:#1b3542;border-color:#49616a}
-.lang-switch button{color:#d1e0df}
-.lang-switch button.active{background:#e4efed;color:#1c3c43}
-.toolbar{background:#e8edf0;border-bottom:1px solid #d2dce0;box-shadow:0 2px 8px #243b4a0a}
-.btn{background:#f8fafb;border-color:#cbd6da;color:#304655;box-shadow:0 1px 2px #1c34400a;transition:background .15s,border-color .15s,box-shadow .15s,transform .15s}
-.btn:hover{background:#eaf3f2;border-color:#9dbbb7;box-shadow:0 2px 7px #1c555018}
-.btn.primary{background:linear-gradient(135deg,#198b83,#126e6c);border-color:#147b76;color:#fff;box-shadow:0 3px 9px #147b7626}
-.btn.primary:hover{background:linear-gradient(135deg,#20a096,#147b76)}
-.layout{background:#f1f4f6}
-.panel{background:#e9eef1;border:1px solid #d2dce0;border-radius:12px;box-shadow:0 5px 18px #263f4a0d}
-.panel h3{font-size:13px;letter-spacing:.12px;color:#263f4c}
-.left-panel,.right-panel{background:linear-gradient(160deg,#edf1f3,#e6ecef)}
-.center-panel{background:linear-gradient(145deg,#dce5e8,#e8edef);border-color:#cbd8dc;box-shadow:inset 0 1px #ffffffaa,0 5px 18px #263f4a0d}
-.center-head h3{color:#263f4c}
-.preview-note{color:#61747c}
-.sheet-preview{background:#fff;border-color:#c4d0d5;box-shadow:0 9px 28px #213c4930}
+/* Premium dark editing-suite theme: visual styling only */
+:root{color-scheme:dark;background:#171d25;color:#e4eaf1}
+body{background:#171d25;color:#e4eaf1}
+.top{background:linear-gradient(105deg,#111923 0%,#1b2938 58%,#173b42 100%);border-bottom:1px solid #344653}
+.top .tagline{color:#b6c6d0}
+.studio-brand strong{color:#f2f5f8}
+.home-back{background:linear-gradient(135deg,#2b3d4d,#202d3a);border:1px solid #506272;color:#edf4f7;box-shadow:0 3px 10px #0005}
+.home-back:hover{background:#344c5b;border-color:#6f9295}
+.lang-switch{background:#17232d;border:1px solid #40515f}
+.lang-switch button{color:#c4d0d9}
+.lang-switch button.active{background:#2c7774;color:#fff}
+.toolbar{background:#202a35;border-bottom:1px solid #3b4a58;box-shadow:0 3px 12px #0003}
+.layout{background:#171d25}
+.panel{background:#222d38;border:1px solid #3a4a58;border-radius:10px;box-shadow:0 8px 22px #0003;color:#e2e9ef}
+.left-panel,.right-panel{background:linear-gradient(160deg,#25313d,#202a35)}
+.center-panel{background:linear-gradient(145deg,#242f3b,#1d2732);border-color:#40515e;box-shadow:inset 0 1px #ffffff0a,0 8px 22px #0004}
+.panel h3,.center-head h3{color:#f0f4f7;font-size:13px;letter-spacing:.12px}
+.panel p,.panel .hint,.hint,.preview-note,.center-panel .preview-note{color:#b6c4cf}
+.panel .hint,.panel p.hint{font-size:10.5px;line-height:1.5}
 .field{margin:9px 0}
-.field label{font-size:10.5px;color:#5b7079;font-weight:650;letter-spacing:.08px}
-.field input,.field select,.field>select,.left-panel select,.right-panel select,.left-panel input:not([type=checkbox]):not([type=range]),.right-panel input:not([type=checkbox]):not([type=range]){border:1px solid #c9d5d9!important;border-radius:8px!important;background:#f9fbfb!important;color:#293f4b!important;box-shadow:inset 0 1px 2px #18343d08}
-.field input:focus,.field select:focus,.left-panel select:focus,.right-panel select:focus{outline:2px solid #70b8ad;outline-offset:1px;border-color:#278d83!important}
-.hint,.preview-note{color:#647780}
-.divider{background:#d2dde0;margin:11px 0}
-.catalog-toggle{background:#e1e9eb;border-color:#cbd8da;color:#304b55}
-.catalog-toggle:hover{background:#dcebe8;border-color:#9bbdb7}
-.profile{background:transparent;color:#304b55;font-size:10.5px;padding:7px;border-radius:7px}
-.profile:hover{background:#dcebe8}
-.profile-group{color:#648078;font-size:10px}
-.thumb{border-bottom-color:#d6e0e2;color:#344c56}
-.thumb.active{background:#d9eeea;border-radius:7px;color:#155f5b}
-.thumb img{background:#f8fafb;border:1px solid #d6e0e2;border-radius:6px}
+.field label,.panel label{color:#d1dbe3;font-size:10.5px;font-weight:650;letter-spacing:.08px}
+.field input,.field select,.field>select,.left-panel select,.right-panel select,.left-panel input:not([type=checkbox]):not([type=range]),.right-panel input:not([type=checkbox]):not([type=range]){background:#141e28!important;color:#edf3f7!important;border:1px solid #526473!important;border-radius:7px!important;box-shadow:inset 0 2px 5px #0004}
+.field input::placeholder,.left-panel input::placeholder,.right-panel input::placeholder{color:#8999a7}
+.field input:focus,.field select:focus,.left-panel select:focus,.right-panel select:focus{outline:2px solid #39b7aa;outline-offset:1px;border-color:#39b7aa!important}
+.field select option,.left-panel select option,.right-panel select option{background:#1d2934;color:#eef3f7}
+.divider{background:#40505d;margin:11px 0}
+.btn{background:linear-gradient(180deg,#354452,#2a3744);border:1px solid #526372;color:#e7eef3;box-shadow:0 2px 5px #0003;transition:background .15s,border-color .15s,box-shadow .15s}
+.btn:hover{background:linear-gradient(180deg,#405563,#304452);border-color:#6b9394;box-shadow:0 3px 9px #0004}
+.btn.primary{background:linear-gradient(135deg,#168e87,#116b70);border-color:#35a49b;color:#fff;box-shadow:0 3px 10px #087d7738}
+.btn.primary:hover{background:linear-gradient(135deg,#20a79c,#147d80)}
+.left-panel .field button#openWhatsAppPhotoCrop{background:linear-gradient(135deg,#354b5b,#293b49);border-color:#5a7180;color:#eaf1f5}
+.left-panel .field button#openPrinterSetup{background:linear-gradient(135deg,#137f7a,#155e68);border-color:#35a49b;color:#fff}
+.status{background:#263e43;border:1px solid #426e6b;color:#c5eee6}
+.catalog-toggle{background:#2b3945;border:1px solid #4b5d6b;color:#e1eaf0}
+.catalog-toggle:hover{background:#354a56;border-color:#638b8a}
+.profile{background:transparent;color:#d7e2e8;font-size:10.5px;padding:7px;border-radius:7px}
+.profile:hover{background:#30434d;color:#fff}
+.profile-group{color:#82b9b0;font-size:10px}
+.thumb{border-bottom-color:#40515e;color:#d0dbe3}
+.thumb.active{background:#244b4b;border:1px solid #387b75;border-radius:7px;color:#e4fffa}
+.thumb img{background:#17222c;border:1px solid #526473;border-radius:6px}
 .cards{gap:8px}
-.cardthumb{background:#f4f7f8;border-color:#d0dcdf;border-radius:9px}
-.cardthumb small{color:#536a73}
-.status{background:#dce9e8;color:#31545a;border:1px solid #c7dcda}
-.source-box{background:#dce8e8;color:#2c4b52;border:1px solid #c4d7d6}
-.source-wrap{background:#d7e1e4;border:1px solid #c4d1d5;border-radius:8px}
-.source-wrap canvas{box-shadow:0 3px 10px #243b4a24}
-.delete-selected{background:#fff6f5;border-color:#e8c6c2;color:#a63b35}
-.delete-selected:hover{background:#ffefed}
-.center-panel .toolbar .btn{background:#f4f8f8;border-color:#c5d4d7;color:#304b55}
-.center-panel .toolbar .btn:hover{background:#e1efed;border-color:#91b9b3}
-.center-panel .toolbar .btn.primary{background:linear-gradient(135deg,#198b83,#126e6c);border-color:#147b76;color:#fff}
-.center-panel .toolbar .hint{color:#e2efed}
-.center-panel>.toolbar label.hint{background:#294b53;border-color:#58777a;color:#f0f7f5!important}
-.center-panel>.toolbar select{background:#f7faf9;color:#304b55;border-color:#c4d3d6}
-.center-panel>.toolbar #sheetInfo{color:#e5f0ed}
-.center-panel>.toolbar::-webkit-scrollbar-track{background:#dce6e7}
-.center-panel>.toolbar::-webkit-scrollbar-thumb{background:#88a9a7}
-.right-panel .source-box{background:linear-gradient(145deg,#e0ebeb,#d7e5e4);border-color:#bfd4d1;box-shadow:inset 0 1px #ffffffaa}
-.right-panel .source-box>.hint{color:#38575b!important;font-size:11px}
-.fullscreen-toggle{background:linear-gradient(135deg,#365d67,#1c484c);border-color:#6b9a91;color:#f6fbfa;box-shadow:0 3px 10px #193a4030}
-.fullscreen-toggle:hover{background:linear-gradient(135deg,#41747a,#205b59);border-color:#a6c9bd}
-button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px solid #48a89d;outline-offset:2px}
-@media(min-width:851px){.left-panel h3,.right-panel h3{font-size:12.5px}.left-panel .field label,.right-panel .field label{font-size:10px}.left-panel .hint,.right-panel .hint{font-size:10px;line-height:1.45}.left-panel .btn,.right-panel .btn{font-size:11px}}
-@media(max-width:850px){.panel{box-shadow:0 3px 12px #263f4a0c}.center-panel{background:#e3eaec}}
+.cardthumb{background:#202d38;border:1px solid #465866;border-radius:8px;color:#e4edf2}
+.cardthumb small{color:#c0ccd5}
+.source-box{background:linear-gradient(145deg,#293b47,#202f3a);border:1px solid #4b626d;color:#e7eff3}
+.source-wrap{background:#17232d;border:1px solid #526574;border-radius:8px}
+.source-wrap canvas{box-shadow:0 4px 14px #0007}
+.delete-selected{background:#482f34;border-color:#87545a;color:#ffd9d8}
+.delete-selected:hover{background:#5a373d}
+.center-panel .toolbar{background:transparent;border:0;box-shadow:none}
+.center-panel .toolbar .btn{background:linear-gradient(180deg,#354653,#293844);border-color:#536977;color:#edf3f6}
+.center-panel .toolbar .btn:hover{background:#405866;border-color:#70a29d}
+.center-panel .toolbar .btn.primary{background:linear-gradient(135deg,#168e87,#116b70);border-color:#35a49b;color:#fff}
+.center-panel .toolbar .hint{color:#e1ecef}
+.center-panel>.toolbar label.hint{background:#253c46;border:1px solid #58747c;color:#edf7f6!important}
+.center-panel>.toolbar select{background:#17232d;color:#edf3f7;border:1px solid #526574}
+.center-panel>.toolbar #sheetInfo{color:#bfe9df}
+.center-panel>.toolbar::-webkit-scrollbar-track{background:#1a2630}
+.center-panel>.toolbar::-webkit-scrollbar-thumb{background:#536d78}
+.right-panel .source-box{background:linear-gradient(145deg,#293d49,#202f3b);border-color:#526d77;box-shadow:inset 0 1px #ffffff0a}
+.right-panel .source-box>.hint{color:#d3e1e5!important;font-size:10.5px;line-height:1.5}
+.sheet-preview{background:#fff;border:1px solid #9eabb5;box-shadow:0 12px 32px #0008}
+.preview-wrap{background:#18232d}
+.fullscreen-toggle{background:linear-gradient(135deg,#315b65,#1b454d);border:1px solid #5b9692;color:#f2fbfa;box-shadow:0 3px 10px #0005}
+.fullscreen-toggle:hover{background:linear-gradient(135deg,#3b7478,#205c60);border-color:#8bc3b6}
+button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px solid #43c5b5;outline-offset:2px}
+@media(min-width:851px){.left-panel h3,.right-panel h3{font-size:12.5px}.left-panel .field label,.right-panel .field label{font-size:10.5px}.left-panel .hint,.right-panel .hint{font-size:10.5px;line-height:1.5}.left-panel .btn,.right-panel .btn{font-size:11px}}
+@media(max-width:850px){.panel{box-shadow:0 5px 16px #0003}.center-panel{background:#202b36}}
 
 </style></head><body>
 <header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · INSTANT PVC CARD MAKER</span></strong></div><span class="tagline" data-en="Precision editing · Front &amp; Back · Print-ready sheets" data-hi="सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट">Precision editing · Front &amp; Back · Print-ready sheets</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Maker demo">← Back to Demo</a><button id="studioFullscreenToggle" class="fullscreen-toggle" type="button" aria-pressed="false" title="Enter full screen" data-en="⛶ Full Screen" data-hi="⛶ फुल स्क्रीन">⛶ Full Screen</button><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" aria-pressed="false">HI</button><button id="langEn" type="button" class="active" aria-pressed="true">EN</button></div></header>
