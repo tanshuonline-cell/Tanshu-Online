@@ -118,7 +118,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                 </div>
                 <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-blue-100 sm:text-xs">
                   <ScanLine className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
-                  <span className="truncate">Turn Document, Photo &amp; PDF into Clean Scans</span>
+                  <span className="whitespace-normal break-words">Turn Document, Photo &amp; PDF into Clean Scans</span>
                 </div>
               </div>
             </div>
