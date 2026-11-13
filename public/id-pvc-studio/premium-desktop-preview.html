@@ -162,6 +162,13 @@ button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px sol
 .right-panel .source-box>.hint{display:block;color:#f1f5fb!important;font-size:12px;line-height:1.55;letter-spacing:.05px;white-space:normal;overflow-wrap:normal;word-break:normal}
 .right-panel .source-box>.toolbar{gap:6px;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;overflow-y:hidden;min-width:0}
 .right-panel .source-box>.toolbar>*{flex:0 0 auto;white-space:nowrap;word-break:keep-all}
+
+/* Focused scroll and zoom behavior */
+.panel,.preview-wrap,.source-wrap,.toolbar{scrollbar-width:thin;scrollbar-color:#aab6c8 transparent}
+.panel::-webkit-scrollbar,.preview-wrap::-webkit-scrollbar,.source-wrap::-webkit-scrollbar,.toolbar::-webkit-scrollbar{width:5px;height:5px}
+.panel::-webkit-scrollbar-thumb,.preview-wrap::-webkit-scrollbar-thumb,.source-wrap::-webkit-scrollbar-thumb,.toolbar::-webkit-scrollbar-thumb{background:#aab6c8;border-radius:8px}
+.panel::-webkit-scrollbar-track,.preview-wrap::-webkit-scrollbar-track,.source-wrap::-webkit-scrollbar-track,.toolbar::-webkit-scrollbar-track{background:transparent}
+.toolbar{overscroll-behavior-x:contain}
 </style></head><body>
 <header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · INSTANT PVC CARD MAKER</span></strong></div><span class="tagline" data-en="Precision editing · Front &amp; Back · Print-ready sheets" data-hi="सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट">Precision editing · Front &amp; Back · Print-ready sheets</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Maker demo">← Back to Demo</a><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" aria-pressed="false">HI</button><button id="langEn" type="button" class="active" aria-pressed="true">EN</button></div></header>
 <nav class="toolbar" aria-label="Main tools">
