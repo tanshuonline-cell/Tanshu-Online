@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · PVC Card Studio</title>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · INSTANT PVC CARD MAKER</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{font-family:Inter,system-ui,Arial;color:#17233d;background:#eef1f6}*{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden}
@@ -148,8 +148,229 @@ body.studio-expanded{position:fixed;inset:0;width:100vw;height:100vh;min-height:
 body.studio-expanded .layout{height:calc(100vh - 116px);min-height:0}
 @media(max-width:850px){body.studio-expanded{overflow:auto}body.studio-expanded .layout{height:auto}}
 @media(max-width:560px){.fullscreen-toggle{margin-left:auto;min-height:32px;padding:6px 8px;font-size:10px}}
+
+/* Restored from the previously approved Instant PVC Card Maker design. */
+/* INSTANT PVC CARD MAKER — premium Photoshop-inspired workspace skin.
+   Presentation-only overrides: preserve all existing IDs, controls and print geometry. */
+:root{color-scheme:light;--pvc-ink:#17233d;--pvc-navy:#0b1428;--pvc-panel:#111e35;--pvc-gold:#d6b56d;--pvc-red:#c62828}
+body{background:radial-gradient(ellipse at 50% -20%,#263a60 0,#101a30 48%,#0a1222 100%);color:#e7edf7}
+.top{height:60px;padding:0 20px;background:linear-gradient(110deg,#081326 0%,#142746 52%,#0b172b 100%);border-bottom:1px solid #d6b56d66;box-shadow:0 7px 24px #02081766}
+.top .tagline{color:#c5d2e7}
+.studio-brand-photo{width:38px;height:38px}
+.studio-brand .brand-studio{color:#f2d58e;font-weight:850;letter-spacing:.055em}
+.home-back{border-color:#c8a85f;background:linear-gradient(135deg,#314a72,#172943 72%);color:#fff}
+.lang-switch{border-color:#526987;background:#0b172b}
+.lang-switch button{min-width:34px;padding:6px 8px}
+.lang-switch button.active{background:linear-gradient(135deg,#f7e8bd,#d6b56d);color:#17233d;box-shadow:0 1px 6px #0005}
+.toolbar{height:56px;padding:8px 14px;background:linear-gradient(180deg,#172743,#101d34);border-bottom:1px solid #52627c;box-shadow:0 4px 14px #02081744}
+.toolbar .btn{border-color:#52627c;background:linear-gradient(145deg,#f8fafc,#e6ebf3);color:#1c2b45}
+.toolbar .btn.primary{background:linear-gradient(135deg,#e4bd68,#b88934);border-color:#f1d58f;color:#17233d}
+.toolbar .btn.primary:hover{background:linear-gradient(135deg,#f3d88e,#c99a43);color:#101d38}
+.layout{height:calc(100vh - 116px);max-width:1980px;gap:13px;padding:13px}
+.panel{border:1px solid #354763;border-radius:15px;box-shadow:0 12px 30px #02081755}
+.left-panel,.right-panel{background:linear-gradient(165deg,#172743 0%,#101c32 100%);color:#e6edf8;scrollbar-color:#60728f #172743}
+.left-panel h3,.right-panel h3{color:#f7e6bd;font-size:14px;font-weight:850;letter-spacing:.015em}
+.left-panel .field label,.right-panel .field label{color:#d1dced;font-weight:650}
+.left-panel .hint,.right-panel .hint,.left-panel small,.right-panel small{color:#aebed5}
+.left-panel .divider,.right-panel .divider{background:#344762}
+.left-panel .field input:not([type=checkbox]):not([type=radio]):not([type=file]),.left-panel .field select,.right-panel .field input:not([type=checkbox]):not([type=radio]):not([type=file]),.right-panel .field select,.left-panel input[type=number],.right-panel input[type=number],.left-panel textarea,.right-panel textarea{background:#0b162a;border-color:#405574;color:#f4f7fb;border-radius:8px}
+.left-panel input:focus,.right-panel input:focus,.left-panel select:focus,.right-panel select:focus{outline:2px solid #d6b56d;outline-offset:1px}
+.left-panel .source-box,.right-panel .source-box,.left-panel .status,.right-panel .status{background:#0b172b;border:1px solid #344762;color:#d8e3f2}
+.left-panel .thumb{border-color:#344762;color:#e3ebf7}
+.left-panel .thumb.active,.left-panel .thumb:hover{background:#243957}
+.left-panel .thumb img{background:#f8fafc;border-radius:6px}
+.left-panel .source-delete{background:#431e2a;border-color:#9c4c5a;color:#ffe4e8}
+.left-panel .catalog-toggle,.left-panel .profile{background:#172743;color:#e4edf8;border:1px solid #344762}
+.left-panel .profile:hover{background:#243957}
+.left-panel .cards .cardthumb{background:#14243d;border-color:#405574;color:#e4edf8}
+.center-panel{background:linear-gradient(155deg,#1b2d49,#111e34);border-color:#405574}
+.center-panel h3{color:#f7e6bd}
+.center-panel .preview-note,.center-panel .hint{color:#c1cfe2}
+.preview-wrap{background:radial-gradient(circle at 50% 35%,#304664 0,#172944 52%,#101d32 100%);border:1px solid #3d5372;border-radius:12px}
+.sheet-preview{box-shadow:0 12px 34px #02081766;border:1px solid #cbd5e1}
+.center-panel .toolbar{height:auto;background:transparent;border:0;box-shadow:none;padding:0 0 10px}
+.center-panel .toolbar .btn{background:linear-gradient(145deg,#fff,#e8edf5);border-color:#cbd5e1;color:#1e2d47}
+.center-panel .toolbar .btn.primary{background:linear-gradient(135deg,#e4bd68,#b88934);border-color:#f1d58f;color:#17233d}
+.center-panel .toolbar .hint{color:#cbd7e8}
+#sheetInfo{color:#e8d6a7}
+.btn,.home-back{border-radius:9px}
+button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px solid #f4d58b;outline-offset:2px}
+@media(max-width:1050px){.top{height:auto;min-height:60px}.layout{height:auto;gap:12px;padding:10px}.left-panel,.right-panel{overflow:visible}.center-panel{order:2}.left-panel{order:1}.right-panel{order:3}}
+@media(max-width:560px){.top{gap:8px}.studio-brand strong{font-size:11px}.studio-brand .brand-studio{display:block;font-size:9px}.top .tagline{width:100%;order:3}.home-back{margin-left:auto}.lang-switch{margin-left:0}}
+
+
+/* Focused A4 preview toolbar + crop hint readability fixes only */
+.center-panel .center-head{align-items:flex-start;flex-wrap:wrap;row-gap:5px}
+.center-panel .center-head h3{flex:0 0 auto;white-space:nowrap}
+.center-panel .preview-note{flex:1 1 100%;min-width:0;white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.45}
+.center-panel>.toolbar{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin;scrollbar-color:#9aa9bd #263a57;padding:7px 2px 10px!important;overscroll-behavior-x:contain}
+.center-panel>.toolbar>*{flex:0 0 auto;min-width:max-content;white-space:nowrap;word-break:normal;overflow-wrap:normal}
+.center-panel>.toolbar .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:6px 9px;font-size:11px;line-height:1.2;letter-spacing:0;white-space:nowrap;word-break:keep-all;overflow:visible}
+.center-panel>.toolbar select{min-height:34px;max-width:155px;background:#f8fafc;color:#1e2d47;border:1px solid #cbd5e1;border-radius:7px;font-size:11px;white-space:nowrap}
+.center-panel>.toolbar label.hint{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:4px 7px;border:1px solid #526783;border-radius:7px;background:#1a2c48;color:#f1f5fb!important;font-size:11px;line-height:1.2;white-space:nowrap}
+.center-panel>.toolbar label.hint input[type=number]{flex:0 0 48px;width:48px!important;min-width:48px}
+.center-panel>.toolbar label.hint input[type=range]{flex:0 0 74px;width:74px!important;min-width:74px;margin:0}
+.center-panel>.toolbar #sheetInfo{flex:0 0 auto;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#dce6f4}
+.center-panel>.toolbar::-webkit-scrollbar{height:7px}
+.center-panel>.toolbar::-webkit-scrollbar-track{background:#263a57;border-radius:8px}
+.center-panel>.toolbar::-webkit-scrollbar-thumb{background:#9aa9bd;border-radius:8px}
+.right-panel .source-box{padding:11px 12px;background:linear-gradient(145deg,#142943,#0b172b);border:1px solid #526783;border-radius:9px;box-shadow:inset 0 1px #ffffff0d}
+.right-panel .source-box>.hint{display:block;color:#f1f5fb!important;font-size:12px;line-height:1.55;letter-spacing:.05px;white-space:normal;overflow-wrap:normal;word-break:normal}
+.right-panel .source-box>.toolbar{gap:6px;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;overflow-y:hidden;min-width:0}
+.right-panel .source-box>.toolbar>*{flex:0 0 auto;white-space:nowrap;word-break:keep-all}
+
+/* Focused scroll and zoom behavior */
+.panel,.preview-wrap,.source-wrap,.toolbar{scrollbar-width:thin;scrollbar-color:#aab6c8 transparent}
+.panel::-webkit-scrollbar,.preview-wrap::-webkit-scrollbar,.source-wrap::-webkit-scrollbar,.toolbar::-webkit-scrollbar{width:5px;height:5px}
+.panel::-webkit-scrollbar-thumb,.preview-wrap::-webkit-scrollbar-thumb,.source-wrap::-webkit-scrollbar-thumb,.toolbar::-webkit-scrollbar-thumb{background:#aab6c8;border-radius:8px}
+.panel::-webkit-scrollbar-track,.preview-wrap::-webkit-scrollbar-track,.source-wrap::-webkit-scrollbar-track,.toolbar::-webkit-scrollbar-track{background:transparent}
+.toolbar{overscroll-behavior-x:contain}
+
+/* Laptop-first adaptive workspace and full-screen control */
+.fullscreen-toggle{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:7px 10px;border:1px solid #c8a85f;border-radius:9px;background:linear-gradient(135deg,#314a72,#172943 72%);color:#fff;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px #050d1d55}
+.fullscreen-toggle:hover{background:linear-gradient(135deg,#405d88,#203754 72%);border-color:#f0d58e}
+.fullscreen-toggle:focus-visible{outline:2px solid #f4d58b;outline-offset:2px}
+@media (min-width:851px) and (max-width:1200px){
+ body{height:100vh;min-height:0;overflow:hidden}
+ .top{height:60px;min-height:60px;flex-wrap:nowrap;padding:0 12px;gap:8px}
+ .studio-brand{gap:7px}.studio-brand-photo{width:32px;height:32px}
+ .studio-brand strong{font-size:12px}.top .tagline{font-size:10px;white-space:nowrap}
+ .home-back{padding:6px 8px;font-size:10px}
+ .fullscreen-toggle{min-height:31px;padding:6px 8px;font-size:10px}
+ .lang-switch button{min-width:30px;padding:5px 6px}
+ .toolbar{height:52px;min-height:52px;flex-wrap:nowrap;overflow-x:auto}
+ .layout{height:calc(100vh - 112px);min-height:0;grid-template-columns:minmax(190px,22vw) minmax(300px,1fr) minmax(245px,27vw);gap:8px;padding:8px}
+ .panel{padding:10px}.center-panel{padding:9px}
+}
+@media (min-width:851px) and (max-height:760px){
+ .layout{height:calc(100vh - 112px);padding:7px;gap:8px}
+ .panel{padding:9px}.center-panel{padding:8px}
+ .center-head{margin-bottom:5px}
+ .center-panel .center-head h3{font-size:13px}
+ .preview-wrap{padding:7px}
+}
+@media (max-width:850px){
+ body{height:auto;min-height:100vh;overflow:auto}
+ .top{height:auto;min-height:60px;flex-wrap:wrap;padding:9px 12px;gap:8px}
+ .home-back{margin-left:auto}
+ .fullscreen-toggle{min-height:32px;padding:6px 8px;font-size:10px}
+ .layout{height:auto;min-height:0;grid-template-columns:minmax(0,1fr);max-width:100%;padding:9px;gap:10px}
+ .left-panel,.right-panel{overflow:visible}
+ .center-panel{min-height:560px;order:2}
+ .left-panel{order:1}.right-panel{order:3}
+ .preview-wrap{min-height:420px}
+}
+@media (max-width:560px){
+ .studio-brand{max-width:100%}
+ .studio-brand .brand-studio{display:block;font-size:9px}
+ .top .tagline{width:100%;order:4}
+ .home-back{margin-left:0}
+ .fullscreen-toggle{margin-left:auto}
+ .lang-switch{margin-left:0}
+ .center-panel{min-height:480px}
+ .preview-wrap{min-height:360px}
+}
+body.studio-expanded{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;overflow:hidden;z-index:9999}
+body.studio-expanded .layout{height:calc(100vh - 116px);min-height:0}
+@media(max-width:850px){body.studio-expanded{overflow:auto}body.studio-expanded .layout{height:auto}}
+
+/* Premium dark editing-suite theme: visual styling only */
+:root{color-scheme:dark;background:#171d25;color:#e4eaf1}
+body{background:#171d25;color:#e4eaf1}
+.top{background:linear-gradient(105deg,#111923 0%,#1b2938 58%,#173b42 100%);border-bottom:1px solid #344653}
+.top .tagline{color:#b6c6d0}
+.studio-brand strong{color:#f2f5f8}
+.home-back{background:linear-gradient(135deg,#2b3d4d,#202d3a);border:1px solid #506272;color:#edf4f7;box-shadow:0 3px 10px #0005}
+.home-back:hover{background:#344c5b;border-color:#6f9295}
+.lang-switch{background:#17232d;border:1px solid #40515f}
+.lang-switch button{color:#c4d0d9}
+.lang-switch button.active{background:#2c7774;color:#fff}
+.toolbar{background:#202a35;border-bottom:1px solid #3b4a58;box-shadow:0 3px 12px #0003}
+.layout{background:#171d25}
+.panel{background:#222d38;border:1px solid #3a4a58;border-radius:10px;box-shadow:0 8px 22px #0003;color:#e2e9ef}
+.left-panel,.right-panel{background:linear-gradient(160deg,#25313d,#202a35)}
+.center-panel{background:linear-gradient(145deg,#242f3b,#1d2732);border-color:#40515e;box-shadow:inset 0 1px #ffffff0a,0 8px 22px #0004}
+.panel h3,.center-head h3{color:#f0f4f7;font-size:13px;letter-spacing:.12px}
+.panel p,.panel .hint,.hint,.preview-note,.center-panel .preview-note{color:#b6c4cf}
+.panel .hint,.panel p.hint{font-size:10.5px;line-height:1.5}
+.field{margin:9px 0}
+.field label,.panel label{color:#d1dbe3;font-size:10.5px;font-weight:650;letter-spacing:.08px}
+.field input,.field select,.field>select,.left-panel select,.right-panel select,.left-panel input:not([type=checkbox]):not([type=range]),.right-panel input:not([type=checkbox]):not([type=range]){background:#141e28!important;color:#edf3f7!important;border:1px solid #526473!important;border-radius:7px!important;box-shadow:inset 0 2px 5px #0004}
+.field input::placeholder,.left-panel input::placeholder,.right-panel input::placeholder{color:#8999a7}
+.field input:focus,.field select:focus,.left-panel select:focus,.right-panel select:focus{outline:2px solid #39b7aa;outline-offset:1px;border-color:#39b7aa!important}
+.field select option,.left-panel select option,.right-panel select option{background:#1d2934;color:#eef3f7}
+.divider{background:#40505d;margin:11px 0}
+.btn{background:linear-gradient(180deg,#354452,#2a3744);border:1px solid #526372;color:#e7eef3;box-shadow:0 2px 5px #0003;transition:background .15s,border-color .15s,box-shadow .15s}
+.btn:hover{background:linear-gradient(180deg,#405563,#304452);border-color:#6b9394;box-shadow:0 3px 9px #0004}
+.btn.primary{background:linear-gradient(135deg,#168e87,#116b70);border-color:#35a49b;color:#fff;box-shadow:0 3px 10px #087d7738}
+.btn.primary:hover{background:linear-gradient(135deg,#20a79c,#147d80)}
+.left-panel .field button#openWhatsAppPhotoCrop{background:linear-gradient(135deg,#354b5b,#293b49);border-color:#5a7180;color:#eaf1f5}
+.left-panel .field button#openPrinterSetup{background:linear-gradient(135deg,#137f7a,#155e68);border-color:#35a49b;color:#fff}
+.status{background:#263e43;border:1px solid #426e6b;color:#c5eee6}
+.catalog-toggle{background:#2b3945;border:1px solid #4b5d6b;color:#e1eaf0}
+.catalog-toggle:hover{background:#354a56;border-color:#638b8a}
+.profile{background:transparent;color:#d7e2e8;font-size:10.5px;padding:7px;border-radius:7px}
+.profile:hover{background:#30434d;color:#fff}
+.profile-group{color:#82b9b0;font-size:10px}
+.thumb{border-bottom-color:#40515e;color:#d0dbe3}
+.thumb.active{background:#244b4b;border:1px solid #387b75;border-radius:7px;color:#e4fffa}
+.thumb img{background:#17222c;border:1px solid #526473;border-radius:6px}
+.cards{gap:8px}
+.cardthumb{background:#202d38;border:1px solid #465866;border-radius:8px;color:#e4edf2}
+.cardthumb small{color:#c0ccd5}
+.source-box{background:linear-gradient(145deg,#293b47,#202f3a);border:1px solid #4b626d;color:#e7eff3}
+.source-wrap{background:#17232d;border:1px solid #526574;border-radius:8px}
+.source-wrap canvas{box-shadow:0 4px 14px #0007}
+.delete-selected{background:#482f34;border-color:#87545a;color:#ffd9d8}
+.delete-selected:hover{background:#5a373d}
+.center-panel .toolbar{background:transparent;border:0;box-shadow:none}
+.center-panel .toolbar .btn{background:linear-gradient(180deg,#354653,#293844);border-color:#536977;color:#edf3f6}
+.center-panel .toolbar .btn:hover{background:#405866;border-color:#70a29d}
+.center-panel .toolbar .btn.primary{background:linear-gradient(135deg,#168e87,#116b70);border-color:#35a49b;color:#fff}
+.center-panel .toolbar .hint{color:#e1ecef}
+.center-panel>.toolbar label.hint{background:#253c46;border:1px solid #58747c;color:#edf7f6!important}
+.center-panel>.toolbar select{background:#17232d;color:#edf3f7;border:1px solid #526574}
+.center-panel>.toolbar #sheetInfo{color:#bfe9df}
+.center-panel>.toolbar::-webkit-scrollbar-track{background:#1a2630}
+.center-panel>.toolbar::-webkit-scrollbar-thumb{background:#536d78}
+.right-panel .source-box{background:linear-gradient(145deg,#293d49,#202f3b);border-color:#526d77;box-shadow:inset 0 1px #ffffff0a}
+.right-panel .source-box>.hint{color:#d3e1e5!important;font-size:10.5px;line-height:1.5}
+.sheet-preview{background:#fff;border:1px solid #9eabb5;box-shadow:0 12px 32px #0008}
+.preview-wrap{background:#18232d}
+.fullscreen-toggle{background:linear-gradient(135deg,#315b65,#1b454d);border:1px solid #5b9692;color:#f2fbfa;box-shadow:0 3px 10px #0005}
+.fullscreen-toggle:hover{background:linear-gradient(135deg,#3b7478,#205c60);border-color:#8bc3b6}
+button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px solid #43c5b5;outline-offset:2px}
+@media(min-width:851px){.left-panel h3,.right-panel h3{font-size:12.5px}.left-panel .field label,.right-panel .field label{font-size:10.5px}.left-panel .hint,.right-panel .hint{font-size:10.5px;line-height:1.5}.left-panel .btn,.right-panel .btn{font-size:11px}}
+@media(max-width:850px){.panel{box-shadow:0 5px 16px #0003}.center-panel{background:#202b36}}
+
+
+/* Hover readability + restrained deep-red premium accents */
+.panel .hint:hover,
+.panel p:hover,
+.panel small:hover,
+.panel label:hover,
+.panel .preview-note:hover,
+.panel .profile-group:hover,
+.panel .cardthumb small:hover,
+.panel .thumb>span:hover,
+.panel strong:hover,
+.top .tagline:hover{
+  color:#d9a34b!important;
+  text-shadow:0 0 8px #d9a34b24;
+}
+.top{
+  background:linear-gradient(105deg,#111923 0%,#292029 30%,#1b2938 62%,#173b42 100%);
+  border-bottom:1px solid #65434a;
+}
+.studio-brand-photo{
+  border-color:#95636a;
+}
+.studio-brand:hover strong{
+  color:#c9787d;
+  text-shadow:0 0 12px #a94f5838;
+}
 </style></head><body>
-<header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · PVC CARD STUDIO</span></strong></div><span class="tagline" data-en="Original page · Manual crop · A4 print" data-hi="मूल पेज · मैनुअल क्रॉप · A4 प्रिंट">मूल पेज · मैनुअल क्रॉप · A4 प्रिंट</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Studio demo">← डेमो पर वापस</a><button id="studioFullscreenToggle" class="fullscreen-toggle" type="button" aria-pressed="false" title="Enter full screen" data-en="⛶ Full Screen" data-hi="⛶ फुल स्क्रीन">⛶ Full Screen</button><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
+<header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · INSTANT PVC CARD MAKER</span></strong></div><span class="tagline" data-en="Precision editing · Front &amp; Back · Print-ready sheets" data-hi="सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट">सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Maker demo">← डेमो पर वापस</a><button id="studioFullscreenToggle" class="fullscreen-toggle" type="button" aria-pressed="false" title="Enter full screen" data-en="⛶ Full Screen" data-hi="⛶ फुल स्क्रीन">⛶ Full Screen</button><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
 <nav class="toolbar" aria-label="Main tools">
 <button id="chooseFiles" class="btn primary" data-en="Choose Files" data-hi="फाइल चुनें">फाइल चुनें</button>
 <button id="makeSheets" class="btn" data-en="Arrange A4 Copies" data-hi="A4 कॉपी व्यवस्थित करें">A4 कॉपी व्यवस्थित करें</button>
