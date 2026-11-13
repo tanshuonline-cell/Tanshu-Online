@@ -187,6 +187,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [backgroundSaved, setBackgroundSaved] = useState(false);
+  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('color');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
@@ -228,6 +230,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const clearResult = () => {
     setResultBlob(null);
     setResultUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
+    setBackgroundSaved(false);
+    setCroppedBlob(null);
     setProgress(0);
     setStatus('');
   };
@@ -242,7 +246,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setPhotoScale(1);
     cropDrawRef.current = null;
     photoTransformRef.current = null;
-    clearResult();
+    setCroppedBlob(null);
+    setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
   };
 
   const chooseFile = (next?: File) => {
@@ -268,8 +273,9 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   const preparePhoto = async () => {
     if (!file) throw new Error('Upload a photo first.');
+    if (!resultBlob) throw new Error('Remove and save the background before cropping.');
     const image = new Image();
-    const originalUrl = URL.createObjectURL(file);
+    const originalUrl = URL.createObjectURL(resultBlob);
     try {
       await new Promise<void>((resolve, reject) => {
         image.onload = () => resolve();
@@ -339,14 +345,19 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setStatus('Preparing photo…');
     clearResult();
     try {
-      const prepared = await preparePhoto();
-      setProgress(15);
-      const removed = await removeBackgroundWithPersonMask(prepared, (message) => {
+      const removed = await removeBackgroundWithPersonMask(file, (message) => {
         setStatus(message);
         setProgress(message.includes('Finishing') ? 90 : message.includes('Detecting') ? 65 : 25);
       });
       setResultBlob(removed);
       setResultUrl(URL.createObjectURL(removed));
+      setBackgroundSaved(false);
+      setCroppedBlob(null);
+      setCropApplied(false);
+      setIsCropping(false);
+      setCropHasSelection(false);
+      setCropRect({ x: 0, y: 0, w: 100, h: 100 });
+      setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
       setProgress(100);
       setStatus('Background removed successfully');
     } catch (e) {
@@ -358,7 +369,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   };
 
   const exportPhoto = async () => {
-    if (!resultBlob) return;
+    const exportBlob = cropApplied && croppedBlob ? croppedBlob : null;
+    if (!resultBlob || !backgroundSaved || !exportBlob) return;
     setBusy(true);
     setError('');
     try {
@@ -366,7 +378,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         let pngSource = resultBlob;
         if (backgroundMode === 'color') {
           const image = new Image();
-          const source = URL.createObjectURL(resultBlob);
+          const source = URL.createObjectURL(exportBlob);
           await new Promise<void>((resolve, reject) => {
             image.onload = () => resolve();
             image.onerror = () => reject(new Error('Could not prepare the passport photo background.'));
@@ -392,7 +404,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         URL.revokeObjectURL(url);
       } else {
         const image = new Image();
-        const source = URL.createObjectURL(resultBlob);
+        const source = URL.createObjectURL(exportBlob);
         await new Promise<void>((resolve, reject) => {
           image.onload = () => resolve();
           image.onerror = () => reject(new Error('Could not prepare the download preview.'));
@@ -667,6 +679,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
                   finishCropDrag();
                   setBusy(true);
                   const prepared = await preparePhoto();
+                  setCroppedBlob(prepared);
                   const nextUrl = URL.createObjectURL(prepared);
                   setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return nextUrl; });
                   setPhotoOffset({ x: 0, y: 0 });
@@ -682,14 +695,14 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
               } else {
                 if (!cropHasSelection) setCropRect({ x: 0, y: 0, w: 100, h: 100 });
                 setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
+                setCroppedBlob(null);
                 setPhotoOffset({ x: 0, y: 0 });
                 setPhotoScale(1);
                 setCropApplied(false);
                 setIsCropping(true);
               }
-              clearResult();
-            }} disabled={!file || busy} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40">{isCropping ? <CheckCircle2 size={14} /> : <Crop size={14} />} {isCropping ? 'Done · Apply Crop' : cropApplied ? 'Edit Crop' : 'Crop'}</button>
-            <p className="mt-3 text-[10px] leading-4 text-blue-200">{isCropping ? 'फोटो पर ड्रैग करके क्रॉप बनाएँ। बने हुए बॉक्स के अंदर से खिसकाएँ और चारों कोनों से आकार बदलें। Done दबाकर लागू करें।' : cropApplied ? 'अब फोटो को फ्रेम के अंदर पकड़कर इधर-उधर रखें। चारों कोनों से फोटो को बड़ा या छोटा करें। Remove Background दबाने पर यही सेटिंग लागू होगी।' : 'Crop दबाएँ, फोटो पर ड्रैग करके फ्रेम बनाएँ, फिर अंदर से उसे खिसकाएँ और कोनों से resize करें। Done दबाने पर passport-size crop लागू होगा।'}</p>
+            }} disabled={!backgroundSaved || !resultBlob || busy} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40">{isCropping ? <CheckCircle2 size={14} /> : <Crop size={14} />} {isCropping ? 'Done · Apply Crop' : cropApplied ? 'Edit Crop' : 'Crop'}</button>
+            <p className="mt-3 text-[10px] leading-4 text-blue-200">{isCropping ? 'Background हटने और Save होने के बाद फोटो पर ड्रैग करके crop बनाएँ। बॉक्स को अंदर से खिसकाएँ और चारों कोनों से resize करें। Done दबाकर लागू करें।' : cropApplied ? 'Crop लागू हो गया है। अब डाउनलोड सेटिंग के अनुसार फोटो सेव करें।' : 'पहले Remove Background करें और Save Background दबाएँ। उसके बाद यहाँ crop का वही ड्रॉ, मूव और resize सिस्टम खुलेगा।'}</p>
           </section>
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-cyan-200">Background color</div>
@@ -705,14 +718,15 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
         <main className={'order-1 flex min-h-[360px] min-w-0 flex-col rounded-xl border border-white/10 bg-[#0c1d33] p-3 lg:order-2 lg:min-h-0 ' + (expanded ? 'lg:col-span-3' : '')}>
           <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-bold text-white"><ImageIcon size={15} className="text-cyan-300" />{resultUrl ? 'Background removed · Preview' : 'Photo preview'}</div><span className="text-[10px] text-blue-200">{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'Upload a photo to begin'}</span></div>
           <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto rounded-lg bg-[#06101f] p-3">
-            {resultUrl ? <div className="flex max-h-full max-w-full items-center justify-center overflow-auto rounded-lg p-4" style={{ background: backgroundMode === 'transparent' ? checker : backgroundColor }}><img src={resultUrl} alt="Background removed preview" className="max-h-[65vh] max-w-full object-contain" /></div>
-              : cropApplied && cropPreviewUrl ? <div className="relative max-h-[65vh] max-w-full overflow-hidden rounded-lg border-2 border-dashed border-cyan-300 bg-white touch-none select-none" style={{ width: 'min(100%, 420px)', aspectRatio: targetWidthMm + ' / ' + targetHeightMm, cursor: 'move' }} onPointerDown={startPhotoTransform} onPointerMove={movePhotoTransform} onPointerUp={endPhotoTransform} onPointerCancel={endPhotoTransform}><img src={cropPreviewUrl} alt="Passport photo crop preview — drag to reposition" draggable={false} className="pointer-events-none h-full w-full select-none object-cover" style={{ transform: 'translate(' + photoOffset.x + '%, ' + photoOffset.y + '%) scale(' + photoScale + ')', transformOrigin: 'center' }} /><span data-photo-resize="tl" className="absolute left-0 top-0 z-20 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="tr" className="absolute right-0 top-0 z-20 h-5 w-5 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="bl" className="absolute bottom-0 left-0 z-20 h-5 w-5 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="br" className="absolute bottom-0 right-0 z-20 h-5 w-5 translate-x-1/2 translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /></div>
-              : sourceUrl ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)', cursor: isCropping ? 'crosshair' : 'grab' }} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag}><img src={sourceUrl} alt="Original photo preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ pointerEvents: 'none' }} />{isCropping && cropRect.w > 0 && cropRect.h > 0 && <div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,.48)]" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%' }}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /></div>}</div>
+            {cropApplied && cropPreviewUrl ? <div className="relative max-h-[65vh] max-w-full overflow-hidden rounded-lg border-2 border-dashed border-cyan-300 bg-white touch-none select-none" style={{ width: 'min(100%, 420px)', aspectRatio: targetWidthMm + ' / ' + targetHeightMm, cursor: 'move' }} onPointerDown={startPhotoTransform} onPointerMove={movePhotoTransform} onPointerUp={endPhotoTransform} onPointerCancel={endPhotoTransform}><img src={cropPreviewUrl} alt="Passport photo crop preview — drag to reposition" draggable={false} className="pointer-events-none h-full w-full select-none object-cover" style={{ transform: 'translate(' + photoOffset.x + '%, ' + photoOffset.y + '%) scale(' + photoScale + ')', transformOrigin: 'center' }} /><span data-photo-resize="tl" className="absolute left-0 top-0 z-20 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="tr" className="absolute right-0 top-0 z-20 h-5 w-5 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="bl" className="absolute bottom-0 left-0 z-20 h-5 w-5 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /><span data-photo-resize="br" className="absolute bottom-0 right-0 z-20 h-5 w-5 translate-x-1/2 translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-cyan-700 bg-white shadow-md" /></div>
+              : resultUrl && backgroundSaved ? <div ref={cropStageRef} className="relative inline-block max-h-[65vh] max-w-full select-none touch-none" style={{ transform: 'rotate(' + rotation + 'deg)', cursor: isCropping ? 'crosshair' : 'grab' }} onPointerDown={startCropDraw} onPointerMove={handleCropPointerMove} onPointerUp={finishCropDrag} onPointerCancel={finishCropDrag}><img src={resultUrl} alt="Background-removed photo — crop preview" draggable={false} className="block max-h-[65vh] max-w-full rounded-lg object-contain" style={{ pointerEvents: 'none' }} />{isCropping && cropRect.w > 0 && cropRect.h > 0 && <div className="pointer-events-none absolute rounded-sm border-2 border-rose-600 shadow-[0_0_0_9999px_rgba(0,0,0,.48)]" style={{ left: cropRect.x + '%', top: cropRect.y + '%', width: cropRect.w + '%', height: cropRect.h + '%' }}><span data-crop-handle="tl" className="pointer-events-auto absolute -left-2 -top-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="tr" className="pointer-events-auto absolute -right-2 -top-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="bl" className="pointer-events-auto absolute -bottom-2 -left-2 z-10 h-4 w-4 cursor-nesw-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /><span data-crop-handle="br" className="pointer-events-auto absolute -bottom-2 -right-2 z-10 h-4 w-4 cursor-nwse-resize rounded-full border-2 border-rose-600 bg-white shadow-md" /></div>}</div>
+              : resultUrl ? <div className="flex max-h-full max-w-full items-center justify-center overflow-auto rounded-lg p-4" style={{ background: backgroundMode === 'transparent' ? checker : backgroundColor }}><img src={resultUrl} alt="Background removed preview — save it to unlock cropping" className="max-h-[65vh] max-w-full object-contain" /></div>
+              : sourceUrl ? <div className="flex max-h-full max-w-full items-center justify-center"><img src={sourceUrl} alt="Original photo preview" className="max-h-[65vh] max-w-full object-contain" /></div>
               : <button type="button" onClick={() => inputRef.current?.click()} className="flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-400/5 px-8 py-12 text-center hover:bg-cyan-400/10"><Upload size={34} className="mb-3 text-cyan-300" /><b className="text-sm text-white">Upload your photo</b><span className="mt-2 text-xs text-blue-200">JPG · PNG · WEBP · Up to 40 MB</span></button>}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <span className="text-[10px] text-blue-200">Your original photo stays unchanged · Processing runs in this browser</span>
-            {resultUrl && <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-200"><CheckCircle2 size={14} /> Ready to download</span>}
+            {resultUrl && backgroundSaved && cropApplied && <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-200"><CheckCircle2 size={14} /> Crop applied · Ready to download</span>}
           </div>
         </main>
 
@@ -720,6 +734,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-200"><Eraser size={15} /> AI background removal</div>
             <button type="button" onClick={runRemoval} disabled={!file || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-cyan-300 disabled:opacity-40">{busy ? <Loader2 size={16} className="animate-spin" /> : <Eraser size={16} />}{busy ? 'Processing…' : resultUrl ? 'Remove Again' : 'Remove Background'}</button>
+            {resultUrl && !backgroundSaved && !busy && <button type="button" onClick={() => { setBackgroundSaved(true); setIsCropping(true); setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropHasSelection(false); setError(''); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-emerald-300"><CheckCircle2 size={16} /> Save Background &amp; Open Crop</button>}
+            {backgroundSaved && <p className="mt-2 text-[10px] leading-4 text-emerald-200">Background saved in this session. Cropping is now unlocked.</p>}
             {(busy || status) && <div className="mt-3"><div className="mb-1 flex justify-between gap-2 text-[10px] text-blue-100"><span>{status}</span><b>{progress}%</b></div><div className="h-2 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-cyan-400 transition-all" style={{ width: progress + '%' }} /></div></div>}
             <p className="mt-3 text-[10px] leading-4 text-blue-200">First use downloads the lightweight AI model to your browser. Later photos reuse it in this tab. The photo itself is not uploaded.</p>
           </section>
@@ -733,8 +749,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
               <button type="button" onClick={() => setExportFormat('png')} className={'rounded-lg border px-3 py-2.5 text-xs font-extrabold ' + (exportFormat === 'png' ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/15 bg-white/5 text-blue-100')}>PNG · Transparent</button>
               <button type="button" onClick={() => setExportFormat('jpg')} className={'rounded-lg border px-3 py-2.5 text-xs font-extrabold ' + (exportFormat === 'jpg' ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/15 bg-white/5 text-blue-100')}>JPG · Photo</button>
             </div>
-            <button type="button" onClick={exportPhoto} disabled={!resultUrl || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><Download size={16} /> Download {exportFormat.toUpperCase()}</button>
-            <p className="mt-2 text-[10px] leading-4 text-blue-200">{exportFormat === 'png' ? 'PNG keeps the removed background transparent and preserves full image quality. JPG always uses a solid background (selected color, or white).' : 'JPG uses the selected solid background color; when Transparent is selected above, white is used. JPG size presets and custom limits are enforced on the final downloaded file. PNG is lossless, so its file size depends on the photo and cannot be forced to an exact KB/MB target.'} 300 DPI metadata is embedded in the exported file.</p>
+            <button type="button" onClick={exportPhoto} disabled={!resultUrl || !backgroundSaved || !cropApplied || !croppedBlob || busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-3 py-3 text-xs font-extrabold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"><Download size={16} /> Download {exportFormat.toUpperCase()}</button>
+            <p className="mt-2 text-[10px] leading-4 text-blue-200">{!backgroundSaved ? 'Remove the background, save it, then crop and apply to unlock download. ' : !cropApplied ? 'Apply the crop to unlock download. ' : ''}{exportFormat === 'png' ? 'PNG keeps the removed background transparent and preserves full image quality. JPG always uses a solid background (selected color, or white).' : 'JPG uses the selected solid background color; when Transparent is selected above, white is used. JPG size presets and custom limits are enforced on the final downloaded file. PNG is lossless, so its file size depends on the photo and cannot be forced to an exact KB/MB target.'} 300 DPI metadata is embedded in the exported file.</p>
           </section>
           {error && <div role="alert" className="rounded-lg border border-rose-400/30 bg-rose-400/10 p-3 text-xs text-rose-200">{error}</div>}
         </aside>}
