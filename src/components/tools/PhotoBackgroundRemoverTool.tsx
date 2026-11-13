@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-// @ts-ignore @bg0/browser is a JavaScript package; its runtime API is documented by the package.
-import { removeBackground } from '@bg0/browser';
 import {
   Upload, Download, Image as ImageIcon, Crop, RotateCcw, RotateCw,
   Eraser, CheckCircle2, Loader2, X, Maximize2, Minimize2,
