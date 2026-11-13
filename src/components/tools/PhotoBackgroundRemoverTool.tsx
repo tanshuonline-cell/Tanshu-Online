@@ -232,6 +232,19 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setStatus('');
   };
 
+  const resetCropForGeometryChange = () => {
+    setCropRect({ x: 0, y: 0, w: 100, h: 100 });
+    setCropHasSelection(false);
+    setIsCropping(false);
+    setCropApplied(false);
+    setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
+    setPhotoOffset({ x: 0, y: 0 });
+    setPhotoScale(1);
+    cropDrawRef.current = null;
+    photoTransformRef.current = null;
+    clearResult();
+  };
+
   const chooseFile = (next?: File) => {
     if (!next) return;
     if (!next.type.startsWith('image/')) { setError('Please choose a JPG, PNG or WEBP photo.'); return; }
@@ -613,7 +626,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
                     setCustomWidth(String(Number(mmToUnit(presetSize.widthMm, photoUnit).toFixed(2))));
                     setCustomHeight(String(Number(mmToUnit(presetSize.heightMm, photoUnit).toFixed(2))));
                   }
-                  clearResult();
+                  resetCropForGeometryChange();
                 }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white">
                   {PHOTO_SIZE_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                   <option value="custom">Custom width &amp; height</option>
@@ -621,10 +634,10 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
               </label>
               <div className="mb-2 grid grid-cols-[1fr_1fr_76px] gap-2">
                 <label className="text-[10px] text-blue-100">Width
-                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customWidth} onChange={(e) => { setCustomWidth(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
+                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customWidth} onChange={(e) => { setCustomWidth(e.target.value); setPhotoSizePreset('custom'); resetCropForGeometryChange(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
                 </label>
                 <label className="text-[10px] text-blue-100">Height
-                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customHeight} onChange={(e) => { setCustomHeight(e.target.value); setPhotoSizePreset('custom'); clearResult(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
+                  <input type="number" min="0.1" max={photoUnit === 'mm' ? 300 : photoUnit === 'cm' ? 30 : 11.81} step="0.1" value={customHeight} onChange={(e) => { setCustomHeight(e.target.value); setPhotoSizePreset('custom'); resetCropForGeometryChange(); }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white" />
                 </label>
                 <label className="text-[10px] text-blue-100">Unit
                   <select value={photoUnit} onChange={(e) => {
@@ -633,7 +646,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
                     setCustomHeight(String(Number(mmToUnit(targetHeightMm, nextUnit).toFixed(2))));
                     setPhotoUnit(nextUnit);
                     setPhotoSizePreset('custom');
-                    clearResult();
+                    resetCropForGeometryChange();
                   }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-1 py-2 text-[11px] text-white">
                     <option value="mm">mm</option><option value="cm">cm</option><option value="in">inch</option>
                   </select>
@@ -643,7 +656,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             </div>
             <div className="mb-2 flex items-center justify-between text-xs text-blue-100"><span>Rotate photo</span><b>{rotation}°</b></div>
             <div className="mb-4 grid grid-cols-4 gap-1.5">
-              {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); clearResult(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200">{index < 2 ? <RotateCcw size={16} /> : <RotateCw size={16} />}</span>{item.label}</button>)}
+              {[{ label: '−90°', amount: -90 }, { label: '−1°', amount: -1 }, { label: '+1°', amount: 1 }, { label: '+90°', amount: 90 }].map((item, index) => <button key={item.label} type="button" onClick={() => { setRotation((value) => ((value + item.amount) % 360 + 360) % 360); resetCropForGeometryChange(); }} className="flex flex-col items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1 py-2 text-[10px] font-semibold text-blue-100 hover:border-cyan-300 hover:bg-cyan-400/10"><span className="text-cyan-200">{index < 2 ? <RotateCcw size={16} /> : <RotateCw size={16} />}</span>{item.label}</button>)}
             </div>
             <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>Free</b></div>
             <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">फोटो पर किसी खाली जगह से माउस दबाकर खींचें और नया crop box बनाएँ। बने हुए बॉक्स को बीच से पकड़कर खिसकाएँ और चारों कोनों से उसका आकार बदलें। चुने हुए photo size का ratio लॉक रहेगा।</div>
