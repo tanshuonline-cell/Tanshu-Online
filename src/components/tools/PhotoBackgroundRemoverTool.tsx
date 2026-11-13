@@ -374,28 +374,27 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
     setError('');
     try {
       if (exportFormat === 'png') {
-        let pngSource = exportBlob;
+        const image = new Image();
+        const source = URL.createObjectURL(exportBlob);
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve();
+          image.onerror = () => reject(new Error('Could not prepare the passport photo background.'));
+          image.src = source;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Could not create the passport photo background.');
         if (backgroundMode === 'color') {
-          const image = new Image();
-          const source = URL.createObjectURL(exportBlob);
-          await new Promise<void>((resolve, reject) => {
-            image.onload = () => resolve();
-            image.onerror = () => reject(new Error('Could not prepare the passport photo background.'));
-            image.src = source;
-          });
-          const canvas = document.createElement('canvas');
-          canvas.width = image.naturalWidth;
-          canvas.height = image.naturalHeight;
-          const context = canvas.getContext('2d');
-          if (!context) throw new Error('Could not create the passport photo background.');
           context.fillStyle = backgroundColor;
           context.fillRect(0, 0, canvas.width, canvas.height);
-          const drawWidth = canvas.width * photoScale;
-          const drawHeight = canvas.height * photoScale;
-          context.drawImage(image, (canvas.width - drawWidth) / 2 + (photoOffset.x / 100) * canvas.width, (canvas.height - drawHeight) / 2 + (photoOffset.y / 100) * canvas.height, drawWidth, drawHeight);
-          URL.revokeObjectURL(source);
-          pngSource = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG export failed.')), 'image/png'));
         }
+        const drawWidth = canvas.width * photoScale;
+        const drawHeight = canvas.height * photoScale;
+        context.drawImage(image, (canvas.width - drawWidth) / 2 + (photoOffset.x / 100) * canvas.width, (canvas.height - drawHeight) / 2 + (photoOffset.y / 100) * canvas.height, drawWidth, drawHeight);
+        URL.revokeObjectURL(source);
+        const pngSource = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG export failed.')), 'image/png'));
         const png = await addPngDpi(pngSource, dpi);
         const url = URL.createObjectURL(png);
         const anchor = document.createElement('a');
@@ -675,7 +674,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
             </div>
             <div className="mb-2 flex justify-between text-xs text-blue-100"><span>Manual crop · drag on photo to create</span><b>Free</b></div>
             <div className="rounded-lg border border-yellow-300/30 bg-[#071426] p-2 text-[10px] leading-4 text-blue-200">फोटो पर किसी खाली जगह से माउस दबाकर खींचें और नया crop box बनाएँ। बने हुए बॉक्स को बीच से पकड़कर खिसकाएँ और चारों कोनों से उसका आकार बदलें। चुने हुए photo size का ratio लॉक रहेगा।</div>
-            <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropHasSelection(false); setIsCropping(false); setCropApplied(false); setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; }); setPhotoOffset({ x: 0, y: 0 }); setPhotoScale(1); setRotation(0); cropDrawRef.current = null; photoTransformRef.current = null; clearResult(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
+            <button type="button" onClick={() => { setCropRect({ x: 0, y: 0, w: 100, h: 100 }); setCropHasSelection(false); setIsCropping(false); setCropApplied(false); setCropPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; }); setPhotoOffset({ x: 0, y: 0 }); setPhotoScale(1); setRotation(0); cropDrawRef.current = null; photoTransformRef.current = null; setCroppedBlob(null); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10"><RotateCcw size={14} /> Reset crop &amp; angle</button>
             <button type="button" onClick={async () => {
               if (isCropping) {
                 try {
