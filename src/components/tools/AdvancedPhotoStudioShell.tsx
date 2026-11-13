@@ -521,14 +521,55 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const smartCenterAndBalanceSheet = () => {
-    if (!sheetSlots.length) return;
-    const minX = Math.min(...sheetSlots.map(slot => slot.x));
-    const minY = Math.min(...sheetSlots.map(slot => slot.y));
-    const maxX = Math.max(...sheetSlots.map(slot => slot.x + slot.width));
-    const maxY = Math.max(...sheetSlots.map(slot => slot.y + slot.height));
-    const dx = (sheetDimensions.widthMm - sheetMargin * 2 - (maxX - minX)) / 2 - minX;
-    const dy = (sheetDimensions.heightMm - sheetMargin * 2 - (maxY - minY)) / 2 - minY;
-    setSheetSlots(current => current.map(slot => ({ ...slot, x: Math.max(sheetMargin, Math.min(sheetDimensions.widthMm - sheetMargin - slot.width, slot.x + dx)), y: Math.max(sheetMargin, Math.min(sheetDimensions.heightMm - sheetMargin - slot.height, slot.y + dy)) })));
+    if (!sheetSlots.length || sheetMode === 'single') return;
+    setSheetSlots(current => {
+      if (!current.length) return current;
+
+      // Keep the selected photo dimensions unchanged and reserve a printer/cutting-safe
+      // edge margin. A larger user-selected margin is always respected.
+      const pageW = sheetDimensions.widthMm;
+      const pageH = sheetDimensions.heightMm;
+      const safeMargin = Math.max(4, sheetMargin);
+      const horizontalGap = Math.max(0, sheetGap);
+      const verticalGap = Math.max(0, sheetVerticalGap);
+      const usableW = pageW - safeMargin * 2;
+      const usableH = pageH - safeMargin * 2;
+      const maxPhotoWidth = Math.max(...current.map(slot => slot.width));
+      if (usableW <= 0 || usableH <= 0 || maxPhotoWidth > usableW) return current;
+
+      // Fill each row to the maximum number of unchanged photo sizes that fit.
+      const columns = Math.max(1, Math.floor((usableW + horizontalGap) / (maxPhotoWidth + horizontalGap)));
+      const rows: SheetSlot[][] = [];
+      for (let index = 0; index < current.length; index += columns) {
+        rows.push(current.slice(index, index + columns));
+      }
+
+      const rowHeights = rows.map(row => Math.max(...row.map(slot => slot.height)));
+      const totalGridHeight = rowHeights.reduce((sum, height) => sum + height, 0)
+        + Math.max(0, rows.length - 1) * verticalGap;
+      if (totalGridHeight > usableH) return current;
+
+      // A single row stays near the top so a small order does not waste the sheet.
+      // Multi-row layouts are vertically balanced; every row is horizontally centered.
+      const firstY = rows.length === 1
+        ? safeMargin
+        : Math.max(safeMargin, (pageH - totalGridHeight) / 2);
+
+      let y = firstY;
+      const positioned: SheetSlot[] = [];
+      rows.forEach((row, rowIndex) => {
+        const rowWidth = row.reduce((sum, slot) => sum + slot.width, 0)
+          + Math.max(0, row.length - 1) * horizontalGap;
+        let x = (pageW - rowWidth) / 2;
+        row.forEach(slot => {
+          positioned.push({ ...slot, x, y });
+          x += slot.width + horizontalGap;
+        });
+        y += rowHeights[rowIndex] + verticalGap;
+      });
+
+      return positioned;
+    });
   };
 
   const mergeSheetPhotos = async (mergeAll = false) => {
