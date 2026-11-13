@@ -197,7 +197,7 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   useEffect(()=>{const syncFullscreen=()=>setStudioFullscreen(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',syncFullscreen);return()=>document.removeEventListener('fullscreenchange',syncFullscreen);},[]);
   const totalCopies = useMemo(() => customers.reduce((sum,c) => sum + Math.max(0,c.quantity || 0),0),[customers]);
 
-  const updateCustomer = (id:string, updates:Partial<CustomerPhoto>) => { setCustomers(current => {const next=current.map(c => c.id===id ? {...c,...updates} : c);if(activeStep==='print'&&paperSize!=='single'&&(['quantity','size','customWidth','customHeight'] as (keyof CustomerPhoto)[]).some(key=>updates[key]!==undefined))window.setTimeout(()=>arrangeSheetItems(next),80);return next;}); setPrintPages([]); setSelectedPrintPages([]); };
+  const updateCustomer = (id:string, updates:Partial<CustomerPhoto>) => { setCustomers(current => {const next=current.map(c => c.id===id ? {...c,...updates} : c);if(activeStep==='print'&&paperSize!=='single'&&(['quantity','size','customWidth','customHeight'] as (keyof CustomerPhoto)[]).some(key=>updates[key]!==undefined))window.setTimeout(()=>arrangeSheetItems(next),80);return next;}); if(Object.keys(updates).some(key=>key!=='customUnit')){setPrintPages([]);setSelectedPrintPages([]);} };
   const addFiles = (files: FileList | File[]) => {
     const selectedFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
     if (!selectedFiles.length) { setNotice('Please choose JPG, PNG or WEBP image files.'); return; }
