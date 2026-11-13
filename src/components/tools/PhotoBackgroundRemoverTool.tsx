@@ -631,16 +631,11 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
           <section className="rounded-xl border border-white/10 bg-[#10233d] p-4">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-200"><Crop size={15} /> Crop &amp; straighten</div>
             <div className="mb-3 rounded-lg border border-cyan-300/20 bg-cyan-400/5 p-3">
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-cyan-100">Passport / Form photo size</div>
+              <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-cyan-100">Photo size preset</div>
               <label className="mb-2 block text-[10px] text-blue-100">Choose common size
                 <select value={photoSizePreset} onChange={(e) => {
                   const next = e.target.value;
                   setPhotoSizePreset(next);
-                  const presetSize = PHOTO_SIZE_PRESETS.find((item) => item.id === next);
-                  if (presetSize) {
-                    setCustomWidth(String(Number(mmToUnit(presetSize.widthMm, photoUnit).toFixed(2))));
-                    setCustomHeight(String(Number(mmToUnit(presetSize.heightMm, photoUnit).toFixed(2))));
-                  }
                   resetCropForGeometryChange();
                 }} className="mt-1 w-full rounded-lg border border-white/15 bg-[#071426] px-2 py-2 text-[11px] text-white">
                   {PHOTO_SIZE_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
