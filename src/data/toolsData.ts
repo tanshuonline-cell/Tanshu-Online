@@ -22,6 +22,22 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
   },
 
   {
+    id: 'photo-background-remover',
+    name: 'PHOTO BACKGROUND REMOVER',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    iconName: 'Image',
+    description: 'Remove photo backgrounds in one click, straighten and crop if needed, choose a solid or custom background, or export a transparent PNG.',
+    detailedInstructions: 'Upload a JPG, PNG or WEBP photo. Optionally adjust crop and rotation, remove the background with on-device AI, choose a transparent or custom-color background, then download with 300 DPI metadata and quality presets.',
+    keyFeatures: [
+      'One-click AI background removal in your browser',
+      'Optional crop and straighten controls',
+      'Transparent, preset-color and custom-color backgrounds',
+      'Small / Medium / Large / Largest JPG export with 300 DPI option'
+    ]
+  },
+
+  {
     id: 'pdf-to-pvc-card-auto-cropper',
     name: 'PDF to PVC Card Auto Cropper',
     category: 'pvc-id',
