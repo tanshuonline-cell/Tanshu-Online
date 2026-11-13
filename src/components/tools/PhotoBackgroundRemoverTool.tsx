@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+// @ts-ignore @bg0/browser is a JavaScript package; its runtime API is documented by the package.
 import { removeBackground } from '@bg0/browser';
 import {
   Upload, Download, Image as ImageIcon, Crop, RotateCcw, RotateCw,
@@ -85,10 +86,8 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => () => {
-    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
-  }, [sourceUrl, resultUrl]);
+  useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
+  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
 
   const clearResult = () => {
     setResultBlob(null);
