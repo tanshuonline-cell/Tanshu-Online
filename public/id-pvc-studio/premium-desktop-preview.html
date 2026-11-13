@@ -287,6 +287,33 @@ button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px sol
 @media(min-width:851px){.left-panel h3,.right-panel h3{font-size:12.5px}.left-panel .field label,.right-panel .field label{font-size:10.5px}.left-panel .hint,.right-panel .hint{font-size:10.5px;line-height:1.5}.left-panel .btn,.right-panel .btn{font-size:11px}}
 @media(max-width:850px){.panel{box-shadow:0 5px 16px #0003}.center-panel{background:#202b36}}
 
+
+/* Hover readability + restrained deep-red premium accents */
+.panel .hint:hover,
+.panel p:hover,
+.panel small:hover,
+.panel label:hover,
+.panel .preview-note:hover,
+.panel .profile-group:hover,
+.panel .cardthumb small:hover,
+.panel .thumb>span:hover,
+.panel strong:hover,
+.top .tagline:hover{
+  color:#d9a34b!important;
+  text-shadow:0 0 8px #d9a34b24;
+}
+.top{
+  background:linear-gradient(105deg,#111923 0%,#292029 30%,#1b2938 62%,#173b42 100%);
+  border-bottom:1px solid #65434a;
+}
+.studio-brand-photo{
+  border-color:#95636a;
+}
+.studio-brand:hover strong{
+  color:#c9787d;
+  text-shadow:0 0 12px #a94f5838;
+}
+
 </style></head><body>
 <header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · INSTANT PVC CARD MAKER</span></strong></div><span class="tagline" data-en="Precision editing · Front &amp; Back · Print-ready sheets" data-hi="सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट">Precision editing · Front &amp; Back · Print-ready sheets</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Maker demo">← Back to Demo</a><button id="studioFullscreenToggle" class="fullscreen-toggle" type="button" aria-pressed="false" title="Enter full screen" data-en="⛶ Full Screen" data-hi="⛶ फुल स्क्रीन">⛶ Full Screen</button><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" aria-pressed="false">HI</button><button id="langEn" type="button" class="active" aria-pressed="true">EN</button></div></header>
 <nav class="toolbar" aria-label="Main tools">
