@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, Camera, CreditCard, Image as ImageIcon, ScanLine, Crop, MessageCircle, Smartphone, UserRound } from 'lucide-react';
+import { ArrowUpRight, Camera, CreditCard, Image as ImageIcon, ScanLine, Crop, MessageCircle, Smartphone, UserRound, Eraser } from 'lucide-react';
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { ToolItem } from '../types';
 import { getToolPreviewImage } from '../data/toolPreviewImages';
@@ -12,6 +12,7 @@ const ACTIVE_TOOL_IDS = [
   'photo-signature-resizer',
   'document-scanner-image-rectifier',
   'auto-document-cropper',
+  'photo-background-remover',
 ];
 
 const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: React.ReactNode }> = {
@@ -24,6 +25,11 @@ const TOOL_DETAILS: Record<string, { title: string; subtitle: string; icon: Reac
     title: 'AUTO DOCUMENT CROPPER',
     subtitle: 'Detect Document Edges · Auto Crop & Straighten · Fine-Tune Corners · PNG / PDF Download | किनारे पहचानें · ऑटो क्रॉप व सीधा करें · कोने ठीक करें · डाउनलोड करें',
     icon: <Crop className="h-4 w-4" />,
+  },
+  'photo-background-remover': {
+    title: 'PHOTO BACKGROUND REMOVER',
+    subtitle: 'Upload Photo · One-Click AI Background Removal · Transparent / Custom Color · 300 DPI Download | फोटो अपलोड · एक क्लिक में बैकग्राउंड हटाएँ · ट्रांसपेरेंट / मनपसंद रंग · डाउनलोड',
+    icon: <Eraser className="h-4 w-4" />,
   },
   'document-scanner-image-rectifier': {
     title: 'DOCUMENT SCANNER & IMAGE RECTIFIER',
