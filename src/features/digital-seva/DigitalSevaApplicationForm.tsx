@@ -63,6 +63,18 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     const directionNote = `Selected demo direction: ${projectDirection.sampleTitle} (${projectDirection.sampleId})`;
     setTaskDetails((current) => current.includes(projectDirection.sampleId) ? current : [current.trim(), directionNote].filter(Boolean).join('\n\n'));
   }, [projectDirection?.sampleId, projectDirection?.sampleTitle]);
+  useEffect(() => {
+    const brief = prepaidPayment?.projectBrief;
+    if (!brief) return;
+    const notes = [
+      'Pre-payment project brief:',
+      brief.demoSampleTitle ? `Selected demo: ${brief.demoSampleTitle} (${brief.demoSampleId || ''})` : '',
+      brief.platform ? `Target platform / use: ${brief.platform}` : '',
+      brief.features?.length ? `Requested features: ${brief.features.join(', ')}` : '',
+      brief.description ? `Customer requirements: ${brief.description}` : ''
+    ].filter(Boolean).join('\n');
+    setTaskDetails((current) => current.includes('Pre-payment project brief:') ? current : [current.trim(), notes].filter(Boolean).join('\n\n'));
+  }, [prepaidPayment?.projectBrief]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [serviceOptions, setServiceOptions] = useState<Record<string, string>>({});
   const [bookingConsent, setBookingConsent] = useState(false);
