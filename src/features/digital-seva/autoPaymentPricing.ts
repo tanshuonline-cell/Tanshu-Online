@@ -13,7 +13,7 @@ export interface AutoPaymentQuote {
   currency: 'INR';
   routeLabel: string;
   note: string;
-  governmentFeeStatus?: 'official-fixed' | 'route-quote' | 'not-applicable';
+  governmentFeeStatus?: 'official-fixed' | 'route-quote' | 'not-applicable' | 'verify-before-payment';
 }
 
 // Base service quotes. getAutoPaymentQuote computes the full customer amount only when
@@ -220,7 +220,7 @@ export function getAutoPaymentQuote(service: SevaService | string): AutoPaymentQ
   if (!Number.isFinite(governmentFee) || governmentFee < 0 ||
       !Number.isFinite(tanshuFee) || tanshuFee <= 0) return null;
 
-  const explicitlyFree = /₹\\s?0(?:\\.00)?|no government fee|government fee is 0|free of charge|not applicable/i.test(disclosure.governmentFee);
+  const explicitlyFree = /₹\s?0(?:\.00)?|no government fee|government fee is 0|free of charge|not applicable/i.test(disclosure.governmentFee);
   const approvedGovernmentFee =
     status === 'not-applicable' ||
     (['official-fixed', 'route-quote'].includes(status) && governmentFee > 0) ||
