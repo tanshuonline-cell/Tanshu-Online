@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { TANSHU_PROFILE_PHOTO } from '../Header';
 import {
   Upload, Download, Image as ImageIcon, Crop, RotateCcw, RotateCw,
   Eraser, CheckCircle2, Loader2, X, Maximize2, Minimize2,
@@ -674,9 +675,13 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#081629] text-slate-100">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-3 sm:px-6">
-        <div className="min-w-0">
-          <div className="text-xs font-bold tracking-wide text-blue-100 sm:text-sm">PHOTO BACKGROUND WORKSPACE <span className="ml-2 text-[10px] font-medium text-cyan-200">Upload · Remove · Customize · Download</span></div>
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-3 py-2.5 sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-9 w-9 shrink-0 rounded-full border-2 border-cyan-300/80 object-cover" />
+          <div className="min-w-0">
+            <div className="text-[11px] font-black tracking-wide text-white sm:text-xs">TANSHU <span className="text-cyan-300">ONLINE</span></div>
+            <div className="text-xs font-bold tracking-wide text-blue-100 sm:text-sm">PHOTO BACKGROUND WORKSPACE <span className="ml-1 text-[10px] font-medium text-cyan-200">Upload · Remove · Customize · Download</span></div>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setExpanded((v) => !v)} className="rounded-lg border border-white/20 p-2 text-blue-100 hover:bg-white/10" title={expanded ? 'Restore studio' : 'Expand studio'}>{expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
