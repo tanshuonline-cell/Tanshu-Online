@@ -181,7 +181,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
           </label>
           {selected && disclosure && <div className="ds-booking-fee-summary">
             <strong>{hi ? selected.hindi : selected.name}</strong>
-            <p><b>{hi ? 'सरकारी / प्रदाता शुल्क:' : 'Government / provider fee:'}</b> {quote ? `₹${quote.governmentFee}` : disclosure.governmentFee}</p>
+            <p><b>{hi ? 'सरकारी / प्रदाता शुल्क:' : 'Government / provider fee:'}</b> {quote && quote.governmentFee > 0 ? `₹${quote.governmentFee}` : disclosure.governmentFee}</p>
             <p><b>{hi ? 'TANSHU ONLINE सेवा शुल्क:' : 'TANSHU ONLINE service fee:'}</b> {quote ? `₹${quote.tanshuFee}` : disclosure.serviceFee}</p>
             {quote ? <p className="ds-paynow-total"><b>{hi ? 'कुल देय राशि:' : 'Total payable:'} ₹{quote.totalAmount}</b></p> : <p className="ds-booking-help">{hi ? 'इस सर्विस की फीस या सरकारी शुल्क अभी निश्चित नहीं है। सही कोटेशन तय होने के बाद भुगतान उपलब्ध होगा।' : 'The exact price or official fee for this service needs confirmation. Payment will be enabled after an approved quote is configured.'}</p>}
             {quote?.note && <p>{quote.note}</p>}
