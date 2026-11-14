@@ -272,8 +272,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
            (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email,
             requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address,
             agency_name, agency_address, application_details_json, checkout_order_id,
+            government_fee, tanshu_service_fee, government_payment_status,
             status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
         ).bind(bookingId, bookingReference, key, serviceId, name, phone, email,
           requesterType, applicationFor, operatorName || null, operatorPhone || null, operatorEmail || null,
           centerName || null, centerAddress || null, agencyName || null, agencyAddress || null, applicationDetails,
