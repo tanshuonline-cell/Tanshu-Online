@@ -820,3 +820,16 @@
   .ds-service-title-row{align-items:stretch;flex-direction:column;gap:12px}
   .ds-premium-sample-cta.ds-premium-sample-cta-side{flex:1 1 auto;width:100%;min-width:0}
 }
+
+
+/* Common Pay Now center — additive styles; existing policy and service styles remain untouched. */
+.ds-paynow-modal{max-width:760px;width:min(760px,calc(100vw - 28px));max-height:min(92vh,900px);overflow:auto}
+.ds-paynow-modal>form{display:grid;gap:16px;margin-top:18px}
+.ds-paynow-field,.ds-paynow-contact label{display:grid;gap:7px;font-size:13px;font-weight:700;color:#334155}
+.ds-paynow-field select,.ds-paynow-contact input{width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:10px 12px;color:#0f172a;font:inherit}
+.ds-paynow-contact{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ds-paynow-total{padding-top:8px;border-top:1px solid #e2e8f0;color:#166534;font-size:17px}
+.ds-paynow-contact-consent{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.55;color:#334155}
+.ds-paynow-contact-consent input{width:17px;height:17px;flex:0 0 auto;margin-top:2px;accent-color:#b91c1c}
+.ds-paynow-modal .ds-policy-consents{margin-top:0}
+@media(max-width:640px){.ds-paynow-contact{grid-template-columns:1fr}.ds-paynow-modal{padding:22px 16px}}
