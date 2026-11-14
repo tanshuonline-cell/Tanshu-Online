@@ -14,6 +14,12 @@ export async function onRequestGet(): Promise<Response> {
     <loc>https://tanshu-online.pages.dev/advanced-photo-studio-preview</loc>
   </url>
   <url>
+    <loc>https://tanshu-online.pages.dev/whatsapp-selfie-passport-photo</loc>
+  </url>
+  <url>
+    <loc>https://tanshu-online.pages.dev/instant-multi-customer-photo-maker</loc>
+  </url>
+  <url>
     <loc>https://tanshu-online.pages.dev/privacy-policy</loc>
   </url>
   <url>
