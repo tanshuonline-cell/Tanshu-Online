@@ -47,6 +47,86 @@ interface RefundPolicyNoticeProps { service: SevaService; language?: 'en' | 'hi'
 
 export default function RefundPolicyNotice({ service, language = 'en' }: RefundPolicyNoticeProps) {
   const hindi = language === 'hi';
+  const projectCategory = ['websites', 'apps', 'software', 'design'].includes(service.category)
+    ? service.category as 'websites' | 'apps' | 'software' | 'design'
+    : null;
+
+  // Creative projects use project-specific scope, schedules and cancellation terms.
+  // The legacy Digital Seva disclosure below remains unchanged for government/online services.
+  if (projectCategory) {
+    const projectTitle = {
+      websites: hindi ? 'वेबसाइट प्रोजेक्ट' : 'Website project',
+      apps: hindi ? 'मोबाइल / वेब ऐप प्रोजेक्ट' : 'Mobile / web app project',
+      software: hindi ? 'कस्टम सॉफ्टवेयर प्रोजेक्ट' : 'Custom software project',
+      design: hindi ? 'ग्राफिक डिज़ाइन प्रोजेक्ट' : 'Graphic design project',
+    }[projectCategory];
+    const workflow = {
+      websites: hindi
+        ? 'प्रक्रिया: जरूरत और pages/features तय करना → ग्राहक से text, logo, images और जरूरी access लेना → design approval → development → responsive और functionality testing → ग्राहक की अंतिम मंजूरी → agreed hosting/domain पर launch और handover।'
+        : 'Process: confirm requirements and pages/features → collect customer text, logo, images and required access → approve the design → develop → test responsive layouts and functionality → obtain final customer approval → launch on the agreed hosting/domain and hand over.',
+      apps: hindi
+        ? 'प्रक्रिया: platform, screens, user roles और features तय करना → UI/UX approval → app और backend/API development → device, security और functionality testing → customer beta/UAT approval → agreed platform पर release या handover। App-store review अलग निर्भरता है।'
+        : 'Process: define platforms, screens, user roles and features → approve UI/UX → develop the app and backend/APIs → test devices, security and functionality → customer beta/UAT approval → release or hand over on the agreed platform. App-store review is an external dependency.',
+      software: hindi
+        ? 'प्रक्रिया: requirements, modules और workflows तय करना → screens/prototype approval → development और integrations → testing तथा customer UAT → जरूरी सुधार → agreed environment में deployment, backup और handover।'
+        : 'Process: define requirements, modules and workflows → approve screens/prototype → develop and integrate → testing and customer UAT → agreed corrections → deploy in the agreed environment with backup and handover.',
+      design: hindi
+        ? 'प्रक्रिया: brief, text, size और brand assets लेना → शुरुआती concept देना → चुने concept को refine करना → package में शामिल revisions → final approval → तय formats में files देना। Printing, editable source files और अतिरिक्त formats तभी शामिल होंगे जब लिखित quote में हों।'
+        : 'Process: collect the brief, copy, dimensions and brand assets → present initial concepts → refine the selected concept → complete the revisions included in the package → obtain final approval → deliver files in the agreed formats. Printing, editable source files and extra formats are included only if stated in the written quote.',
+    }[projectCategory];
+    const customerInputs = {
+      websites: hindi
+        ? 'ग्राहक की जिम्मेदारी: सही और अंतिम content, logo/images, domain/hosting access तथा समय पर feedback और approvals देना।'
+        : 'Customer responsibilities: provide final accurate content, logo/images, domain/hosting access, and timely feedback and approvals.',
+      apps: hindi
+        ? 'ग्राहक की जिम्मेदारी: feature requirements, test users/data, platform accounts/access और समय पर feedback/UAT approval देना।'
+        : 'Customer responsibilities: provide feature requirements, test users/data, platform accounts/access, and timely feedback and UAT approval.',
+      software: hindi
+        ? 'ग्राहक की जिम्मेदारी: workflows, sample data, user roles, integration access और समय पर testing तथा UAT feedback देना।'
+        : 'Customer responsibilities: provide workflows, sample data, user roles, integration access, and timely testing and UAT feedback.',
+      design: hindi
+        ? 'ग्राहक की जिम्मेदारी: सही spelling वाला final text, logo, photos, brand details, dimensions और समय पर consolidated feedback देना।'
+        : 'Customer responsibilities: provide final proofread copy, logo, photos, brand details, dimensions and consolidated feedback on time.',
+    }[projectCategory];
+    const refundText = hindi
+      ? 'रद्दीकरण पर केवल मंजूर quotation के अनुसार वास्तव में पूरा हुआ काम और ग्राहक द्वारा पहले से मंजूर, प्रमाणित तथा वास्तव में non-recoverable third-party खर्च का उचित हिसाब होगा। बची हुई unearned राशि लौटाई जाएगी। पूरा advance या package fee अपने-आप जब्त नहीं होगा।'
+      : 'On cancellation, only the fair value of work actually completed under the approved quotation and customer-approved, documented, genuinely non-recoverable third-party costs may be adjusted. Any unearned balance will be returned. The full advance or package fee is not automatically forfeited.';
+    const delayText = hindi
+      ? 'समय-सीमा complete brief, सामग्री/access और आवश्यक approvals मिलने के बाद लागू होगी। ग्राहक की ओर से देरी, scope/feature बदलाव, अतिरिक्त revisions, third-party API/hosting/platform या app-store approval में देरी से schedule बढ़ सकता है। अंतिम delivery date और milestones लिखित quotation में मंजूर होंगे।'
+      : 'The schedule starts after the complete brief, materials/access and required approvals are received. Customer delays, scope/feature changes, extra revisions, third-party API/hosting/platform issues or app-store review may extend delivery. Final dates and milestones are confirmed in the approved written quotation.';
+    return (
+      <section className="ds-refund-notice" aria-label={hindi ? 'प्रोजेक्ट शुल्क, डिलीवरी और रिफंड विवरण' : 'Project fee, delivery and refund details'}>
+        <div className="ds-refund-notice-heading">
+          <strong>{hindi ? 'प्रोजेक्ट शुल्क और रिफंड विवरण' : 'Project Fee & Refund Details'}</strong>
+          <span>{hindi ? 'प्रोजेक्ट-विशिष्ट जानकारी' : 'PROJECT-SPECIFIC DETAILS'}</span>
+        </div>
+        <div className="ds-refund-row">
+          <b>{hindi ? '1. प्रोजेक्ट शुल्क' : '1. Project fee'}</b>
+          <p>{service.serviceFee}</p>
+          <p className="ds-fee-refund">{hindi ? 'कोई सरकारी आवेदन शुल्क लागू नहीं है।' : 'No government application fee applies.'}</p>
+        </div>
+        <div className="ds-refund-row">
+          <b>{hindi ? '2. अलग से लग सकने वाले खर्च' : '2. Possible additional costs'}</b>
+          <p>{service.governmentFee}</p>
+        </div>
+        <div className="ds-refund-row">
+          <b>{hindi ? `3. ${projectTitle} — काम की प्रक्रिया` : `3. ${projectTitle} — project workflow`}</b>
+          <p>{workflow}</p>
+          <p>{customerInputs}</p>
+        </div>
+        <div className="ds-refund-timeline">
+          <b>{hindi ? 'अनुमानित प्रोजेक्ट डिलीवरी समय' : 'Estimated project delivery time'}</b>
+          <p>{hindi ? (service.availabilityHindi || service.availability) : service.availability}</p>
+          <p>{delayText}</p>
+        </div>
+        <div className="ds-refund-row">
+          <b>{hindi ? '4. रद्दीकरण और रिफंड' : '4. Cancellation and refund'}</b>
+          <p>{refundText}</p>
+        </div>
+        <p className="ds-refund-preview-note">{hindi ? 'यह Preview केवल Cashfree Sandbox परीक्षण के लिए है; कोई वास्तविक भुगतान स्वीकार नहीं किया जाता।' : 'This Preview is for Cashfree Sandbox testing only; no real payment is accepted.'}</p>
+      </section>
+    );
+  }
   const rawFee = getServiceFeeDisclosure(service);
   const hindiCopy = HINDI_FEE_COPY[service.id] || (rawFee.governmentStatus === 'not-applicable' ? { governmentFee: 'इस निजी डिजिटल / दस्तावेज़ सेवा पर कोई सरकारी शुल्क लागू नहीं है।', governmentRefund: 'इस कार्य पर सरकारी शुल्क नहीं लिया जाता। यदि बाद में किसी आधिकारिक पोर्टल का शुल्क लगे, तो उसके अपने नियम लागू होंगे।', serviceFee: 'TANSHU ONLINE सेवा शुल्क अभी कॉन्फ़िगर नहीं है; भुगतान से पहले राशि और काम का विवरण स्पष्ट दिखाया जाएगा।', note: 'भुगतान स्वीकार करने से पहले सेवा का शुल्क और मिलने वाला परिणाम स्पष्ट रूप से बताया जाएगा।' } : { governmentFee: 'सटीक सेवा, आवेदक और आधिकारिक आवेदन मार्ग के लिए लाइव सरकारी / प्रदाता शुल्क की पुष्टि आवश्यक है।', governmentRefund: 'रिफंड और रद्दीकरण चुने गए विभाग / प्रदाता के सटीक नियमों के अनुसार होंगे। भुगतान से पहले वर्तमान नियम जाँचें।', serviceFee: 'TANSHU ONLINE सेवा शुल्क अभी कॉन्फ़िगर नहीं है; भुगतान से पहले राशि और काम का विवरण स्पष्ट दिखाया जाएगा।', note: 'सटीक प्राधिकरण, आवेदन मार्ग, शुल्क और रिफंड नियम की पुष्टि के बाद ही भुगतान का कोटेशन दिया जाएगा।' });
   const fee = hindi ? { ...rawFee, ...hindiCopy } : rawFee;
