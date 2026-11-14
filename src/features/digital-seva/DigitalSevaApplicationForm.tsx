@@ -69,6 +69,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
   const [pendingCheckoutOrderId, setPendingCheckoutOrderId] = useState('');
   const [pendingPaymentSessionId, setPendingPaymentSessionId] = useState('');
   const [pendingCashfreeMode, setPendingCashfreeMode] = useState<'sandbox' | 'production'>('sandbox');
+  const [recoveryOrderId, setRecoveryOrderId] = useState('');
+  const [paidOrderRecovery, setPaidOrderRecovery] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draftReady, setDraftReady] = useState(false);
@@ -115,6 +117,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setPendingCheckoutOrderId(typeof d.pendingCheckoutOrderId === 'string' ? d.pendingCheckoutOrderId : '');
         setPendingPaymentSessionId(typeof d.pendingPaymentSessionId === 'string' ? d.pendingPaymentSessionId : '');
         setPendingCashfreeMode(d.pendingCashfreeMode === 'production' ? 'production' : 'sandbox');
+        setRecoveryOrderId(typeof d.recoveryOrderId === 'string' ? d.recoveryOrderId : '');
+        setPaidOrderRecovery(d.paidOrderRecovery === true);
         setDraftRestored(true);
       }
       setDraftReady(true);
@@ -131,7 +135,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       agencyName, agencyAddress, applicant, corrections, selectedDocuments,
       documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions,
       manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt,
-      paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId
+      paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId, recoveryOrderId, paidOrderRecovery
     };
     draftStateRef.current = data;
     const persist = () => {
@@ -147,7 +151,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       window.removeEventListener('pagehide', onPageHide);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt, paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId]);
+  }, [service.id, draftReady, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt, paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId, recoveryOrderId, paidOrderRecovery]);
 
   useEffect(() => () => {
     if (!completedRef.current && Object.keys(draftStateRef.current).length) {
@@ -225,6 +229,8 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setPaymentMode('AUTO_PAY');
     setPendingCheckoutOrderId('');
     setPendingPaymentSessionId('');
+    setRecoveryOrderId('');
+    setPaidOrderRecovery(false);
     setError('');
     setFieldErrors({});
     setDraftRestored(false);
@@ -317,7 +323,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     setSubmitting(true);
     setError('');
     let paymentMayHaveCompleted = Boolean(
-      pendingCheckoutOrderId && new URLSearchParams(window.location.search).get('cashfree_order_id') === pendingCheckoutOrderId
+      pendingCheckoutOrderId && (paidOrderRecovery || new URLSearchParams(window.location.search).get('cashfree_order_id') === pendingCheckoutOrderId)
     );
     try {
       const payload: any = {
@@ -335,6 +341,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
         refundPolicyAccepted: refundAccepted, refundAcceptedAt, refundPolicyVersion: REFUND_POLICY_VERSION,
         idempotencyKey: window.crypto.randomUUID(),
+        paidOrderRecovery,
         paymentMode
       };
 
@@ -380,11 +387,12 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
           try {
             data = await sendBooking({ ...payload, paymentOrderId: orderId });
           } catch (error: any) {
-            if (error?.status !== 402) throw error;
+            if (paidOrderRecovery || error?.status !== 402) throw error;
           }
         }
 
         if (!data) {
+          if (paidOrderRecovery) throw new Error(hi ? 'पुराना भुगतान अभी सत्यापित नहीं हो पाया। दोबारा भुगतान न करें; Order ID और आवेदक का मोबाइल नंबर जाँचें।' : 'The existing payment could not be verified. Do not pay again; check the Order ID and applicant mobile number.');
           if (!orderId || !paymentSessionId) {
             const checkoutKey = window.crypto.randomUUID();
             const orderResponse = await fetch('/api/digital-seva/checkout', {
@@ -816,6 +824,22 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         <div><small>{hi ? 'काम के निर्देश' : 'Work instructions'}</small><strong>{taskDetails}</strong></div>
       </div>
       <div className="ds-booking-privacy"><ShieldCheck size={18} /><span>{hi ? 'नाम, मोबाइल और ईमेल अनिवार्य हैं। Pay & Submit चुनने पर भुगतान की पुष्टि के बाद ही बुकिंग Admin Panel में जाएगी।' : 'Name, mobile and email are required. With Pay & Submit, the booking reaches the Admin Panel only after payment is verified.'}</span></div>
+      {service.id === 'pdf-split' && <div className="ds-application-profile">
+        <h4>{hi ? 'पहले भुगतान कर चुके हैं? पुराना भुगतान रिकवर करें' : 'Already paid? Recover your existing payment'}</h4>
+        <p>{hi ? 'यदि ₹30 का भुगतान पहले ही सफल हो चुका है लेकिन आवेदन पूरा नहीं हुआ, तो Cashfree का पुराना Order ID यहाँ डालें। नया भुगतान शुरू नहीं होगा।' : 'If your ₹30 payment already succeeded but the request was not completed, enter the original Cashfree Order ID. This recovery path will not start a new payment.'}</p>
+        <label className="ds-application-wide">{hi ? 'Cashfree Order ID' : 'Cashfree Order ID'}
+          <input value={recoveryOrderId} onChange={(event) => { setRecoveryOrderId(event.target.value.trim()); setPaidOrderRecovery(false); setPendingCheckoutOrderId(''); setPendingPaymentSessionId(''); }} placeholder="ds_................................" autoComplete="off" spellCheck={false} />
+        </label>
+        <button type="button" className="ds-application-copy" disabled={!/^ds_[0-9a-f]{32}$/i.test(recoveryOrderId)} onClick={() => {
+          const orderId = recoveryOrderId.trim();
+          if (!/^ds_[0-9a-f]{32}$/i.test(orderId)) return;
+          setPendingCheckoutOrderId(orderId);
+          setPendingPaymentSessionId('');
+          setPaidOrderRecovery(true);
+          setError('');
+        }}>{hi ? 'पुराने ₹30 भुगतान का उपयोग करें' : 'Use existing ₹30 payment'}</button>
+        {paidOrderRecovery && <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? 'पुराना Order ID चुना गया है। Submit करने पर Cashfree से भुगतान सत्यापित होगा। कोई नया भुगतान नहीं लिया जाएगा।' : 'Existing Order ID selected. Cashfree will verify the payment when you submit. No new payment will be started.'}</span></div>}
+      </div>}
       {getAutoPaymentQuote(service) ? <div className="ds-application-profile">
         <h4>{hi ? 'सुरक्षित ऑनलाइन भुगतान' : 'Secure online payment'}</h4>
         <div className="ds-application-upload-notice"><ShieldCheck size={18} /><span>{hi ? `सरकारी / प्रदाता शुल्क ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE शुल्क ₹${getAutoPaymentQuote(service)!.tanshuFee} = कुल ₹${getAutoPaymentQuote(service)!.totalAmount}। ${getAutoPaymentQuote(service)!.note} सफल भुगतान की पुष्टि के बाद ही बुकिंग जमा होगी।` : `Official/provider fee ₹${getAutoPaymentQuote(service)!.governmentFee} + TANSHU ONLINE fee ₹${getAutoPaymentQuote(service)!.tanshuFee} = total ₹${getAutoPaymentQuote(service)!.totalAmount}. ${getAutoPaymentQuote(service)!.note} The booking is submitted only after successful payment confirmation.`}</span></div>
@@ -832,7 +856,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
       {step > 0 && <button type="button" className="ds-application-back" onClick={() => { setError(''); setStep((n) => n - 1); }} disabled={submitting}><ArrowLeft size={15} /> {hi ? 'पीछे' : 'Back'}</button>}
       <span>{hi ? 'चरण ' + (step + 1) + ' / 4' : 'Step ' + (step + 1) + ' of 4'}</span>
       {step < 3 ? <button type="button" className="ds-modal-book" onClick={next}>{hi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={16} /></button> :
-        <button className="ds-modal-book" type="submit" disabled={submitting || !getAutoPaymentQuote(service)}>{submitting ? (hi ? 'प्रक्रिया जारी है…' : 'Processing…') : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (pendingCheckoutOrderId ? (hi ? 'भुगतान जाँचें और अनुरोध पूरा करें' : 'Check payment & finish request') : (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`)) : (hi ? 'अभी उपलब्ध नहीं' : 'Not available'))} <ArrowRight size={16} /></button>}
+        <button className="ds-modal-book" type="submit" disabled={submitting || !getAutoPaymentQuote(service)}>{submitting ? (hi ? 'प्रक्रिया जारी है…' : 'Processing…') : (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service) ? (paidOrderRecovery ? (hi ? 'पुराने भुगतान से अनुरोध पूरा करें' : 'Finish request with existing payment') : pendingCheckoutOrderId ? (hi ? 'भुगतान जाँचें और अनुरोध पूरा करें' : 'Check payment & finish request') : (hi ? `₹${getAutoPaymentQuote(service)!.totalAmount} भुगतान करें और जमा करें` : `Pay ₹${getAutoPaymentQuote(service)!.totalAmount} & Submit`)) : (hi ? 'अभी उपलब्ध नहीं' : 'Not available'))} <ArrowRight size={16} /></button>}
     </div>
   </form>;
 }
