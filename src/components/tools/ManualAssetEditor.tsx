@@ -238,7 +238,7 @@ export const ManualAssetEditor: React.FC<Props> = ({ documents, activeId, onActi
       setDrag({ corner:'move', startX:event.clientX, startY:event.clientY, initial:{...box} });
     }
   };
-  const moveCropBox = (event: React.PointerEvent<HTMLDivElement>) => {
+  const moveCropBox = (event: React.PointerEvent<HTMLElement>) => {
     if (signatureResize) {
       const rect = getImageRect();
       if (!rect || !rect.width || !rect.height) return;
