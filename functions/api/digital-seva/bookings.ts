@@ -7,7 +7,7 @@ import { cashfreeApiBase } from './_cashfree';
 interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 
 const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-basic','website-standard','website-premium','custom-website-advance']);
-const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v1';
+const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v2';
 const WEBSITE_PROJECT_REFUND_VERSION = 'website-project-refund-2026-11-14-v1';
 const CREATIVE_AGREEMENT_POLICY: Record<string, { category: 'apps' | 'software' | 'design'; terms: string; refund: string }> = {
   'custom-app-advance': { category: 'apps', terms: 'app-project-terms-2026-11-14-v1', refund: 'app-project-refund-2026-11-14-v1' },
