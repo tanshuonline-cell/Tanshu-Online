@@ -218,9 +218,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       ).bind(paymentOrderId).first();
       if (!checkoutOrder) return json({ success: false, error: 'Payment order was not found. Please restart checkout.' }, 404);
       if (checkoutOrder.status === 'CLAIMED') {
-        const existing = await env.DIGITAL_SEVA_DB.prepare('SELECT booking_reference FROM digital_seva_bookings WHERE checkout_order_id = ?').bind(paymentOrderId).first();
-        if (existing?.booking_reference) return json({ success: true, bookingReference: existing.booking_reference, existing: true });
-        return json({ success: false, error: 'This payment order is already being attached to a booking. Please contact support before retrying.' }, 409);
+        const existing = await env.DIGITAL_SEVA_DB.prepare('SELECT booking_reference, service_id, customer_phone FROM digital_seva_bookings WHERE checkout_order_id = ?').bind(paymentOrderId).first();
+        if (existing?.booking_reference && (!paidOrderRecovery || (existing.service_id === serviceId && normalizePhone(existing.customer_phone) === phone))) return json({ success: true, bookingReference: existing.booking_reference, existing: true });
+        return json({ success: false, error: 'This payment order is already attached to a booking or cannot be matched. Please contact support before retrying.' }, 409);
       }
       if (!(paidOrderRecovery ? String(checkoutOrder.status) === 'PAID' && !checkoutOrder.booking_id : ['PENDING', 'PAID'].includes(String(checkoutOrder.status))) || checkoutOrder.service_id !== serviceId ||
           normalizePhone(checkoutOrder.customer_phone) !== phone || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
