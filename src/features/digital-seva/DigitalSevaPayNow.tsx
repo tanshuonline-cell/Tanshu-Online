@@ -89,17 +89,35 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const quote = selected ? getAutoPaymentQuote(selected) : null;
   const disclosure = selected ? getServiceFeeDisclosure(selected) : null;
   const enabledServices = SEVA_SERVICES;
+  const projectBriefRequired = websiteAgreementRequired || Boolean(creativeAgreementCategory);
+  const projectFeatureOptions = creativeAgreementCategory === 'apps'
+    ? ['User login / registration', 'Booking / orders', 'Online payments', 'Push notifications', 'Admin dashboard', 'User profiles', 'Reports / analytics', 'Multiple languages', 'Offline access', 'Third-party API integration']
+    : creativeAgreementCategory === 'software'
+      ? ['Billing / invoices', 'Inventory / stock', 'Customer / CRM records', 'Reports / analytics', 'Import / export files', 'User roles / permissions', 'Workflow automation', 'Offline support', 'Backup / restore', 'Third-party integrations']
+      : creativeAgreementCategory === 'design'
+        ? ['Brand identity / logo', 'Social media creatives', 'Poster / banner', 'Brochure / company profile', 'Print-ready output', 'Multiple sizes / formats']
+        : ['Home / about / services pages', 'Product / menu catalogue', 'Enquiry / contact forms', 'Booking / appointment flow', 'Online store / checkout', 'Member login / portal', 'Blog / news section', 'Multiple languages', 'SEO / analytics setup'];
+  const projectPlatformOptions = creativeAgreementCategory === 'apps'
+    ? ['Android', 'iOS', 'Web application', 'Android + iOS', 'Cross-platform + Web']
+    : creativeAgreementCategory === 'software'
+      ? ['Windows desktop', 'macOS desktop', 'Linux desktop', 'Browser-based software', 'Desktop + Browser']
+      : creativeAgreementCategory === 'design'
+        ? ['Instagram / Facebook', 'Print', 'Website / digital', 'Brand identity', 'Multiple formats']
+        : ['Business website', 'Restaurant / food website', 'Shop / e-commerce', 'Portfolio / coaching / clinic', 'Custom portal / web platform'];
 
   useEffect(() => {
     try {
       const saved = window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
       if (!saved) return;
-      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; websiteAgreementAccepted?: boolean; websiteAgreementAcceptedAt?: string; websiteTermsPolicyVersion?: string; websiteRefundPolicyVersion?: string; creativeProjectAgreement?: { category: CreativeAgreementCategory; acceptedAt: string; termsVersion: string; refundVersion: string } };
+      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; websiteAgreementAccepted?: boolean; websiteAgreementAcceptedAt?: string; websiteTermsPolicyVersion?: string; websiteRefundPolicyVersion?: string; creativeProjectAgreement?: { category: CreativeAgreementCategory; acceptedAt: string; termsVersion: string; refundVersion: string }; projectBrief?: { platform: string; features: string[]; description: string; demoSampleId?: string; demoSampleTitle?: string } };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
       setSelectedId(data.serviceId);
       setName(data.name || '');
       setPhone(data.phone || '');
       setEmail(data.email || '');
+      setProjectPlatform(data.projectBrief?.platform || '');
+      setProjectFeatures(Array.isArray(data.projectBrief?.features) ? data.projectBrief.features : []);
+      setProjectDescription(data.projectBrief?.description || '');
       setPendingOrderId(data.orderId);
       setContactConsent(true);
       setTermsAccepted(true);
@@ -136,7 +154,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       refundPolicyAccepted: true,
       refundAcceptedAt: refundAcceptedAt || new Date().toISOString(),
       ...(websiteAgreementRequired ? { websiteAgreementAccepted: true as const, websiteAgreementAcceptedAt: websiteAgreementAcceptedAt || new Date().toISOString(), websiteTermsPolicyVersion: WEBSITE_PROJECT_TERMS_VERSION, websiteRefundPolicyVersion: WEBSITE_PROJECT_REFUND_VERSION } : {}),
-      ...(creativeAgreementCategory && creativeAgreementAccepted ? { creativeProjectAgreement: { category: creativeAgreementCategory, acceptedAt: creativeAgreementAcceptedAt || new Date().toISOString(), termsVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].terms, refundVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].refund } } : {})
+      ...(creativeAgreementCategory && creativeAgreementAccepted ? { creativeProjectAgreement: { category: creativeAgreementCategory, acceptedAt: creativeAgreementAcceptedAt || new Date().toISOString(), termsVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].terms, refundVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].refund } } : {}),
+      ...(projectBriefRequired ? { projectBrief: { platform: projectPlatform, features: projectFeatures, description: projectDescription.trim(), ...(initialProjectDirection ? { demoSampleId: initialProjectDirection.sampleId, demoSampleTitle: initialProjectDirection.sampleTitle } : {}) } } : {})
     };
     try { window.sessionStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.sessionStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
     onPaid(selected, payment);
@@ -147,6 +166,10 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
     setError('');
     if (!selected || !quote) {
       setError(hi ? 'इस सेवा का निश्चित ऑनलाइन शुल्क अभी सक्रिय नहीं है।' : 'A fixed online price is not enabled for this service yet.');
+      return;
+    }
+    if (projectBriefRequired && (projectDescription.trim().length < 20 || !projectPlatform || projectFeatures.length === 0)) {
+      setError(hi ? 'भुगतान से पहले प्रोजेक्ट का उद्देश्य, प्लेटफॉर्म और कम-से-कम एक जरूरी फीचर चुनें।' : 'Before payment, describe the project, select its target platform and choose at least one required feature.');
       return;
     }
     if (!name.trim() || !/^\d{10}$/.test(phone.replace(/\D/g, '')) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -181,7 +204,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         orderId = String(data.orderId);
         setPendingOrderId(orderId);
         setCashfreeMode(data.cashfreeMode === 'production' ? 'production' : 'sandbox');
-        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, websiteAgreementAccepted: websiteAgreementRequired && websiteAgreementAccepted, websiteAgreementAcceptedAt, websiteTermsPolicyVersion: WEBSITE_PROJECT_TERMS_VERSION, websiteRefundPolicyVersion: WEBSITE_PROJECT_REFUND_VERSION, creativeProjectAgreement: creativeAgreementCategory && creativeAgreementAccepted ? { category: creativeAgreementCategory, acceptedAt: creativeAgreementAcceptedAt, termsVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].terms, refundVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].refund } : undefined })); } catch { /* session storage is optional */ }
+        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, websiteAgreementAccepted: websiteAgreementRequired && websiteAgreementAccepted, websiteAgreementAcceptedAt, websiteTermsPolicyVersion: WEBSITE_PROJECT_TERMS_VERSION, websiteRefundPolicyVersion: WEBSITE_PROJECT_REFUND_VERSION, creativeProjectAgreement: creativeAgreementCategory && creativeAgreementAccepted ? { category: creativeAgreementCategory, acceptedAt: creativeAgreementAcceptedAt, termsVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].terms, refundVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].refund } : undefined, projectBrief: projectBriefRequired ? { platform: projectPlatform, features: projectFeatures, description: projectDescription.trim(), ...(initialProjectDirection ? { demoSampleId: initialProjectDirection.sampleId, demoSampleTitle: initialProjectDirection.sampleTitle } : {}) } : undefined })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
       const sessionResponse = await fetch('/api/digital-seva/checkout', {
@@ -211,7 +234,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         <p>{hi ? 'एक बार में एक सर्विस चुनें। भुगतान सफल होने पर उसी सर्विस का आवेदन फॉर्म खुलेगा।' : 'Choose one service per payment. Its application form opens after Cashfree confirms payment.'}</p>
         <form onSubmit={(event) => void pay(event)}>
           <label className="ds-paynow-field">{hi ? 'अपनी सर्विस चुनें' : 'Select your service'}
-            <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); onServiceChange?.(event.target.value); setWebsiteAgreementAccepted(false); setWebsiteAgreementAcceptedAt(''); setCreativeAgreementAccepted(false); setCreativeAgreementAcceptedAt(''); setError(''); }}>
+            <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); onServiceChange?.(event.target.value); setWebsiteAgreementAccepted(false); setWebsiteAgreementAcceptedAt(''); setCreativeAgreementAccepted(false); setCreativeAgreementAcceptedAt(''); setProjectPlatform(''); setProjectFeatures([]); setProjectDescription(''); setError(''); }}>
               {enabledServices.map((service) => <option key={service.id} value={service.id}>{hi ? service.hindi : service.name}{getAutoPaymentQuote(service) ? '' : (hi ? ' — शुल्क पुष्टि बाकी' : ' — quote required')}</option>)}
             </select>
           </label>
@@ -223,6 +246,17 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             {quote?.note && <p>{quote.note}</p>}
             {quote && <p className="ds-important-note">{hi ? 'कृपया ऊपर दिखाई गई पूरी राशि ही भुगतान करें। Cashfree में राशि पहले से तय है; कम भुगतान स्वीकार नहीं होगा और भुगतान की पुष्टि के बाद ही आवेदन फॉर्म खुलेगा।' : 'Please pay the exact full amount shown above. The Cashfree amount is fixed; an underpayment will not be accepted, and the application form opens only after full payment is verified.'}</p>}
           </div>}
+          {projectBriefRequired && <section className="ds-project-brief">
+            <div><span className="ds-kicker">{hi ? 'PAYMENT से पहले PROJECT BRIEF' : 'PROJECT BRIEF BEFORE PAYMENT'}</span><h3>{hi ? 'आप क्या बनवाना चाहते हैं?' : 'What would you like us to build?'}</h3><p>{hi ? 'अपनी जरूरतें अभी चुनें। यह brief भुगतान के बाद खुलने वाले आवेदन में भी रहेगा। अंतिम फीचर और कीमत लिखित scope/quote से तय होंगे।' : 'Share your requirements now. This brief will also appear in the application after payment. Final features and pricing are controlled by the written scope/quote.'}</p></div>
+            {initialProjectDirection && <p className="ds-project-brief-selected"><b>{hi ? 'आपका चुना हुआ डेमो:' : 'Selected demo direction:'}</b> {initialProjectDirection.sampleTitle}</p>}
+            <label className="ds-paynow-field">{hi ? 'प्लेटफॉर्म / डिजाइन का उपयोग' : 'Target platform / design use'}
+              <select value={projectPlatform} onChange={(event) => setProjectPlatform(event.target.value)} required><option value="">{hi ? 'चुनें' : 'Select'}</option>{projectPlatformOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>
+            </label>
+            <div className="ds-project-brief-options"><b>{hi ? 'जरूरी फीचर चुनें' : 'Select required features'}</b><div>{projectFeatureOptions.map((feature) => <label key={feature}><input type="checkbox" checked={projectFeatures.includes(feature)} onChange={(event) => setProjectFeatures((current) => event.target.checked ? [...current, feature] : current.filter((item) => item !== feature))} /><span>{feature}</span></label>)}</div></div>
+            <label className="ds-paynow-field">{hi ? 'काम का विवरण / अतिरिक्त जरूरतें' : 'Project description / additional requirements'}
+              <textarea rows={4} value={projectDescription} onChange={(event) => setProjectDescription(event.target.value)} placeholder={hi ? 'उदाहरण: यह किसके लिए है, मुख्य काम कैसे होगा, कितने यूज़र होंगे, कौन-सी भाषा/रिपोर्ट चाहिए, कोई खास reference या deadline...' : 'Describe the purpose, users, main workflow, preferred language, reports, integrations, references and any target date...'} required />
+            </label>
+          </section>}
           <div className="ds-paynow-contact">
             <label>{hi ? 'आपका नाम' : 'Your name'}<input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required /></label>
             <label>{hi ? 'मोबाइल नंबर' : 'Mobile number'}<input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="numeric" maxLength={10} autoComplete="tel" required /></label>
