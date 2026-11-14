@@ -108,7 +108,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     serviceId: 'pdf-split', totalAmount: 30, governmentFee: 0, tanshuFee: 30, currency: 'INR',
     routeLabel: 'Private PDF page-splitting task',
     note: '₹30 is the TANSHU ONLINE fee for one PDF task. The customer supplies the PDF and selected page numbers/ranges; the separated PDF output is delivered after processing.'
-  }
+  },
 
   'website-basic': { serviceId: 'website-basic', totalAmount: 5999, governmentFee: 0, tanshuFee: 5999, currency: 'INR', routeLabel: 'Basic website package — up to 5 pages', note: 'Fixed scope only. Domain, hosting and third-party services are separate.' },
   'website-standard': { serviceId: 'website-standard', totalAmount: 11999, governmentFee: 0, tanshuFee: 11999, currency: 'INR', routeLabel: 'Standard business website — up to 10 pages', note: 'Fixed scope only. Domain, hosting and third-party services are separate.' },
