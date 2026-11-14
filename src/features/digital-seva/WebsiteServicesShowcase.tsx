@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Clock3, Globe2, Heart, Menu, Search, ShoppingBag, Star, Sparkles, Monitor, Smartphone, Utensils, GraduationCap, BriefcaseBusiness, Palette, Gem, Flower2, Store, House, Leaf, X } from 'lucide-react';
 
-type Props = { language: 'en' | 'hi'; onClose: () => void; onRequestQuote: (sampleId: string, sampleTitle: string) => void; onPayNow: (serviceId: string, sampleId: string, sampleTitle: string) => void };
+type Props = { language: 'en' | 'hi'; onClose: () => void; onRequestQuote: (sampleId: string, sampleTitle: string) => void; onPayNow: (serviceId: string, sampleId?: string, sampleTitle?: string) => void };
 type Tier = 'Basic' | 'Professional' | 'Premium';
 type Demo = {
   id: string; tier: Tier; category: string; hiCategory: string; name: string; hiName: string; brand: string;
