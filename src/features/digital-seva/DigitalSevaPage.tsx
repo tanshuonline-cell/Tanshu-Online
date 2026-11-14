@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TANSHU_PROFILE_PHOTO } from '../../components/Header';
-import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X, Globe, Droplets } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, CalendarClock, CheckCircle2, ChevronDown, Clock3, FileCheck2, FileText, Fingerprint, Landmark, LifeBuoy, Search, ShieldCheck, Sparkles, WalletCards, X, Globe, Droplets, Code2, Smartphone, Palette } from 'lucide-react';
 import { SEVA_CATEGORIES, SEVA_SERVICES, searchSevaServices, type SevaCategory, type SevaService } from './serviceCatalog';
 import { SEVA_SERVICE_HINDI } from './serviceCatalogHindi';
 import RefundPolicyNotice from './RefundPolicyNotice';
@@ -10,8 +10,11 @@ import { getAutoPaymentQuote } from './autoPaymentPricing';
 import { buildDigitalSevaReceiptHtml } from './digitalSevaReceipt';
 import './digitalSeva.css';
 import WebsiteServicesShowcase from './WebsiteServicesShowcase';
+import CreativeServicesStudio from './CreativeServicesStudio';
 import DigitalSevaSlipRecovery from './DigitalSevaSlipRecovery';
 import DigitalSevaPayNow, { type PrepaidDigitalSevaPayment } from './DigitalSevaPayNow';
+
+type AdminArea = { code: string; name: string; name_local?: string; state_code?: string };
 
 const categoryIcon: Record<string, React.ElementType> = {
   'id-card': FileText, fingerprint: Fingerprint, 'file-check': FileCheck2, vote: BadgeCheck,
@@ -41,6 +44,13 @@ export default function DigitalSevaPage() {
   const [activeCategory, setActiveCategory] = useState<SevaCategory | 'all'>('all');
   const [selected, setSelected] = useState<SevaService | null>(null);
   const [showWebsiteShowcase, setShowWebsiteShowcase] = useState(false);
+  const [creativeStudioCategory, setCreativeStudioCategory] = useState<'apps' | 'software' | 'design' | null>(null);
+  const [states, setStates] = useState<AdminArea[]>([]);
+  const [districts, setDistricts] = useState<AdminArea[]>([]);
+  const [selectedStateCode, setSelectedStateCode] = useState('');
+  const [selectedDistrictCode, setSelectedDistrictCode] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const serviceHindi = selected ? { ...selected, ...SEVA_SERVICE_HINDI[selected.id] } : null;
   const [showAll, setShowAll] = useState(false);
   const [searchTarget, setSearchTarget] = useState<string | null>(null);
@@ -56,6 +66,35 @@ export default function DigitalSevaPage() {
   const [paidCheckout, setPaidCheckout] = useState<PrepaidDigitalSevaPayment | null>(null);
   const [bookingReference, setBookingReference] = useState('');
   const [bookingReceipt, setBookingReceipt] = useState<DigitalSevaReceiptData | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('https://india-lgd-index-api.vercel.app/v1/states')
+      .then((response) => { if (!response.ok) throw new Error('State directory is temporarily unavailable.'); return response.json(); })
+      .then((payload) => {
+        if (!payload?.success || !Array.isArray(payload.data)) throw new Error('Could not read the state directory.');
+        if (!cancelled) { setStates(payload.data); setLocationError(''); }
+      })
+      .catch(() => { if (!cancelled) setLocationError(hindi ? 'राज्य/जिला सूची अभी लोड नहीं हो सकी। कृपया थोड़ी देर बाद पुनः प्रयास करें।' : 'The state/district directory could not load. Please retry in a moment.'); });
+    return () => { cancelled = true; };
+  }, [hindi]);
+
+  useEffect(() => {
+    if (!selectedStateCode) { setDistricts([]); setSelectedDistrictCode(''); return; }
+    let cancelled = false;
+    setLocationLoading(true);
+    setDistricts([]);
+    setSelectedDistrictCode('');
+    fetch(`https://india-lgd-index-api.vercel.app/v1/districts?state=${encodeURIComponent(selectedStateCode)}`)
+      .then((response) => { if (!response.ok) throw new Error('District directory is temporarily unavailable.'); return response.json(); })
+      .then((payload) => {
+        if (!payload?.success || !Array.isArray(payload.data)) throw new Error('Could not read the district directory.');
+        if (!cancelled) { setDistricts(payload.data); setLocationError(''); }
+      })
+      .catch(() => { if (!cancelled) setLocationError(hindi ? 'इस राज्य की जिला सूची अभी लोड नहीं हो सकी।' : 'Districts for this state could not be loaded.'); })
+      .finally(() => { if (!cancelled) setLocationLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedStateCode, hindi]);
+
   useEffect(() => {
     try {
       const savedServiceId = window.localStorage.getItem('tanshu-digital-seva-active-service');
@@ -80,12 +119,16 @@ export default function DigitalSevaPage() {
     } catch { /* an unavailable or malformed recovery draft is ignored */ }
   }, []);
   const openPayNowCenter = () => setShowPayNowCenter(true);
+  const selectedState = states.find((item) => item.code === selectedStateCode);
+  const selectedDistrict = districts.find((item) => item.code === selectedDistrictCode);
   const results = useMemo(() => {
     const found = query.trim() ? searchSevaServices(query) : SEVA_SERVICES;
+    const isBihar = selectedState?.name.toLocaleLowerCase('en-IN') === 'bihar';
     return found
       .filter((service) => activeCategory === 'all' || service.category === activeCategory)
+      .filter((service) => !selectedStateCode || isBihar || !/bihar only/i.test(`${service.availability} ${service.description}`))
       .sort((a, b) => Number(b.id === 'website-services') - Number(a.id === 'website-services'));
-  }, [query, activeCategory]);
+  }, [query, activeCategory, selectedStateCode, selectedState]);
 
   useEffect(() => {
     document.title = 'Digital Seva Center | TANSHU ONLINE';
@@ -231,14 +274,33 @@ export default function DigitalSevaPage() {
           </div>
         </section>
 
+        <section className="ds-section ds-gallery-addons" aria-label={hindi ? 'डिजिटल क्रिएटिव स्टूडियो' : 'Digital Creative Studio'}>
+          <div className="ds-section-heading"><div><span className="ds-kicker">{hindi ? 'पहले डेमो देखें, फिर चुनें' : 'EXPLORE BEFORE YOU BOOK'}</span><h2>Digital Creative Studio</h2><p>{hindi ? 'वेबसाइट, ऐप, सॉफ्टवेयर या ग्राफिक डिजाइन के मूल नमूने देखें। पसंद की दिशा चुनने के बाद ही कोटेशन या Pay Now की ओर बढ़ें।' : 'Explore original website, app, software and graphic design concepts. Choose a direction before moving to a quote or Pay Now.'}</p></div></div>
+          <div className="ds-project-service-grid">
+            <article className="ds-project-service-card"><span className="ds-project-service-icon"><Globe size={22} /></span><small>01 · WEBSITE</small><h3>Website Design &amp; Development</h3><p>{hindi ? '19 वेबसाइट स्टाइल और बिज़नेस डेमो देखें।' : 'Explore 19 website styles and business demos.'}</p><button type="button" onClick={() => { const service = SEVA_SERVICES.find((item) => item.id === 'website-services'); if (service) { setSelected(service); setShowWebsiteShowcase(true); } }}>{hindi ? '19 वेबसाइट डेमो देखें' : 'Explore all 19 website demos'} <ArrowRight size={15} /></button></article>
+            <article className="ds-project-service-card"><span className="ds-project-service-icon"><Smartphone size={22} /></span><small>02 · APPLICATION</small><h3>Mobile &amp; Web Applications</h3><p>{hindi ? 'Booking, education और business app के स्क्रीन डेमो देखें।' : 'Browse booking, education and business app screen concepts.'}</p><button type="button" onClick={() => setCreativeStudioCategory('apps')}>{hindi ? 'App डेमो देखें' : 'Explore app demos'} <ArrowRight size={15} /></button></article>
+            <article className="ds-project-service-card"><span className="ds-project-service-icon"><Code2 size={22} /></span><small>03 · SOFTWARE</small><h3>Custom Software</h3><p>{hindi ? 'Desktop tools, browser workspace और creative software कॉन्सेप्ट देखें।' : 'Explore desktop tools, browser workspaces and creative software concepts.'}</p><button type="button" onClick={() => setCreativeStudioCategory('software')}>{hindi ? 'Software डेमो देखें' : 'Explore software demos'} <ArrowRight size={15} /></button></article>
+            <article className="ds-project-service-card"><span className="ds-project-service-icon"><Palette size={22} /></span><small>04 · GRAPHIC DESIGN</small><h3>Graphic &amp; Creative Design</h3><p>{hindi ? 'Poster, social creatives, logo और brochure के नमूने देखें।' : 'Browse poster, social creative, logo and brochure concepts.'}</p><button type="button" onClick={() => setCreativeStudioCategory('design')}>{hindi ? 'Design डेमो देखें' : 'Explore design samples'} <ArrowRight size={15} /></button></article>
+          </div>
+          <p className="ds-project-range-note">{hindi ? 'सभी डेमो केवल उदाहरण हैं। अंतिम फीचर, सामग्री, कीमत और डिलीवरी समय लिखित quotation में तय होंगे।' : 'All samples are illustrative only. Final features, content, price and delivery schedule are confirmed in a written quotation.'}</p>
+        </section>
+
         <section className="ds-search-section" aria-label={hindi ? 'सेवाएँ खोजें' : 'Search services'}>
           <div className="ds-search-heading"><div><span className="ds-kicker">{hindi ? 'सही सेवा खोजें' : 'FIND THE RIGHT SERVICE'}</span><h2>{hindi ? 'आपको किस काम में सहायता चाहिए?' : 'What do you need help with?'}</h2></div><span className="ds-language-note">{hindi ? 'हिंदी और English दोनों में खोजें' : 'Search in Hindi and English'}</span></div>
           <label className="ds-searchbox"><Search size={22} /><input value={query} onChange={(event) => { setQuery(event.target.value); setActiveCategory('all'); }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); runServiceSearch(); } }} placeholder={hindi ? 'जैसे “वोटर आईडी सुधार”, “पैन करेक्शन”, “आधार पता”...' : 'Try “Voter ID correction”, “PAN correction”, “Aadhaar address”...'} aria-label={hindi ? 'सेवा खोजें' : 'Search for a service'} /><button type="button" className="ds-search-submit" onClick={runServiceSearch}>{hindi ? 'खोजें' : 'Search'} <ArrowRight size={15} /></button>{query && <button type="button" aria-label="Clear search" onClick={() => { setQuery(''); setSearchTarget(null); }}><X size={17} /></button>}</label>
           <div className="ds-search-hints"><span>{hindi ? 'लोकप्रिय खोज:' : 'Popular searches:'}</span>{['PDF size kam', 'PDF jodna', 'आधार पता', 'Photo 20 KB'].map((hint) => <button key={hint} onClick={() => { setQuery(hint); setActiveCategory('all'); }}>{hint}</button>)}</div>
+          <div className="ds-location-filter">
+            <div className="ds-location-heading"><strong>{hindi ? 'अपना राज्य और जिला चुनें' : 'Choose your state & district'}</strong><small>{hindi ? 'आपके क्षेत्र में उपलब्ध सेवाएँ देखने के लिए' : 'To narrow services available for your area'}</small></div>
+            <label><span>{hindi ? 'राज्य / केंद्र शासित प्रदेश' : 'State / Union Territory'}</span><select value={selectedStateCode} onChange={(event) => setSelectedStateCode(event.target.value)}><option value="">{hindi ? 'राज्य चुनें' : 'Select state'}</option>{states.map((state) => <option key={state.code} value={state.code}>{state.name}</option>)}</select></label>
+            <label><span>{hindi ? 'जिला' : 'District'}</span><select value={selectedDistrictCode} onChange={(event) => setSelectedDistrictCode(event.target.value)} disabled={!selectedStateCode || locationLoading}><option value="">{locationLoading ? (hindi ? 'जिले लोड हो रहे हैं…' : 'Loading districts…') : (hindi ? 'जिला चुनें' : 'Select district')}</option>{districts.map((district) => <option key={district.code} value={district.code}>{district.name_local ? `${district.name} / ${district.name_local}` : district.name}</option>)}</select></label>
+            {selectedState && <button type="button" className="ds-location-clear" onClick={() => { setSelectedStateCode(''); setSelectedDistrictCode(''); }}>{hindi ? 'लोकेशन हटाएँ' : 'Clear location'}</button>}
+            {locationError && <small className="ds-location-error" role="status">{locationError}</small>}
+          </div>
+          {selectedState && <p className="ds-location-summary">{hindi ? 'चुनी गई लोकेशन:' : 'Selected location:'} <strong>{selectedDistrict ? `${selectedDistrict.name}, ${selectedState.name}` : selectedState.name}</strong> — {hindi ? 'सूची में वही सेवाएँ रहेंगी जिनकी उपलब्धता चुने गए राज्य के लिए उपयुक्त है।' : 'The catalogue filters out services explicitly limited to other states.'}</p>}
         </section>
 
         <section className="ds-section" id="ds-government-services">
-          <div className="ds-section-heading"><div><span className="ds-kicker">{hindi ? 'सरकारी, फोटो, वीडियो और डिजिटल काम' : 'GOVERNMENT, CREATIVE & DIGITAL SERVICES'}</span><h2>{hindi ? 'सेवा की श्रेणी चुनें' : 'Choose what you need done online'}</h2><p>{hindi ? 'लोकप्रिय सेवाएँ देखें और शुरू करने से पहले ज़रूरी जानकारी जानें।' : 'Explore popular services and see what may be required before you begin.'}</p></div><button className="ds-outline-button" onClick={() => { setActiveCategory('all'); setShowAll(true); scrollToServices(); }}>{hindi ? 'सभी सेवाएँ देखें' : 'View all services'} <ArrowUpRight size={16} /></button></div>
+          <div className="ds-section-heading"><div><span className="ds-kicker">{hindi ? 'भारत भर की ऑनलाइन सेवाएँ' : 'ONLINE SERVICES ACROSS INDIA'}</span><h2>{hindi ? 'आप ऑनलाइन कौन-सा काम करवाना चाहते हैं?' : 'Choose what you need done online'}</h2><p>{hindi ? 'लोकप्रिय सेवाएँ देखें और शुरू करने से पहले ज़रूरी जानकारी जानें।' : 'Explore popular services and see what may be required before you begin.'}</p></div><button className="ds-outline-button" onClick={() => { setActiveCategory('all'); setShowAll(true); scrollToServices(); }}>{hindi ? 'सभी सेवाएँ देखें' : 'View all services'} <ArrowUpRight size={16} /></button></div>
           <div className="ds-category-grid">
             {(['photo', 'video', 'creative', 'business', 'career', 'websites', 'pan', 'aadhaar', 'voter', 'ration', 'schemes', 'forms', 'certificates', 'pdf', 'documents'] as SevaCategory[]).map((categoryId) => {
               const category = SEVA_CATEGORIES.find((item) => item.id === categoryId);
@@ -275,6 +337,7 @@ export default function DigitalSevaPage() {
       {selected && selected.id !== 'website-services' && <div className="ds-modal-backdrop" role="presentation" onClick={() => setSelected(null)}><section className="ds-detail-modal" role="dialog" aria-modal="true" aria-label={selected.name} onClick={(event) => event.stopPropagation()}><div className="ds-modal-language-switch" role="group" aria-label={hindi ? 'भाषा चुनें' : 'Choose language'}><button type="button" className={!hindi ? "active" : ""} aria-pressed={!hindi} onClick={() => setLanguage("en")}>English</button><button type="button" className={hindi ? "active" : ""} aria-pressed={hindi} onClick={() => setLanguage("hi")}>हिंदी</button></div><button className="ds-modal-close" onClick={() => setSelected(null)} aria-label="Close"><X size={20} /></button><span className="ds-kicker">{hindi ? 'सेवा का विवरण' : 'SERVICE DETAILS'}</span><h2>{hindi ? selected.hindi : selected.name}</h2><p className="ds-modal-hindi">{hindi ? selected.name : selected.hindi}</p><p>{hindi ? (serviceHindi?.descriptionHindi || selected.description) : selected.description}</p><div className="ds-detail-grid"><div><small>{hindi ? 'उपलब्धता' : 'AVAILABILITY'}</small><b>{hindi ? (serviceHindi?.availabilityHindi || selected.availability) : selected.availability}</b></div><div><small>{hindi ? 'सहायता का प्रकार' : 'ASSISTANCE TYPE'}</small><b>{hindi ? (serviceHindi?.assistanceHindi || selected.assistance) : selected.assistance}</b></div></div><RefundPolicyNotice service={selected} language={language} /><h3>{hindi ? 'तैयार रखने वाले दस्तावेज़ / जानकारी' : 'Documents / information to prepare'}</h3><ul>{(hindi ? (serviceHindi?.documentsHindi || selected.documents) : selected.documents).map((item) => <li key={item}>{item}</li>)}</ul>{(hindi ? (serviceHindi?.noteHindi || selected.note) : selected.note) && <div className="ds-important-note"><ShieldCheck size={18} /><span>{hindi ? (serviceHindi?.noteHindi || selected.note) : selected.note}</span></div>}<div className="ds-preview-notice"><CalendarClock size={18} /><span>{hindi ? 'यह Preview केवल Cashfree Sandbox भुगतान और आवेदन प्रक्रिया की जाँच के लिए है। कोई वास्तविक पैसा नहीं लिया जाएगा।' : 'This Preview uses Cashfree Sandbox to test the payment and application flow. No real money is collected.'}</span></div><div className="ds-modal-actions"><button className="ds-modal-book" onClick={() => setShowPayNowCenter(true)}>{hindi ? 'Pay Now' : 'Pay Now'} <ArrowRight size={16} /></button><button className="ds-modal-done" onClick={() => setSelected(null)}>{hindi ? 'बंद करें' : 'Close'}</button></div></section></div>}
 
       {showBookingForm && selected && <div className="ds-modal-backdrop" role="presentation" onClick={() => setShowBookingForm(false)}><section className="ds-detail-modal ds-booking-modal" role="dialog" aria-modal="true" aria-label={hindi ? 'बुकिंग अनुरोध' : 'Request a booking'} onClick={(event) => event.stopPropagation()}><div className="ds-modal-language-switch" role="group" aria-label={hindi ? 'भाषा चुनें' : 'Choose language'}><button type="button" className={!hindi ? "active" : ""} aria-pressed={!hindi} onClick={() => setLanguage("en")}>English</button><button type="button" className={hindi ? "active" : ""} aria-pressed={hindi} onClick={() => setLanguage("hi")}>हिंदी</button></div><button className="ds-modal-close" onClick={closeBookingForm} aria-label="Close"><X size={20} /></button>{bookingReference ? <><span className="ds-kicker">{hindi ? 'अनुरोध प्राप्त हुआ' : 'REQUEST RECEIVED'}</span><h2>{hindi ? 'आपका बुकिंग अनुरोध सुरक्षित हो गया है' : 'Your booking request is saved'}</h2><p>{hindi ? <>हमने <strong>{selected.hindi}</strong> के लिए आपका अनुरोध दर्ज कर लिया है। यह सहायता का अनुरोध है, सरकारी आवेदन जमा होना नहीं।</> : <>We have recorded your request for <strong>{selected.name}</strong>. This is a request for assistance, not a government application submission.</>}</p><div className="ds-booking-reference"><small>{hindi ? 'आपका बुकिंग रेफरेंस' : 'YOUR BOOKING REFERENCE'}</small><strong>{bookingReference}</strong></div><button type="button" className="ds-modal-book" onClick={openCustomerReceipt} disabled={!bookingReceipt}>{hindi ? 'रसीद डाउनलोड / प्रिंट करें' : 'Download / Print Application Slip'} <FileText size={16} /></button><p className="ds-booking-help">{hindi ? 'इस रेफरेंस को सुरक्षित रखें। आप इसी नंबर से अपने काम का स्टेटस देख सकते हैं।' : 'Keep this reference safe. You can use it to check your request status anytime.'}</p><div className="ds-modal-actions"><button className="ds-modal-book" onClick={() => { setTrackingReference(bookingReference); setTrackingResult(null); setTrackingError(''); setShowTrackingInfo(true); closeBookingForm(); }}>{hindi ? 'स्टेटस देखें' : 'Track status'} <ArrowRight size={15} /></button><button className="ds-modal-done" onClick={() => { closeBookingForm(); setSelected(null); }}>{hindi ? 'ठीक है' : 'Done'}</button></div></> : <><span className="ds-kicker">{hindi ? 'बुकिंग अनुरोध' : 'BOOKING REQUEST'}</span><h2>{hindi ? 'इस सेवा के लिए अनुरोध करें' : 'Request this service'}</h2><p>{hindi ? 'सेवा:' : 'Service:'} <strong>{hindi ? selected.hindi : selected.name}</strong></p><div className="ds-booking-fee-summary"><strong>{hindi ? 'अनुरोध से पहले शुल्क विवरण' : 'Fee summary before request'}</strong><p><b>{hindi ? 'सरकारी / प्रदाता शुल्क:' : 'Government / provider fee:'}</b> {getServiceFeeDisclosure(selected).governmentFee}</p><p><b>{hindi ? 'TANSHU ONLINE सेवा शुल्क:' : 'TANSHU ONLINE fee:'}</b> {getServiceFeeDisclosure(selected).serviceFee}</p><p>{hindi ? <><b>रिफंड:</b> सरकारी/प्रदाता रिफंड सेवा विवरण में दिए गए आधिकारिक मार्ग के अनुसार होगा। TANSHU शुल्क में समायोजन वास्तव में किए गए काम और नीचे दी गई रिफंड नीति पर आधारित होगा।</> : <><b>Refund:</b> Government/provider refund follows the exact official route shown in the service details. TANSHU fee adjustments are based on work actually completed and the Refund Policy below.</>}</p><small>{hindi ? 'केवल Preview Sandbox परीक्षण है; कोई वास्तविक पैसा नहीं लिया जाता और लाइव भुगतान बंद है।' : 'Preview Sandbox testing only; no real money is collected and live payments are disabled.'}</small></div><DigitalSevaApplicationForm service={selected} language={language} prepaidPayment={paidCheckout} onSubmitted={(reference, receipt) => { try { window.localStorage.removeItem('tanshu-digital-seva-active-service'); window.sessionStorage.removeItem('tanshu-ds-paid-checkout-v1'); } catch { /* browser storage may be disabled */ } setPaidCheckout(null); setBookingReference(reference); setBookingReceipt(receipt); }} /></>}</section></div>}
+      {creativeStudioCategory && <CreativeServicesStudio category={creativeStudioCategory} language={language} onClose={() => setCreativeStudioCategory(null)} onRequestQuote={(serviceId) => { const service = SEVA_SERVICES.find((item) => item.id === serviceId); if (!service) return; setSelected(service); setCreativeStudioCategory(null); setShowPayNowCenter(true); }} />}
       {showSlipRecovery && <DigitalSevaSlipRecovery language={language} onClose={() => setShowSlipRecovery(false)} />}
       {showTrackingInfo && <div className="ds-modal-backdrop" role="presentation" onClick={() => setShowTrackingInfo(false)}><section className="ds-detail-modal ds-tracking-modal" role="dialog" aria-modal="true" aria-label={hindi ? 'अनुरोध ट्रैकिंग' : 'Request tracking'} onClick={(event) => event.stopPropagation()}><button className="ds-modal-close" onClick={() => setShowTrackingInfo(false)} aria-label="Close"><X size={20} /></button><span className="ds-kicker">{hindi ? 'अनुरोध ट्रैकिंग' : 'REQUEST TRACKING'}</span><h2>{hindi ? 'अपना सेवा अनुरोध ट्रैक करें' : 'Track your service request'}</h2><p>{hindi ? 'अपनी रसीद पर दिया गया बुकिंग रेफरेंस डालें।' : 'Enter the booking reference printed on your receipt.'}</p><form className="ds-tracking-form" onSubmit={(event) => void lookupTracking(event)}><label>{hindi ? 'बुकिंग रेफरेंस' : 'Booking Reference'}<input value={trackingReference} onChange={(event) => setTrackingReference(event.target.value.toUpperCase())} maxLength={24} placeholder="DS-YYYYMMDD-XXXXXXXXXX" autoComplete="off" /></label><button className="ds-modal-book" type="submit" disabled={trackingLoading}>{trackingLoading ? (hindi ? 'जाँच हो रही है…' : 'Checking…') : (hindi ? 'स्टेटस देखें' : 'Check Status')}</button></form>{trackingError && <p className="ds-booking-error" role="alert">{trackingError}</p>}{trackingResult && <div className="ds-tracking-result"><div className="ds-tracking-result-head"><small>{hindi ? 'बुकिंग रेफरेंस' : 'BOOKING REFERENCE'}</small><strong>{trackingResult.bookingReference}</strong><span className="ds-tracking-status">{statusLabel(trackingResult.status)}</span></div><div className="ds-tracking-meta"><p><b>{hindi ? 'अनुरोध दर्ज:' : 'Request received:'}</b> {formatTrackingTime(trackingResult.createdAt)}</p><p><b>{hindi ? 'आखिरी अपडेट:' : 'Last update:'}</b> {formatTrackingTime(trackingResult.updatedAt)}</p><p><b>{hindi ? 'अनुमानित पूरा होने का समय:' : 'Estimated completion:'}</b> {formatTrackingTime(trackingResult.estimatedCompletionAt)}</p></div><h3>{hindi ? 'काम की प्रगति' : 'Progress updates'}</h3><ol className="ds-tracking-timeline">{(trackingResult.events || []).map((item: any, index: number) => <li key={index}><span className="ds-tracking-dot" /><div><b>{statusLabel(item.status)}</b><small>{formatTrackingTime(item.createdAt)}</small>{item.note && <p>{item.note}</p>}</div></li>)}</ol><p className="ds-tracking-service">{hindi ? 'सेवा:' : 'Service:'} {SEVA_SERVICES.find((service) => service.id === trackingResult.serviceId)?.name || trackingResult.serviceId}</p></div>}<button className="ds-modal-done" onClick={() => setShowTrackingInfo(false)}>{hindi ? 'बंद करें' : 'Close'}</button></section></div>}
     </div>
