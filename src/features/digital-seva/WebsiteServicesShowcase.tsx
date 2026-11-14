@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Clock3, Globe2, Heart, Menu, Search, ShoppingBag, Star, Sparkles, Monitor, Smartphone, Utensils, GraduationCap, BriefcaseBusiness, Palette, Gem, Flower2, Store, House, Leaf, X } from 'lucide-react';
 
-type Props = { language: 'en' | 'hi'; onClose: () => void; onRequestQuote: () => void; onPayNow: (serviceId: string) => void };
+type Props = { language: 'en' | 'hi'; onClose: () => void; onRequestQuote: (sampleId: string, sampleTitle: string) => void; onPayNow: (serviceId: string, sampleId: string, sampleTitle: string) => void };
 type Tier = 'Basic' | 'Professional' | 'Premium';
 type Demo = {
   id: string; tier: Tier; category: string; hiCategory: string; name: string; hiName: string; brand: string;
@@ -140,7 +140,7 @@ export default function WebsiteServicesShowcase({language,onClose,onRequestQuote
     <header className="ds-webshowcase-header">
       <button className="ds-webshowcase-back" onClick={onClose}><ArrowLeft size={17}/>{hi?'डिजिटल सेवा पर वापस जाएँ':'Back to Digital Seva'}</button>
       <div className="ds-webshowcase-brand"><img className="ds-webshowcase-logo-image" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="TANSHU ONLINE logo"/><span className="ds-webshowcase-brand-copy"><b><strong>TANSHU ONLINE</strong></b><small>{hi?'प्रीमियम वेबसाइट डिज़ाइन स्टूडियो':'PREMIUM WEBSITE DESIGN STUDIO'}</small></span></div>
-      <div className="ds-webshowcase-header-actions"><div className="ds-webshowcase-language" role="group" aria-label="Language"><button className={!hi?'active':''} onClick={()=>setShowcaseLanguage('en')}>English</button><button className={hi?'active':''} onClick={()=>setShowcaseLanguage('hi')}>हिंदी</button></div><button className="ds-webshowcase-quote" onClick={onRequestQuote}>{hi?'₹999 में प्रोजेक्ट समीक्षा बुक करें':'Book project review · ₹999'}<ArrowRight size={16}/></button></div>
+      <div className="ds-webshowcase-header-actions"><div className="ds-webshowcase-language" role="group" aria-label="Language"><button className={!hi?'active':''} onClick={()=>setShowcaseLanguage('en')}>English</button><button className={hi?'active':''} onClick={()=>setShowcaseLanguage('hi')}>हिंदी</button></div><button className="ds-webshowcase-quote" onClick={()=>onRequestQuote(activeDemo.id,activeDemo.name)}>{hi?'₹999 में प्रोजेक्ट समीक्षा बुक करें':'Book project review · ₹999'}<ArrowRight size={16}/></button></div>
     </header>
     <main className="ds-webshowcase-main">
       <section className="ds-gallery-hero">
@@ -156,7 +156,7 @@ export default function WebsiteServicesShowcase({language,onClose,onRequestQuote
         <div className="ds-gallery-tier-tabs">{(['Basic','Professional','Premium'] as Tier[]).map(t=>{const ti=tierInfo[t];return <button key={t} className={'ds-tier-tab ds-tier-'+ti.color+(tier===t?' active':'')} onClick={()=>selectTier(t)}><span className="ds-tier-icon">{t==='Basic'?<Store size={20}/>:t==='Professional'?<Sparkles size={20}/>:<Gem size={20}/>}</span><span><b>{hi?ti.hi:t}</b><small>{t==='Basic'?(hi?'बेसिक वेबसाइट':'Starter website'):t==='Professional'?(hi?'ब्रांडेड वेबसाइट':'Branded website'):(hi?'एडवांस कस्टम वेबसाइट':'Advanced custom website')}</small></span><ArrowRight size={16}/></button>;})}</div>
         <div className={'ds-gallery-tier-details ds-tier-detail-'+info.color}>
           <div className="ds-tier-detail-heading"><span className="ds-tier-detail-icon"><TierIcon size={22}/></span><div><small>{hi?'चुना हुआ पैकेज':'SELECTED PACKAGE'}</small><h3>{hi?info.hi:tier}</h3><p>{hi?info.hiSub:info.sub}</p></div><strong>{info.price}</strong></div>
-          <div className="ds-tier-detail-bottom"><div className="ds-tier-feature-list">{(hi?info.hiFeatures:info.features).map(f=><span key={f}><Check size={14}/>{f}</span>)}</div><span className="ds-tier-timeline"><Clock3 size={15}/>{hi?info.hiTime:info.time}</span></div><button className="ds-project-pay-button" onClick={()=>onPayNow(tier==='Basic'?'website-basic':tier==='Professional'?'website-standard':'website-premium')}>{hi?'इस पैकेज को चुनें और भुगतान करें':'Choose package & Pay Now'} <ArrowRight size={16}/></button>
+          <div className="ds-tier-detail-bottom"><div className="ds-tier-feature-list">{(hi?info.hiFeatures:info.features).map(f=><span key={f}><Check size={14}/>{f}</span>)}</div><span className="ds-tier-timeline"><Clock3 size={15}/>{hi?info.hiTime:info.time}</span></div><button className="ds-project-pay-button" onClick={()=>onPayNow(tier==='Basic'?'website-basic':tier==='Professional'?'website-standard':'website-premium',activeDemo.id,activeDemo.name)}>{hi?'इस पैकेज को चुनें और भुगतान करें':'Choose package & Pay Now'} <ArrowRight size={16}/></button>
         </div>
       </section>
       <section className="ds-gallery-addons">
@@ -176,7 +176,7 @@ export default function WebsiteServicesShowcase({language,onClose,onRequestQuote
         <WebsitePreview key={activeDemo.id} demo={activeDemo} hi={hi}/>
       </section>
       <section className="ds-gallery-custom">
-        <div><span><Globe2 size={17}/>{hi?'आपके बिज़नेस के अनुसार':'CUSTOM WEBSITE DESIGN'}</span><h2>{hi?'डेमो पसंद आया? अब आपकी बारी।':'Like a sample? Let’s make it yours.'}</h2><p>{hi?'आप ऊपर दिए गए किसी भी नमूने जैसा डिज़ाइन चुन सकते हैं या अपना रेफरेंस, रंग, पेज और फीचर बताकर बिल्कुल अलग वेबसाइट बनवा सकते हैं। अंतिम कीमत आपके बजट, पेजों की संख्या, फीचर्स, डिज़ाइन की जटिलता और काम में लगने वाले समय पर निर्भर करेगी।':'Choose a style you like or share your own reference, colours, pages and features for a completely different design. Final pricing depends on your budget, page count, features, design complexity and time required.'}</p></div><button onClick={onRequestQuote}>{hi?'₹999 में कस्टम वेबसाइट समीक्षा बुक करें':'Book custom website review · ₹999'}<ArrowRight size={16}/></button>
+        <div><span><Globe2 size={17}/>{hi?'आपके बिज़नेस के अनुसार':'CUSTOM WEBSITE DESIGN'}</span><h2>{hi?'डेमो पसंद आया? अब आपकी बारी।':'Like a sample? Let’s make it yours.'}</h2><p>{hi?'आप ऊपर दिए गए किसी भी नमूने जैसा डिज़ाइन चुन सकते हैं या अपना रेफरेंस, रंग, पेज और फीचर बताकर बिल्कुल अलग वेबसाइट बनवा सकते हैं। अंतिम कीमत आपके बजट, पेजों की संख्या, फीचर्स, डिज़ाइन की जटिलता और काम में लगने वाले समय पर निर्भर करेगी।':'Choose a style you like or share your own reference, colours, pages and features for a completely different design. Final pricing depends on your budget, page count, features, design complexity and time required.'}</p></div><button onClick={()=>onRequestQuote(activeDemo.id,activeDemo.name)}>{hi?'₹999 में कस्टम वेबसाइट समीक्षा बुक करें':'Book custom website review · ₹999'}<ArrowRight size={16}/></button>
       </section>
       <footer className="ds-webshowcase-footer">TANSHU ONLINE <span>•</span>{hi?'आपका बिज़नेस, आपकी पहचान।':'Your business. Your identity.'}<small>{hi?'सभी वेबसाइट स्क्रीन ग्राहक के लिए केवल डेमो नमूने हैं।':'All website screens are illustrative customer demo samples.'}</small></footer>
     </main>
