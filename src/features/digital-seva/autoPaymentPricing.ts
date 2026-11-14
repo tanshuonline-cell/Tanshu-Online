@@ -30,7 +30,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
   'pan-correction': {
     serviceId: 'pan-correction', totalAmount: 193, governmentFee: 107, tanshuFee: 193, estimatedCustomerTotal: 300, currency: 'INR',
     routeLabel: 'Indian physical PAN card correction route',
-    note: 'Cashfree collects ₹193 for TANSHU ONLINE assistance only. Pay the standard physical-card provider fee of ₹107 directly to Protean; estimated combined outlay ₹300. Paperless physical-card and e-PAN routes have different official fees and must be re-quoted.'
+    note: 'The full ₹300 is collected by TANSHU ONLINE through Cashfree: ₹107 is reserved for the standard physical-card provider charge and ₹193 is the TANSHU ONLINE service fee. TANSHU ONLINE deposits the official portion with Protean. Paperless physical-card and e-PAN routes have different official fees and must be re-quoted. Paperless physical-card and e-PAN routes have different official fees and must be re-quoted.'
   },
   'pan-photo-signature': {
     serviceId: 'pan-photo-signature', totalAmount: 250, governmentFee: 107, tanshuFee: 250, estimatedCustomerTotal: 357, currency: 'INR',
@@ -65,7 +65,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
   'aadhaar-pvc-assistance': {
     serviceId: 'aadhaar-pvc-assistance', totalAmount: 100, governmentFee: 75, tanshuFee: 100, estimatedCustomerTotal: 175, currency: 'INR',
     routeLabel: 'UIDAI PVC card order assistance',
-    note: 'Cashfree collects ₹100 for TANSHU ONLINE assistance only. TANSHU ONLINE collects the combined amount through Cashfree and deposits the ₹75 official UIDAI PVC order fee on the customer's behalf; the customer must personally confirm the UIDAI order and enter OTP. The customer must personally confirm the UIDAI order and enter OTP.'
+    note: 'The full ₹175 is collected by TANSHU ONLINE through Cashfree: ₹75 is reserved for the UIDAI PVC order fee and ₹100 is the TANSHU ONLINE service fee. TANSHU ONLINE deposits the official portion with UIDAI; the customer must personally confirm the UIDAI order and enter OTP.'
   },
   'voter-new': {
     serviceId: 'voter-new', totalAmount: 100, governmentFee: 0, tanshuFee: 100, currency: 'INR',
