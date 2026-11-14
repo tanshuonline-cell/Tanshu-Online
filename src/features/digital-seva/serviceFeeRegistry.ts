@@ -208,7 +208,7 @@ disclosures['pdf-split'] = {
   officialSourceLabel: 'Private PDF page-splitting service',
   officialSourceUrl: 'https://www.consumerhelpline.gov.in/',
   serviceFee: '₹50 TANSHU ONLINE service fee per PDF task. The task includes separating the customer-provided PDF according to the page numbers/ranges supplied and returning the resulting PDF file(s).',
-  serviceRefund: 'If the customer cancels before processing starts, the ₹30 service fee will be refunded. Once processing has started, any retained amount will be proportionate to work actually completed and applicable consumer law. If TANSHU ONLINE cannot deliver the agreed split because of its own technical failure, the unearned service fee will be refunded; the exceptional 15-day technical-failure commitment in the Refund Policy also applies.',
+  serviceRefund: 'If the customer cancels before processing starts, the ₹50 service fee will be refunded. Once processing has started, any retained amount will be proportionate to work actually completed and applicable consumer law. If TANSHU ONLINE cannot deliver the agreed split because of its own technical failure, the unearned service fee will be refunded; the exceptional 15-day technical-failure commitment in the Refund Policy also applies.',
   note: 'One task means one customer-provided PDF split according to the selected page numbers/ranges. The customer must review the page selection before payment. Password-protected or damaged PDFs may require the customer to provide an unlocked/working copy.',
 };
 
@@ -240,7 +240,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'aadhaar-mobile': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the selected app/centre route before payment.',
   'pan-correction': '₹300 total for the standard Indian physical-card route: ₹107 official/provider fee + ₹193 TANSHU ONLINE assistance. Name, father-name and mobile corrections use the same total.',
   'pan-photo-signature': '₹250 TANSHU ONLINE assistance fee + official/provider fee (standard Indian physical-card example: ₹107; total ₹357). Reconfirm exact route before payment.',
-  'aadhaar-download': '₹50 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹50; download + colour print ₹70.',
+  'aadhaar-download': '₹50 e-Aadhaar download assistance. Optional Aadhaar print: B/W ₹30 or colour ₹50. Download + B/W print ₹80; download + colour print ₹100.',
   'certificate-income': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
   'certificate-caste': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
   'certificate-residence': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
