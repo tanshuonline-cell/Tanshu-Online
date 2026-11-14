@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, CreditCard, ShieldCheck } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { SEVA_SERVICES } from './serviceCatalog';
@@ -66,8 +66,26 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const selected = useMemo(() => SEVA_SERVICES.find((service) => service.id === selectedId) || null, [selectedId]);
   const quote = selected ? getAutoPaymentQuote(selected) : null;
   const disclosure = selected ? getServiceFeeDisclosure(selected) : null;
-  const enabledServices = SEVA_SERVICES.filter((service) => service.id !== 'website-services');
+  const enabledServices = SEVA_SERVICES;
 
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
+      if (!saved) return;
+      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string };
+      if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
+      setSelectedId(data.serviceId);
+      setName(data.name || '');
+      setPhone(data.phone || '');
+      setEmail(data.email || '');
+      setPendingOrderId(data.orderId);
+      setContactConsent(true);
+      setTermsAccepted(true);
+      setRefundAccepted(true);
+      setTermsAcceptedAt(data.termsAcceptedAt || new Date().toISOString());
+      setRefundAcceptedAt(data.refundAcceptedAt || new Date().toISOString());
+    } catch { /* invalid recovery data is ignored */ }
+  }, []);
   const verifyAndContinue = async (orderId: string) => {
     const response = await fetch('/api/digital-seva/verify-checkout', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
@@ -89,7 +107,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       refundPolicyAccepted: true,
       refundAcceptedAt: refundAcceptedAt || new Date().toISOString()
     };
-    try { window.sessionStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); } catch { /* session storage is optional */ }
+    try { window.sessionStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.sessionStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
     onPaid(selected, payment);
   };
 
@@ -127,6 +145,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         orderId = String(data.orderId);
         setPendingOrderId(orderId);
         setCashfreeMode(data.cashfreeMode === 'production' ? 'production' : 'sandbox');
+        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
       const sessionResponse = await fetch('/api/digital-seva/checkout', {
@@ -156,7 +175,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         <p>{hi ? 'एक बार में एक सर्विस चुनें। भुगतान सफल होने पर उसी सर्विस का आवेदन फॉर्म खुलेगा।' : 'Choose one service per payment. Its application form opens after Cashfree confirms payment.'}</p>
         <form onSubmit={(event) => void pay(event)}>
           <label className="ds-paynow-field">{hi ? 'अपनी सर्विस चुनें' : 'Select your service'}
-            <select value={selectedId} onChange={(event) => { setSelectedId(event.target.value); setPendingOrderId(''); setError(''); }}>
+            <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); setError(''); }}>
               {enabledServices.map((service) => <option key={service.id} value={service.id}>{hi ? service.hindi : service.name}{getAutoPaymentQuote(service) ? '' : (hi ? ' — शुल्क पुष्टि बाकी' : ' — quote required')}</option>)}
             </select>
           </label>
