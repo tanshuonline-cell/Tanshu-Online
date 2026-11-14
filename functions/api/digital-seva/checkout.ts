@@ -16,6 +16,14 @@ const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
 const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-basic', 'website-standard', 'website-premium', 'custom-website-advance']);
 const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v1';
 const WEBSITE_PROJECT_REFUND_VERSION = 'website-project-refund-2026-11-14-v1';
+const CREATIVE_AGREEMENT_POLICY: Record<string, { category: 'apps' | 'software' | 'design'; terms: string; refund: string }> = {
+  'custom-app-advance': { category: 'apps', terms: 'app-project-terms-2026-11-14-v1', refund: 'app-project-refund-2026-11-14-v1' },
+  'custom-project-advance': { category: 'software', terms: 'software-project-terms-2026-11-14-v1', refund: 'software-project-refund-2026-11-14-v1' },
+  'poster-design': { category: 'design', terms: 'graphic-design-terms-2026-11-14-v1', refund: 'graphic-design-refund-2026-11-14-v1' },
+  'social-media-pack': { category: 'design', terms: 'graphic-design-terms-2026-11-14-v1', refund: 'graphic-design-refund-2026-11-14-v1' },
+  'logo-design': { category: 'design', terms: 'graphic-design-terms-2026-11-14-v1', refund: 'graphic-design-refund-2026-11-14-v1' },
+  'brochure-design': { category: 'design', terms: 'graphic-design-terms-2026-11-14-v1', refund: 'graphic-design-refund-2026-11-14-v1' }
+};
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
 function json(data: unknown, status = 200) {
@@ -67,6 +75,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) && (body?.websiteAgreementAccepted !== true || body?.websiteTermsPolicyVersion !== WEBSITE_PROJECT_TERMS_VERSION || body?.websiteRefundPolicyVersion !== WEBSITE_PROJECT_REFUND_VERSION || !Number.isFinite(Date.parse(websiteAgreementAcceptedAt)))) {
     return json({ success: false, error: 'Please read and separately accept the current Website Project Terms & Conditions and Refund & Cancellation Policy before payment.' }, 400);
   }
+  const creativePolicy = CREATIVE_AGREEMENT_POLICY[serviceId];
+  const creativeAgreement = body?.creativeProjectAgreement && typeof body.creativeProjectAgreement === 'object' ? body.creativeProjectAgreement : null;
+  const creativeAcceptedAt = String(creativeAgreement?.acceptedAt || '');
+  if (creativePolicy && (!creativeAgreement || creativeAgreement.accepted !== true || creativeAgreement.category !== creativePolicy.category || creativeAgreement.termsVersion !== creativePolicy.terms || creativeAgreement.refundVersion !== creativePolicy.refund || !Number.isFinite(Date.parse(creativeAcceptedAt)))) {
+    return json({ success: false, error: 'Please read and separately accept the current project Terms & Conditions and Refund Policy for the selected category before payment.' }, 400);
+  }
 
   try {
     const prior = await env.DIGITAL_SEVA_DB.prepare(
@@ -104,8 +118,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           return_url: `${origin}/digital-seva?cashfree_order_id={order_id}&service=${encodeURIComponent(serviceId)}`,
           notify_url: `${origin}/api/digital-seva/cashfree-order-webhook`
         },
-        order_note: (WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) ? `TANSHU ONLINE Website Project - ${serviceId}; accepted ${websiteAgreementAcceptedAt}; ${WEBSITE_PROJECT_TERMS_VERSION}; ${WEBSITE_PROJECT_REFUND_VERSION}` : `TANSHU ONLINE Digital Seva - ${serviceId}`).slice(0, 250),
-        order_tags: { service_id: serviceId, pricing_version: 'digital-seva-initial-2026-11-08', ...(WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) ? { web_terms: WEBSITE_PROJECT_TERMS_VERSION, web_refund: WEBSITE_PROJECT_REFUND_VERSION, web_accept: websiteAgreementAcceptedAt.slice(0, 32) } : {}) }
+        order_note: (WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) ? `TANSHU ONLINE Website Project - ${serviceId}; accepted ${websiteAgreementAcceptedAt}; ${WEBSITE_PROJECT_TERMS_VERSION}; ${WEBSITE_PROJECT_REFUND_VERSION}` : creativePolicy ? `TANSHU ONLINE ${creativePolicy.category} project - ${serviceId}; accepted ${creativeAcceptedAt}; ${creativePolicy.terms}; ${creativePolicy.refund}` : `TANSHU ONLINE Digital Seva - ${serviceId}`).slice(0, 250),
+        order_tags: { service_id: serviceId, pricing_version: 'digital-seva-initial-2026-11-08', ...(WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) ? { web_terms: WEBSITE_PROJECT_TERMS_VERSION, web_refund: WEBSITE_PROJECT_REFUND_VERSION, web_accept: websiteAgreementAcceptedAt.slice(0, 32) } : {}), ...(creativePolicy ? { project_category: creativePolicy.category, project_terms: creativePolicy.terms, project_refund: creativePolicy.refund, project_accept: creativeAcceptedAt.slice(0, 32) } : {}) }
       })
     });
     const result = await cashfreeResponse.json().catch(() => ({})) as any;
