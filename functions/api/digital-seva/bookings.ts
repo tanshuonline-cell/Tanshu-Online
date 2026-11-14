@@ -216,7 +216,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const checkoutOrder = await env.DIGITAL_SEVA_DB.prepare(
         'SELECT order_id, service_id, customer_phone, amount, currency, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
       ).bind(paymentOrderId).first();
-      if (!checkoutOrder) return json({ success: false, error: 'Payment order was not found. Please restart checkout.' }, 404);
+      if (!checkoutOrder) return json({ success: false, error: paidOrderRecovery ? 'This order is not present in the current environment, so recovery cannot continue here. No booking was submitted and no new payment was started. Use the environment that contains the original paid order; do not pay again.' : 'Payment order was not found. Please restart checkout.' }, paidOrderRecovery ? 409 : 404);
       if (checkoutOrder.status === 'CLAIMED') {
         const existing = await env.DIGITAL_SEVA_DB.prepare('SELECT booking_reference, service_id, customer_phone FROM digital_seva_bookings WHERE checkout_order_id = ?').bind(paymentOrderId).first();
         if (existing?.booking_reference && (!paidOrderRecovery || (existing.service_id === serviceId && normalizePhone(existing.customer_phone) === phone))) return json({ success: true, bookingReference: existing.booking_reference, existing: true });
