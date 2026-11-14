@@ -118,7 +118,7 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
     ? `<section class="compact-section"><h2>Customer Instructions / ग्राहक के निर्देश</h2><p class="preserve">${escapeHtml(data.customerInstructions)}</p></section>` : '';
   const feeHtml = data.feeBreakdown
     ? `<section><h2>03. Fee &amp; Payment Details / शुल्क और भुगतान विवरण</h2><div class="fee-grid">
-      <div class="fee-item"><small>Official / Provider Fee (paid directly; not collected by TANSHU) · सरकारी शुल्क (सीधे जमा)</small><b>₹${escapeHtml(data.feeBreakdown.governmentFee)}</b></div>
+      <div class="fee-item"><small>Government / Provider Fee (included in Cashfree; TANSHU ONLINE deposits it) · सरकारी शुल्क (Cashfree में शामिल; TANSHU जमा करेगा)</small><b>₹${escapeHtml(data.feeBreakdown.governmentFee)}</b></div>
       <div class="fee-item"><small>TANSHU ONLINE Service Fee · सेवा शुल्क</small><b>₹${escapeHtml(data.feeBreakdown.tanshuFee)}</b></div>
       <div class="fee-item fee-total"><small>Cashfree Payment to TANSHU ONLINE · Cashfree भुगतान</small><b>₹${escapeHtml(data.feeBreakdown.totalAmount)}</b></div>
       ${data.feeBreakdown.estimatedCustomerTotal ? `<div class="fee-item"><small>Estimated Combined Outlay (official fee separate) · अलग सरकारी फीस सहित अनुमान</small><b>₹${escapeHtml(data.feeBreakdown.estimatedCustomerTotal)}</b></div>` : ''}
