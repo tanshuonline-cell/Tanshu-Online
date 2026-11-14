@@ -37,6 +37,11 @@ interface Booking {
   payment_link_url?: string | null;
   cashfree_link_id?: string | null;
   payment_paid_at?: string | null;
+  government_fee?: number | null;
+  tanshu_service_fee?: number | null;
+  government_payment_status?: 'UNVERIFIED' | 'NOT_REQUIRED' | 'PENDING' | 'PAID' | null;
+  government_payment_reference?: string | null;
+  government_paid_at?: string | null;
   created_at: string;
   updated_at: string;
   documents?: BookingDocument[];
@@ -290,6 +295,7 @@ export default function DigitalSevaAdminPage() {
   const [draftEstimates, setDraftEstimates] = useState<Record<string, string>>({});
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [draftPaymentAmounts, setDraftPaymentAmounts] = useState<Record<string, string>>({});
+  const [draftGovernmentReferences, setDraftGovernmentReferences] = useState<Record<string, string>>({});
   const [paymentSavingId, setPaymentSavingId] = useState('');
   const [paymentMessage, setPaymentMessage] = useState('');
 
@@ -393,6 +399,25 @@ export default function DigitalSevaAdminPage() {
     finally { setSavingId(''); }
   };
 
+  const markGovernmentFeePaid = async (booking: Booking) => {
+    const reference = (draftGovernmentReferences[booking.id] || '').trim();
+    if (!reference) { setError('Enter the official department/provider receipt or transaction reference first.'); return; }
+    setSavingId(booking.id);
+    setError('');
+    try {
+      const response = await fetch('/api/digital-seva/admin', {
+        method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'MARK_GOVERNMENT_FEE_PAID', bookingId: booking.id, governmentPaymentReference: reference })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not record the official government payment.');
+      setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: '' }));
+      setPaymentMessage(`Official fee deposit recorded for ${booking.booking_reference}.`);
+      await loadBookings();
+    } catch (e: any) { setError(e?.message || 'Could not record the official government payment.'); }
+    finally { setSavingId(''); }
+  };
+
   const createPaymentLink = async (booking: Booking) => {
     const amount = Number(draftPaymentAmounts[booking.id] || 0);
     if (!Number.isFinite(amount) || amount < 1 || amount > 100000 || Math.round(amount * 100) !== amount * 100) {
@@ -469,7 +494,11 @@ export default function DigitalSevaAdminPage() {
     <label>Final fee (₹)<input type="number" min="1" max="100000" step="0.01" inputMode="decimal" value={draftPaymentAmounts[booking.id] || ''} onChange={(e) => setDraftPaymentAmounts((old) => ({ ...old, [booking.id]: e.target.value }))} placeholder="Enter service fee" /></label>
     <button type="button" onClick={() => void createPaymentLink(booking)} disabled={paymentSavingId === booking.id || booking.payment_status === 'PAID' || !booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== 'terms-2026-11-07-v1' || !booking.refund_policy_accepted_at || booking.refund_policy_version !== 'refund-2026-11-07-v2'}>{paymentSavingId === booking.id ? 'Creating link…' : 'Create Cashfree Pay Link'}</button>{booking.payment_status === 'PAID' ? <small className="dsa-payment-policy-warning">This booking is already PAID. A new payment link is disabled.</small> : (!booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== 'terms-2026-11-07-v1' || !booking.refund_policy_accepted_at || booking.refund_policy_version !== 'refund-2026-11-07-v2') ? <small className="dsa-payment-policy-warning">Payment link locked: current Terms &amp; Conditions and Refund Policy consent must be recorded first.</small> : null}
   </div>
-  <div className="dsa-payment-status"><span><b>Payment status:</b> {booking.payment_status || 'AWAITING PRICE'}</span>{booking.payment_amount != null && <span><b>Amount:</b> ₹{Number(booking.payment_amount).toFixed(2)}</span>}{booking.payment_paid_at && <span><b>Paid at:</b> {formatSlipTime(booking.payment_paid_at)} IST</span>}</div>
+  <div className="dsa-payment-status"><span><b>Customer payment status:</b> {booking.payment_status || 'AWAITING PRICE'}</span>{booking.payment_amount != null && <span><b>Total collected:</b> ₹{Number(booking.payment_amount).toFixed(2)}</span>}{booking.payment_paid_at && <span><b>Customer paid at:</b> {formatSlipTime(booking.payment_paid_at)} IST</span>}</div>
+  <div className="dsa-payment-status"><span><b>Government/provider fee collected:</b> ₹{Number(booking.government_fee || 0).toFixed(2)}</span><span><b>TANSHU ONLINE service fee:</b> ₹{Number(booking.tanshu_service_fee || 0).toFixed(2)}</span><span><b>Official deposit status:</b> {booking.government_payment_status || 'UNVERIFIED'}</span></div>
+  {Number(booking.government_fee || 0) > 0 && (booking.government_payment_status !== 'PAID'
+    ? <div className="dsa-payment-link"><input aria-label="Official government payment receipt reference" placeholder="Official payment receipt / transaction reference" value={draftGovernmentReferences[booking.id] || ''} onChange={(e) => setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: e.target.value }))} /><button type="button" onClick={() => void markGovernmentFeePaid(booking)} disabled={savingId === booking.id || booking.payment_status !== 'PAID'}>Record government fee deposited</button><small>{booking.payment_status !== 'PAID' ? 'Customer payment must be confirmed first.' : 'After depositing the official fee, enter its receipt/reference and record it here.'}</small></div>
+    : <div className="dsa-payment-status"><span><b>Official payment reference:</b> {booking.government_payment_reference || 'Recorded'}</span>{booking.government_paid_at && <span><b>Deposited at:</b> {formatSlipTime(booking.government_paid_at)} IST</span>}</div>)}
   {booking.payment_link_url && <div className="dsa-payment-link"><a href={booking.payment_link_url} target="_blank" rel="noreferrer">Open payment link</a><button type="button" onClick={() => void copyPaymentLink(String(booking.payment_link_url))}>Copy link to share</button></div>}
 </section><div className="dsa-status-row"><label>Status<select value={draftStatuses[booking.id] || booking.status} onChange={(e) => setDraftStatuses((old) => ({ ...old, [booking.id]: e.target.value as BookingStatus }))}>{STATUS_OPTIONS.map((status) => <option value={status} key={status}>{status.replaceAll('_', ' ')}</option>)}</select></label><label>Estimated completion (local time)<input type="datetime-local" value={draftEstimates[booking.id] || ''} onChange={(e) => setDraftEstimates((old) => ({ ...old, [booking.id]: e.target.value }))} /></label><label>Customer update note<input value={draftNotes[booking.id] || ''} maxLength={500} placeholder="Visible to customer — short progress update" onChange={(e) => setDraftNotes((old) => ({ ...old, [booking.id]: e.target.value }))} /></label><button onClick={() => void updateStatus(booking)} disabled={savingId === booking.id || ((draftStatuses[booking.id] || booking.status) === booking.status && (draftEstimates[booking.id] || '') === toLocalDateTimeInput(booking.estimated_completion_at) && !(draftNotes[booking.id] || '').trim())}>{savingId === booking.id ? 'Saving…' : 'Save update'}</button></div></article>)}</div><footer className="dsa-footer"><a href="/digital-seva">← Back to Digital Seva</a><span>Booking records are private. Do not share customer contact details.</span></footer></div>;
 }
