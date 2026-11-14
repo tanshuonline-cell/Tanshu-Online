@@ -122,7 +122,8 @@ export default function DigitalSevaPage() {
   const selectedState = states.find((item) => String(item.code) === selectedStateCode);
   const selectedDistrict = districts.find((item) => String(item.code) === selectedDistrictCode);
   const results = useMemo(() => {
-    const found = query.trim() ? searchSevaServices(query) : SEVA_SERVICES;
+    const biometricExcluded = new Set(['aadhaar-mobile', 'aadhaar-email', 'driving-licence']);
+    const found = (query.trim() ? searchSevaServices(query) : SEVA_SERVICES).filter((service) => !biometricExcluded.has(service.id));
     const isBihar = selectedState?.name.toLocaleLowerCase('en-IN') === 'bihar';
     return found
       .filter((service) => activeCategory === 'all' || service.category === activeCategory)
@@ -142,7 +143,7 @@ export default function DigitalSevaPage() {
   const scrollToServices = () => document.getElementById('ds-government-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const runServiceSearch = () => {
-    const matches = searchSevaServices(query);
+    const matches = searchSevaServices(query).filter((service) => !['aadhaar-mobile', 'aadhaar-email', 'driving-licence'].includes(service.id));
     setActiveCategory('all');
     setShowAll(true);
     setSearchTarget(matches[0]?.id || null);
@@ -286,7 +287,7 @@ export default function DigitalSevaPage() {
         </section>
 
         <section className="ds-search-section" aria-label={hindi ? 'सेवाएँ खोजें' : 'Search services'}>
-          <div className="ds-search-heading"><div><span className="ds-kicker">{hindi ? 'सही सेवा खोजें' : 'FIND THE RIGHT SERVICE'}</span><h2>{hindi ? 'आपको किस काम में सहायता चाहिए?' : 'What do you need help with?'}</h2></div><span className="ds-language-note">{hindi ? 'हिंदी और English दोनों में खोजें' : 'Search in Hindi and English'}</span></div>
+          <div className="ds-search-heading"><div><span className="ds-kicker">{hindi ? 'सही सेवा खोजें' : 'FIND THE RIGHT SERVICE'}</span><h2>{hindi ? 'आप कौन-सा काम ऑनलाइन करवाना चाहते हैं?' : 'What would you like to get done online?'}</h2></div><span className="ds-language-note">{hindi ? 'हिंदी और English दोनों में खोजें' : 'Search in Hindi and English'}</span></div>
           <div className="ds-location-filter ds-location-filter-premium">
             <label><span>{hindi ? 'राज्य / केंद्र शासित प्रदेश' : 'State / Union Territory'}</span><select value={selectedStateCode} onChange={(event) => setSelectedStateCode(event.target.value)}><option value="">{hindi ? 'राज्य चुनें' : 'Select state'}</option>{states.map((state) => <option key={state.code} value={state.code}>{state.name}</option>)}</select></label>
             <label><span>{hindi ? 'जिला' : 'District'}</span><select value={selectedDistrictCode} onChange={(event) => setSelectedDistrictCode(event.target.value)} disabled={!selectedStateCode || locationLoading}><option value="">{locationLoading ? (hindi ? 'जिले लोड हो रहे हैं…' : 'Loading districts…') : (hindi ? 'जिला चुनें' : 'Select district')}</option>{districts.map((district) => <option key={district.code} value={district.code}>{district.name_local ? `${district.name} / ${district.name_local}` : district.name}</option>)}</select></label>
@@ -294,8 +295,8 @@ export default function DigitalSevaPage() {
             {selectedState && <button type="button" className="ds-location-clear" onClick={() => { setSelectedStateCode(''); setSelectedDistrictCode(''); }}>{hindi ? 'लोकेशन हटाएँ' : 'Clear location'}</button>}
             {locationError && <small className="ds-location-error" role="status">{locationError}</small>}
           </div>
-          {selectedState && <p className="ds-location-summary">{hindi ? 'चुनी गई लोकेशन:' : 'Selected location:'} <strong>{selectedDistrict ? `${selectedDistrict.name}, ${selectedState.name}` : selectedState.name}</strong> — {hindi ? 'नीचे चुने गए क्षेत्र के लिए उपलब्ध सेवाओं की सूची है।' : 'Browse the service list available for the selected area below.'}</p>}
-          <div className="ds-location-service-list" aria-live="polite">
+          {selectedState && <p className="ds-location-summary">{hindi ? 'चुनी गई लोकेशन:' : 'Selected location:'} <strong>{selectedDistrict ? `${selectedDistrict.name}, ${selectedState.name}` : selectedState.name}</strong> — {hindi ? 'इस क्षेत्र के लिए सूची देखें; अंतिम पात्रता संबंधित राज्य के नियमों से जाँची जाएगी।' : 'Browse services for this area; final eligibility is checked against the relevant state rules.'}</p>}
+          <div className="ds-location-service-list" aria-live="polite"><p className="ds-location-service-safety">{hindi ? 'यहाँ केवल वे काम दिखेंगे जिनमें TANSHU ONLINE की ओर से फिंगरप्रिंट, फेस स्कैन या बायोमेट्रिक लेना आवश्यक नहीं है। यदि किसी विभाग की प्रक्रिया में यह अनिवार्य निकला, तो उस काम का अनुरोध स्वीकार नहीं किया जाएगा।' : 'This list is limited to services that do not require TANSHU ONLINE to collect fingerprints, face scans or biometrics. If a department makes any such step mandatory, we will not accept that request.'}</p>
             <div className="ds-location-service-list-head"><strong>{hindi ? 'उपलब्ध काम चुनें' : 'Choose an available service'}</strong><span>{results.length} {hindi ? 'सेवाएँ' : 'services'}</span></div>
             {results.length ? <div className="ds-location-service-options">{results.map((service) => <button type="button" key={service.id} onClick={() => { setSelected(service); setSearchTarget(service.id); if (service.id === 'website-services') setShowWebsiteShowcase(true); }}>{hindi ? service.hindi : service.name}<ArrowRight size={13} /></button>)}</div> : <p className="ds-location-no-results">{hindi ? 'इस खोज से कोई सेवा नहीं मिली।' : 'No services match this search.'}</p>}
           </div>
