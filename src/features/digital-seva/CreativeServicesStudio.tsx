@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import './creativeStudio.css';
-import { ArrowLeft, ArrowRight, CheckCircle2, Code2, Layers3, Monitor, Palette, Smartphone, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 
 type GalleryCategory = 'apps' | 'software' | 'design';
 type Sample = { id: string; title: string; hiTitle: string; type: string; hiType: string; purpose: string; hiPurpose: string; screens: string[]; hiScreens: string[]; accent: string; icon: string; };
