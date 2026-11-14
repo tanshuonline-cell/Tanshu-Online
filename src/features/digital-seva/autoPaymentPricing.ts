@@ -1,12 +1,13 @@
-import type { SevaService } from './serviceCatalog';
+import { SEVA_SERVICES, type SevaService } from './serviceCatalog';
+import { getServiceFeeDisclosure } from './serviceFeeRegistry';
 
 export interface AutoPaymentQuote {
   serviceId: string;
-  /** Amount collected by TANSHU ONLINE through Cashfree; official fees are paid separately. */
+  /** Full amount collected by TANSHU ONLINE through Cashfree: official fee + TANSHU service fee. */
   totalAmount: number;
-  /** Fixed official/provider amount payable directly to that authority, never through this Cashfree order. */
+  /** Official/provider fee collected by TANSHU ONLINE and then deposited by the operator with the authority. */
   governmentFee: number;
-  /** Estimated combined outlay when the official fee is fixed and known. */
+  /** Total payable by the customer through Cashfree when the route is approved. */
   estimatedCustomerTotal?: number;
   tanshuFee: number;
   currency: 'INR';
@@ -14,9 +15,9 @@ export interface AutoPaymentQuote {
   note: string;
 }
 
-// Approved automatic-checkout quotes. totalAmount is the TANSHU service fee collected through Cashfree.
-// Government/provider fees are disclosed separately and must be paid directly to the official provider.
-// Keep unapproved catalogue services disabled.
+// Base service quotes. getAutoPaymentQuote computes the full customer amount only when
+// the official fee is known/approved for the selected route. Unverified government routes stay disabled.
+// Customer pays the combined amount to TANSHU ONLINE; the operator deposits the official part separately.
 // PAN figures assume an Indian physical-card application route.
 // UIDAI figures assume a separate demographic address update, not a document-only refresh.
 export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
@@ -205,5 +206,37 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
 
 export function getAutoPaymentQuote(service: SevaService | string): AutoPaymentQuote | null {
   const serviceId = typeof service === 'string' ? service : service.id;
-  return AUTO_PAYMENT_QUOTES[serviceId] || null;
+  const base = AUTO_PAYMENT_QUOTES[serviceId];
+  const serviceRecord = typeof service === 'string'
+    ? SEVA_SERVICES.find((item) => item.id === serviceId)
+    : service;
+  if (!base || !serviceRecord) return null;
+
+  const disclosure = getServiceFeeDisclosure(serviceRecord);
+  const status = disclosure.governmentStatus;
+  const governmentFee = Number(base.governmentFee);
+  const tanshuFee = Number(base.tanshuFee);
+  if (!Number.isFinite(governmentFee) || governmentFee < 0 ||
+      !Number.isFinite(tanshuFee) || tanshuFee <= 0) return null;
+
+  const explicitlyFree = /₹\\s?0(?:\\.00)?|no government fee|government fee is 0|free of charge|not applicable/i.test(disclosure.governmentFee);
+  const approvedGovernmentFee =
+    status === 'not-applicable' ||
+    (['official-fixed', 'route-quote'].includes(status) && governmentFee > 0) ||
+    (status === 'official-fixed' && governmentFee === 0 && explicitlyFree);
+
+  // A zero in the base price table is not proof that the authority charges nothing.
+  // Do not collect until an exact route fee has been confirmed.
+  if (!approvedGovernmentFee) return null;
+
+  const totalAmount = governmentFee + tanshuFee;
+  if (!Number.isSafeInteger(totalAmount) || totalAmount <= 0 || totalAmount > 100000) return null;
+  return {
+    ...base,
+    governmentFee,
+    tanshuFee,
+    totalAmount,
+    estimatedCustomerTotal: totalAmount,
+    governmentFeeStatus: status
+  };
 }
