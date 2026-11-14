@@ -169,6 +169,7 @@ export default function DigitalSevaPage() {
       customerPhone: bookingReceipt.customerPhone,
       customerEmail: bookingReceipt.customerEmail,
       serviceName: `${selected.name} / ${selected.hindi}`,
+      paymentReference: bookingReceipt.paymentOrderId || null,
       status: 'REQUEST RECEIVED / अनुरोध प्राप्त हुआ',
       contactConsentAt: bookingReceipt.submittedAt,
       submittedAt: bookingReceipt.submittedAt,
