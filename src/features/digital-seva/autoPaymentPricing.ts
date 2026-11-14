@@ -109,6 +109,16 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     routeLabel: 'Private PDF page-splitting task',
     note: '₹30 is the TANSHU ONLINE fee for one PDF task. The customer supplies the PDF and selected page numbers/ranges; the separated PDF output is delivered after processing.'
   }
+
+  'website-basic': { serviceId: 'website-basic', totalAmount: 5999, governmentFee: 0, tanshuFee: 5999, currency: 'INR', routeLabel: 'Basic website package — up to 5 pages', note: 'Fixed scope only. Domain, hosting and third-party services are separate.' },
+  'website-standard': { serviceId: 'website-standard', totalAmount: 11999, governmentFee: 0, tanshuFee: 11999, currency: 'INR', routeLabel: 'Standard business website — up to 10 pages', note: 'Fixed scope only. Domain, hosting and third-party services are separate.' },
+  'website-premium': { serviceId: 'website-premium', totalAmount: 24999, governmentFee: 0, tanshuFee: 24999, currency: 'INR', routeLabel: 'Premium website package — up to 15 pages', note: 'Fixed scope only. E-commerce, SaaS and advanced custom integrations are separate.' },
+  'custom-project-advance': { serviceId: 'custom-project-advance', totalAmount: 999, governmentFee: 0, tanshuFee: 999, currency: 'INR', routeLabel: 'Custom software/app project discovery booking advance', note: '₹999 is an initial booking and requirements-review advance only, not the full development cost. Final written quote and milestone plan require customer approval before further payment or development.' },
+  'poster-design': { serviceId: 'poster-design', totalAmount: 499, governmentFee: 0, tanshuFee: 499, currency: 'INR', routeLabel: 'One standard poster/banner design', note: 'One design, one final size and up to two reasonable revision rounds. Printing/source files are separate.' },
+  'social-media-pack': { serviceId: 'social-media-pack', totalAmount: 1499, governmentFee: 0, tanshuFee: 1499, currency: 'INR', routeLabel: 'Five coordinated social media creatives', note: 'Five designs for one brand/campaign. Copywriting, ad spend and posting management are separate.' },
+  'logo-design': { serviceId: 'logo-design', totalAmount: 2499, governmentFee: 0, tanshuFee: 2499, currency: 'INR', routeLabel: 'Starter logo design package', note: 'Two initial directions, one selected refinement and up to two revision rounds. Editable source/vector files are separate.' },
+  'brochure-design': { serviceId: 'brochure-design', totalAmount: 2999, governmentFee: 0, tanshuFee: 2999, currency: 'INR', routeLabel: 'Four-page digital brochure design', note: 'Four-page digital brochure with PDF exports. Printing and additional pages are separate.' },
+
 };
 
 export function getAutoPaymentQuote(service: SevaService | string): AutoPaymentQuote | null {
