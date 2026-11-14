@@ -18,7 +18,7 @@ export interface DigitalSevaReceiptView {
   documents?: string[];
   customerInstructions?: string;
   paymentReference?: string | null;
-  feeBreakdown?: { governmentFee: number; tanshuFee: number; totalAmount: number; estimatedCustomerTotal?: number; paymentStatus: string } | null;
+  feeBreakdown?: { governmentFee: number; tanshuFee: number; totalAmount: number; estimatedCustomerTotal?: number; paymentStatus: string; governmentDepositStatus?: string; governmentPaymentReference?: string | null; governmentPaidAt?: string | null } | null;
 }
 
 const ENGLISH_LABELS: Record<string, string> = {
@@ -122,7 +122,10 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
       <div class="fee-item"><small>TANSHU ONLINE Service Fee · सेवा शुल्क</small><b>₹${escapeHtml(data.feeBreakdown.tanshuFee)}</b></div>
       <div class="fee-item fee-total"><small>Cashfree Payment to TANSHU ONLINE · Cashfree भुगतान</small><b>₹${escapeHtml(data.feeBreakdown.totalAmount)}</b></div>
       <p class="fee-note">A zero or blank fixed official-fee amount does not mean every authority service is free. Any applicable fee not included above must be checked on the selected official portal and paid directly to that authority; keep its receipt. / सरकारी शुल्क की राशि शून्य या खाली होने का अर्थ यह नहीं कि हर विभागीय सेवा निःशुल्क है। लागू अतिरिक्त शुल्क संबंधित आधिकारिक पोर्टल पर जाँचकर सीधे जमा करें और उसकी रसीद रखें।</p>
-      <div class="fee-item"><small>Payment Status · भुगतान स्थिति</small><b>${escapeHtml(data.feeBreakdown.paymentStatus)}</b></div>${data.paymentReference ? `<div class="fee-item"><small>Cashfree Order Reference · भुगतान संदर्भ</small><b>${escapeHtml(data.paymentReference)}</b></div>` : ''}
+      <div class="fee-item"><small>Payment Status · भुगतान स्थिति</small><b>${escapeHtml(data.feeBreakdown.paymentStatus)}</b></div>
+      <div class="fee-item"><small>Government Fee Deposit Status · सरकारी शुल्क जमा स्थिति</small><b>${escapeHtml(data.feeBreakdown.governmentDepositStatus || (data.feeBreakdown.governmentFee > 0 ? 'PENDING — TANSHU ONLINE to deposit' : 'NOT REQUIRED'))}</b></div>
+      ${data.feeBreakdown.governmentPaymentReference ? `<div class="fee-item"><small>Official Payment Receipt / Reference · सरकारी भुगतान रसीद</small><b>${escapeHtml(data.feeBreakdown.governmentPaymentReference)}</b></div>` : ''}
+      ${data.feeBreakdown.governmentPaidAt ? `<div class="fee-item"><small>Government Fee Deposited At · सरकारी शुल्क जमा दिनांक</small><b>${escapeHtml(formatDate(data.feeBreakdown.governmentPaidAt))}</b></div>` : ''}${data.paymentReference ? `<div class="fee-item"><small>Cashfree Order Reference · भुगतान संदर्भ</small><b>${escapeHtml(data.paymentReference)}</b></div>` : ''}
     </div></section>` : null;
   const mobileDigits = String(data.customerPhone || '').replace(/\D/g, '');
   const mobile = mobileDigits.length >= 4 ? `${mobileDigits.slice(0, 2)}XXXXXX${mobileDigits.slice(-2)}` : '—';
