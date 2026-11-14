@@ -14,6 +14,7 @@ const PRESETS: Record<ExportPreset, { label: string; bytes: number; quality: num
   medium: { label: 'Medium · 200 KB', bytes: 200 * 1024, quality: 0.78 },
   large: { label: 'Large · 2 MB', bytes: 2 * 1024 * 1024, quality: 0.9 },
   largest: { label: 'Largest · 4 MB', bytes: 4 * 1024 * 1024, quality: 0.97 },
+  custom: { label: 'Custom', bytes: 20 * 1024 * 1024, quality: 0.97 },
 };
 
 // Reuse the same lightweight MediaPipe selfie-segmentation approach as the existing
