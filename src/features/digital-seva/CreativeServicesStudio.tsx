@@ -23,7 +23,8 @@ const SAMPLES: Record<GalleryCategory, Sample[]> = {
   ],
 };
 const TITLES = { apps: ['Mobile & Web App Studio', 'मोबाइल और वेब ऐप स्टूडियो'], software: ['Custom Software Studio', 'कस्टम सॉफ्टवेयर स्टूडियो'], design: ['Graphic Design Studio', 'ग्राफिक डिजाइन स्टूडियो'] } as const;
-const SERVICE_IDS = { apps: 'custom-app-advance', software: 'custom-project-advance', design: 'poster-design' } as const;
+const SERVICE_IDS = { apps: 'custom-app-advance', software: 'custom-project-advance' } as const;
+const DESIGN_SERVICE_IDS: Record<string, string> = { 'design-poster': 'poster-design', 'design-social': 'social-media-pack', 'design-logo': 'logo-design', 'design-brochure': 'brochure-design' };
 
 export default function CreativeServicesStudio({ category, language, onClose, onRequestQuote }: {
   category: GalleryCategory; language: 'en' | 'hi'; onClose: () => void; onRequestQuote: (serviceId: string, sampleId: string, sampleTitle: string) => void;
@@ -50,7 +51,7 @@ export default function CreativeServicesStudio({ category, language, onClose, on
             {category === 'apps' ? <div className="ds-creative-phone"><div className="ds-creative-phone-head"><small>HELLO, THERE</small><b>{screen}</b></div><div className="ds-creative-phone-banner" style={{ background: sample.accent }}><span>{sample.icon}</span><b>{title}</b><small>Explore • Choose • Continue</small></div><div className="ds-creative-phone-row"><span /><span /><span /></div><div className="ds-creative-phone-card"><b>{screen}</b><small>Sample content preview</small><div /></div><div className="ds-creative-phone-nav"><span>⌂</span><span>◇</span><span>▤</span><span>○</span></div></div> : category === 'software' ? <div className="ds-creative-desktop"><aside><b>{sample.icon}</b><i /><i /><i /><i /></aside><div className="ds-creative-desktop-main"><header><b>{screen}</b><small>DEMO WORKSPACE</small></header><div className="ds-creative-stat-row"><span /><span /><span /></div><div className="ds-creative-work-area"><div /><div /><div /></div><div className="ds-creative-data-rows"><i /><i /><i /><i /></div></div></div> : <div className="ds-creative-artboard" style={{ '--sample-accent': sample.accent } as React.CSSProperties}><small>STUDIO CONCEPT / 2026</small><strong>{title.toUpperCase()}</strong><span>{screen.toUpperCase()}</span><div /><i>ORIGINAL SAMPLE</i></div>}
           </div>
         </div>
-        <div className="ds-creative-studio-footer"><small>{hi ? 'डेमो केवल दिशा दिखाता है; यह तैयार उत्पाद या शामिल फीचर की गारंटी नहीं है।' : 'Samples are illustrative directions, not a promise of a finished product or included feature set.'}</small><button type="button" className="ds-project-pay-button" onClick={() => onRequestQuote(SERVICE_IDS[category], sample.id, title)}>{hi ? 'यह डिजाइन चुनें / कोटेशन माँगें' : 'Choose this direction / Request a quote'} <ArrowRight size={16} /></button></div>
+        <div className="ds-creative-studio-footer"><small>{hi ? 'डेमो केवल दिशा दिखाता है; यह तैयार उत्पाद या शामिल फीचर की गारंटी नहीं है।' : 'Samples are illustrative directions, not a promise of a finished product or included feature set.'}</small><button type="button" className="ds-project-pay-button" onClick={() => onRequestQuote(category === 'design' ? DESIGN_SERVICE_IDS[sample.id] : SERVICE_IDS[category], sample.id, title)}>{hi ? 'यह डिजाइन चुनें / कोटेशन माँगें' : 'Choose this direction / Request a quote'} <ArrowRight size={16} /></button></div>
       </section>
     </div>
   );
