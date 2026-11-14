@@ -6,6 +6,9 @@ import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaym
 import { cashfreeApiBase } from './_cashfree';
 interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 
+const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-basic','website-standard','website-premium','custom-website-advance']);
+const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v1';
+const WEBSITE_PROJECT_REFUND_VERSION = 'website-project-refund-2026-11-14-v1';
 const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const attempts = new Map<string, { count: number; resetAt: number }>();
@@ -132,9 +135,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (item.file.size > 5 * 1024 * 1024) return json({ success: false, error: 'Each document must be 5 MB or smaller.' }, 413);
   }
   if (totalUploadBytes > 20 * 1024 * 1024) return json({ success: false, error: 'The combined document upload limit is 20 MB.' }, 413);
+  const websiteProjectAgreement = body.websiteProjectAgreement && typeof body.websiteProjectAgreement === 'object' ? body.websiteProjectAgreement : null;
+  if (WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) && (!websiteProjectAgreement || websiteProjectAgreement.accepted !== true || websiteProjectAgreement.termsVersion !== WEBSITE_PROJECT_TERMS_VERSION || websiteProjectAgreement.refundVersion !== WEBSITE_PROJECT_REFUND_VERSION || !Number.isFinite(Date.parse(String(websiteProjectAgreement.acceptedAt || ''))))) {
+    return json({ success: false, error: 'The separate Website Project Terms & Conditions and Refund Policy acceptance is required for this website booking.' }, 400);
+  }
   let applicationDetails = '';
   try {
-    applicationDetails = await protectApplicationDetails({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails }, env.DIGITAL_SEVA_PII_SECRET || env.ADMIN_SECRET_TOKEN || '');
+    applicationDetails = await protectApplicationDetails({ corrections, selectedDocuments, fieldValues, serviceOptions, otherDocumentName, taskDetails, websiteProjectAgreement: WEBSITE_PROJECT_SERVICE_IDS.has(serviceId) ? websiteProjectAgreement : null }, env.DIGITAL_SEVA_PII_SECRET || env.ADMIN_SECRET_TOKEN || '');
   } catch (error) {
     console.error('Digital Seva identifier encryption is not configured:', error);
     return json({ success: false, error: 'Secure Aadhaar/PAN storage is not configured yet. Please contact the administrator before submitting this request.' }, 503);
