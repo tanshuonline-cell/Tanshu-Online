@@ -20,7 +20,7 @@ const SECTIONS: Array<{ title: string; hiTitle: string; body: string; hiBody: st
   {
     title: '2. Booking and milestone payments',
     hiTitle: '2. बुकिंग और चरणों में भुगतान',
-    body: 'For fixed-price website packages, the proposed payment schedule is 40% booking advance to reserve the project and begin discovery, 40% after the customer approves the design direction/homepage preview and before the full build is completed, and the final 20% after the staging preview and agreed testing, before public launch, production credentials, source files or final handover. Each milestone amount and due date will be shown in the written project confirmation/invoice. No balance is automatically charged: the customer receives a separate payment request and must approve it. Work may pause while a milestone payment is overdue. For custom websites, the ₹999 scope-review advance is for discovery only and is credited against the first project milestone if the customer proceeds; the final milestone plan is agreed in writing after the scope review.',
+    body: 'Fixed-price Basic, Standard and Premium packages are paid in full at the displayed Pay Now checkout before work begins; no second package payment is due unless the customer approves an extra-scope quote. For custom websites outside these packages, the ₹999 scope-review advance is for discovery only and is credited against the first project milestone if the customer proceeds. After the written custom quote is approved, the usual proposed schedule is 40% to start, 40% after design direction/homepage preview approval and before the full build, and the final 20% after staging preview/testing but before public launch, production credentials, source files or final handover. Each amount and due date is shown in a written project confirmation/invoice. No balance is automatically charged: the customer receives a separate payment request and must approve it. Work may pause while an agreed milestone payment is overdue.',
     hiBody: 'फिक्स्ड Basic, Standard और Premium पैकेज का पूरा दिखाया गया शुल्क Pay Now पर काम शुरू होने से पहले देना होगा; जब तक ग्राहक अतिरिक्त काम का अलग quotation मंजूर न करे, पैकेज के लिए दूसरी किस्त नहीं होगी। इन पैकेजों से बाहर कस्टम वेबसाइट के लिए ₹999 एडवांस केवल जरूरत/स्कोप समीक्षा का है और ग्राहक प्रोजेक्ट आगे बढ़ाता है तो पहली project milestone राशि में समायोजित होगा। लिखित custom quotation मंजूर होने के बाद सामान्य प्रस्तावित क्रम: काम शुरू करने के लिए 40%; डिजाइन दिशा/होमपेज प्रीव्यू मंजूर होने के बाद और पूरा निर्माण करने से पहले 40%; staging प्रीव्यू/टेस्टिंग के बाद, वेबसाइट लाइव करने, production credentials, source files या अंतिम हैंडओवर से पहले अंतिम 20%। हर किस्त और तारीख लिखित project confirmation/invoice में होगी। कोई शेष राशि अपने-आप नहीं कटेगी; अलग payment request ग्राहक स्वयं मंजूर करेगा। किस्त लंबित होने पर काम रोका जा सकता है।'
   },
   {
@@ -87,11 +87,13 @@ export default function WebsiteProjectAgreement({ language, accepted, onAccepted
         <div><small>{hi ? 'डिजाइन / हैंडओवर' : 'Design / handover'}</small><b>40% + 20%</b></div>
       </div>
       <details className="ds-web-agreement-details">
-        <summary>{hi ? 'पूरी Website Terms & Conditions और Refund Policy पढ़ें' : 'Read full Website Terms & Conditions & Refund Policy'}</summary>
-        <ol>
-          {SECTIONS.map((section) => <li key={section.title}><b>{hi ? section.hiTitle : section.title}</b><p>{hi ? section.hiBody : section.body}</p></li>)}
-        </ol>
+        <summary>{hi ? 'Website Terms & Conditions पढ़ें' : 'Read Website Terms & Conditions'}</summary>
+        <ol>{SECTIONS.filter((section) => !section.title.startsWith('7.')).map((section) => <li key={section.title}><b>{hi ? section.hiTitle : section.title}</b><p>{hi ? section.hiBody : section.body}</p></li>)}</ol>
         <p className="ds-web-agreement-version">{hi ? 'Website Terms संस्करण:' : 'Website Terms version:'} {WEBSITE_PROJECT_TERMS_VERSION}</p>
+      </details>
+      <details className="ds-web-agreement-details">
+        <summary>{hi ? 'Website Refund & Cancellation Policy पढ़ें' : 'Read Website Refund & Cancellation Policy'}</summary>
+        <ol>{SECTIONS.filter((section) => section.title.startsWith('7.')).map((section) => <li key={section.title}><b>{hi ? section.hiTitle : section.title}</b><p>{hi ? section.hiBody : section.body}</p></li>)}</ol>
         <p className="ds-web-agreement-version">{hi ? 'Website Refund Policy संस्करण:' : 'Website Refund Policy version:'} {WEBSITE_PROJECT_REFUND_VERSION}</p>
       </details>
       <label className="ds-web-agreement-check">
