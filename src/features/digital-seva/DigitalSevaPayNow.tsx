@@ -240,9 +240,16 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
           </label>
           {selected && disclosure && <div className="ds-booking-fee-summary">
             <strong>{hi ? selected.hindi : selected.name}</strong>
-            <p><b>{hi ? 'सरकारी / प्रदाता शुल्क:' : 'Government / provider fee:'}</b> {quote ? `₹${quote.governmentFee}` : disclosure.governmentFee}</p>
-            <p><b>{hi ? 'TANSHU ONLINE सेवा शुल्क:' : 'TANSHU ONLINE service fee:'}</b> {quote ? `₹${quote.tanshuFee}` : disclosure.serviceFee}</p>
-            <p><b>{hi ? 'अनुमानित समय:' : 'Estimated timeline:'}</b> {selected.availability}</p>
+            {projectBriefRequired ? <>
+              <p><b>{hi ? (['custom-website-advance','custom-app-advance','custom-project-advance'].includes(selected.id) ? 'प्रारंभिक बुकिंग / Discovery Advance:' : 'प्रोजेक्ट पैकेज शुल्क:') : (['custom-website-advance','custom-app-advance','custom-project-advance'].includes(selected.id) ? 'Initial booking / discovery advance:' : 'Project package fee:')}</b> {quote ? `₹${quote.tanshuFee}` : disclosure.serviceFee}</p>
+              <p><b>{hi ? 'अनुमानित प्रोजेक्ट समय:' : 'Estimated project timeline:'}</b> {hi && selected.availabilityHindi ? selected.availabilityHindi : selected.availability}</p>
+              <p><b>{hi ? 'अलग से लग सकने वाले खर्च:' : 'Possible additional costs:'}</b> {hi ? (selected.id.includes('website') ? 'डोमेन, होस्टिंग, paid plugins और third-party subscriptions, यदि quotation में लागू हों।' : selected.id.includes('app') ? 'Backend/hosting, APIs, app-store accounts, licences और third-party services, यदि लागू हों।' : selected.id.includes('design') ? 'Printing, ad spend, editable source files या अतिरिक्त formats, यदि quotation में शामिल न हों।' : 'Hosting, cloud usage, API subscriptions, software licences और third-party services, यदि लागू हों।') : disclosure.governmentFee}</p>
+              <p className="ds-booking-help">{hi ? 'यह समय अनुमान है, मिनटों या उसी दिन की गारंटी नहीं। Custom project का वास्तविक delivery schedule लिखित scope, features और milestones मंजूर होने के बाद quotation में तय होगा।' : 'This is an estimate, not a same-day or minutes-based promise. For custom projects, the actual delivery schedule is confirmed in the written quotation after scope, features and milestones are approved.'}</p>
+            </> : <>
+              <p><b>{hi ? 'सरकारी / प्रदाता शुल्क:' : 'Government / provider fee:'}</b> {quote ? `₹${quote.governmentFee}` : disclosure.governmentFee}</p>
+              <p><b>{hi ? 'TANSHU ONLINE सेवा शुल्क:' : 'TANSHU ONLINE service fee:'}</b> {quote ? `₹${quote.tanshuFee}` : disclosure.serviceFee}</p>
+              <p><b>{hi ? 'अनुमानित समय:' : 'Estimated timeline:'}</b> {hi && selected.availabilityHindi ? selected.availabilityHindi : selected.availability}</p>
+            </>}
             {quote ? <p className="ds-paynow-total"><b>{hi ? 'कुल देय राशि:' : 'Total payable:'} ₹{quote.totalAmount}</b></p> : <p className="ds-booking-help">{hi ? 'इस सर्विस की फीस या सरकारी शुल्क अभी निश्चित नहीं है। सही कोटेशन तय होने के बाद भुगतान उपलब्ध होगा।' : 'The exact price or official fee for this service needs confirmation. Payment will be enabled after an approved quote is configured.'}</p>}
             {quote?.note && <p>{quote.note}</p>}
             {quote && <p className="ds-important-note">{hi ? 'कृपया ऊपर दिखाई गई पूरी राशि ही भुगतान करें। Cashfree में राशि पहले से तय है; कम भुगतान स्वीकार नहीं होगा और भुगतान की पुष्टि के बाद ही आवेदन फॉर्म खुलेगा।' : 'Please pay the exact full amount shown above. The Cashfree amount is fixed; an underpayment will not be accepted, and the application form opens only after full payment is verified.'}</p>}
