@@ -201,6 +201,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId) || !/^ds_[0-9a-f]{32}$/i.test(paymentOrderId)) {
     return json({ success: false, error: 'A verified online payment is required before booking submission. Unpaid booking requests are not accepted.' }, 402);
   }
+  const approvedQuote = getAutoPaymentQuote(serviceId)!;
 
   try {
     const prior = await env.DIGITAL_SEVA_DB.prepare(
@@ -210,7 +211,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     if (paymentMode === 'AUTO_PAY') {
       if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree verification is not configured for this environment.' }, 503);
-      const quote = getAutoPaymentQuote(serviceId)!;
+      const quote = approvedQuote;
       const checkoutOrder = await env.DIGITAL_SEVA_DB.prepare(
         'SELECT order_id, service_id, customer_phone, amount, currency, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
       ).bind(paymentOrderId).first();
@@ -276,7 +277,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         ).bind(bookingId, bookingReference, key, serviceId, name, phone, email,
           requesterType, applicationFor, operatorName || null, operatorPhone || null, operatorEmail || null,
           centerName || null, centerAddress || null, agencyName || null, agencyAddress || null, applicationDetails,
-          paymentMode === 'AUTO_PAY' ? paymentOrderId : null, termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
+          paymentMode === 'AUTO_PAY' ? paymentOrderId : null, approvedQuote.governmentFee, approvedQuote.tanshuFee,
+           approvedQuote.governmentFee > 0 ? 'PENDING' : 'NOT_REQUIRED', termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
         env.DIGITAL_SEVA_DB.prepare(
           `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
            VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
