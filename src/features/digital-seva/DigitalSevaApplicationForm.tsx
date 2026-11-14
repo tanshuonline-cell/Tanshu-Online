@@ -58,6 +58,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const [documentFiles, setDocumentFiles] = useState<Record<string, File>>({});
   const [otherDocumentName, setOtherDocumentName] = useState('');
   const [taskDetails, setTaskDetails] = useState('');
+  const [draftReady, setDraftReady] = useState(false);
   useEffect(() => {
     if (!draftReady) return;
     const brief = prepaidPayment?.projectBrief;
@@ -85,7 +86,6 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const [pendingCashfreeMode, setPendingCashfreeMode] = useState<'sandbox' | 'production'>('sandbox');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const draftStateRef = useRef<Record<string, unknown>>({});
   const completedRef = useRef(false);
