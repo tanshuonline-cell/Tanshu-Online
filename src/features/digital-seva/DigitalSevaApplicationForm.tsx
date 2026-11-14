@@ -11,7 +11,7 @@ import type { PrepaidDigitalSevaPayment } from './DigitalSevaPayNow';
 type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPENDENT_AGENT';
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
-export interface DigitalSevaReceiptData { paymentMode: 'AUTO_PAY' | 'SHARE_LINK'; customerName: string; customerPhone: string; customerEmail: string; fieldValues: Record<string, string>; serviceOptions: Record<string, string>; corrections: string[]; selectedDocuments: string[]; otherDocumentName: string; taskDetails: string; submittedAt: string; termsAccepted: boolean; termsAcceptedAt: string | null; termsPolicyVersion: string; refundAccepted: boolean; refundAcceptedAt: string | null; refundPolicyVersion: string; }
+export interface DigitalSevaReceiptData { paymentMode: 'AUTO_PAY' | 'SHARE_LINK'; paymentOrderId?: string; customerName: string; customerPhone: string; customerEmail: string; fieldValues: Record<string, string>; serviceOptions: Record<string, string>; corrections: string[]; selectedDocuments: string[]; otherDocumentName: string; taskDetails: string; submittedAt: string; termsAccepted: boolean; termsAcceptedAt: string | null; termsPolicyVersion: string; refundAccepted: boolean; refundAcceptedAt: string | null; refundPolicyVersion: string; }
 interface Props { service: SevaService; language: 'en' | 'hi'; prepaidPayment?: PrepaidDigitalSevaPayment | null; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
@@ -412,12 +412,12 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
       completedRef.current = true;
       await deleteDigitalSevaDraft(service.id);
-      onSubmitted(String(data.bookingReference), { paymentMode, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(), fieldValues: { ...fieldValues }, serviceOptions: { ...serviceOptions }, corrections: [...corrections], selectedDocuments: [...selectedDocuments], otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(), submittedAt: new Date().toISOString(), termsAccepted, termsAcceptedAt: termsAccepted ? (termsAcceptedAt || new Date().toISOString()) : null, termsPolicyVersion: TERMS_POLICY_VERSION, refundAccepted, refundAcceptedAt: refundAccepted ? (refundAcceptedAt || new Date().toISOString()) : null, refundPolicyVersion: REFUND_POLICY_VERSION });
+      onSubmitted(String(data.bookingReference), { paymentMode, paymentOrderId: pendingCheckoutOrderId, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(), fieldValues: { ...fieldValues }, serviceOptions: { ...serviceOptions }, corrections: [...corrections], selectedDocuments: [...selectedDocuments], otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(), submittedAt: new Date().toISOString(), termsAccepted, termsAcceptedAt: termsAccepted ? (termsAcceptedAt || new Date().toISOString()) : null, termsPolicyVersion: TERMS_POLICY_VERSION, refundAccepted, refundAcceptedAt: refundAccepted ? (refundAcceptedAt || new Date().toISOString()) : null, refundPolicyVersion: REFUND_POLICY_VERSION });
     } catch (e: any) {
       setError(paymentMayHaveCompleted
         ? (hi
-          ? 'भुगतान पूरा हुआ हो सकता है, लेकिन अनुरोध की पुष्टि नहीं मिली। दोबारा भुगतान न करें। इसी फॉर्म को खुला रखें और “भुगतान जाँचें और अनुरोध पूरा करें” दबाएँ।'
-          : 'Your payment may have completed, but the request confirmation was not received. Do not pay again. Keep this form open and use “Check payment & finish request”.')
+          ? 'आपका भुगतान पहले से सत्यापित है, लेकिन आवेदन सेव नहीं हुआ। दोबारा भुगतान न करें। इसी फॉर्म में Submit Application फिर से करें या सहायता से संपर्क करें।'
+          : 'Your payment is already verified, but the application was not saved. Do not pay again. Keep this form open and retry Submit Application, or contact support.')
         : (e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.')));
     } finally { setSubmitting(false); }
   };
