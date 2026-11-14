@@ -43,12 +43,13 @@ export interface PrepaidDigitalSevaPayment {
 interface Props {
   language: 'en' | 'hi';
   onClose: () => void;
+  initialServiceId?: string;
   onPaid: (service: SevaService, payment: PrepaidDigitalSevaPayment) => void;
 }
 
-export default function DigitalSevaPayNow({ language, onClose, onPaid }: Props) {
+export default function DigitalSevaPayNow({ language, onClose, initialServiceId, onPaid }: Props) {
   const hi = language === 'hi';
-  const [selectedId, setSelectedId] = useState('pan-new');
+  const [selectedId, setSelectedId] = useState(initialServiceId || 'pan-new');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
