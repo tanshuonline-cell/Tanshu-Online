@@ -63,3 +63,30 @@ PAN, Aadhaar, certificates, government forms, PDF conversion, document processin
 ## Pricing review note
 
 The starting prices are intentionally positioned as introductory, budget-conscious packages for small Indian businesses. Reassess delivery effort, revision volume, vendor costs, taxes and customer support before any public Production launch. Do not accept fixed-price checkout for work whose scope or cost is not defined.
+
+
+## Category-specific project agreements and sample selection
+
+The Preview provides separate project agreements for website, mobile/web application, custom software and graphic design work. A customer must view the matching demo/sample direction, select a service, review the correct project terms and refund policy, and separately tick the unticked project-consent checkbox before checkout. The selected demo direction is carried into the customer brief. Samples are illustrative only; the approved written quote controls actual scope, features, price, schedule and deliverables.
+
+## India legal and consumer-protection design notes
+
+This customer-facing draft is written to preserve applicable statutory consumer rights and should receive review from an Indian lawyer before Production launch. It is not a legal opinion or a guarantee of compliance in every business structure or transaction.
+
+- Consumer Protection Act, 2019 and Consumer Protection (E-Commerce) Rules, 2020: do not use blanket “no refund” wording, automatic forfeiture or disproportionate cancellation penalties. Use a documented, itemised, evidence-based settlement for work actually completed and third-party costs that were disclosed, specifically approved, actually incurred and non-recoverable. Statutory consumer remedies remain unaffected.
+- E-Commerce Rules, 2020: before Production, confirm applicability and publish the actual legal business name, principal/branch address details as applicable, customer-care contact details, and the name/designation/contact details of the grievance officer. The applicable grievance process must acknowledge consumer complaints within 48 hours and redress them within one month. These details have not been invented or populated in this Preview.
+- Information Technology Act, 2000, section 10A: electronic contract formation is recognised. Keep separate affirmative, unticked consent for the relevant project terms/refund policy and retain the exact policy versions and acceptance timestamps with the checkout/booking record.
+- Copyright Act, 1957, sections 18 and 19: any copyright assignment must be in writing and identify the work and rights assigned, duration, territorial extent and consideration. Third-party/open-source materials remain under their own licences.
+- Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011 and the phased Digital Personal Data Protection Act, 2023 / DPDP Rules, 2025: minimise data collection, disclose purpose, use reasonable security, restrict access, avoid collecting passwords/OTPs, document service-provider sharing and retention, and provide appropriate privacy notices. The DPDP Act's commencement is phased; the Gazette notification dated 13 November 2025 schedules the main processing obligations in sections 3–17 for 18 months after publication (13 May 2027). Build privacy controls ahead of that date rather than waiting.
+
+### Mandatory Production-readiness details still required
+
+Do not publish this service checkout in Production until the owner confirms the exact legal/trading name, the business address that must lawfully be disclosed, customer-care contact channel, and grievance officer name/designation/email/phone. The user's preference not to expose a personal residential address must be respected; obtain the correct business/registered address and legal advice on the disclosure requirement rather than guessing or publishing a private address. Also obtain a lawyer's review of the final agreements, tax/GST disclosures and actual business structure.
+
+## Version record
+
+- Website Terms: `website-project-terms-2026-11-14-v2`
+- Website Refund Policy: `website-project-refund-2026-11-14-v1`
+- App Terms / Refund: `app-project-terms-2026-11-14-v1` / `app-project-refund-2026-11-14-v1`
+- Software Terms / Refund: `software-project-terms-2026-11-14-v1` / `software-project-refund-2026-11-14-v1`
+- Graphic Design Terms / Refund: `graphic-design-terms-2026-11-14-v1` / `graphic-design-refund-2026-11-14-v1`
