@@ -15,6 +15,7 @@ type Props = {
   onApplySignature: () => void;
   activeSection?: 'move'|'layout'|'adjust'|'background'|'portrait'|'signature'|'print';
   hideTabs?: boolean;
+  onLockedAction?: () => void;
 };
 
 const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
