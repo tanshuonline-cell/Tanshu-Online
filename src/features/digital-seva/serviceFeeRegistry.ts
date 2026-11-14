@@ -233,14 +233,14 @@ disclosures['website-services'] = {
 };
 
 const TANSHU_SERVICE_FEES: Record<string, string> = {
-  '₹193 TANSHU ONLINE assistance fee. Standard Indian physical-card provider fee ₹107 is paid separately to Protean (estimated combined outlay ₹300). Paperless physical-card and e-PAN routes have different official fees and must be re-quoted.',
-  '₹200 TANSHU ONLINE assistance fee. Pay the ₹75 UIDAI demographic address-update fee directly to UIDAI if this route applies (estimated combined outlay ₹275). Free document-only update is a different service.',
-  '₹100 TANSHU ONLINE assistance fee. Pay the UIDAI demographic fee directly if it applies to the selected HoF route; confirm the live amount before submission.',
-  '₹200 TANSHU ONLINE assistance fee. Pay the ₹75 UIDAI demographic address-update fee directly if this route applies; C/O is part of the address, not a separate father-name update.',
+  'pan-new': '₹193 TANSHU ONLINE assistance fee. Standard Indian physical-card provider fee ₹107 is paid separately to Protean (estimated combined outlay ₹300). Paperless physical-card and e-PAN routes have different official fees and must be re-quoted.',
+  'aadhaar-address-doc': '₹200 TANSHU ONLINE assistance fee. Pay the ₹75 UIDAI demographic address-update fee directly to UIDAI if this route applies (estimated combined outlay ₹275). Free document-only update is a different service.',
+  'aadhaar-address-hof': '₹100 TANSHU ONLINE assistance fee. Pay the UIDAI demographic fee directly if it applies to the selected HoF route; confirm the live amount before submission.',
+  'aadhaar-co': '₹200 TANSHU ONLINE assistance fee. Pay the ₹75 UIDAI demographic address-update fee directly if this route applies; C/O is part of the address, not a separate father-name update.',
   'aadhaar-mobile': '₹100 TANSHU ONLINE assistance fee + applicable UIDAI fee; confirm the selected app/centre route before payment.',
-  '₹193 TANSHU ONLINE assistance fee. Standard Indian physical-card provider fee ₹107 is paid separately to Protean (estimated combined outlay ₹300). Paperless physical-card/e-PAN routes differ; confirm the exact route.',
-  '₹250 TANSHU ONLINE assistance fee. Standard Indian physical-card provider fee ₹107 is paid separately (estimated combined outlay ₹357); confirm the selected provider route before submission.',
-  '₹50 TANSHU ONLINE e-Aadhaar download assistance. Optional local printing is charged separately at the displayed TANSHU print rate (currently B/W ₹5 or colour ₹10 per page). UIDAI centre search/colour print is a separate official service.',
+  'pan-correction': '₹193 TANSHU ONLINE assistance fee. Standard Indian physical-card provider fee ₹107 is paid separately to Protean (estimated combined outlay ₹300). Paperless physical-card/e-PAN routes differ; confirm the exact route.',
+  'pan-photo-signature': '₹250 TANSHU ONLINE assistance fee. Standard Indian physical-card provider fee ₹107 is paid separately (estimated combined outlay ₹357); confirm the selected provider route before submission.',
+  'aadhaar-download': '₹50 TANSHU ONLINE e-Aadhaar download assistance. Optional local printing is charged separately at the displayed TANSHU print rate (currently B/W ₹5 or colour ₹10 per page). UIDAI centre search/colour print is a separate official service.',
   'certificate-income': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
   'certificate-caste': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
   'certificate-residence': 'Bihar only — TANSHU ONLINE service fee per certificate: CO/Circle level ₹50; SDO/Sub-Division level ₹100; DM/District level ₹150. Any applicable Bihar government/portal fee must be checked on the exact selected application route and shown separately.',
