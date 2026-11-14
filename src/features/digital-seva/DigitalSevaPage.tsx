@@ -232,6 +232,7 @@ export default function DigitalSevaPage() {
         governmentFee: getAutoPaymentQuote(selected)!.governmentFee,
         tanshuFee: getAutoPaymentQuote(selected)!.tanshuFee,
         totalAmount: getAutoPaymentQuote(selected)!.totalAmount,
+        estimatedCustomerTotal: getAutoPaymentQuote(selected)!.estimatedCustomerTotal,
         paymentStatus: bookingReceipt.paymentMode === 'AUTO_PAY' ? 'PAID — Cashfree payment verified / भुगतान सत्यापित' : 'PAYMENT PENDING / भुगतान बाकी'
       } : null
     });
