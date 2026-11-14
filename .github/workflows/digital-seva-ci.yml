@@ -11,7 +11,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
   push:
-    branches: [feature/digital-seva-booking-system-2026]
+    branches: [feature/digital-seva-booking-system-2026, feature/digital-seva-paid-order-customer-recovery-preview-2026-11-14]
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
