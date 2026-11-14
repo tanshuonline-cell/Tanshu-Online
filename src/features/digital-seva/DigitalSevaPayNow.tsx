@@ -8,7 +8,7 @@ import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } fro
 import WebsiteProjectAgreement, { WEBSITE_PROJECT_TERMS_VERSION, WEBSITE_PROJECT_REFUND_VERSION } from './WebsiteProjectAgreement';
 import CreativeProjectAgreement, { CREATIVE_AGREEMENT_VERSIONS, type CreativeAgreementCategory } from './CreativeProjectAgreement';
 
-const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-basic', 'website-standard', 'website-premium', 'custom-website-advance']);
+const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-services', 'website-basic', 'website-standard', 'website-premium', 'custom-website-advance']);
 const CREATIVE_AGREEMENT_CATEGORY: Record<string, CreativeAgreementCategory> = { 'custom-app-advance': 'apps', 'custom-project-advance': 'software', 'poster-design': 'design', 'social-media-pack': 'design', 'logo-design': 'design', 'brochure-design': 'design' };
 
 declare global {
