@@ -882,3 +882,75 @@
 .ds-location-no-results{margin:4px 0;color:#7d8795;font-size:11px}
 @media(max-width:900px){.ds-location-filter-premium{grid-template-columns:repeat(2,minmax(0,1fr))}.ds-location-service-search{grid-column:1/-1}.ds-location-service-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.ds-location-filter-premium{grid-template-columns:1fr}.ds-location-service-search{grid-column:auto}.ds-location-service-options{grid-template-columns:1fr}}
+
+
+/* Premium water-ripple interaction for the state, district and service finder */
+.ds-search-section .ds-search-heading h2{letter-spacing:-.025em}
+.ds-location-filter-premium{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(176,137,63,.28);
+  background:linear-gradient(125deg,#fffdf8 0%,#fff 48%,#f7f8ff 100%);
+  box-shadow:0 14px 36px rgba(28,39,67,.075),inset 0 1px 0 rgba(255,255,255,.95);
+  transition:border-color .24s ease,box-shadow .24s ease,transform .24s ease;
+}
+.ds-location-filter-premium:focus-within{
+  border-color:#c39a4a;
+  box-shadow:0 0 0 3px rgba(195,154,74,.13),0 18px 42px rgba(38,49,77,.12),inset 0 1px 0 #fff;
+}
+.ds-location-filter-premium select,
+.ds-location-searchbox{
+  position:relative;
+  border:1px solid #d9d6ce;
+  background:linear-gradient(180deg,#fff 0%,#fbfaf7 100%);
+  box-shadow:0 2px 5px rgba(22,34,56,.035),inset 0 1px 0 #fff;
+  transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease,background .22s ease;
+}
+.ds-location-filter-premium select:hover,
+.ds-location-searchbox:hover{border-color:#b99a5e;box-shadow:0 5px 14px rgba(143,112,53,.10)}
+.ds-location-filter-premium select:focus,
+.ds-location-searchbox:focus-within{
+  border-color:#b68a36;
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(182,138,54,.15),0 8px 20px rgba(37,49,75,.10);
+}
+.ds-location-filter-premium select:active,
+.ds-location-searchbox:active{transform:translateY(1px)}
+.ds-location-searchbox>svg{width:16px;height:16px;flex:0 0 16px;color:#a47a2e;transition:transform .2s ease,color .2s ease}
+.ds-location-searchbox:focus-within>svg{color:#8a5e13;transform:scale(1.08)}
+.ds-location-filter-premium label>span{color:#725a2d}
+.ds-location-service-list{
+  border:1px solid rgba(176,137,63,.2);
+  background:linear-gradient(135deg,#fffefa 0%,#f8f9fd 100%);
+  box-shadow:0 10px 28px rgba(25,37,62,.045);
+}
+.ds-location-service-safety{margin:0 0 12px;padding:9px 11px;border:1px solid rgba(31,126,93,.16);border-radius:10px;background:rgba(238,249,244,.82);color:#376b58;font-size:10px;line-height:1.6}
+.ds-location-service-options button{
+  position:relative;isolation:isolate;overflow:hidden;
+  border-color:#e6dfd1;
+  background:linear-gradient(145deg,#fff 0%,#fffdf8 100%);
+  box-shadow:0 2px 7px rgba(32,42,61,.035);
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,color .2s ease,background .2s ease;
+}
+.ds-location-service-options button::after{
+  content:"";position:absolute;z-index:-1;left:50%;top:50%;width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.82) 0%,rgba(211,173,94,.22) 42%,rgba(211,173,94,0) 72%);
+  opacity:0;transform:translate(-50%,-50%) scale(.2);pointer-events:none;
+}
+.ds-location-service-options button:active::after{animation:ds-service-ripple .62s ease-out}
+.ds-location-service-options button:hover{
+  transform:translateY(-2px);border-color:#c49b4d;
+  background:linear-gradient(135deg,#fffaf0 0%,#fff 70%);
+  box-shadow:0 9px 20px rgba(144,108,43,.13),0 0 0 1px rgba(196,155,77,.08);
+  color:#725014;
+}
+.ds-location-service-options button:focus-visible{outline:3px solid rgba(190,148,62,.28);outline-offset:2px}
+.ds-location-service-options button svg{transition:transform .2s ease,color .2s ease}
+.ds-location-service-options button:hover svg{transform:translateX(3px);color:#a87920}
+@keyframes ds-service-ripple{
+  0%{opacity:.85;transform:translate(-50%,-50%) scale(.2)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(18)}
+}
+@media(prefers-reduced-motion:reduce){
+  .ds-location-filter-premium,.ds-location-filter-premium select,.ds-location-searchbox,.ds-location-service-options button,.ds-location-service-options button svg{transition:none}
+  .ds-location-service-options button:active::after{animation:none}
+}
