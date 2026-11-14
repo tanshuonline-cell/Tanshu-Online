@@ -61,7 +61,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   useEffect(() => {
     if (!projectDirection?.sampleId || !projectDirection.sampleTitle) return;
     const directionNote = `Selected demo direction: ${projectDirection.sampleTitle} (${projectDirection.sampleId})`;
-    setTaskDetails((current) => current.includes(projectDirection.sampleId) ? current : [current.trim(), directionNote].filter(Boolean).join('\\n\\n'));
+    setTaskDetails((current) => current.includes(projectDirection.sampleId) ? current : [current.trim(), directionNote].filter(Boolean).join('\n\n'));
   }, [projectDirection?.sampleId, projectDirection?.sampleTitle]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [serviceOptions, setServiceOptions] = useState<Record<string, string>>({});
