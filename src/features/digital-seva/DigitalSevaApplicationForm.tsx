@@ -346,7 +346,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           agencyName: requesterType === 'INDEPENDENT_AGENT' ? agencyName.trim() : null,
           agencyAddress: requesterType === 'INDEPENDENT_AGENT' ? agencyAddress.trim() : null
         } : null,
-        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''),
+        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\\D/g, ''),
         customerEmail: applicant.email.trim(), corrections, fieldValues, serviceOptions,
         selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(),
         consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
