@@ -185,6 +185,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             <p><b>{hi ? 'TANSHU ONLINE सेवा शुल्क:' : 'TANSHU ONLINE service fee:'}</b> {quote ? `₹${quote.tanshuFee}` : disclosure.serviceFee}</p>
             {quote ? <p className="ds-paynow-total"><b>{hi ? 'कुल देय राशि:' : 'Total payable:'} ₹{quote.totalAmount}</b></p> : <p className="ds-booking-help">{hi ? 'इस सर्विस की फीस या सरकारी शुल्क अभी निश्चित नहीं है। सही कोटेशन तय होने के बाद भुगतान उपलब्ध होगा।' : 'The exact price or official fee for this service needs confirmation. Payment will be enabled after an approved quote is configured.'}</p>}
             {quote?.note && <p>{quote.note}</p>}
+            {quote && <p className="ds-important-note">{hi ? 'कृपया ऊपर दिखाई गई पूरी राशि ही भुगतान करें। Cashfree में राशि पहले से तय है; कम भुगतान स्वीकार नहीं होगा और भुगतान की पुष्टि के बाद ही आवेदन फॉर्म खुलेगा।' : 'Please pay the exact full amount shown above. The Cashfree amount is fixed; an underpayment will not be accepted, and the application form opens only after full payment is verified.'}</p>}
           </div>}
           <div className="ds-paynow-contact">
             <label>{hi ? 'आपका नाम' : 'Your name'}<input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required /></label>
