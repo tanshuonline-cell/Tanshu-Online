@@ -856,3 +856,26 @@
 .ds-project-pay-button{margin-top:14px;min-width:210px;background:linear-gradient(110deg,#172554,#3730a3)}
 @media(max-width:900px){.ds-project-service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.ds-project-service-grid{grid-template-columns:1fr}.ds-project-service-card{padding:18px}.ds-project-design-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.ds-project-pay-button{width:100%}}
+
+
+/* Website-only project terms and milestone agreement; existing Digital Seva policy styling is untouched. */
+.ds-web-agreement{display:grid;gap:12px;padding:14px;border:1px solid #b9c9d8;border-radius:14px;background:linear-gradient(180deg,#f7fbff,#fff)}
+.ds-web-agreement-intro b{display:block;font-size:14px;color:#173b5d}
+.ds-web-agreement-intro p{margin:5px 0 0;color:#526273;font-size:12px;line-height:1.55}
+.ds-web-agreement-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.ds-web-agreement-facts>div{display:grid;gap:3px;padding:9px 7px;border:1px solid #dbe5ee;border-radius:10px;background:#fff;text-align:center}
+.ds-web-agreement-facts small{font-size:10px;color:#64748b;line-height:1.35}
+.ds-web-agreement-facts b{font-size:16px;color:#174c78}
+.ds-web-agreement-details{border:1px solid #dbe5ee;border-radius:10px;background:#fff;overflow:hidden}
+.ds-web-agreement-details summary{padding:11px 12px;cursor:pointer;font-size:12px;font-weight:750;color:#174c78}
+.ds-web-agreement-details ol{margin:0;padding:0 16px 12px 32px;display:grid;gap:12px}
+.ds-web-agreement-details li{padding-left:2px;color:#334155;font-size:12px;line-height:1.6}
+.ds-web-agreement-details li p{margin:4px 0 0}
+.ds-web-agreement-version{margin:0;padding:0 12px 8px;color:#64748b;font-size:10px}
+.ds-web-agreement-check{display:flex;align-items:flex-start;gap:9px;padding:11px;border:1px solid #b7c9d9;border-radius:10px;background:#f4f9fd;cursor:pointer}
+.ds-web-agreement-check input{width:17px;height:17px;flex:0 0 17px;margin-top:2px;accent-color:#1769aa}
+.ds-web-agreement-check span{display:grid;gap:4px}
+.ds-web-agreement-check b{font-size:12px;line-height:1.5;color:#183b5b}
+.ds-web-agreement-check small{font-size:10px;color:#64748b}
+.ds-web-agreement-accepted{color:#24643c;font-size:10px}
+@media(max-width:420px){.ds-web-agreement{padding:10px}.ds-web-agreement-facts{gap:5px}.ds-web-agreement-facts>div{padding:8px 4px}.ds-web-agreement-facts b{font-size:14px}.ds-web-agreement-facts small{font-size:9px}}
