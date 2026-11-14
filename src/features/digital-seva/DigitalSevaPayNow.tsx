@@ -47,6 +47,7 @@ export interface PrepaidDigitalSevaPayment {
   websiteAgreementAcceptedAt?: string;
   websiteTermsPolicyVersion?: string;
   websiteRefundPolicyVersion?: string;
+  creativeProjectAgreement?: { category: CreativeAgreementCategory; acceptedAt: string; termsVersion: string; refundVersion: string };
 }
 
 interface Props {
@@ -70,6 +71,9 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const [websiteAgreementAccepted, setWebsiteAgreementAccepted] = useState(false);
   const [websiteAgreementAcceptedAt, setWebsiteAgreementAcceptedAt] = useState('');
   const websiteAgreementRequired = WEBSITE_PROJECT_SERVICE_IDS.has(selectedId);
+  const creativeAgreementCategory = CREATIVE_AGREEMENT_CATEGORY[selectedId] || null;
+  const [creativeAgreementAccepted, setCreativeAgreementAccepted] = useState(false);
+  const [creativeAgreementAcceptedAt, setCreativeAgreementAcceptedAt] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [pendingOrderId, setPendingOrderId] = useState('');
@@ -162,7 +166,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             websiteAgreementAccepted: websiteAgreementRequired ? websiteAgreementAccepted : undefined,
             websiteAgreementAcceptedAt: websiteAgreementRequired ? (websiteAgreementAcceptedAt || new Date().toISOString()) : undefined,
             websiteTermsPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_TERMS_VERSION : undefined,
-            websiteRefundPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_REFUND_VERSION : undefined
+            websiteRefundPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_REFUND_VERSION : undefined,
+            creativeProjectAgreement: creativeAgreementCategory ? { accepted: creativeAgreementAccepted, acceptedAt: creativeAgreementAcceptedAt || new Date().toISOString(), category: creativeAgreementCategory, termsVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].terms, refundVersion: CREATIVE_AGREEMENT_VERSIONS[creativeAgreementCategory].refund } : undefined
           })
         });
         const data = await response.json().catch(() => ({}));
