@@ -25,7 +25,7 @@ const BIHAR = 'https://serviceonline.bihar.gov.in/';
 
 const DEFAULT_DISCLOSURE: Omit<ServiceFeeDisclosure, 'governmentFee' | 'governmentRefund' | 'governmentStatus' | 'officialSourceLabel' | 'officialSourceUrl' | 'note'> = {
   serviceFee: 'Not configured yet — no TANSHU ONLINE amount will be collected in this Preview.',
-  serviceRefund: 'Before any live payment, the quoted TANSHU fee, included work, cancellation point and refund calculation must be shown. Any amount retained must reflect work actually completed and applicable consumer law. If TANSHU fails to complete its part, the unearned service fee remains eligible for review/refund.',
+  serviceRefund: 'If the customer cancels before TANSHU ONLINE starts the agreed work, the full TANSHU service fee is refunded. After work starts, any retained amount is limited to the fair, disclosed value of work actually completed; the unearned balance is refunded. If TANSHU cannot deliver the agreed work or makes an error attributable to us, the unearned fee is refunded or the work is corrected without an extra service fee, subject to the official process and applicable consumer law.',
   checkedOn: CHECKED_ON,
 };
 
@@ -167,6 +167,25 @@ const disclosures: Record<string, ServiceFeeDisclosure> = {
   'ration-update': routeQuote('Bihar Food & Consumer Protection Department', 'https://epds.bihar.gov.in/', 'Member addition/deletion and correction requirements or fees must be confirmed for the exact service route.'),
   'scheme-check': routeQuote('Relevant scheme’s official department portal', 'https://www.india.gov.in/my-government/schemes', 'Scheme applications may be free or paid. Identify the exact scheme and official application portal before quoting.'),
   'online-form': routeQuote('Relevant application portal', 'https://serviceonline.bihar.gov.in/', 'The government fee depends on the form/department. Do not quote until the exact application and portal fee are known.'),
+
+  'pan-retrieve': {
+    ...DEFAULT_DISCLOSURE,
+    governmentFee: 'No government fee is charged for basic existing-PAN lookup guidance. Any optional provider service or physical-card request is a separate route and will be quoted before the customer proceeds.',
+    governmentRefund: 'No government fee is collected for basic lookup guidance. Any optional provider amount paid directly follows that provider’s receipt and refund rule.',
+    governmentStatus: 'not-applicable',
+    officialSourceLabel: 'Income Tax Department PAN services',
+    officialSourceUrl: PAN,
+    note: 'This is only for finding an already allotted PAN. It is not a fresh PAN application. The customer completes authentication directly; TANSHU never collects OTPs or passwords.'
+  },
+  'aadhaar-mobile-check': {
+    ...DEFAULT_DISCLOSURE,
+    governmentFee: 'No government fee is charged by TANSHU for one-number verification guidance. Any official fee, if shown by the selected UIDAI route, is paid directly to UIDAI and is not included in the TANSHU checkout.',
+    governmentRefund: 'No government fee is collected by TANSHU for this guidance. Any amount paid directly to UIDAI follows UIDAI’s receipt and refund rules.',
+    governmentStatus: 'not-applicable',
+    officialSourceLabel: 'UIDAI Aadhaar services',
+    officialSourceUrl: UIDAI,
+    note: 'UIDAI verification checks a mobile number supplied by the customer; it does not reveal the unknown full mobile number linked to Aadhaar. Customer enters OTP directly.'
+  },
 };
 
 for (const service of ['pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-word','pdf-edit','pdf-text-edit','image-compress','signature-resize','scan-clean','typing-format']) {
