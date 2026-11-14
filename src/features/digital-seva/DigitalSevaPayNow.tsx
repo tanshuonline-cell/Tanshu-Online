@@ -5,6 +5,9 @@ import { SEVA_SERVICES } from './serviceCatalog';
 import { getServiceFeeDisclosure } from './serviceFeeRegistry';
 import { getAutoPaymentQuote } from './autoPaymentPricing';
 import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } from './BookingPolicyConsent';
+import WebsiteProjectAgreement, { WEBSITE_PROJECT_TERMS_VERSION, WEBSITE_PROJECT_REFUND_VERSION } from './WebsiteProjectAgreement';
+
+const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-basic', 'website-standard', 'website-premium', 'custom-website-advance']);
 
 declare global {
   interface Window {
@@ -38,6 +41,10 @@ export interface PrepaidDigitalSevaPayment {
   termsAcceptedAt: string;
   refundPolicyAccepted: true;
   refundAcceptedAt: string;
+  websiteAgreementAccepted?: true;
+  websiteAgreementAcceptedAt?: string;
+  websiteTermsPolicyVersion?: string;
+  websiteRefundPolicyVersion?: string;
 }
 
 interface Props {
@@ -58,6 +65,9 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const [refundAccepted, setRefundAccepted] = useState(false);
   const [termsAcceptedAt, setTermsAcceptedAt] = useState('');
   const [refundAcceptedAt, setRefundAcceptedAt] = useState('');
+  const [websiteAgreementAccepted, setWebsiteAgreementAccepted] = useState(false);
+  const [websiteAgreementAcceptedAt, setWebsiteAgreementAcceptedAt] = useState('');
+  const websiteAgreementRequired = WEBSITE_PROJECT_SERVICE_IDS.has(selectedId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [pendingOrderId, setPendingOrderId] = useState('');
@@ -72,7 +82,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
     try {
       const saved = window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
       if (!saved) return;
-      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string };
+      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; websiteAgreementAccepted?: boolean; websiteAgreementAcceptedAt?: string; websiteTermsPolicyVersion?: string; websiteRefundPolicyVersion?: string };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
       setSelectedId(data.serviceId);
       setName(data.name || '');
@@ -84,6 +94,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       setRefundAccepted(true);
       setTermsAcceptedAt(data.termsAcceptedAt || new Date().toISOString());
       setRefundAcceptedAt(data.refundAcceptedAt || new Date().toISOString());
+      if (data.websiteAgreementAccepted && data.websiteTermsPolicyVersion === WEBSITE_PROJECT_TERMS_VERSION && data.websiteRefundPolicyVersion === WEBSITE_PROJECT_REFUND_VERSION) { setWebsiteAgreementAccepted(true); setWebsiteAgreementAcceptedAt(data.websiteAgreementAcceptedAt || new Date().toISOString()); }
     } catch { /* invalid recovery data is ignored */ }
   }, []);
   const verifyAndContinue = async (orderId: string) => {
@@ -105,7 +116,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       termsAccepted: true,
       termsAcceptedAt: termsAcceptedAt || new Date().toISOString(),
       refundPolicyAccepted: true,
-      refundAcceptedAt: refundAcceptedAt || new Date().toISOString()
+      refundAcceptedAt: refundAcceptedAt || new Date().toISOString(),
+      ...(websiteAgreementRequired ? { websiteAgreementAccepted: true as const, websiteAgreementAcceptedAt: websiteAgreementAcceptedAt || new Date().toISOString(), websiteTermsPolicyVersion: WEBSITE_PROJECT_TERMS_VERSION, websiteRefundPolicyVersion: WEBSITE_PROJECT_REFUND_VERSION } : {})
     };
     try { window.sessionStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.sessionStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
     onPaid(selected, payment);
@@ -122,8 +134,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       setError(hi ? 'कृपया सही नाम, 10 अंकों का मोबाइल और ईमेल भरें।' : 'Enter your name, a valid 10-digit mobile number and email.');
       return;
     }
-    if (!contactConsent || !termsAccepted || !refundAccepted) {
-      setError(hi ? 'आगे बढ़ने से पहले संपर्क सहमति, नियम और रिफंड नीति स्वीकार करें।' : 'Accept the contact consent, Terms & Conditions and Refund Policy before continuing.');
+    if (!contactConsent || !termsAccepted || !refundAccepted || (websiteAgreementRequired && !websiteAgreementAccepted)) {
+      setError(hi ? 'आगे बढ़ने से पहले संपर्क सहमति, सामान्य नियम, रिफंड नीति और जहाँ लागू हो वेबसाइट प्रोजेक्ट की विशेष शर्तें स्वीकार करें।' : 'Accept contact consent, the general Terms & Conditions, Refund Policy and, where applicable, the separate Website Project Terms before continuing.');
       return;
     }
     setBusy(true);
@@ -137,7 +149,11 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             serviceId: selected.id, customerName: name.trim(), customerPhone: phone.replace(/\D/g, ''),
             customerEmail: email.trim(), idempotencyKey, consent: contactConsent,
             termsAccepted, termsPolicyVersion: TERMS_POLICY_VERSION,
-            refundPolicyAccepted: refundAccepted, refundPolicyVersion: REFUND_POLICY_VERSION
+            refundPolicyAccepted: refundAccepted, refundPolicyVersion: REFUND_POLICY_VERSION,
+            websiteAgreementAccepted: websiteAgreementRequired ? websiteAgreementAccepted : undefined,
+            websiteAgreementAcceptedAt: websiteAgreementRequired ? (websiteAgreementAcceptedAt || new Date().toISOString()) : undefined,
+            websiteTermsPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_TERMS_VERSION : undefined,
+            websiteRefundPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_REFUND_VERSION : undefined
           })
         });
         const data = await response.json().catch(() => ({}));
@@ -145,12 +161,12 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         orderId = String(data.orderId);
         setPendingOrderId(orderId);
         setCashfreeMode(data.cashfreeMode === 'production' ? 'production' : 'sandbox');
-        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt })); } catch { /* session storage is optional */ }
+        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, websiteAgreementAccepted: websiteAgreementRequired && websiteAgreementAccepted, websiteAgreementAcceptedAt, websiteTermsPolicyVersion: WEBSITE_PROJECT_TERMS_VERSION, websiteRefundPolicyVersion: WEBSITE_PROJECT_REFUND_VERSION })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
       const sessionResponse = await fetch('/api/digital-seva/checkout', {
         method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serviceId: selected.id, customerName: name.trim(), customerPhone: phone.replace(/\D/g, ''), customerEmail: email.trim(), idempotencyKey: orderId.replace(/^ds_/, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'), consent: contactConsent, termsAccepted, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyAccepted: refundAccepted, refundPolicyVersion: REFUND_POLICY_VERSION })
+        body: JSON.stringify({ serviceId: selected.id, customerName: name.trim(), customerPhone: phone.replace(/\D/g, ''), customerEmail: email.trim(), idempotencyKey: orderId.replace(/^ds_/, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'), consent: contactConsent, termsAccepted, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyAccepted: refundAccepted, refundPolicyVersion: REFUND_POLICY_VERSION, websiteAgreementAccepted: websiteAgreementRequired ? websiteAgreementAccepted : undefined, websiteAgreementAcceptedAt: websiteAgreementRequired ? (websiteAgreementAcceptedAt || new Date().toISOString()) : undefined, websiteTermsPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_TERMS_VERSION : undefined, websiteRefundPolicyVersion: websiteAgreementRequired ? WEBSITE_PROJECT_REFUND_VERSION : undefined })
       });
       const session = await sessionResponse.json().catch(() => ({}));
       if (!sessionResponse.ok || !session.paymentSessionId) throw new Error(session.error || 'Could not restore the secure payment session. Please use payment recovery before retrying.');
@@ -194,6 +210,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
           </div>
           <label className="ds-paynow-contact-consent"><input type="checkbox" checked={contactConsent} onChange={(event) => setContactConsent(event.target.checked)} /> <span>{hi ? 'मैं इस अनुरोध के संबंध में TANSHU ONLINE से संपर्क प्राप्त करने की अनुमति देता/देती हूँ।' : 'TANSHU ONLINE may contact me about this service request.'}</span></label>
           <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); if (value) setTermsAcceptedAt(new Date().toISOString()); }} onRefundChange={(value) => { setRefundAccepted(value); if (value) setRefundAcceptedAt(new Date().toISOString()); }} />
+          {websiteAgreementRequired && <WebsiteProjectAgreement language={language} accepted={websiteAgreementAccepted} acceptedAt={websiteAgreementAcceptedAt} onAcceptedChange={(value) => { setWebsiteAgreementAccepted(value); setWebsiteAgreementAcceptedAt(value ? new Date().toISOString() : ''); }} />}
           {error && <p className="ds-booking-error" role="alert">{error}</p>}
           {pendingOrderId && <p className="ds-booking-help">{hi ? 'यदि भुगतान हो चुका है तो “भुगतान जाँचें” दबाएँ। दोबारा भुगतान न करें।' : 'If you already completed payment, check it before attempting another payment.'}</p>}
           <div className="ds-modal-actions">
