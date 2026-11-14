@@ -2,47 +2,53 @@ import type { SevaService } from './serviceCatalog';
 
 export interface AutoPaymentQuote {
   serviceId: string;
+  /** Amount collected by TANSHU ONLINE through Cashfree; official fees are paid separately. */
   totalAmount: number;
+  /** Fixed official/provider amount payable directly to that authority, never through this Cashfree order. */
   governmentFee: number;
+  /** Estimated combined outlay when the official fee is fixed and known. */
+  estimatedCustomerTotal?: number;
   tanshuFee: number;
   currency: 'INR';
   routeLabel: string;
   note: string;
 }
 
-// Approved automatic-checkout quotes. Keep unapproved catalogue services disabled.
+// Approved automatic-checkout quotes. totalAmount is the TANSHU service fee collected through Cashfree.
+// Government/provider fees are disclosed separately and must be paid directly to the official provider.
+// Keep unapproved catalogue services disabled.
 // PAN figures assume an Indian physical-card application route.
 // UIDAI figures assume a separate demographic address update, not a document-only refresh.
 export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
   'pan-new': {
-    serviceId: 'pan-new', totalAmount: 300, governmentFee: 107, tanshuFee: 193, currency: 'INR',
+    serviceId: 'pan-new', totalAmount: 193, governmentFee: 107, tanshuFee: 193, estimatedCustomerTotal: 300, currency: 'INR',
     routeLabel: 'Indian physical PAN card route',
-    note: 'The total is fixed at ₹300 for the standard Indian physical-card route. A different paperless/e-PAN route must be re-quoted before payment.'
+    note: 'Cashfree collects ₹193 for TANSHU ONLINE assistance only. Pay the standard physical-card provider fee of ₹107 directly to Protean; estimated combined outlay ₹300. Paperless physical-card and e-PAN routes have different official fees and must be re-quoted.'
   },
   'pan-correction': {
-    serviceId: 'pan-correction', totalAmount: 300, governmentFee: 107, tanshuFee: 193, currency: 'INR',
+    serviceId: 'pan-correction', totalAmount: 193, governmentFee: 107, tanshuFee: 193, estimatedCustomerTotal: 300, currency: 'INR',
     routeLabel: 'Indian physical PAN card correction route',
-    note: 'Name, father-name and mobile corrections use the same ₹300 total on the standard Indian physical-card route.'
+    note: 'Cashfree collects ₹193 for TANSHU ONLINE assistance only. Pay the standard physical-card provider fee of ₹107 directly to Protean; estimated combined outlay ₹300. Paperless physical-card and e-PAN routes have different official fees and must be re-quoted.'
   },
   'pan-photo-signature': {
-    serviceId: 'pan-photo-signature', totalAmount: 357, governmentFee: 107, tanshuFee: 250, currency: 'INR',
+    serviceId: 'pan-photo-signature', totalAmount: 250, governmentFee: 107, tanshuFee: 250, estimatedCustomerTotal: 357, currency: 'INR',
     routeLabel: 'Indian physical PAN card photo/signature correction route',
-    note: '₹250 TANSHU ONLINE assistance + ₹107 standard Indian physical-card provider charge. Confirm the live provider quote before any live payment.'
+    note: 'Cashfree collects ₹250 for TANSHU ONLINE assistance only. Pay the standard physical-card provider fee of ₹107 directly to Protean; estimated combined outlay ₹357. Confirm the selected provider route and live fee first.'
   },
   'aadhaar-address-doc': {
-    serviceId: 'aadhaar-address-doc', totalAmount: 275, governmentFee: 75, tanshuFee: 200, currency: 'INR',
+    serviceId: 'aadhaar-address-doc', totalAmount: 200, governmentFee: 75, tanshuFee: 200, estimatedCustomerTotal: 275, currency: 'INR',
     routeLabel: 'Separate demographic address update with document verification',
-    note: 'This is an actual address change. The free online PoI/PoA document-only update is a different service.'
+    note: 'Cashfree collects ₹200 for TANSHU ONLINE assistance only. Pay the ₹75 UIDAI demographic-update fee directly to UIDAI; estimated combined outlay ₹275. The free online PoI/PoA document-only update is a different service.'
   },
   'aadhaar-address-hof': {
-    serviceId: 'aadhaar-address-hof', totalAmount: 175, governmentFee: 75, tanshuFee: 100, currency: 'INR',
+    serviceId: 'aadhaar-address-hof', totalAmount: 100, governmentFee: 75, tanshuFee: 100, estimatedCustomerTotal: 175, currency: 'INR',
     routeLabel: 'HoF-based demographic address update',
-    note: 'HoF eligibility, relationship proof and HoF consent are required; confirm the selected UIDAI route before any live payment.'
+    note: 'Cashfree collects ₹100 for TANSHU ONLINE assistance only. Pay the ₹75 UIDAI demographic-update fee directly to UIDAI if it applies to the selected HoF route; estimated combined outlay ₹175. HoF eligibility, relationship proof and consent are required.'
   },
   'aadhaar-co': {
-    serviceId: 'aadhaar-co', totalAmount: 275, governmentFee: 75, tanshuFee: 200, currency: 'INR',
+    serviceId: 'aadhaar-co', totalAmount: 200, governmentFee: 75, tanshuFee: 200, estimatedCustomerTotal: 275, currency: 'INR',
     routeLabel: 'C/O address-detail update',
-    note: 'C/O is part of the address, not a separate father-name update.'
+    note: 'Cashfree collects ₹200 for TANSHU ONLINE assistance only. Pay the ₹75 UIDAI demographic-update fee directly to UIDAI; estimated combined outlay ₹275. C/O is part of the address, not a separate father-name update.'
   },
   'aadhaar-download': {
     serviceId: 'aadhaar-download', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
@@ -55,9 +61,9 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     note: '₹50 covers basic retrieval guidance. The customer enters any OTP directly; no OTP is collected by TANSHU ONLINE.'
   },
   'aadhaar-pvc-assistance': {
-    serviceId: 'aadhaar-pvc-assistance', totalAmount: 175, governmentFee: 75, tanshuFee: 100, currency: 'INR',
+    serviceId: 'aadhaar-pvc-assistance', totalAmount: 100, governmentFee: 75, tanshuFee: 100, estimatedCustomerTotal: 175, currency: 'INR',
     routeLabel: 'UIDAI PVC card order assistance',
-    note: '₹75 UIDAI PVC order charge + ₹100 TANSHU ONLINE assistance. The customer must personally confirm the UIDAI order and enter OTP.'
+    note: 'Cashfree collects ₹100 for TANSHU ONLINE assistance only. Pay the ₹75 UIDAI PVC order fee directly on UIDAI; estimated combined outlay ₹175. The customer must personally confirm the UIDAI order and enter OTP.'
   },
   'voter-new': {
     serviceId: 'voter-new', totalAmount: 100, governmentFee: 0, tanshuFee: 100, currency: 'INR',
