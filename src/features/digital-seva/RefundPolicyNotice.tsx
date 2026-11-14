@@ -76,7 +76,7 @@ export default function RefundPolicyNotice({ service, language = 'en' }: RefundP
       <div className="ds-refund-row">
         <b>{hindi ? '2. TANSHU ONLINE सेवा शुल्क' : '2. TANSHU ONLINE Service Fee'}</b>
         <p>{fee.serviceFee}</p>
-        <p className="ds-fee-refund"><strong>{hindi ? 'सेवा शुल्क रिफंड:' : 'Service-fee refund:'}</strong> {hindi ? 'वास्तव में पूरे किए गए काम के अनुपात में उचित समायोजन होगा। पूरी नीति नीचे पढ़ें।' : fee.serviceRefund}</p>
+        <p className="ds-fee-refund"><strong>{hindi ? 'सेवा शुल्क रिफंड:' : 'Service-fee refund:'}</strong> {fee.serviceRefund}</p>
       </div>
       <div className="ds-refund-row">
         <b>{hindi ? '3. इस सेवा से जुड़ी खास जानकारी' : '3. Service-specific note'}</b>
