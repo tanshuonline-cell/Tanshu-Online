@@ -48,7 +48,12 @@ interface RefundPolicyNoticeProps { service: SevaService; language?: 'en' | 'hi'
 export default function RefundPolicyNotice({ service, language = 'en' }: RefundPolicyNoticeProps) {
   const hindi = language === 'hi';
   const rawFee = getServiceFeeDisclosure(service);
-  const hindiCopy = HINDI_FEE_COPY[service.id] || (rawFee.governmentStatus === 'not-applicable' ? { governmentFee: 'इस निजी डिजिटल / दस्तावेज़ सेवा पर कोई सरकारी शुल्क लागू नहीं है।', governmentRefund: 'इस कार्य पर सरकारी शुल्क नहीं लिया जाता। यदि बाद में किसी आधिकारिक पोर्टल का शुल्क लगे, तो उसके अपने नियम लागू होंगे।', serviceFee: 'TANSHU ONLINE सेवा शुल्क अभी कॉन्फ़िगर नहीं है; भुगतान से पहले राशि और काम का विवरण स्पष्ट दिखाया जाएगा।', note: 'भुगतान स्वीकार करने से पहले सेवा का शुल्क और मिलने वाला परिणाम स्पष्ट रूप से बताया जाएगा।' } : { governmentFee: 'सटीक सेवा, आवेदक और आधिकारिक आवेदन मार्ग के लिए लाइव सरकारी / प्रदाता शुल्क की पुष्टि आवश्यक है।', governmentRefund: 'रिफंड और रद्दीकरण चुने गए विभाग / प्रदाता के सटीक नियमों के अनुसार होंगे। भुगतान से पहले वर्तमान नियम जाँचें।', serviceFee: 'TANSHU ONLINE सेवा शुल्क अभी कॉन्फ़िगर नहीं है; भुगतान से पहले राशि और काम का विवरण स्पष्ट दिखाया जाएगा।', note: 'सटीक प्राधिकरण, आवेदन मार्ग, शुल्क और रिफंड नियम की पुष्टि के बाद ही भुगतान का कोटेशन दिया जाएगा।' });
+  const hindiCopy = HINDI_FEE_COPY[service.id] || {
+    governmentFee: rawFee.governmentFee,
+    governmentRefund: rawFee.governmentRefund,
+    serviceFee: rawFee.serviceFee,
+    note: rawFee.note
+  };
   const fee = hindi ? { ...rawFee, ...hindiCopy } : rawFee;
   const governmentStatus = fee.governmentStatus === 'not-applicable'
     ? (hindi ? 'लागू नहीं' : 'NOT APPLICABLE')
