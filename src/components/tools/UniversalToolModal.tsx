@@ -106,8 +106,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   return (
     <div className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center ${isImmersiveTool ? 'p-0' : 'p-3 sm:p-6'}`}>
       <div className={`relative w-full bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${isImmersiveTool ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0' : 'max-w-6xl rounded-2xl my-auto max-h-[92vh]'}`}>
-        {isAutoDocumentCropper ? (
-          <div className="flex min-h-[70px] shrink-0 items-center justify-between gap-3 border-b border-blue-950/80 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-2.5 text-white sm:px-7">
+        {(isAutoDocumentCropper || isPhotoBackgroundRemover) ? (
+          <div className="flex min-h-[58px] shrink-0 items-center justify-between gap-3 border-b border-blue-950/80 bg-gradient-to-r from-[#071426] via-[#102746] to-[#123B5A] px-4 py-2.5 text-white sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <img src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" className="h-10 w-10 shrink-0 rounded-full border-2 border-cyan-300/80 object-cover" />
               <div className="min-w-0">
@@ -115,7 +115,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
                   <span className="text-sm font-black tracking-wide sm:text-base">TANSHU <span className="text-cyan-300">ONLINE</span></span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />I'm Online</span>
                 </div>
-                <div className="text-[11px] font-semibold text-blue-100 sm:text-xs">Auto Document Cropper Studio · Browser-side processing · 4-Corner Crop · Document Framing · HD Image Export</div>
+                <div className="text-[10px] font-semibold text-blue-100 sm:text-[11px]">{isAutoDocumentCropper ? 'Auto Document Cropper Studio · Browser-side processing · 4-Corner Crop · Document Framing · HD Image Export' : 'Photo Background Remover Studio · Browser-side processing'}</div>
               </div>
             </div>
             <button onClick={onClose} className="shrink-0 rounded-lg p-2 text-blue-100 hover:bg-white/10 hover:text-white" title="Close Tool (Esc)"><X className="h-5 w-5" /></button>
