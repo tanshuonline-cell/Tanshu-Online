@@ -221,7 +221,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         return json({ success: false, error: 'This payment order is already being attached to a booking. Please contact support before retrying.' }, 409);
       }
       if (!['PENDING', 'PAID'].includes(String(checkoutOrder.status)) || checkoutOrder.service_id !== serviceId ||
-          normalizePhone(checkoutOrder.customer_phone) !== phone || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
+          normalizePhone(checkoutOrder.customer_phone) !== normalizePhone(body.paymentContactPhone || phone) || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
           Math.round(Number(checkoutOrder.amount) * 100) !== quote.totalAmount * 100) {
         return json({ success: false, error: 'The payment order does not match this service, customer or approved total.' }, 409);
       }
