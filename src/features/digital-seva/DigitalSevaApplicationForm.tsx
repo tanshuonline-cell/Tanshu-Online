@@ -12,7 +12,7 @@ type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPEND
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
 export interface DigitalSevaReceiptData { paymentMode: 'AUTO_PAY' | 'SHARE_LINK'; paymentOrderId?: string; customerName: string; customerPhone: string; customerEmail: string; fieldValues: Record<string, string>; serviceOptions: Record<string, string>; corrections: string[]; selectedDocuments: string[]; otherDocumentName: string; taskDetails: string; submittedAt: string; termsAccepted: boolean; termsAcceptedAt: string | null; termsPolicyVersion: string; refundAccepted: boolean; refundAcceptedAt: string | null; refundPolicyVersion: string; }
-interface Props { service: SevaService; language: 'en' | 'hi'; prepaidPayment?: PrepaidDigitalSevaPayment | null; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
+interface Props { service: SevaService; language: 'en' | 'hi'; prepaidPayment?: PrepaidDigitalSevaPayment | null; projectDirection?: { sampleId: string; sampleTitle: string } | null; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -42,7 +42,7 @@ async function loadCashfreeSdk(): Promise<void> {
 const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
 
 
-export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, onSubmitted }: Props) {
+export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, projectDirection, onSubmitted }: Props) {
   const hi = language === 'hi';
   const [step, setStep] = useState(0);
   const [requesterType, setRequesterType] = useState<RequesterType | ''>('');
@@ -58,6 +58,11 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const [documentFiles, setDocumentFiles] = useState<Record<string, File>>({});
   const [otherDocumentName, setOtherDocumentName] = useState('');
   const [taskDetails, setTaskDetails] = useState('');
+  useEffect(() => {
+    if (!projectDirection?.sampleId || !projectDirection.sampleTitle) return;
+    const directionNote = `Selected demo direction: ${projectDirection.sampleTitle} (${projectDirection.sampleId})`;
+    setTaskDetails((current) => current.includes(projectDirection.sampleId) ? current : [current.trim(), directionNote].filter(Boolean).join('\\n\\n'));
+  }, [projectDirection?.sampleId, projectDirection?.sampleTitle]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [serviceOptions, setServiceOptions] = useState<Record<string, string>>({});
   const [bookingConsent, setBookingConsent] = useState(false);
