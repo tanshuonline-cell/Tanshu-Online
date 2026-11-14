@@ -304,6 +304,7 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
     if (step === 3 && !bookingConsent) return reject('bookingConsent', 'संपर्क की सहमति स्वीकार करें।');
     if (step === 3 && !termsAccepted) return reject('termsAccepted', 'Terms & Conditions स्वीकार करें।');
     if (step === 3 && !refundAccepted) return reject('refundAccepted', 'Refund Policy की सहमति अलग से स्वीकार करें।');
+    if (step === 3 && paidOrderRecovery && !Object.values(documentFiles).some((file) => file && (file.type === 'application/pdf' || /\\.pdf$/i.test(file.name)))) return reject('documentFiles', hi ? 'पुराने भुगतान से PDF Split पूरा करने के लिए नई PDF फ़ाइल अपलोड करें।' : 'Upload a new PDF file to finish PDF Split with the existing payment.');
     return '';
   };
   const next = () => {
