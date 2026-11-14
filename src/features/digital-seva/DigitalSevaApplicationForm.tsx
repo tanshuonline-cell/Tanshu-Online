@@ -59,6 +59,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const [otherDocumentName, setOtherDocumentName] = useState('');
   const [taskDetails, setTaskDetails] = useState('');
   useEffect(() => {
+    if (!draftReady) return;
     const brief = prepaidPayment?.projectBrief;
     if (!brief) return;
     const notes = [
@@ -69,7 +70,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       brief.description ? `Customer requirements: ${brief.description}` : ''
     ].filter(Boolean).join('\n');
     setTaskDetails((current) => current.includes('Pre-payment project brief:') ? current : [current.trim(), notes].filter(Boolean).join('\n\n'));
-  }, [prepaidPayment?.projectBrief]);
+  }, [prepaidPayment?.projectBrief, draftReady]);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [serviceOptions, setServiceOptions] = useState<Record<string, string>>({});
   const [bookingConsent, setBookingConsent] = useState(false);
