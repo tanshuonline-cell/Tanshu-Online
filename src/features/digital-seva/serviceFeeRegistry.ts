@@ -323,7 +323,28 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'aadhaar-mobile-check': '₹50 TANSHU ONLINE assistance fee for one known mobile number verification attempt; UIDAI does not reveal an unknown linked number.',
 };
 
+const PRIVATE_DIGITAL_SERVICE_IDS = new Set([
+  'website-services','pdf-text-edit','pdf-compress','pdf-merge','pdf-split','pdf-jpg','pdf-word','pdf-edit',
+  'image-compress','signature-resize','scan-clean','typing-format','passport-photo','photo-background',
+  'photo-enhance','photo-edit','image-format','signature-clean','thumbnail','poster-banner','social-post',
+  'logo-brand','reel-edit','long-video-edit','video-subtitles','video-convert','resume','cover-letter',
+  'biodata','invoice','receipt','quotation','letter-doc','presentation','website-app-brief','marksheet-cleanup',
+  'document-restoration','handwritten-to-digital','affidavit-draft-format','photo-print-sheet','id-card-print-layout',
+  'resume-professional','job-application-pack'
+]);
+
 export function getServiceFeeDisclosure(service: SevaService): ServiceFeeDisclosure {
-  const disclosure = disclosures[service.id] || routeQuote('Relevant official department/provider portal', 'https://www.india.gov.in/', 'The exact authority, route, fee and refund rule have not yet been verified for this service.');
+  const privateService = PRIVATE_DIGITAL_SERVICE_IDS.has(service.id);
+  const disclosure = disclosures[service.id] || (privateService ? {
+    governmentFee: 'Not applicable. This is a private TANSHU ONLINE digital/document service. Any separate statutory, stamp-paper, notary, printing-media or third-party charge is quoted separately before work.',
+    governmentRefund: 'No government fee is collected for this private digital task. Any separately paid third-party/statutory amount follows that provider’s own receipt and refund rule.',
+    governmentStatus: 'not-applicable' as FeeVerification,
+    officialSourceLabel: 'Private digital service',
+    officialSourceUrl: '',
+    checkedOn: CHECKED_ON,
+    serviceFee: 'See the service-specific TANSHU ONLINE quote.',
+    serviceRefund: DEFAULT_DISCLOSURE.serviceRefund,
+    note: 'The stated service fee covers only the described digital deliverable. Extra pages, revisions, media, third-party or legal work are quoted and accepted before they begin.'
+  } : routeQuote('Relevant official department/provider portal', 'https://www.india.gov.in/', 'The exact authority, route, fee and refund rule have not yet been verified for this service.'));
   return { ...disclosure, serviceFee: TANSHU_SERVICE_FEES[service.id] || disclosure.serviceFee };
 }
