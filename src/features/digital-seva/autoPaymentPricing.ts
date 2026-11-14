@@ -13,6 +13,7 @@ export interface AutoPaymentQuote {
   currency: 'INR';
   routeLabel: string;
   note: string;
+  governmentFeeStatus?: 'official-fixed' | 'route-quote' | 'not-applicable';
 }
 
 // Base service quotes. getAutoPaymentQuote computes the full customer amount only when
