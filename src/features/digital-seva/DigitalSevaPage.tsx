@@ -233,7 +233,8 @@ export default function DigitalSevaPage() {
         tanshuFee: getAutoPaymentQuote(selected)!.tanshuFee,
         totalAmount: getAutoPaymentQuote(selected)!.totalAmount,
         estimatedCustomerTotal: getAutoPaymentQuote(selected)!.estimatedCustomerTotal,
-        paymentStatus: bookingReceipt.paymentMode === 'AUTO_PAY' ? 'PAID — Cashfree payment verified / भुगतान सत्यापित' : 'PAYMENT PENDING / भुगतान बाकी'
+        paymentStatus: bookingReceipt.paymentMode === 'AUTO_PAY' ? 'PAID — Cashfree payment verified / भुगतान सत्यापित' : 'PAYMENT PENDING / भुगतान बाकी',
+        governmentDepositStatus: getAutoPaymentQuote(selected)!.governmentFee > 0 ? 'PENDING — TANSHU ONLINE to deposit' : 'NOT REQUIRED'
       } : null
     });
     const popup = window.open('', '_blank');
