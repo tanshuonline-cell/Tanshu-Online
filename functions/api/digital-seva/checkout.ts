@@ -12,7 +12,7 @@ interface Env {
   CF_PAGES_BRANCH?: string;
 }
 const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
-const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
+const REFUND_POLICY_VERSION = 'refund-2026-11-14-v3';
 const WEBSITE_PROJECT_SERVICE_IDS = new Set(['website-basic', 'website-standard', 'website-premium', 'custom-website-advance']);
 const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v2';
 const WEBSITE_PROJECT_REFUND_VERSION = 'website-project-refund-2026-11-14-v1';
