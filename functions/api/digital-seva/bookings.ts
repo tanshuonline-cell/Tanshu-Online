@@ -198,6 +198,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
   const paymentMode = String(body.paymentMode || '');
   const paymentOrderId = String(body.paymentOrderId || '');
+  const paidOrderRecovery = body.paidOrderRecovery === true;
+  if (paidOrderRecovery && serviceId !== 'pdf-split') return json({ success: false, error: 'Paid-order recovery is available only for PDF Split.' }, 400);
   if (paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId) || !/^ds_[0-9a-f]{32}$/i.test(paymentOrderId)) {
     return json({ success: false, error: 'A verified online payment is required before booking submission. Unpaid booking requests are not accepted.' }, 402);
   }
@@ -214,13 +216,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const checkoutOrder = await env.DIGITAL_SEVA_DB.prepare(
         'SELECT order_id, service_id, customer_phone, amount, currency, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
       ).bind(paymentOrderId).first();
-      if (!checkoutOrder) return json({ success: false, error: 'Payment order was not found. Please restart checkout.' }, 404);
+      if (!checkoutOrder) return json({ success: false, error: paidOrderRecovery ? 'This order is not present in the current environment, so recovery cannot continue here. No booking was submitted and no new payment was started. Use the environment that contains the original paid order; do not pay again.' : 'Payment order was not found. Please restart checkout.' }, paidOrderRecovery ? 409 : 404);
       if (checkoutOrder.status === 'CLAIMED') {
-        const existing = await env.DIGITAL_SEVA_DB.prepare('SELECT booking_reference FROM digital_seva_bookings WHERE checkout_order_id = ?').bind(paymentOrderId).first();
-        if (existing?.booking_reference) return json({ success: true, bookingReference: existing.booking_reference, existing: true });
-        return json({ success: false, error: 'This payment order is already being attached to a booking. Please contact support before retrying.' }, 409);
+        const existing = await env.DIGITAL_SEVA_DB.prepare('SELECT booking_reference, service_id, customer_phone FROM digital_seva_bookings WHERE checkout_order_id = ?').bind(paymentOrderId).first();
+        if (existing?.booking_reference && (!paidOrderRecovery || (existing.service_id === serviceId && normalizePhone(existing.customer_phone) === phone))) return json({ success: true, bookingReference: existing.booking_reference, existing: true });
+        return json({ success: false, error: 'This payment order is already attached to a booking or cannot be matched. Please contact support before retrying.' }, 409);
       }
-      if (!['PENDING', 'PAID'].includes(String(checkoutOrder.status)) || checkoutOrder.service_id !== serviceId ||
+      if (!(paidOrderRecovery ? String(checkoutOrder.status) === 'PAID' && !checkoutOrder.booking_id : ['PENDING', 'PAID'].includes(String(checkoutOrder.status))) || checkoutOrder.service_id !== serviceId ||
           normalizePhone(checkoutOrder.customer_phone) !== phone || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
           Math.round(Number(checkoutOrder.amount) * 100) !== quote.totalAmount * 100) {
         return json({ success: false, error: 'The payment order does not match this service, customer or approved total.' }, 409);
@@ -265,8 +267,38 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         await uploadPrivateDocument(env, objectKey, bytes, contentType);
         uploaded.push({ id: crypto.randomUUID(), documentType: item.documentType, objectKey, originalFileName, contentType, sizeBytes: item.file.size, sha256 });
       }
-      const statements = [
-        env.DIGITAL_SEVA_DB.prepare(
+      const statements = [];
+      if (paidOrderRecovery) {
+        // Claim the paid order first inside the same D1 batch. Every following insert is
+        // conditional on this exact claim, so concurrent recovery attempts cannot create two bookings.
+        statements.push(env.DIGITAL_SEVA_DB.prepare(
+          "UPDATE digital_seva_checkout_orders SET status = 'CLAIMED', booking_id = ?, claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'PAID' AND booking_id IS NULL"
+        ).bind(bookingId, paymentOrderId));
+        statements.push(env.DIGITAL_SEVA_DB.prepare(
+          `INSERT INTO digital_seva_bookings
+           (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email,
+            requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address,
+            agency_name, agency_address, application_details_json, checkout_order_id,
+            status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version)
+           SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?
+           WHERE EXISTS (SELECT 1 FROM digital_seva_checkout_orders WHERE order_id = ? AND status = 'CLAIMED' AND booking_id = ?)`
+        ).bind(bookingId, bookingReference, key, serviceId, name, phone, email,
+          requesterType, applicationFor, operatorName || null, operatorPhone || null, operatorEmail || null,
+          centerName || null, centerAddress || null, agencyName || null, agencyAddress || null, applicationDetails,
+          paymentOrderId, termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion, paymentOrderId, bookingId));
+        statements.push(env.DIGITAL_SEVA_DB.prepare(
+          `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
+           SELECT ?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted'
+           WHERE EXISTS (SELECT 1 FROM digital_seva_bookings WHERE id = ?)`
+        ).bind(crypto.randomUUID(), bookingId, bookingId));
+        for (const doc of uploaded) {
+          statements.push(env.DIGITAL_SEVA_DB.prepare(
+            `INSERT INTO digital_seva_documents (id, booking_id, document_type, object_key, original_file_name, content_type, size_bytes, sha256)
+             SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM digital_seva_bookings WHERE id = ?)`
+          ).bind(doc.id, bookingId, doc.documentType, doc.objectKey, doc.originalFileName, doc.contentType, doc.sizeBytes, doc.sha256, bookingId));
+        }
+      } else {
+        statements.push(env.DIGITAL_SEVA_DB.prepare(
           `INSERT INTO digital_seva_bookings
            (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email,
             requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address,
@@ -280,20 +312,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         env.DIGITAL_SEVA_DB.prepare(
           `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
            VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
-        ).bind(crypto.randomUUID(), bookingId)
-      ];
-      for (const doc of uploaded) {
-        statements.push(env.DIGITAL_SEVA_DB.prepare(
-          `INSERT INTO digital_seva_documents (id, booking_id, document_type, object_key, original_file_name, content_type, size_bytes, sha256)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(doc.id, bookingId, doc.documentType, doc.objectKey, doc.originalFileName, doc.contentType, doc.sizeBytes, doc.sha256));
+        ).bind(crypto.randomUUID(), bookingId));
+        for (const doc of uploaded) {
+          statements.push(env.DIGITAL_SEVA_DB.prepare(
+            `INSERT INTO digital_seva_documents (id, booking_id, document_type, object_key, original_file_name, content_type, size_bytes, sha256)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(doc.id, bookingId, doc.documentType, doc.objectKey, doc.originalFileName, doc.contentType, doc.sizeBytes, doc.sha256));
+        }
+        if (paymentMode === 'AUTO_PAY') {
+          statements.push(env.DIGITAL_SEVA_DB.prepare(
+            "UPDATE digital_seva_checkout_orders SET status = 'CLAIMED', booking_id = ?, claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'PAID'"
+          ).bind(bookingId, paymentOrderId));
+        }
       }
-      if (paymentMode === 'AUTO_PAY') {
-        statements.push(env.DIGITAL_SEVA_DB.prepare(
-          "UPDATE digital_seva_checkout_orders SET status = 'CLAIMED', booking_id = ?, claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'PAID'"
-        ).bind(bookingId, paymentOrderId));
+      const batchResults = await env.DIGITAL_SEVA_DB.batch(statements);
+      if (paidOrderRecovery && Number(batchResults?.[1]?.meta?.changes || 0) !== 1) {
+        await Promise.all(uploaded.map((doc) => deletePrivateDocument(env, doc.objectKey).catch(() => undefined)));
+        return json({ success: false, error: 'This paid order has already been used or is no longer available for recovery. Please contact support; do not pay again.' }, 409);
       }
-      await env.DIGITAL_SEVA_DB.batch(statements);
       return json({ success: true, bookingReference, status: 'RECEIVED', uploadedDocuments: uploaded.length }, 201);
     } catch (error) {
       await Promise.all(uploaded.map((doc) => deletePrivateDocument(env, doc.objectKey).catch(() => undefined)));
