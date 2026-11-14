@@ -60,6 +60,25 @@ export default function RefundPolicyNotice({ service, language = 'en' }: RefundP
       software: hindi ? 'कस्टम सॉफ्टवेयर प्रोजेक्ट' : 'Custom software project',
       design: hindi ? 'ग्राफिक डिज़ाइन प्रोजेक्ट' : 'Graphic design project',
     }[projectCategory];
+    const projectFeeHindi: Record<string, string> = {
+      'website-services': 'वेबसाइट डिज़ाइन या पूरा सेटअप/लॉन्च — चुने गए scope की समीक्षा के बाद लिखित quotation दिया जाएगा।',
+      'custom-website-advance': '₹999 केवल कस्टम वेबसाइट की शुरुआती बुकिंग और requirements-review advance है; पूरी वेबसाइट की कीमत नहीं।',
+      'website-basic': '₹5,999 — Basic वेबसाइट पैकेज, 5 पेज तक।',
+      'website-standard': '₹11,999 — Standard वेबसाइट पैकेज, 10 पेज तक।',
+      'website-premium': '₹24,999 — Premium वेबसाइट पैकेज, 15 पेज तक।',
+      'custom-app-advance': '₹999 केवल मोबाइल/वेब ऐप की discovery और requirements-review advance है; पूरा ऐप बनाने की कीमत नहीं।',
+      'custom-project-advance': '₹999 केवल कस्टम सॉफ्टवेयर की discovery और requirements-review advance है; पूरा सॉफ्टवेयर बनाने की कीमत नहीं।',
+      'poster-design': '₹499 — एक standard poster/banner design।',
+      'social-media-pack': '₹1,499 — पाँच coordinated social media creatives।',
+      'logo-design': '₹2,499 — Starter logo design package।',
+      'brochure-design': '₹2,999 — चार-पेज digital brochure design।',
+    };
+    const additionalCostsHindi = {
+      websites: 'डोमेन, होस्टिंग, paid plugins, payment gateway और अन्य third-party subscriptions तभी अलग होंगे जब quotation में पहले बताए जाएँ और ग्राहक मंजूर करे।',
+      apps: 'Backend/hosting, APIs, app-store developer accounts, licences और third-party services तभी अलग होंगे जब quotation में पहले बताए जाएँ और ग्राहक मंजूर करे।',
+      software: 'Hosting/cloud usage, API subscriptions, software licences और third-party tools तभी अलग होंगे जब quotation में पहले बताए जाएँ और ग्राहक मंजूर करे।',
+      design: 'Printing, ad spend, copywriting, editable source/vector files और अतिरिक्त sizes/formats तभी अलग होंगे जब quotation में पहले बताए जाएँ और ग्राहक मंजूर करे।',
+    }[projectCategory];
     const workflow = {
       websites: hindi
         ? 'प्रक्रिया: जरूरत और pages/features तय करना → ग्राहक से text, logo, images और जरूरी access लेना → design approval → development → responsive और functionality testing → ग्राहक की अंतिम मंजूरी → agreed hosting/domain पर launch और handover।'
@@ -102,12 +121,12 @@ export default function RefundPolicyNotice({ service, language = 'en' }: RefundP
         </div>
         <div className="ds-refund-row">
           <b>{hindi ? '1. प्रोजेक्ट शुल्क' : '1. Project fee'}</b>
-          <p>{service.serviceFee}</p>
+          <p>{hindi ? (projectFeeHindi[service.id] || service.serviceFee) : service.serviceFee}</p>
           <p className="ds-fee-refund">{hindi ? 'कोई सरकारी आवेदन शुल्क लागू नहीं है।' : 'No government application fee applies.'}</p>
         </div>
         <div className="ds-refund-row">
           <b>{hindi ? '2. अलग से लग सकने वाले खर्च' : '2. Possible additional costs'}</b>
-          <p>{service.governmentFee}</p>
+          <p>{hindi ? additionalCostsHindi : service.governmentFee}</p>
         </div>
         <div className="ds-refund-row">
           <b>{hindi ? `3. ${projectTitle} — काम की प्रक्रिया` : `3. ${projectTitle} — project workflow`}</b>
