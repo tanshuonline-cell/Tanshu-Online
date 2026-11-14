@@ -6,12 +6,13 @@ import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicat
 import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } from './BookingPolicyConsent';
 import { deleteDigitalSevaDraft, loadDigitalSevaDraft, saveDigitalSevaDraft } from './digitalSevaDraftStore';
 import { getAutoPaymentQuote } from './autoPaymentPricing';
+import type { PrepaidDigitalSevaPayment } from './DigitalSevaPayNow';
 
 type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPENDENT_AGENT';
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
 export interface DigitalSevaReceiptData { paymentMode: 'AUTO_PAY' | 'SHARE_LINK'; customerName: string; customerPhone: string; customerEmail: string; fieldValues: Record<string, string>; serviceOptions: Record<string, string>; corrections: string[]; selectedDocuments: string[]; otherDocumentName: string; taskDetails: string; submittedAt: string; termsAccepted: boolean; termsAcceptedAt: string | null; termsPolicyVersion: string; refundAccepted: boolean; refundAcceptedAt: string | null; refundPolicyVersion: string; }
-interface Props { service: SevaService; language: 'en' | 'hi'; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
+interface Props { service: SevaService; language: 'en' | 'hi'; prepaidPayment?: PrepaidDigitalSevaPayment | null; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -41,7 +42,7 @@ async function loadCashfreeSdk(): Promise<void> {
 const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
 
 
-export default function DigitalSevaApplicationForm({ service, language, onSubmitted }: Props) {
+export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, onSubmitted }: Props) {
   const hi = language === 'hi';
   const [step, setStep] = useState(0);
   const [requesterType, setRequesterType] = useState<RequesterType | ''>('');
@@ -117,12 +118,24 @@ export default function DigitalSevaApplicationForm({ service, language, onSubmit
         setPendingCashfreeMode(d.pendingCashfreeMode === 'production' ? 'production' : 'sandbox');
         setDraftRestored(true);
       }
+      if (prepaidPayment) {
+        setApplicant({ name: prepaidPayment.customerName, phone: prepaidPayment.customerPhone, email: prepaidPayment.customerEmail });
+        setBookingConsent(true);
+        setTermsAccepted(true);
+        setTermsAcceptedAt(prepaidPayment.termsAcceptedAt);
+        setRefundAccepted(true);
+        setRefundAcceptedAt(prepaidPayment.refundAcceptedAt);
+        setPaymentMode('AUTO_PAY');
+        setPendingCheckoutOrderId(prepaidPayment.orderId);
+        setPendingPaymentSessionId('');
+        setPendingCashfreeMode('sandbox');
+      }
       setDraftReady(true);
     }).catch(() => {
       if (active) setDraftReady(true);
     });
     return () => { active = false; };
-  }, [service.id]);
+  }, [service.id, prepaidPayment?.orderId]);
 
   useEffect(() => {
     if (!draftReady || completedRef.current) return;
