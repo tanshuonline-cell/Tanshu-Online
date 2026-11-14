@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · PVC Card Studio</title>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · INSTANT PVC CARD MAKER</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{font-family:Inter,system-ui,Arial;color:#17233d;background:#eef1f6}*{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden}
@@ -93,8 +93,284 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
 .top .tagline{transition:color .16s ease,font-weight .16s ease}
 .top .tagline:hover{color:#fff;font-weight:700}
 @media(prefers-reduced-motion:reduce){button:not(:disabled):hover::after,button:not(:disabled):focus-visible::after,.home-back:hover::after,.home-back:focus-visible::after{animation:none;opacity:.22;transform:none}}
+/* INSTANT PVC CARD MAKER · low-glare desktop workspace palette.
+   Color-only overrides: preserve all existing dimensions, scrolling, zoom and interactions. */
+:root{color:#e7edf5;background:#1d2939}
+body{color:#e7edf5;background:#1d2939}
+.top{background:linear-gradient(180deg,#172438 0%,#111c2d 100%);border-bottom:1px solid #3b4b63}
+.toolbar{background:#29384c;border-bottom-color:#40516a}
+.panel{background:#2b394d;border-color:#46566e;color:#e7edf5;box-shadow:0 5px 18px #07132335}
+.panel h3{color:#f2f5fa}
+.panel .hint,.panel small,.preview-note,.field label{color:#b7c4d6}
+.center-panel{background:#202d40;border-color:#40516a}
+.preview-wrap{background:#1b2738}
+.source-box,.status,.catalog-toggle{background:#34445a;border-color:#50627b;color:#e8eef6}
+.catalog-toggle:hover{background:#3b4e66}
+.profile{background:#2b394d;color:#e7edf5}
+.profile:hover,.thumb.active{background:#3a4d66}
+.thumb{border-bottom-color:#43536a;color:#e7edf5}
+.thumb img{background:#1b2738}
+.source-wrap{background:#1b2738}
+.field input,.field select,.field>select,.field textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,textarea{background:#1e2b3d;color:#edf3fb;border-color:#50617a;color-scheme:dark}
+.field input:focus,.field select:focus,.field textarea:focus,
+input:focus,select:focus,textarea:focus{outline-color:#83a9f5;border-color:#83a9f5}
+.field input::placeholder,textarea::placeholder{color:#93a3b8}
+.btn{background:linear-gradient(145deg,#3a4b62 0%,#2c3b50 100%);border-color:#566982;color:#edf3fb;box-shadow:0 1px 2px #07132355}
+.btn:hover:not(:disabled){background:linear-gradient(145deg,#4a5d75,#35475e);border-color:#c9a85f;color:#ff7777}
+.btn.primary{background:linear-gradient(135deg,#426fce 0%,#3156a3 58%,#253f79 100%);border-color:#668cdb;color:#fff}
+.btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#5685e4,#3d65b8 58%,#2d4c8c);border-color:#e0c47c;color:#fff}
+.lang-switch{background:#1c2a3e;border-color:#566982}
+.lang-switch button{color:#cbd7e7}
+.lang-switch button.active{background:#e6edf8;color:#1b2a3d}
+.home-back{background:linear-gradient(180deg,#3a506f,#263951);border-color:#667d9e}
+.home-back:hover{background:linear-gradient(180deg,#4a668c,#304866)}
+.panel h3:hover,.panel label:hover,.panel .section-title:hover,.panel .tool-title:hover{color:#ff7373}
+.panel small:hover,.panel .hint:hover,.panel .help-text:hover,.panel .muted:hover{color:#f3f6fb}
+.crop-workspace-dialog,.magic-dialog,.perspective-dialog,.printer-setup-dialog{background:#27364a;color:#e7edf5;border-color:#465a73}
+.crop-workspace-head,.magic-head,.perspective-head,.printer-setup-head{background:#142238;color:#f3f6fb}
+.crop-workspace-source,.crop-workspace-live,.magic-preview,.magic-controls,.printer-setup-main,.printer-setup-help,.perspective-help{background:#2b3b51;border-color:#465a73;color:#e7edf5}
+.crop-workspace-actions,.magic-actions,.magic-foot,.perspective-actions,.printer-setup-actions{background:#223147;border-top-color:#465a73;color:#e7edf5}
+.crop-workspace .hint,.magic-dialog .hint,.perspective-dialog .hint,.printer-setup-dialog .hint{color:#b9c7d9}
+.magic-preview canvas,.crop-workspace-live canvas{background:#1b2738;border-color:#50617a}
+.cardthumb{background:#253449;border-color:#4b5d76;color:#e7edf5}
+.cardthumb img{background:#1b2738}
+.printer-profile-note{background:#34465c;color:#e7edf5;border-color:#50617a}
+@media(prefers-reduced-motion:reduce){.btn,.home-back{transition:none}}
+
+
+/* Restore the saved full-screen workspace control without changing sheet geometry. */
+.fullscreen-toggle{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:7px 10px;border:1px solid #c8a85f;border-radius:9px;background:linear-gradient(135deg,#314a72,#172943 72%);color:#fff;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px #050d1d55}
+.fullscreen-toggle:hover{background:linear-gradient(135deg,#405d88,#203754 72%);border-color:#f0d58e}
+.fullscreen-toggle:focus-visible{outline:2px solid #f4d58b;outline-offset:2px}
+body.studio-expanded{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;overflow:hidden;z-index:9999}
+body.studio-expanded .layout{height:calc(100vh - 116px);min-height:0}
+@media(max-width:850px){body.studio-expanded{overflow:auto}body.studio-expanded .layout{height:auto}}
+@media(max-width:560px){.fullscreen-toggle{margin-left:auto;min-height:32px;padding:6px 8px;font-size:10px}}
+
+/* Restored from the previously approved Instant PVC Card Maker design. */
+/* INSTANT PVC CARD MAKER — premium Photoshop-inspired workspace skin.
+   Presentation-only overrides: preserve all existing IDs, controls and print geometry. */
+:root{color-scheme:light;--pvc-ink:#17233d;--pvc-navy:#0b1428;--pvc-panel:#111e35;--pvc-gold:#d6b56d;--pvc-red:#c62828}
+body{background:radial-gradient(ellipse at 50% -20%,#263a60 0,#101a30 48%,#0a1222 100%);color:#e7edf7}
+.top{height:60px;padding:0 20px;background:linear-gradient(110deg,#081326 0%,#142746 52%,#0b172b 100%);border-bottom:1px solid #d6b56d66;box-shadow:0 7px 24px #02081766}
+.top .tagline{color:#c5d2e7}
+.studio-brand-photo{width:38px;height:38px}
+.studio-brand .brand-studio{color:#f2d58e;font-weight:850;letter-spacing:.055em}
+.home-back{border-color:#c8a85f;background:linear-gradient(135deg,#314a72,#172943 72%);color:#fff}
+.lang-switch{border-color:#526987;background:#0b172b}
+.lang-switch button{min-width:34px;padding:6px 8px}
+.lang-switch button.active{background:linear-gradient(135deg,#f7e8bd,#d6b56d);color:#17233d;box-shadow:0 1px 6px #0005}
+.toolbar{height:56px;padding:8px 14px;background:linear-gradient(180deg,#172743,#101d34);border-bottom:1px solid #52627c;box-shadow:0 4px 14px #02081744}
+.toolbar .btn{border-color:#52627c;background:linear-gradient(145deg,#f8fafc,#e6ebf3);color:#1c2b45}
+.toolbar .btn.primary{background:linear-gradient(135deg,#e4bd68,#b88934);border-color:#f1d58f;color:#17233d}
+.toolbar .btn.primary:hover{background:linear-gradient(135deg,#f3d88e,#c99a43);color:#101d38}
+.layout{height:calc(100vh - 116px);max-width:1980px;gap:13px;padding:13px}
+.panel{border:1px solid #354763;border-radius:15px;box-shadow:0 12px 30px #02081755}
+.left-panel,.right-panel{background:linear-gradient(165deg,#172743 0%,#101c32 100%);color:#e6edf8;scrollbar-color:#60728f #172743}
+.left-panel h3,.right-panel h3{color:#f7e6bd;font-size:14px;font-weight:850;letter-spacing:.015em}
+.left-panel .field label,.right-panel .field label{color:#d1dced;font-weight:650}
+.left-panel .hint,.right-panel .hint,.left-panel small,.right-panel small{color:#aebed5}
+.left-panel .divider,.right-panel .divider{background:#344762}
+.left-panel .field input:not([type=checkbox]):not([type=radio]):not([type=file]),.left-panel .field select,.right-panel .field input:not([type=checkbox]):not([type=radio]):not([type=file]),.right-panel .field select,.left-panel input[type=number],.right-panel input[type=number],.left-panel textarea,.right-panel textarea{background:#0b162a;border-color:#405574;color:#f4f7fb;border-radius:8px}
+.left-panel input:focus,.right-panel input:focus,.left-panel select:focus,.right-panel select:focus{outline:2px solid #d6b56d;outline-offset:1px}
+.left-panel .source-box,.right-panel .source-box,.left-panel .status,.right-panel .status{background:#0b172b;border:1px solid #344762;color:#d8e3f2}
+.left-panel .thumb{border-color:#344762;color:#e3ebf7}
+.left-panel .thumb.active,.left-panel .thumb:hover{background:#243957}
+.left-panel .thumb img{background:#f8fafc;border-radius:6px}
+.left-panel .source-delete{background:#431e2a;border-color:#9c4c5a;color:#ffe4e8}
+.left-panel .catalog-toggle,.left-panel .profile{background:#172743;color:#e4edf8;border:1px solid #344762}
+.left-panel .profile:hover{background:#243957}
+.left-panel .cards .cardthumb{background:#14243d;border-color:#405574;color:#e4edf8}
+.center-panel{background:linear-gradient(155deg,#1b2d49,#111e34);border-color:#405574}
+.center-panel h3{color:#f7e6bd}
+.center-panel .preview-note,.center-panel .hint{color:#c1cfe2}
+.preview-wrap{background:radial-gradient(circle at 50% 35%,#304664 0,#172944 52%,#101d32 100%);border:1px solid #3d5372;border-radius:12px}
+.sheet-preview{box-shadow:0 12px 34px #02081766;border:1px solid #cbd5e1}
+.center-panel .toolbar{height:auto;background:transparent;border:0;box-shadow:none;padding:0 0 10px}
+.center-panel .toolbar .btn{background:linear-gradient(145deg,#fff,#e8edf5);border-color:#cbd5e1;color:#1e2d47}
+.center-panel .toolbar .btn.primary{background:linear-gradient(135deg,#e4bd68,#b88934);border-color:#f1d58f;color:#17233d}
+.center-panel .toolbar .hint{color:#cbd7e8}
+#sheetInfo{color:#e8d6a7}
+.btn,.home-back{border-radius:9px}
+button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px solid #f4d58b;outline-offset:2px}
+@media(max-width:1050px){.top{height:auto;min-height:60px}.layout{height:auto;gap:12px;padding:10px}.left-panel,.right-panel{overflow:visible}.center-panel{order:2}.left-panel{order:1}.right-panel{order:3}}
+@media(max-width:560px){.top{gap:8px}.studio-brand strong{font-size:11px}.studio-brand .brand-studio{display:block;font-size:9px}.top .tagline{width:100%;order:3}.home-back{margin-left:auto}.lang-switch{margin-left:0}}
+
+
+/* Focused A4 preview toolbar + crop hint readability fixes only */
+.center-panel .center-head{align-items:flex-start;flex-wrap:wrap;row-gap:5px}
+.center-panel .center-head h3{flex:0 0 auto;white-space:nowrap}
+.center-panel .preview-note{flex:1 1 100%;min-width:0;white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.45}
+.center-panel>.toolbar{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin;scrollbar-color:#9aa9bd #263a57;padding:7px 2px 10px!important;overscroll-behavior-x:contain}
+.center-panel>.toolbar>*{flex:0 0 auto;min-width:max-content;white-space:nowrap;word-break:normal;overflow-wrap:normal}
+.center-panel>.toolbar .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:6px 9px;font-size:11px;line-height:1.2;letter-spacing:0;white-space:nowrap;word-break:keep-all;overflow:visible}
+.center-panel>.toolbar select{min-height:34px;max-width:155px;background:#f8fafc;color:#1e2d47;border:1px solid #cbd5e1;border-radius:7px;font-size:11px;white-space:nowrap}
+.center-panel>.toolbar label.hint{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:4px 7px;border:1px solid #526783;border-radius:7px;background:#1a2c48;color:#f1f5fb!important;font-size:11px;line-height:1.2;white-space:nowrap}
+.center-panel>.toolbar label.hint input[type=number]{flex:0 0 48px;width:48px!important;min-width:48px}
+.center-panel>.toolbar label.hint input[type=range]{flex:0 0 74px;width:74px!important;min-width:74px;margin:0}
+.center-panel>.toolbar #sheetInfo{flex:0 0 auto;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#dce6f4}
+.center-panel>.toolbar::-webkit-scrollbar{height:7px}
+.center-panel>.toolbar::-webkit-scrollbar-track{background:#263a57;border-radius:8px}
+.center-panel>.toolbar::-webkit-scrollbar-thumb{background:#9aa9bd;border-radius:8px}
+.right-panel .source-box{padding:11px 12px;background:linear-gradient(145deg,#142943,#0b172b);border:1px solid #526783;border-radius:9px;box-shadow:inset 0 1px #ffffff0d}
+.right-panel .source-box>.hint{display:block;color:#f1f5fb!important;font-size:12px;line-height:1.55;letter-spacing:.05px;white-space:normal;overflow-wrap:normal;word-break:normal}
+.right-panel .source-box>.toolbar{gap:6px;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;overflow-y:hidden;min-width:0}
+.right-panel .source-box>.toolbar>*{flex:0 0 auto;white-space:nowrap;word-break:keep-all}
+
+/* Focused scroll and zoom behavior */
+.panel,.preview-wrap,.source-wrap,.toolbar{scrollbar-width:thin;scrollbar-color:#aab6c8 transparent}
+.panel::-webkit-scrollbar,.preview-wrap::-webkit-scrollbar,.source-wrap::-webkit-scrollbar,.toolbar::-webkit-scrollbar{width:5px;height:5px}
+.panel::-webkit-scrollbar-thumb,.preview-wrap::-webkit-scrollbar-thumb,.source-wrap::-webkit-scrollbar-thumb,.toolbar::-webkit-scrollbar-thumb{background:#aab6c8;border-radius:8px}
+.panel::-webkit-scrollbar-track,.preview-wrap::-webkit-scrollbar-track,.source-wrap::-webkit-scrollbar-track,.toolbar::-webkit-scrollbar-track{background:transparent}
+.toolbar{overscroll-behavior-x:contain}
+
+/* Laptop-first adaptive workspace and full-screen control */
+.fullscreen-toggle{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:7px 10px;border:1px solid #c8a85f;border-radius:9px;background:linear-gradient(135deg,#314a72,#172943 72%);color:#fff;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px #050d1d55}
+.fullscreen-toggle:hover{background:linear-gradient(135deg,#405d88,#203754 72%);border-color:#f0d58e}
+.fullscreen-toggle:focus-visible{outline:2px solid #f4d58b;outline-offset:2px}
+@media (min-width:851px) and (max-width:1200px){
+ body{height:100vh;min-height:0;overflow:hidden}
+ .top{height:60px;min-height:60px;flex-wrap:nowrap;padding:0 12px;gap:8px}
+ .studio-brand{gap:7px}.studio-brand-photo{width:32px;height:32px}
+ .studio-brand strong{font-size:12px}.top .tagline{font-size:10px;white-space:nowrap}
+ .home-back{padding:6px 8px;font-size:10px}
+ .fullscreen-toggle{min-height:31px;padding:6px 8px;font-size:10px}
+ .lang-switch button{min-width:30px;padding:5px 6px}
+ .toolbar{height:52px;min-height:52px;flex-wrap:nowrap;overflow-x:auto}
+ .layout{height:calc(100vh - 112px);min-height:0;grid-template-columns:minmax(190px,22vw) minmax(300px,1fr) minmax(245px,27vw);gap:8px;padding:8px}
+ .panel{padding:10px}.center-panel{padding:9px}
+}
+@media (min-width:851px) and (max-height:760px){
+ .layout{height:calc(100vh - 112px);padding:7px;gap:8px}
+ .panel{padding:9px}.center-panel{padding:8px}
+ .center-head{margin-bottom:5px}
+ .center-panel .center-head h3{font-size:13px}
+ .preview-wrap{padding:7px}
+}
+@media (max-width:850px){
+ body{height:auto;min-height:100vh;overflow:auto}
+ .top{height:auto;min-height:60px;flex-wrap:wrap;padding:9px 12px;gap:8px}
+ .home-back{margin-left:auto}
+ .fullscreen-toggle{min-height:32px;padding:6px 8px;font-size:10px}
+ .layout{height:auto;min-height:0;grid-template-columns:minmax(0,1fr);max-width:100%;padding:9px;gap:10px}
+ .left-panel,.right-panel{overflow:visible}
+ .center-panel{min-height:560px;order:2}
+ .left-panel{order:1}.right-panel{order:3}
+ .preview-wrap{min-height:420px}
+}
+@media (max-width:560px){
+ .studio-brand{max-width:100%}
+ .studio-brand .brand-studio{display:block;font-size:9px}
+ .top .tagline{width:100%;order:4}
+ .home-back{margin-left:0}
+ .fullscreen-toggle{margin-left:auto}
+ .lang-switch{margin-left:0}
+ .center-panel{min-height:480px}
+ .preview-wrap{min-height:360px}
+}
+body.studio-expanded{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;overflow:hidden;z-index:9999}
+body.studio-expanded .layout{height:calc(100vh - 116px);min-height:0}
+@media(max-width:850px){body.studio-expanded{overflow:auto}body.studio-expanded .layout{height:auto}}
+
+/* Premium dark editing-suite theme: visual styling only */
+:root{color-scheme:dark;background:#171d25;color:#e4eaf1}
+body{background:#171d25;color:#e4eaf1}
+.top{background:linear-gradient(105deg,#111923 0%,#1b2938 58%,#173b42 100%);border-bottom:1px solid #344653}
+.top .tagline{color:#b6c6d0}
+.studio-brand strong{color:#f2f5f8}
+.home-back{background:linear-gradient(135deg,#2b3d4d,#202d3a);border:1px solid #506272;color:#edf4f7;box-shadow:0 3px 10px #0005}
+.home-back:hover{background:#344c5b;border-color:#6f9295}
+.lang-switch{background:#17232d;border:1px solid #40515f}
+.lang-switch button{color:#c4d0d9}
+.lang-switch button.active{background:#2c7774;color:#fff}
+.toolbar{background:#202a35;border-bottom:1px solid #3b4a58;box-shadow:0 3px 12px #0003}
+.layout{background:#171d25}
+.panel{background:#222d38;border:1px solid #3a4a58;border-radius:10px;box-shadow:0 8px 22px #0003;color:#e2e9ef}
+.left-panel,.right-panel{background:linear-gradient(160deg,#25313d,#202a35)}
+.center-panel{background:linear-gradient(145deg,#242f3b,#1d2732);border-color:#40515e;box-shadow:inset 0 1px #ffffff0a,0 8px 22px #0004}
+.panel h3,.center-head h3{color:#f0f4f7;font-size:13px;letter-spacing:.12px}
+.panel p,.panel .hint,.hint,.preview-note,.center-panel .preview-note{color:#b6c4cf}
+.panel .hint,.panel p.hint{font-size:10.5px;line-height:1.5}
+.field{margin:9px 0}
+.field label,.panel label{color:#d1dbe3;font-size:10.5px;font-weight:650;letter-spacing:.08px}
+.field input,.field select,.field>select,.left-panel select,.right-panel select,.left-panel input:not([type=checkbox]):not([type=range]),.right-panel input:not([type=checkbox]):not([type=range]){background:#141e28!important;color:#edf3f7!important;border:1px solid #526473!important;border-radius:7px!important;box-shadow:inset 0 2px 5px #0004}
+.field input::placeholder,.left-panel input::placeholder,.right-panel input::placeholder{color:#8999a7}
+.field input:focus,.field select:focus,.left-panel select:focus,.right-panel select:focus{outline:2px solid #39b7aa;outline-offset:1px;border-color:#39b7aa!important}
+.field select option,.left-panel select option,.right-panel select option{background:#1d2934;color:#eef3f7}
+.divider{background:#40505d;margin:11px 0}
+.btn{background:linear-gradient(180deg,#354452,#2a3744);border:1px solid #526372;color:#e7eef3;box-shadow:0 2px 5px #0003;transition:background .15s,border-color .15s,box-shadow .15s}
+.btn:hover{background:linear-gradient(180deg,#405563,#304452);border-color:#6b9394;box-shadow:0 3px 9px #0004}
+.btn.primary{background:linear-gradient(135deg,#168e87,#116b70);border-color:#35a49b;color:#fff;box-shadow:0 3px 10px #087d7738}
+.btn.primary:hover{background:linear-gradient(135deg,#20a79c,#147d80)}
+.left-panel .field button#openWhatsAppPhotoCrop{background:linear-gradient(135deg,#354b5b,#293b49);border-color:#5a7180;color:#eaf1f5}
+.left-panel .field button#openPrinterSetup{background:linear-gradient(135deg,#137f7a,#155e68);border-color:#35a49b;color:#fff}
+.status{background:#263e43;border:1px solid #426e6b;color:#c5eee6}
+.catalog-toggle{background:#2b3945;border:1px solid #4b5d6b;color:#e1eaf0}
+.catalog-toggle:hover{background:#354a56;border-color:#638b8a}
+.profile{background:transparent;color:#d7e2e8;font-size:10.5px;padding:7px;border-radius:7px}
+.profile:hover{background:#30434d;color:#fff}
+.profile-group{color:#82b9b0;font-size:10px}
+.thumb{border-bottom-color:#40515e;color:#d0dbe3}
+.thumb.active{background:#244b4b;border:1px solid #387b75;border-radius:7px;color:#e4fffa}
+.thumb img{background:#17222c;border:1px solid #526473;border-radius:6px}
+.cards{gap:8px}
+.cardthumb{background:#202d38;border:1px solid #465866;border-radius:8px;color:#e4edf2}
+.cardthumb small{color:#c0ccd5}
+.source-box{background:linear-gradient(145deg,#293b47,#202f3a);border:1px solid #4b626d;color:#e7eff3}
+.source-wrap{background:#17232d;border:1px solid #526574;border-radius:8px}
+.source-wrap canvas{box-shadow:0 4px 14px #0007}
+.delete-selected{background:#482f34;border-color:#87545a;color:#ffd9d8}
+.delete-selected:hover{background:#5a373d}
+.center-panel .toolbar{background:transparent;border:0;box-shadow:none}
+.center-panel .toolbar .btn{background:linear-gradient(180deg,#354653,#293844);border-color:#536977;color:#edf3f6}
+.center-panel .toolbar .btn:hover{background:#405866;border-color:#70a29d}
+.center-panel .toolbar .btn.primary{background:linear-gradient(135deg,#168e87,#116b70);border-color:#35a49b;color:#fff}
+.center-panel .toolbar .hint{color:#e1ecef}
+.center-panel>.toolbar label.hint{background:#253c46;border:1px solid #58747c;color:#edf7f6!important}
+.center-panel>.toolbar select{background:#17232d;color:#edf3f7;border:1px solid #526574}
+.center-panel>.toolbar #sheetInfo{color:#bfe9df}
+.center-panel>.toolbar::-webkit-scrollbar-track{background:#1a2630}
+.center-panel>.toolbar::-webkit-scrollbar-thumb{background:#536d78}
+.right-panel .source-box{background:linear-gradient(145deg,#293d49,#202f3b);border-color:#526d77;box-shadow:inset 0 1px #ffffff0a}
+.right-panel .source-box>.hint{color:#d3e1e5!important;font-size:10.5px;line-height:1.5}
+.sheet-preview{background:#fff;border:1px solid #9eabb5;box-shadow:0 12px 32px #0008}
+.preview-wrap{background:#18232d}
+.fullscreen-toggle{background:linear-gradient(135deg,#315b65,#1b454d);border:1px solid #5b9692;color:#f2fbfa;box-shadow:0 3px 10px #0005}
+.fullscreen-toggle:hover{background:linear-gradient(135deg,#3b7478,#205c60);border-color:#8bc3b6}
+button:focus-visible,.btn:focus-visible,.home-back:focus-visible{outline:2px solid #43c5b5;outline-offset:2px}
+@media(min-width:851px){.left-panel h3,.right-panel h3{font-size:12.5px}.left-panel .field label,.right-panel .field label{font-size:10.5px}.left-panel .hint,.right-panel .hint{font-size:10.5px;line-height:1.5}.left-panel .btn,.right-panel .btn{font-size:11px}}
+@media(max-width:850px){.panel{box-shadow:0 5px 16px #0003}.center-panel{background:#202b36}}
+
+
+/* Hover readability + restrained deep-red premium accents */
+.panel .hint:hover,
+.panel p:hover,
+.panel small:hover,
+.panel label:hover,
+.panel .preview-note:hover,
+.panel .profile-group:hover,
+.panel .cardthumb small:hover,
+.panel .thumb>span:hover,
+.panel strong:hover,
+.top .tagline:hover{
+  color:#d9a34b!important;
+  text-shadow:0 0 8px #d9a34b24;
+}
+.top{
+  background:linear-gradient(105deg,#111923 0%,#292029 30%,#1b2938 62%,#173b42 100%);
+  border-bottom:1px solid #65434a;
+}
+.studio-brand-photo{
+  border-color:#95636a;
+}
+.studio-brand:hover strong{
+  color:#c9787d;
+  text-shadow:0 0 12px #a94f5838;
+}
 </style></head><body>
-<header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · PVC CARD STUDIO</span></strong></div><span class="tagline" data-en="Original page · Manual crop · A4 print" data-hi="मूल पेज · मैनुअल क्रॉप · A4 प्रिंट">मूल पेज · मैनुअल क्रॉप · A4 प्रिंट</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Studio demo">← डेमो पर वापस</a><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
+<header class="top"><div class="studio-brand"><img class="studio-brand-photo" src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="Tanshu Online logo"><strong><span class="brand-tanshu">TANSHU</span> <span class="brand-online">ONLINE</span><span class="brand-studio"> · INSTANT PVC CARD MAKER</span></strong></div><span class="tagline" data-en="Precision editing · Front &amp; Back · Print-ready sheets" data-hi="सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट">सटीक एडिटिंग · फ्रंट और बैक · प्रिंट के लिए तैयार शीट</span><a class="home-back" href="/id-pvc-studio/demo.html" data-en="← Back to Demo" data-hi="← डेमो पर वापस" aria-label="Back to PVC Card Maker demo">← डेमो पर वापस</a><button id="studioFullscreenToggle" class="fullscreen-toggle" type="button" aria-pressed="false" title="Enter full screen" data-en="⛶ Full Screen" data-hi="⛶ फुल स्क्रीन">⛶ Full Screen</button><div class="lang-switch" role="group" aria-label="भाषा चुनें"><button id="langHi" type="button" class="active" aria-pressed="true">हिंदी</button><button id="langEn" type="button" aria-pressed="false">ENG</button></div></header>
 <nav class="toolbar" aria-label="Main tools">
 <button id="chooseFiles" class="btn primary" data-en="Choose Files" data-hi="फाइल चुनें">फाइल चुनें</button>
 <button id="makeSheets" class="btn" data-en="Arrange A4 Copies" data-hi="A4 कॉपी व्यवस्थित करें">A4 कॉपी व्यवस्थित करें</button>
@@ -172,4 +448,16 @@ button:not(:disabled):active::after,.home-back:active::after{opacity:.9;animatio
 <div id="magicTools" class="magic-tools" aria-hidden="true"><section class="magic-dialog" role="dialog" aria-modal="true" aria-labelledby="magicTitle"><header class="magic-head"><strong id="magicTitle">✨ Magic Tools · Photo Editor</strong><span class="hint">केवल चुनी हुई फोटो एडिट होगी · Original सुरक्षित</span><span class="spacer"></span><button id="minMagicTools" class="btn" type="button" aria-label="Minimize Magic Tools">— छोटा</button><button id="closeMagicTools" class="btn" type="button">✕ बंद करें</button></header><div class="magic-body"><div class="magic-preview"><strong id="magicPhotoLabel">Selected photo preview</strong><div class="field-row"><label>Effect Apply To · इफेक्ट कहाँ लगाएँ <select id="magicApplyTarget"><option value="front">Front</option><option value="back">Back</option><option value="both" selected>Front + Back</option><option value="all">All Photos</option></select></label><label>Preview Side · फोटो देखें <select id="magicPreviewSide"><option value="front">Front</option><option value="back">Back</option></select></label></div><label class="field">Edit Area · बदलाव का क्षेत्र <select id="magicEditArea"><option value="whole" selected>Whole Photo</option><option value="area">Selected Area · drag on photo</option></select></label><canvas id="magicCanvas" width="900" height="600" aria-label="Photo editing preview"></canvas><div class="hint" id="magicHint">Background color हटाने के लिए पहले “Pick Background” दबाएँ, फिर फोटो के background पर क्लिक करें। यह simple, uniform backgrounds के लिए color-key tool है, AI subject detection नहीं।</div><div class="magic-presets"><button class="btn" type="button" data-magic-preset="natural">Natural</button><button class="btn" type="button" data-magic-preset="studio">Studio</button><button class="btn" type="button" data-magic-preset="vivid">Vivid</button><button class="btn" type="button" data-magic-preset="mono">B&amp;W</button></div></div><div class="magic-controls"><div class="field"><label>Background · बैकग्राउंड</label><div class="field-row"><button id="magicChooseBgImage" class="btn" type="button">अपनी फोटो लगाएँ</button> <button id="magicPickBg" class="btn" type="button">Pick Background</button><select id="magicBgMode"><option value="none">Original / No removal</option><option value="transparent">Transparent</option><option value="image">Photo Background</option><option value="#ffffff">White</option><option value="#dcecff">Light Blue</option><option value="#1769aa">Blue</option><option value="#e6e6e6">Grey</option><option value="#f5e6d3">Warm</option><option value="custom">Custom colour</option></select><input id="magicBgImageInput" type="file" accept="image/*" hidden></div><label class="hint">Color tolerance <input id="magicTolerance" type="range" min="10" max="150" value="55"></label><label class="hint">Custom background <input id="magicCustomBg" type="color" value="#ffffff"></label></div><div class="field"><label>Brightness <output id="magicBrightnessVal">100%</output><input id="magicBrightness" type="range" min="40" max="180" value="100"></label></div><div class="field"><label>Contrast <output id="magicContrastVal">100%</output><input id="magicContrast" type="range" min="50" max="180" value="100"></label></div><div class="field"><label>Saturation <output id="magicSaturationVal">100%</output><input id="magicSaturation" type="range" min="0" max="200" value="100"></label></div><div class="field"><label>Clarity <output id="magicClarityVal">0</output><input id="magicClarity" type="range" min="0" max="80" value="0"></label></div><div class="field"><label>Sharpness <output id="magicSharpnessVal">0</output><input id="magicSharpness" type="range" min="0" max="100" value="0"></label></div><div class="field"><label>Photo scale <output id="magicScaleVal">100%</output><input id="magicScale" type="range" min="70" max="150" value="100"></label></div><div class="field"><label>Filter</label><select id="magicFilter"><option value="none">Original</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="soft">Soft</option><option value="vivid">Vivid</option><option value="mono">Black &amp; White</option><option value="sepia">Sepia</option></select></div><div class="hint">Note: Color-key background removal best works on plain, evenly colored backgrounds. AI hair/edge segmentation and advanced text restoration can be added as a separate next phase.</div><button id="openDesignText" class="btn primary" type="button">✍ T Design Text · इसी फोटो पर</button></div></div><footer class="magic-actions"><span class="hint">Apply चुने हुए Front/Back/All पर होगा; Selected Area में पहले preview पर drag करें।</span><div><button id="magicReset" class="btn" type="button">Reset</button> <button id="magicCancel" class="btn" type="button">Cancel</button> <button id="magicApply" class="btn primary" type="button">Apply to Selected Photo</button></div></footer><button class="panel-resize-handle" type="button" aria-label="Resize Magic Tools window" title="कोना खींचकर आकार बदलें"></button></section></div><div id="designTextEditor" class="magic-tools design-inline" aria-hidden="true"><section class="magic-dialog" role="dialog" aria-modal="true" aria-labelledby="designTextTitle"><header class="magic-head"><strong id="designTextTitle">T Design Text · Image Editor</strong><span class="hint">Magic Tools में चुनी हुई फोटो · टेक्स्ट/कवर एडिट करें</span><span class="spacer"></span><button id="minDesignText" class="btn" type="button" aria-label="Minimize T Design Text">— छोटा</button><button id="closeDesignText" class="btn" type="button">✕ बंद करें</button></header><div class="magic-body" style="display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px"><div class="magic-preview"><div class="field-row"><span id="designImageStatus" class="hint">Magic Tools की चुनी हुई फोटो लोड होगी</span><button id="designTextTool" class="btn primary" type="button">T Text Tool</button><button id="designCoverTool" class="btn" type="button">▱ Cover Area</button><button id="designUndo" class="btn" type="button">↶ Undo</button><button id="designRedo" class="btn" type="button">↷ Redo</button></div><canvas id="designTextCanvas" width="1000" height="650" style="display:block;width:100%;height:auto;background:#fff;border:1px solid #cbd5e1;border-radius:10px;touch-action:none"></canvas><div class="hint">Text Tool में टेक्स्ट को कैनवास पर खींचकर रखें। Cover Area से अपने रिज्यूमे/डिज़ाइन के हिस्से को ढककर नया टेक्स्ट जोड़ सकते हैं।</div></div><div class="magic-controls"><label class="field">टेक्स्ट <textarea id="designTextValue" rows="3" placeholder="यहाँ नया टेक्स्ट लिखें"></textarea></label><button id="designAddText" class="btn" type="button">+ Add Text</button><label class="field">Font <select id="designTextFont"><option>Arial</option><option>Verdana</option><option>Georgia</option><option>Tahoma</option><option>Times New Roman</option><option>Calibri</option></select></label><label class="field">Size · px <input id="designTextSize" type="number" min="8" max="180" value="32"></label><label class="field">Text color <input id="designTextColor" type="color" value="#172554"></label><label class="field"><input id="designTextBold" type="checkbox"> Bold</label><div class="field-row"><button id="designBringFront" class="btn" type="button">सबसे ऊपर</button><button id="designSendBack" class="btn" type="button">सबसे नीचे</button></div><div class="hint">टेक्स्ट चुनें और चारों कोनों के हैंडल खींचकर आकार बदलें।</div><label class="field">Cover color <input id="designCoverColor" type="color" value="#ffffff"></label><label class="field">Selected text X <input id="designTextX" type="number" value="100"></label><label class="field">Selected text Y <input id="designTextY" type="number" value="100"></label><div class="hint">यह एडिटर अपनी फाइलों और सामान्य रिज्यूमे/डिज़ाइन के लिए है। पहचान-पत्र, टिकट या बुकिंग/लेन-देन प्रमाण बदलने के लिए इसका उपयोग न करें। आपकी मूल फाइल अलग सुरक्षित रहती है।</div></div></div><footer class="magic-foot"><button id="resetDesignText" class="btn" type="button">Clear Design Edits</button><span class="spacer"></span><button id="cancelDesignText" class="btn" type="button">बंद करें</button><button id="applyDesignToPhoto" class="btn primary" type="button">इसी फोटो पर Apply</button><button id="exportDesignText" class="btn primary" type="button">Export Edited PNG</button></footer><button class="panel-resize-handle" type="button" aria-label="Resize T Design Text window" title="कोना खींचकर आकार बदलें"></button></section></div><div id="printerSetup" class="printer-setup" aria-hidden="true"><section class="printer-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="printerSetupTitle"><header class="printer-setup-head"><strong id="printerSetupTitle">Multi-Printer Auto Print</strong><span class="spacer"></span><button id="closePrinterSetup" class="btn" type="button">✕ बंद करें</button></header><div class="printer-setup-body"><div class="printer-setup-main"><div class="field"><label for="printerDevice">Printer / प्रिंटर चुनें</label><select id="printerDevice"><option value="epson-l8050">Epson L8050</option><option value="epson-easy">Epson Easy Card</option><option value="canon-easy">Canon Easy Card</option><option value="other">Other / सामान्य प्रिंटर</option></select></div><div class="field"><label for="printerProfile">Print Format Selection / पेपर और प्रिंट प्रोफाइल</label><select id="printerProfile"><option value="existing">Use existing settings (unchanged)</option><option value="pvc-a4-insert">PVC A4 Insert Sheet</option><option value="ntr-4x6-170">NTR PVC 4×6 Insert · 170 µm</option><option value="epson-l8050-tray">Epson L8050 · PVC ID Card Tray</option><option value="epson-easy-custom">Epson Easy Card · Custom Insert</option><option value="canon-easy-custom">Canon Easy Card · Custom Insert</option><option value="normal-a4">Normal A4 Paper</option></select></div><div id="printerCustomFields" class="field-row" hidden><div class="field"><label for="printerCustomWidth">Paper / Insert Width (mm)</label><input id="printerCustomWidth" type="number" min="25" max="1000" step=".1" value="210" inputmode="decimal"></div><div class="field"><label for="printerCustomHeight">Paper / Insert Height (mm)</label><input id="printerCustomHeight" type="number" min="25" max="1000" step=".1" value="297" inputmode="decimal"></div><div class="field"><label for="printerCustomMargin">Safe margin (mm)</label><input id="printerCustomMargin" type="number" min="0" max="30" step=".5" value="5"></div></div><div id="printerProfileNote" class="printer-profile-note" role="status" aria-live="polite">मौजूदा सेटिंग्स में कोई बदलाव नहीं होगा।</div></div><aside class="printer-setup-help"><strong>Driver में ये विकल्प स्वयं चुनें</strong><ul id="printerDriverSteps"><li>Print दबाने पर ब्राउज़र के Print dialog में सही प्रिंटर चुनें।</li><li>Paper size, paper source और media type प्रिंटर ड्राइवर में जाँचें।</li></ul><p class="hint">वेब पेज आपके कंप्यूटर के प्रिंटर ड्राइवर में Paper Source / Media Type को अपने-आप सेट नहीं कर सकता। पहले एक टेस्ट प्रिंट करें।</p></aside></div><footer class="printer-setup-actions"><button id="printerSetupCancel" class="btn" type="button">Cancel</button><span class="spacer"></span><button id="printerSetupApply" class="btn" type="button">Apply Setup / OK</button><button id="printerSetupPrint" class="btn primary" type="button">PVC Card Ready · Print</button></footer></section></div>
 <div id="printRoot"></div>
 <script src="/id-pvc-studio/catalog-settings.js"></script><script src="/id-pvc-studio/preset-engine.js"></script><script src="/id-pvc-studio/pvc-engine.js"></script>
+
+<script>
+(()=>{const btn=document.getElementById('studioFullscreenToggle');if(!btn)return;
+const labels={enter:{en:'⛶ Full Screen',hi:'⛶ फुल स्क्रीन'},exit:{en:'⤢ Exit Full Screen',hi:'⤢ स्क्रीन छोटा करें'}};
+const currentLang=()=>document.documentElement.lang==='hi'?'hi':'en';
+const isExpanded=()=>!!document.fullscreenElement||document.body.classList.contains('studio-expanded');
+const render=()=>{const active=isExpanded(),lang=currentLang();btn.textContent=active?labels.exit[lang]:labels.enter[lang];btn.title=active?(lang==='hi'?'सामान्य स्क्रीन पर लौटें':'Exit full screen'):(lang==='hi'?'पूरा स्क्रीन करें':'Enter full screen');btn.setAttribute('aria-pressed',String(active));};
+btn.addEventListener('click',async()=>{if(document.fullscreenElement){try{await document.exitFullscreen();}catch(_){document.body.classList.remove('studio-expanded');}}else if(document.body.classList.contains('studio-expanded')){document.body.classList.remove('studio-expanded');}else if(document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen();}catch(_){document.body.classList.add('studio-expanded');}}else{document.body.classList.add('studio-expanded');}render();});
+document.addEventListener('fullscreenchange',render);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.fullscreenElement)document.body.classList.remove('studio-expanded');render();});
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});render();
+})();
+</script>
 </body></html>

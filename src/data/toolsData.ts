@@ -25,7 +25,7 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
     name: 'Document Scanner & Image Rectifier',
     category: 'converter',
     categoryLabel: 'Image & Utilities',
-    isFeatured: true,
+    isFeatured: false,
     iconName: 'ScanLine',
     description: 'Transform angled phone photos into flat, high-contrast black & white or magic-color document scans suitable for official uploads.',
     detailedInstructions: 'Straighten skewed perspective and eliminate uneven ambient shadows using our client-side adaptive thresholding filters.',
@@ -1373,6 +1373,22 @@ export const CONFIRMED_TOOLS: ToolItem[] = [
       'Passport, stamp, PAN and custom dimensions',
       'Signature crop, background and photo overlay',
       '4×6 and A4 print sheets with manual layout and PDF export'
+    ]
+  },
+  {
+    id: 'photo-background-remover',
+    name: 'Photo Background Remover',
+    category: 'photo',
+    categoryLabel: 'Photo & Signature',
+    isFeatured: false,
+    iconName: 'Eraser',
+    description: 'Remove or replace photo backgrounds, crop and prepare clean image exports.',
+    detailedInstructions: 'Upload a photo, refine the crop and background, choose a transparent or solid-color result, and download the processed image in your browser.',
+    keyFeatures: [
+      'Person background segmentation',
+      'Transparent or solid-color background output',
+      'Crop, straighten and photo positioning controls',
+      'PNG and JPG export presets'
     ]
   },
 ];

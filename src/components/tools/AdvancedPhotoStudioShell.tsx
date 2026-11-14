@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StudioAdvancedPanel } from './StudioAdvancedPanel';
+import { ManualPhotoStudioWorkspace } from './ManualPhotoStudioWorkspace';
 import {
   ArrowLeft, ChevronDown, Undo2, Redo2,
   MousePointer2, Crop, WandSparkles, Image as ImageIcon,
@@ -25,8 +26,8 @@ const SHEET_PRESETS: Record<Exclude<SheetMode, 'single' | 'custom'>, { label: st
   a3: { label: 'A3 Sheet', widthMm: 297, heightMm: 420 }, letter: { label: 'Letter Sheet', widthMm: 215.9, heightMm: 279.4 },
   legal: { label: 'Legal Sheet', widthMm: 215.9, heightMm: 355.6 }
 };
-type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number; locked?: boolean; mergeSources?: SheetSlot[] };
-type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: SheetMode; customSheetWidthMm: number; customSheetHeightMm: number; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
+type SheetSlot = { id: string; photoId: string; x: number; y: number; width: number; height: number; cropZoom?: number; positionX?: number; positionY?: number; locked?: boolean; groupId?: string; mergeSources?: SheetSlot[] };
+type EditorSnapshot = { photos: StudioPhoto[]; selectedId: string; zoom: number; cropZoom: number; positionX: number; positionY: number; preset: StudioPreset; customWidthMm: number; customHeightMm: number; sizeUnit: StudioUnit; sheetMode: SheetMode; customSheetWidthMm: number; customSheetHeightMm: number; sheetCopies: number; sheetMargin: number; sheetGap: number; sheetGapY: number; sheetSlots: SheetSlot[]; borderEnabled: boolean; borderWidthMm: number; borderColor: string; customBorderColor: string };
 const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; widthMm: number; heightMm: number }> = {
   india: { label: 'India Passport / General form', widthMm: 35, heightMm: 45 },
   pan: { label: 'PAN card print', widthMm: 25, heightMm: 35 },
@@ -41,35 +42,76 @@ const STUDIO_PRESETS: Record<Exclude<StudioPreset, 'custom'>, { label: string; w
   'exam-35x45': { label: 'Exam form · common print', widthMm: 35, heightMm: 45 }
 };
 const mmToUnit = (value: number, unit: StudioUnit) => value / (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
-const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number, margin: number, gap: number, others: SheetSlot[]) => {
-  const stepX = source.width + gap, stepY = source.height + gap;
+const getPatternCopyPosition = (source: SheetSlot, pageW: number, pageH: number, margin: number, gapX: number, gapY: number, others: SheetSlot[]) => {
+  const stepX = source.width + gapX, stepY = source.height + gapY;
   const candidates = [
     { x: source.x + stepX, y: source.y },
     { x: source.x, y: source.y + stepY },
     { x: source.x - stepX, y: source.y },
     { x: source.x, y: source.y - stepY },
   ];
-  const valid = (p: {x:number;y:number}) => p.x >= 0 && p.y >= 0 && p.x + source.width <= pageW && p.y + source.height <= pageH && !others.some(o => overlapsWithCutGap({...source,...p}, o, gap));
+  const valid = (p: {x:number;y:number}) => p.x >= margin && p.y >= margin && p.x + source.width <= pageW - margin && p.y + source.height <= pageH - margin && !others.some(o => overlapsWithCutGap({...source,...p}, o, gapX, gapY));
   const found = candidates.find(valid);
-  return found || getSmartSheetPosition(source.x + stepX, source.y, source, others, pageW, pageH, margin, gap);
+  return found || getSmartSheetPosition(source.x + stepX, source.y, source, others, pageW, pageH, margin, gapX, gapY);
 };
 const unitToMm = (value: number, unit: StudioUnit) => value * (unit === 'cm' ? 10 : unit === 'in' ? 25.4 : 1);
 
-const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gap: number) =>
-  a.x < b.x + b.width + gap - 0.01 && a.x + a.width + gap > b.x + 0.01 &&
-  a.y < b.y + b.height + gap - 0.01 && a.y + a.height + gap > b.y + 0.01;
+type BalancedSheetLayout = { capacity: number; columns: number; rows: number; positions: Array<{ x: number; y: number }> };
+const getBalancedSheetLayout = (
+  count: number,
+  photoWidth: number,
+  photoHeight: number,
+  pageWidth: number,
+  pageHeight: number,
+  margin: number,
+  gapX: number,
+  gapY: number
+): BalancedSheetLayout => {
+  // Keep a minimum printer-safe edge even if the editable margin is reduced.
+  const safeMargin = Math.max(3, margin);
+  const usableWidth = pageWidth - safeMargin * 2;
+  const usableHeight = pageHeight - safeMargin * 2;
+  const maxColumns = Math.floor((usableWidth + gapX + 0.001) / (photoWidth + gapX));
+  const maxRows = Math.floor((usableHeight + gapY + 0.001) / (photoHeight + gapY));
+  if (maxColumns < 1 || maxRows < 1 || count <= 0) return { capacity: 0, columns: 0, rows: 0, positions: [] };
 
-const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gap: number) => {
+  const capacity = Math.min(60, maxColumns * maxRows);
+  const placedCount = Math.min(count, capacity);
+  const columns = Math.min(maxColumns, placedCount);
+  const rows = Math.ceil(placedCount / columns);
+  const groupHeight = rows * photoHeight + Math.max(0, rows - 1) * gapY;
+  const firstY = safeMargin + (usableHeight - groupHeight) / 2;
+  const positions: Array<{ x: number; y: number }> = [];
+
+  for (let row = 0; row < rows; row++) {
+    const itemsInRow = Math.min(columns, placedCount - row * columns);
+    const rowWidth = itemsInRow * photoWidth + Math.max(0, itemsInRow - 1) * gapX;
+    const firstX = safeMargin + (usableWidth - rowWidth) / 2;
+    for (let column = 0; column < itemsInRow; column++) {
+      positions.push({
+        x: firstX + column * (photoWidth + gapX),
+        y: firstY + row * (photoHeight + gapY)
+      });
+    }
+  }
+  return { capacity, columns, rows, positions };
+};
+
+const overlapsWithCutGap = (a: SheetSlot, b: SheetSlot, gapX: number, gapY: number) =>
+  a.x < b.x + b.width + gapX - 0.01 && a.x + a.width + gapX > b.x + 0.01 &&
+  a.y < b.y + b.height + gapY - 0.01 && a.y + a.height + gapY > b.y + 0.01;
+
+const getSmartSheetPosition = (x: number, y: number, moving: SheetSlot, others: SheetSlot[], pageW: number, pageH: number, margin: number, gapX: number, gapY: number) => {
   const maxX = Math.max(margin, pageW - margin - moving.width), maxY = Math.max(margin, pageH - margin - moving.height);
   const clamp = (value: number, max: number) => Math.max(margin, Math.min(max, value));
   const target = { ...moving, x: clamp(x, maxX), y: clamp(y, maxY) };
-  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gap));
+  const collides = (candidate: SheetSlot) => others.some(other => overlapsWithCutGap(candidate, other, gapX, gapY));
   const xEdges = [margin, maxX], yEdges = [margin, maxY];
-  others.forEach(other => { xEdges.push(other.x - moving.width - gap, other.x + other.width + gap); yEdges.push(other.y - moving.height - gap, other.y + other.height + gap); });
+  others.forEach(other => { xEdges.push(other.x - moving.width - gapX, other.x + other.width + gapX); yEdges.push(other.y - moving.height - gapY, other.y + other.height + gapY); });
   const candidates: SheetSlot[] = [], seen = new Set<string>();
   const add = (cx: number, cy: number) => { const candidate = { ...moving, x: clamp(cx, maxX), y: clamp(cy, maxY) }; const key = candidate.x.toFixed(2)+':'+candidate.y.toFixed(2); if (!seen.has(key) && !collides(candidate)) { seen.add(key); candidates.push(candidate); } };
   xEdges.forEach(cx => yEdges.forEach(cy => add(cx, cy)));
-  const stepX = moving.width + gap, stepY = moving.height + gap;
+  const stepX = moving.width + gapX, stepY = moving.height + gapY;
   for (let row=0; row*stepY+margin<=maxY+0.01; row++) for (let col=0; col*stepX+margin<=maxX+0.01; col++) add(margin+col*stepX,margin+row*stepY);
   const nearest = candidates.sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
   if (!nearest) return { x: target.x, y: target.y };
@@ -186,6 +228,11 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveState, setSaveState] = useState<'loading'|'saving'|'saved'|'error'>('loading');
   const [activeTool, setActiveTool] = useState<'Move'|'Crop'|'Portrait'|'Retouch'|'Background'|'Layout'>('Move');
+  const [studioMode, setStudioMode] = useState<'auto'|'manual'>(() => {
+    try { return sessionStorage.getItem('tanshu-studio-shell-mode') === 'manual' ? 'manual' : 'auto'; }
+    catch { return 'auto'; }
+  });
+  const [manualSettingsOpen, setManualSettingsOpen] = useState(false);
   const [openToolGroup, setOpenToolGroup] = useState<string | null>(null);
   const [studioSearchQuery, setStudioSearchQuery] = useState('');
   const [studioSearchOpen, setStudioSearchOpen] = useState(false);
@@ -199,19 +246,42 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     ).slice(0, 8);
   }, [studioSearchQuery]);
   const [sheetMode, setSheetMode] = useState<SheetMode>('single');
+  const [sheetOrientation, setSheetOrientation] = useState<'none'|'portrait'|'landscape'>('none');
   const [customSheetWidthMm, setCustomSheetWidthMm] = useState(102);
   const [customSheetHeightMm, setCustomSheetHeightMm] = useState(152);
   const [sheetCopies, setSheetCopies] = useState(8);
   const [sheetMargin, setSheetMargin] = useState(5);
   const [sheetGap, setSheetGap] = useState(2);
+  const [sheetGapY, setSheetGapY] = useState(2);
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
   const [quickPrintLayout, setQuickPrintLayout] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [isVerifiedStudioAdmin, setIsVerifiedStudioAdmin] = useState(false);
+  const [isAdminAuthChecked, setIsAdminAuthChecked] = useState(false);
+  // Ask the existing Cloudflare Pages auth endpoint to verify the HttpOnly admin session.
+  // Never infer admin access from local storage, query parameters, or client-editable flags.
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/auth', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (active) setIsVerifiedStudioAdmin(Boolean(data?.authenticated && data?.user?.role === 'superadmin'));
+      })
+      .catch(() => { if (active) setIsVerifiedStudioAdmin(false); })
+      .finally(() => { if (active) setIsAdminAuthChecked(true); });
+    return () => { active = false; };
+  }, []);
+  // Temporary free preview: make every Studio feature available to all visitors.
+  // Membership pricing and upgrade prompts remain inactive until the planned launch.
+  const isStudioMember = true;
+  const showUpgradePrompt = () => {};
   const [faceDetectionStatus, setFaceDetectionStatus] = useState('');
   const [cropDialogPosition, setCropDialogPosition] = useState({ x: 24, y: 24 });
   const [cropDialogDrag, setCropDialogDrag] = useState<{x:number;y:number;left:number;top:number}|null>(null);
   const [slotDrag, setSlotDrag] = useState<{id:string;px:number;py:number;sx:number;sy:number;group?:{id:string;x:number;y:number}[]}|null>(null);
   const [slotResize, setSlotResize] = useState<{id:string;corner:'nw'|'ne'|'sw'|'se';px:number;py:number;x:number;y:number;width:number;height:number}|null>(null);
+  const lockedSlotMoveStartRef = useRef<{id:string;x:number;y:number}|null>(null);
   const [menuOpen, setMenuOpen] = useState<string|null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string|null>(null);
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
@@ -248,7 +318,34 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const heightMm = preset === 'custom' ? Math.max(1, customHeightMm) : STUDIO_PRESETS[preset].heightMm;
     return { widthMm, heightMm, widthPx: Math.round(widthMm * 300 / 25.4), heightPx: Math.round(heightMm * 300 / 25.4) };
   }, [preset, customWidthMm, customHeightMm]);
-  const sheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
+  const layoutReferenceSlot = sheetSlots.find(slot => slot.id === selectedSlotId && photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature') || sheetSlots.find(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature') || null;
+  const layoutPhotoWidthMm = layoutReferenceSlot?.width || documentSize.widthMm;
+  const layoutPhotoHeightMm = layoutReferenceSlot?.height || documentSize.heightMm;
+  const AUTO_SHEET_MARGIN_MM = 3;
+  const baseSheetDimensions = sheetMode === 'single' ? { widthMm: documentSize.widthMm, heightMm: documentSize.heightMm, label: 'Single Photo' } : sheetMode === 'custom' ? { widthMm: Math.max(10, customSheetWidthMm), heightMm: Math.max(10, customSheetHeightMm), label: 'Custom Sheet' } : SHEET_PRESETS[sheetMode];
+  const autoSheetDimensions = (() => {
+    if (sheetMode === 'single') return baseSheetDimensions;
+    const normal = getBalancedSheetLayout(sheetCopies, layoutPhotoWidthMm, layoutPhotoHeightMm, baseSheetDimensions.widthMm, baseSheetDimensions.heightMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
+    const rotated = getBalancedSheetLayout(sheetCopies, layoutPhotoWidthMm, layoutPhotoHeightMm, baseSheetDimensions.heightMm, baseSheetDimensions.widthMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
+    const normalPlaced = Math.min(sheetCopies, normal.capacity);
+    const rotatedPlaced = Math.min(sheetCopies, rotated.capacity);
+    const useRotated = rotatedPlaced > normalPlaced || (rotatedPlaced === normalPlaced && rotated.columns > normal.columns);
+    if (!useRotated) return { ...baseSheetDimensions, label: baseSheetDimensions.label + (baseSheetDimensions.widthMm >= baseSheetDimensions.heightMm ? ' · Landscape' : ' · Portrait') };
+    return {
+      widthMm: baseSheetDimensions.heightMm,
+      heightMm: baseSheetDimensions.widthMm,
+      label: baseSheetDimensions.label + (baseSheetDimensions.widthMm >= baseSheetDimensions.heightMm ? ' · Portrait' : ' · Landscape')
+    };
+  })();
+  const sheetDimensions = (() => {
+    if (sheetMode === 'single' || sheetOrientation === 'none') return autoSheetDimensions;
+    const wantsLandscape = sheetOrientation === 'landscape';
+    const isLandscape = autoSheetDimensions.widthMm > autoSheetDimensions.heightMm;
+    const dimensions = wantsLandscape === isLandscape
+      ? autoSheetDimensions
+      : { ...autoSheetDimensions, widthMm: autoSheetDimensions.heightMm, heightMm: autoSheetDimensions.widthMm };
+    return { ...dimensions, label: baseSheetDimensions.label + (wantsLandscape ? ' · Landscape' : ' · Portrait') };
+  })();
   const sheetWidthPx = Math.round(sheetDimensions.widthMm * 300 / 25.4);
   const sheetHeightPx = Math.round(sheetDimensions.heightMm * 300 / 25.4);
   const previewAspectRatio = sheetDimensions.widthMm / sheetDimensions.heightMm;
@@ -256,19 +353,28 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     ? Math.max(120, Math.min(552, previewViewport.height - 120, (previewViewport.width - 48) / previewAspectRatio))
     : Math.min(552, 390 / previewAspectRatio);
   const previewPageWidth = previewPageHeight * previewAspectRatio;
-  const marginPx = sheetMode === 'single' ? 0 : sheetMargin * 300 / 25.4;
-  const gapPx = sheetMode === 'single' ? 0 : sheetGap * 300 / 25.4;
-  const sheetCols = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetWidthPx - marginPx * 2 + gapPx) / (documentSize.widthPx + gapPx)));
-  const sheetRows = sheetMode === 'single' ? 1 : Math.max(1, Math.floor((sheetHeightPx - marginPx * 2 + gapPx) / (documentSize.heightPx + gapPx)));
-  const sheetCapacity = sheetCols * sheetRows;
-  const sheetAnchor = sheetSlots[0];
-  const anchorX = sheetAnchor?.x ?? sheetMargin;
-  const anchorY = sheetAnchor?.y ?? sheetMargin;
-  const anchoredCols = Math.max(1, Math.floor((sheetDimensions.widthMm - anchorX + sheetGap) / (documentSize.widthMm + sheetGap)));
-  const anchoredRows = Math.max(1, Math.floor((sheetDimensions.heightMm - anchorY + sheetGap) / (documentSize.heightMm + sheetGap)));
-  const anchoredCapacity = Math.min(sheetCapacity, anchoredCols * anchoredRows);
-  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, anchoredCapacity);
-  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > anchoredCapacity) setSheetCopies(anchoredCapacity); }, [sheetMode, anchoredCapacity, sheetCopies]);
+  const marginPx = sheetMode === 'single' ? 0 : AUTO_SHEET_MARGIN_MM * 300 / 25.4;
+  const gapPxX = sheetMode === 'single' ? 0 : sheetGap * 300 / 25.4;
+  const gapPxY = sheetMode === 'single' ? 0 : sheetGapY * 300 / 25.4;
+  const balancedCapacity = getBalancedSheetLayout(
+    60, layoutPhotoWidthMm, layoutPhotoHeightMm,
+    sheetDimensions.widthMm, sheetDimensions.heightMm,
+    sheetMode === 'single' ? 0 : AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY
+  ).capacity;
+  const sheetCapacity = sheetMode === 'single' ? 1 : balancedCapacity;
+  const anchoredCapacity = Math.max(1, sheetCapacity);
+  const visibleCopies = sheetMode === 'single' ? 1 : Math.min(sheetCopies, sheetCapacity);
+  const reflowSheetSlots = (gapX:number,gapY:number) => setSheetSlots(current=>{
+    const movable=current.filter(slot=>photos.find(photo=>photo.id===slot.photoId)?.kind!=='signature');
+    if(!movable.length)return current;
+    const layout=getBalancedSheetLayout(movable.length,layoutPhotoWidthMm,layoutPhotoHeightMm,sheetDimensions.widthMm,sheetDimensions.heightMm,AUTO_SHEET_MARGIN_MM,gapX,gapY);
+    const positions=new Map(movable.map((slot,index)=>[slot.id,layout.positions[index]]));
+    return current.map(slot=>{
+      const position=positions.get(slot.id);
+      return position?{...slot,...position,width:layoutPhotoWidthMm,height:layoutPhotoHeightMm}:slot;
+    });
+  });
+  useEffect(() => { if (sheetMode !== 'single' && sheetCopies > sheetCapacity) setSheetCopies(sheetCapacity); }, [sheetMode, sheetCapacity, sheetCopies]);
   useEffect(() => {
     const element = previewStageRef.current;
     if (!element) return;
@@ -280,17 +386,48 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const element = previewStageRef.current;
-    if (!element) return;
+    if (studioMode !== 'auto') return;
     const handlePreviewWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return;
-      event.preventDefault();
+      const stage = previewStageRef.current;
+      const sheet = stage?.querySelector<HTMLElement>('[data-auto-photo-maker-paper]');
+      if (!sheet || event.deltaY === 0) return;
+      const rect = sheet.getBoundingClientRect();
+      const pointerIsOverPaper =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!pointerIsOverPaper) return;
+      const hoveredSlot = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-auto-photo-slot]');
+      const wheelTargetSlot = sheetSlots.find(slot => slot.id === selectedSlotId);
+      const wheelTargetPhoto = wheelTargetSlot && photos.find(photo => photo.id === wheelTargetSlot.photoId);
+      if (hoveredSlot && hoveredSlot.dataset.autoPhotoSlot === selectedSlotId && wheelTargetSlot && !wheelTargetSlot.locked && wheelTargetPhoto?.kind !== 'signature' && sheetMode !== 'single') {
+        if (event.cancelable) event.preventDefault();
+        if (!isStudioMember) { showUpgradePrompt(); return; }
+        const direction = event.deltaY < 0 ? 1 : -1;
+        setSheetSlots(current => current.map(slot => {
+          if (slot.id !== selectedSlotId) return slot;
+          const others = current.filter(item => item.id !== slot.id);
+          const scale = direction > 0 ? 1.025 : 0.975;
+          const maxScale = Math.min((sheetDimensions.widthMm - AUTO_SHEET_MARGIN_MM * 2) / slot.width, (sheetDimensions.heightMm - AUTO_SHEET_MARGIN_MM * 2) / slot.height);
+          const nextScale = Math.max(Math.max(15 / slot.width, 15 / slot.height), Math.min(maxScale, scale));
+          const width = slot.width * nextScale, height = slot.height * nextScale;
+          const centerX = slot.x + slot.width / 2, centerY = slot.y + slot.height / 2;
+          const x = Math.max(AUTO_SHEET_MARGIN_MM, Math.min(sheetDimensions.widthMm - AUTO_SHEET_MARGIN_MM - width, centerX - width / 2));
+          const y = Math.max(AUTO_SHEET_MARGIN_MM, Math.min(sheetDimensions.heightMm - AUTO_SHEET_MARGIN_MM - height, centerY - height / 2));
+          const candidate = { ...slot, x, y, width, height };
+          return others.some(other => overlapsWithCutGap(candidate, other, sheetGap, sheetGapY)) ? slot : candidate;
+        }));
+        return;
+      }
+      if (event.cancelable) event.preventDefault();
       const zoomStep = (current: number) => current < 200 ? 10 : current < 500 ? 25 : 50;
       setZoom(current => Math.max(10, Math.min(1600, current + (event.deltaY < 0 ? zoomStep(current) : -zoomStep(current)))));
     };
-    element.addEventListener('wheel', handlePreviewWheel, { passive: false });
-    return () => element.removeEventListener('wheel', handlePreviewWheel);
-  }, []);
+    // Capture before the scrollable preview stage handles the wheel: selected photos resize; the remaining paper area zooms.
+    document.addEventListener('wheel', handlePreviewWheel, { passive: false, capture: true });
+    return () => document.removeEventListener('wheel', handlePreviewWheel, true);
+  }, [studioMode, selectedSlotId, sheetMode, sheetSlots, photos, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetGap, sheetGapY, isStudioMember]);
 
   const uploadRef = useRef<HTMLInputElement>(null);
   const restoreFullscreenAfterUploadRef = useRef(false);
@@ -355,9 +492,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     finally { detector?.close?.(); }
   };
 
-  const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
-  const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setCustomSheetWidthMm(v.customSheetWidthMm ?? 102);setCustomSheetHeightMm(v.customSheetHeightMm ?? 152);setSheetCopies(v.sheetCopies);setSheetMargin(v.sheetMargin);setSheetGap(v.sheetGap);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
-  const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>p.id),zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,customSheetWidthMm:v.customSheetWidthMm,customSheetHeightMm:v.customSheetHeightMm,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
+  const captureSnapshot = (): EditorSnapshot => ({ photos, selectedId, zoom, cropZoom, positionX, positionY, preset, customWidthMm, customHeightMm, sizeUnit, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetGapY, sheetSlots, borderEnabled, borderWidthMm, borderColor, customBorderColor });
+  const applySnapshot = (v: EditorSnapshot) => { setPhotos(v.photos);setSelectedId(v.selectedId);setZoom(v.zoom);setCropZoom(v.cropZoom);setPositionX(v.positionX);setPositionY(v.positionY);setPreset(v.preset);setCustomWidthMm(v.customWidthMm);setCustomHeightMm(v.customHeightMm);setSizeUnit(v.sizeUnit);setSheetMode(v.sheetMode);setCustomSheetWidthMm(v.customSheetWidthMm ?? 102);setCustomSheetHeightMm(v.customSheetHeightMm ?? 152);setSheetCopies(v.sheetCopies);setSheetMargin(Math.max(3, v.sheetMargin));setSheetGap(v.sheetGap);setSheetGapY(v.sheetGapY ?? v.sheetGap ?? 2);setSheetSlots(v.sheetSlots);setBorderEnabled(v.borderEnabled);setBorderWidthMm(v.borderWidthMm);setBorderColor(v.borderColor);setCustomBorderColor(v.customBorderColor); };
+  const snapshotKey = (v: EditorSnapshot) => JSON.stringify({photos:v.photos.map(p=>p.id),zoom:v.zoom,cropZoom:v.cropZoom,positionX:v.positionX,positionY:v.positionY,preset:v.preset,customWidthMm:v.customWidthMm,customHeightMm:v.customHeightMm,sizeUnit:v.sizeUnit,sheetMode:v.sheetMode,customSheetWidthMm:v.customSheetWidthMm,customSheetHeightMm:v.customSheetHeightMm,sheetCopies:v.sheetCopies,sheetMargin:v.sheetMargin,sheetGap:v.sheetGap,sheetGapY:v.sheetGapY,sheetSlots:v.sheetSlots,borderEnabled:v.borderEnabled,borderWidthMm:v.borderWidthMm,borderColor:v.borderColor,customBorderColor:v.customBorderColor});
   const undo = () => { const v=undoStackRef.current.pop();if(!v)return;redoStackRef.current.push(captureSnapshot());applyingHistoryRef.current=true;applySnapshot(v);setCanUndo(undoStackRef.current.length>0);setCanRedo(true); };
   const redo = () => { const v=redoStackRef.current.pop();if(!v)return;undoStackRef.current.push(captureSnapshot());applyingHistoryRef.current=true;applySnapshot(v);setCanUndo(true);setCanRedo(redoStackRef.current.length>0); };
 
@@ -373,6 +510,12 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         });
         db.close();
         if (!active) return;
+        let sessionMode: string | null = null;
+        try { sessionMode = sessionStorage.getItem('tanshu-studio-shell-mode'); } catch {}
+        if (sessionMode !== 'manual' && sessionMode !== 'auto') {
+          if (saved?.String(studioMode) === 'manual') setStudioMode('manual');
+          else if (saved?.studioMode === 'auto') setStudioMode('auto');
+        }
         if (saved?.photos?.length) {
           const restored = await Promise.all(saved.photos.map(async (item: any) => {
             const file = await dataUrlToFile(item.data, item.name);
@@ -392,8 +535,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           setCustomSheetWidthMm(saved.customSheetWidthMm || 102);
           setCustomSheetHeightMm(saved.customSheetHeightMm || 152);
           setSheetCopies(saved.sheetCopies || 8);
-          setSheetMargin(saved.sheetMargin ?? 5);
+          setSheetMargin(Math.max(3, saved.sheetMargin ?? 5));
           setSheetGap(saved.sheetGap ?? 2);
+          setSheetGapY(saved.sheetGapY ?? saved.sheetGap ?? 2);
           setSheetSlots(Array.isArray(saved.sheetSlots) ? saved.sheetSlots : []);
           setSignaturePlacement(saved.signaturePlacement || null);
           setBorderEnabled(saved.borderEnabled ?? false);
@@ -418,7 +562,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
         const db = await openStudioDb();
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(STUDIO_STORE, 'readwrite');
-          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
+          tx.objectStore(STUDIO_STORE).put({ photos: storedPhotos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetGapY, sheetSlots, signaturePlacement, studioMode, borderEnabled, borderWidthMm, borderColor, customBorderColor, savedAt: Date.now() }, STUDIO_KEY);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
           tx.onabort = () => reject(tx.error);
@@ -428,9 +572,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       } catch { setSaveState('error'); }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetSlots, signaturePlacement, borderEnabled, borderWidthMm, borderColor]);
+  }, [restoreReady, photos, selectedId, preset, customWidthMm, customHeightMm, sizeUnit, cropZoom, positionX, positionY, sheetMode, customSheetWidthMm, customSheetHeightMm, sheetCopies, sheetMargin, sheetGap, sheetGapY, sheetSlots, signaturePlacement, studioMode, borderEnabled, borderWidthMm, borderColor]);
 
-  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
+  useEffect(() => { if(!restoreReady)return;const current=captureSnapshot();if(!lastSnapshotRef.current){lastSnapshotRef.current=current;return;}if(applyingHistoryRef.current){applyingHistoryRef.current=false;lastSnapshotRef.current=current;return;}if(snapshotKey(current)!==snapshotKey(lastSnapshotRef.current)){undoStackRef.current.push(lastSnapshotRef.current);if(undoStackRef.current.length>60)undoStackRef.current.shift();redoStackRef.current=[];setCanUndo(true);setCanRedo(false);lastSnapshotRef.current=current;} }, [restoreReady,photos,selectedId,zoom,cropZoom,positionX,positionY,preset,customWidthMm,customHeightMm,sizeUnit,sheetMode,sheetCopies,sheetMargin,sheetGap,sheetGapY,sheetSlots,borderEnabled,borderWidthMm,borderColor,customBorderColor]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => { if(!menuOpen)return;const close=(event:PointerEvent)=>{if(event.target instanceof Node&&!menuAreaRef.current?.contains(event.target))setMenuOpen(null);};document.addEventListener('pointerdown',close,true);return()=>document.removeEventListener('pointerdown',close,true); }, [menuOpen]);
   useEffect(() => {
@@ -456,15 +600,31 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (sheetMode === 'single' || !printablePhotos.length) { setSheetSlots([]); return; }
     setSheetSlots(current => {
       const count = Math.min(visibleCopies, sheetCapacity, 60);
-      // Signature artwork is an overlay layer, never a printable photo slot.
-      // Also discard legacy slots that may have been created from a signature layer.
-      const result = current.filter(slot => printablePhotos.some(photo => photo.id === slot.photoId)).slice(0, count).map(slot => ({...slot, photoId: printablePhotos.some(p => p.id === slot.photoId) ? slot.photoId : printablePhotos[0].id}));
-      const pageW = sheetDimensions.widthMm;
-      
-      while (result.length < count) { const i=result.length; const anchor=result[0] || {x:sheetMargin,y:sheetMargin}; const anchorCols=Math.max(1,Math.floor((pageW-anchor.x+sheetGap)/(documentSize.widthMm+sheetGap))); const col=i%anchorCols; const row=Math.floor(i/anchorCols); result.push({id:'slot-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2),photoId:printablePhotos[i%printablePhotos.length].id,x:anchor.x+col*(documentSize.widthMm+sheetGap),y:anchor.y+row*(documentSize.heightMm+sheetGap),width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50}); }
-      return result;
+      // The first photo's exact output dimensions are the master size for every slot.
+      // Signature artwork remains an overlay and is never added to the print-copy grid.
+      const result = current
+        .filter(slot => printablePhotos.some(photo => photo.id === slot.photoId))
+        .slice(0, count)
+        .map(slot => ({ ...slot, photoId: printablePhotos.some(photo => photo.id === slot.photoId) ? slot.photoId : printablePhotos[0].id }));
+      while (result.length < count) {
+        const index = result.length;
+        result.push({
+          id: 'slot-' + Date.now() + '-' + index + '-' + Math.random().toString(36).slice(2),
+          photoId: printablePhotos[index % printablePhotos.length].id,
+          x: 0, y: 0,
+          width: layoutPhotoWidthMm, height: layoutPhotoHeightMm,
+          cropZoom: 100, positionX: 50, positionY: 50
+        });
+      }
+      const layout = getBalancedSheetLayout(count, layoutPhotoWidthMm, layoutPhotoHeightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
+      return result.map((slot, index) => ({
+        ...slot,
+        ...(layout.positions[index] || {}),
+        width: layoutPhotoWidthMm,
+        height: layoutPhotoHeightMm
+      }));
     });
-  }, [sheetMode, visibleCopies, sheetCapacity, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetMargin, sheetGap, quickPrintLayout]);
+  }, [sheetMode, visibleCopies, printablePhotos, documentSize.widthMm, documentSize.heightMm, sheetDimensions.widthMm, sheetDimensions.heightMm, sheetGap, sheetGapY, quickPrintLayout]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   const addPhotos = (files: FileList | null) => {
@@ -491,19 +651,57 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const autoArrangeSheet = () => {
     if (!sheetSlots.length) return;
-    const topY = Math.min(...sheetSlots.map(slot => slot.y));
-    const topRow = sheetSlots.filter(slot => Math.abs(slot.y - topY) <= Math.max(1, documentSize.heightMm * 0.35)).sort((a,b) => a.x - b.x);
-    const rowYs = [...new Set(sheetSlots.map(slot => Math.round(slot.y * 10) / 10))].sort((a,b) => a-b);
-    const measuredSteps = rowYs.slice(1).map((value,index) => value - rowYs[index]).filter(value => value >= documentSize.heightMm);
-    const rowStep = measuredSteps.length ? measuredSteps[0] : documentSize.heightMm + sheetGap;
-    const anchors = topRow.length ? topRow : [sheetSlots[0]];
     const pageW = sheetDimensions.widthMm;
     const pageH = sheetDimensions.heightMm;
-    setSheetSlots(current => current.map((slot,index) => {
-      const anchor = anchors[index % anchors.length];
-      const row = Math.floor(index / anchors.length);
-      return { ...slot, x: Math.max(sheetMargin, Math.min(pageW - sheetMargin - slot.width, anchor.x)), y: Math.max(sheetMargin, Math.min(pageH - sheetMargin - slot.height, topY + row * rowStep)) };
+    const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
+    const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
+    const margin = AUTO_SHEET_MARGIN_MM;
+    let x = margin, y = margin, rowHeight = 0;
+    const positions = new Map<string,{x:number;y:number}>();
+    photoSlots.forEach(slot => {
+      if (x > margin && x + slot.width > pageW - margin) {
+        x = margin;
+        y += rowHeight + sheetGapY;
+        rowHeight = 0;
+      }
+      positions.set(slot.id, {x:Math.max(margin,Math.min(pageW-margin-slot.width,x)),y:Math.max(margin,Math.min(pageH-margin-slot.height,y))});
+      x += slot.width + sheetGap;
+      rowHeight = Math.max(rowHeight,slot.height);
+    });
+    setSheetSlots(current => current.map(slot => signatureSlots.has(slot.id) ? slot : ({...slot,...positions.get(slot.id)})));
+  };
+
+  const centerBalanceSheet = () => {
+    if (!sheetSlots.length || sheetMode === 'single') return;
+    const photoSlots = sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind !== 'signature');
+    const signatureSlots = new Set(sheetSlots.filter(slot => photos.find(photo => photo.id === slot.photoId)?.kind === 'signature').map(slot => slot.id));
+    const anchor = photoSlots.find(slot => slot.id === selectedSlotId) || photoSlots[0];
+    const referenceWidth = anchor?.width || layoutPhotoWidthMm;
+    const referenceHeight = anchor?.height || layoutPhotoHeightMm;
+    const layout = getBalancedSheetLayout(photoSlots.length, referenceWidth, referenceHeight, sheetDimensions.widthMm, sheetDimensions.heightMm, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY);
+    const positions = new Map(photoSlots.map((slot, index) => [slot.id, layout.positions[index]]));
+    setSheetSlots(current => current.map(slot => {
+      if (signatureSlots.has(slot.id)) return slot;
+      const position = positions.get(slot.id);
+      return position ? { ...slot, ...position, width: referenceWidth, height: referenceHeight } : slot;
     }));
+  };
+
+  const groupSelectedSheetPhotos = () => {
+    const chosen = sheetSlots.filter(slot => selectedSlotIds.includes(slot.id));
+    if (chosen.length < 2) return;
+    const groupId = 'sheet-group-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    const ids = new Set(chosen.map(slot => slot.id));
+    setSheetSlots(current => current.map(slot => ids.has(slot.id) ? { ...slot, groupId, locked: false } : slot));
+    setSelectedSlotIds(chosen.map(slot => slot.id));
+    setSelectedSlotId(chosen[0].id);
+  };
+
+  const ungroupSelectedSheetPhotos = () => {
+    const selected = sheetSlots.filter(slot => selectedSlotIds.includes(slot.id) || slot.id === selectedSlotId);
+    const groupIds = new Set(selected.map(slot => slot.groupId).filter(Boolean));
+    if (!groupIds.size) return;
+    setSheetSlots(current => current.map(slot => groupIds.has(slot.groupId) ? (({ groupId, ...rest }) => rest)(slot) : slot));
   };
 
   const mergeSheetPhotos = async (mergeAll = false) => {
@@ -555,8 +753,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const pageW=sheetDimensions.widthMm, pageH=sheetDimensions.heightMm;
     const additions:SheetSlot[]=[];
     for (const item of row.slice(0,room)) {
-      const position=getSmartSheetPosition(item.x,item.y+item.height+sheetGap,item,[...sheetSlots,...additions],pageW,pageH,sheetMargin,sheetGap);
-      additions.push({...item,id:'slot-row-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2),...position,locked:false});
+      const position=getSmartSheetPosition(item.x,item.y+item.height+sheetGapY,item,[...sheetSlots,...additions],pageW,pageH,AUTO_SHEET_MARGIN_MM,sheetGap,sheetGapY);
+      additions.push({...item,groupId:undefined,id:'slot-row-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2),...position,locked:false});
     }
     if (!additions.length) return;
     setSheetSlots(current=>[...current,...additions]); setSheetCopies(current=>Math.min(60,sheetCapacity,current+additions.length));
@@ -579,8 +777,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (!source || sheetSlots.length >= anchoredCapacity || sheetSlots.length >= 60) return;
     const pageW = sheetDimensions.widthMm;
     const pageH = sheetDimensions.heightMm;
-    const position = getPatternCopyPosition(source, pageW, pageH, sheetMargin, sheetGap, sheetSlots.filter(slot => slot.id !== source.id));
-    const copy = { ...source, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
+    const position = getPatternCopyPosition(source, pageW, pageH, AUTO_SHEET_MARGIN_MM, sheetGap, sheetGapY, sheetSlots.filter(slot => slot.id !== source.id));
+    const copy = { ...source, groupId: undefined, id: 'slot-copy-' + Date.now() + '-' + Math.random().toString(36).slice(2), ...position };
     setSheetSlots(current => [...current, copy]);
     setSheetCopies(current => Math.min(60, sheetCapacity, current + 1));
     setSelectedSlotId(copy.id); setSelectedSlotIds([copy.id]);
@@ -588,6 +786,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
 
   const handleSheetKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+    if (!isStudioMember) { event.preventDefault(); showUpgradePrompt(); return; }
     const ids = selectedSlotIds.length ? selectedSlotIds : selectedSlotId ? [selectedSlotId] : [];
     if (!ids.length) return;
     event.preventDefault();
@@ -598,8 +797,8 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     const pageH = sheetDimensions.heightMm;
     setSheetSlots(current => current.map(slot => ids.includes(slot.id) ? {
       ...slot,
-      x: Math.max(sheetMargin, Math.min(pageW - sheetMargin - slot.width, slot.x + dx)),
-      y: Math.max(sheetMargin, Math.min(pageH - sheetMargin - slot.height, slot.y + dy))
+      x: Math.max(AUTO_SHEET_MARGIN_MM, Math.min(pageW - AUTO_SHEET_MARGIN_MM - slot.width, slot.x + dx)),
+      y: Math.max(AUTO_SHEET_MARGIN_MM, Math.min(pageH - AUTO_SHEET_MARGIN_MM - slot.height, slot.y + dy))
     } : slot));
   };
 
@@ -680,6 +879,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportPrintSheet = async (format: 'jpg'|'png'|'pdf') => {
+    if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
@@ -707,6 +907,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const printActualSize = async () => {
+    if (!isStudioMember) { showUpgradePrompt(); return; }
     if(!selected)return;
     const printWindow=window.open('','_blank','width=900,height=700');
     if(!printWindow){window.alert('Please allow pop-ups to print at actual size.');return;}
@@ -740,6 +941,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
+    if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const image = new Image();
     image.src = selected.url;
@@ -925,53 +1127,82 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </div>
         </header>
 
-        <nav ref={menuAreaRef} className="flex h-[48px] shrink-0 items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3">
-          <div className="relative flex items-center gap-1 text-[12px]">
+        <nav ref={menuAreaRef} className="flex min-h-[48px] h-auto shrink-0 flex-wrap items-center justify-between gap-2 border-b studio-line bg-[#1B1F23] px-3 py-1">
+          <div className="relative flex shrink-0 flex-wrap items-center gap-1 text-[12px]">
+            {String(studioMode) !== 'manual' && <>
             {['File','Edit','Image','Canvas','Arrange','Merge','Select All','View','Help'].map(item=><div key={item} className="relative">
               {item==='Select All' ? <label className={'flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 studio-muted hover:text-white '+(sheetMode==='single'||!sheetSlots.length?'cursor-not-allowed opacity-40':'')}><input type="checkbox" checked={selectAllMode} disabled={sheetMode==='single'||!sheetSlots.length} onChange={event=>{const enabled=event.target.checked;setSelectAllMode(enabled);if(enabled){setSelectedSlotIds(sheetSlots.map(slot=>slot.id));setSelectedSlotId(sheetSlots[0]?.id??null);if(sheetSlots[0])setSelectedId(photos.find(photo=>photo.id===sheetSlots[0].photoId)?.id||selectedId);}else setSelectedSlotIds([]);}} className="h-3 w-3 accent-[#D0D7DE]"/><span>Select All</span></label> : <button type="button" onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2 py-2 '+(menuOpen===item?'bg-[#30373E] text-white':'studio-muted hover:text-white')}>{item}</button>}
               {menuOpen===item && item!=='Select All' && <div className="absolute left-0 top-10 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
-                {(item==='File'?['Import File']:item==='Edit'?['Undo','Redo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 Sheet','A4 Sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo','Unmerge']:item==='Merge'?['Merge Selected','Merge All']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" disabled={(action==='Merge Selected'&&selectedSlotIds.length<2)||(action==='Merge All'&&sheetSlots.length<2)||(action==='Unmerge'&&!selectedSheetSlot?.mergeSources?.length)} onClick={()=>{
+                {(item==='File'?['Import File']:item==='Edit'?['Undo','Redo','Reset crop']:item==='Image'?['Open manual crop studio','Center crop']:item==='Canvas'?['Single Photo','4 × 6 Sheet','A4 Sheet','Custom photo size']:item==='Arrange'?['Auto arrange photos','Center selected photo','Unmerge']:item==='Merge'?['Group Selected','Ungroup Selected','Merge Selected','Merge All']:item==='View'?['Zoom in','Zoom out','Reset zoom']:['How to move photos','How to delete a photo','How to crop manually']).map(action=><button key={action} type="button" disabled={(action==='Merge Selected'&&selectedSlotIds.length<2)||(action==='Group Selected'&&selectedSlotIds.length<2)||(action==='Ungroup Selected'&&!sheetSlots.some(slot=>(selectedSlotIds.includes(slot.id)||slot.id===selectedSlotId)&&slot.groupId))||(action==='Merge All'&&sheetSlots.length<2)||(action==='Unmerge'&&!selectedSheetSlot?.mergeSources?.length)} onClick={()=>{
                   if(action==='Undo')undo();
                   else if(action==='Redo')redo();
                   else if(action==='Import File')openUploadPicker();
                   else if(action==='Export JPG')void(sheetMode==='single'?exportSelectedPhoto('jpg'):exportPrintSheet('jpg'));
                   else if(action==='Export PNG')void(sheetMode==='single'?exportSelectedPhoto('png'):exportPrintSheet('png'));
                   else if(action==='Export PDF')void(sheetMode==='single'?exportSelectedPhoto('pdf'):exportPrintSheet('pdf'));
-                  else if(action==='Reset crop'){updateActiveCrop({cropZoom:100,positionX:50,positionY:50});}
-                  else if(action==='Open manual crop studio'){setActiveTool('Crop');setCropDialogOpen(true);}
-                  else if(action==='Center crop'){updateActiveCrop({positionX:50,positionY:50});}
+                  else if(action==='Reset crop'){if(!isStudioMember)showUpgradePrompt();else updateActiveCrop({cropZoom:100,positionX:50,positionY:50});}
+                  else if(action==='Open manual crop studio'){if(!isStudioMember)showUpgradePrompt();else{setActiveTool('Crop');setCropDialogOpen(true);}}
+                  else if(action==='Center crop'){if(!isStudioMember)showUpgradePrompt();else updateActiveCrop({positionX:50,positionY:50});}
                   else if(action==='Single Photo')setSheetMode('single');
                   else if(action==='4 × 6 Sheet')setSheetMode('4x6');
                   else if(action==='A4 Sheet')setSheetMode('a4');
                   else if(action==='Custom photo size')setPreset('custom');
-                  else if(action==='Auto arrange photos')autoArrangeSheet();
+                  else if(action==='Auto arrange photos'){if(!isStudioMember)showUpgradePrompt();else autoArrangeSheet();}
+                  else if(action==='Group Selected')groupSelectedSheetPhotos();
+                  else if(action==='Ungroup Selected')ungroupSelectedSheetPhotos();
                   else if(action==='Merge Selected')void mergeSheetPhotos(false);
                   else if(action==='Merge All')void mergeSheetPhotos(true);
                   else if(action==='Unmerge')unmergeSelectedSlot();
-                  else if(action==='Center selected photo')setSheetSlots(current=>current.map(slot=>slot.photoId===selected?.id?{...slot,x:((sheetDimensions.widthMm)-slot.width)/2,y:((sheetDimensions.heightMm)-slot.height)/2}:slot));
+                  else if(action==='Center selected photo'){if(!isStudioMember)showUpgradePrompt();else setSheetSlots(current=>current.map(slot=>slot.photoId===selected?.id?{...slot,x:((sheetDimensions.widthMm)-slot.width)/2,y:((sheetDimensions.heightMm)-slot.height)/2}:slot));}
                   else if(action==='Zoom in')setZoom(value=>Math.min(1600,value+(value>=500?50:25)));
                   else if(action==='Zoom out')setZoom(value=>Math.max(10,value-(value>500?50:25)));
                   else if(action==='Reset zoom')setZoom(100);
                   else if(action==='How to move photos')window.alert('On a 4×6 or A4 sheet, press and hold any photo, then drag it to the required position.');
                   else if(action==='How to delete a photo')window.alert('Select a photo on the sheet, then click its red trash icon to remove only that copy.');
-                  else if(action==='How to crop manually'){setActiveTool('Crop');setCropDialogOpen(true);}
+                  else if(action==='How to crop manually'){if(!isStudioMember)showUpgradePrompt();else{setActiveTool('Crop');setCropDialogOpen(true);}}
                   setMenuOpen(null);
                 }} className="block w-full rounded px-3 py-2 text-left text-[11px] text-[#C9CFD5] hover:bg-[#30373E]">{action}</button>)}
-                {item==='Edit' && <div className="mt-2 space-y-2 border-t border-[#3A4148] p-2"><div className="text-[9px] font-semibold tracking-[.12em] text-[#9AA4AE]">QUICK SETTINGS</div><label className="block text-[9px] text-[#AAB2BA]">Paper sheet<select aria-label="Edit menu paper sheet" value={sheetMode} onChange={event=>{setSheetMode(event.target.value as SheetMode);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option><option value="custom">Custom Paper Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Photo size<select aria-label="Edit menu photo size" value={preset} onChange={event=>{setPreset(event.target.value as StudioPreset);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="india">Passport / General · 35 × 45 mm</option><option value="pan">PAN · 25 × 35 mm</option><option value="voter-35x45">Voter ID · 35 × 45 mm</option><option value="dl-35x45">Driving Licence · 35 × 45 mm</option><option value="exam-35x45">Exam form · 35 × 45 mm</option><option value="stamp">Stamp · 25 × 30 mm</option><option value="square-51">Visa · 2 × 2 inch</option><option value="oci-51">OCI · 51 × 51 mm</option><option value="passport-35x35">Consular square · 35 × 35 mm</option><option value="pcc-35x35">PCC / Birth · 35 × 35 mm</option><option value="frro-35x35">FRRO · 35 × 35 mm</option><option value="custom">Custom Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Number of photos<select aria-label="Edit menu number of photos" value={sheetCopies} onChange={event=>{setSheetCopies(Math.min(anchoredCapacity,Number(event.target.value)));setQuickPrintLayout(false);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]">{Array.from({length:60},(_,index)=>index+1).map(count=><option key={count} value={count} disabled={count>1&&(sheetMode==='single'||count>anchoredCapacity)}>{count} {count===1?'Photo':'Photos'}</option>)}</select></label><p className="text-[8px] leading-4 text-[#87919B]">Custom dimensions appear beside the matching controls in the top toolbar.</p></div>}
+                {item==='Edit' && String(studioMode) !== 'manual' && <div className="mt-2 space-y-2 border-t border-[#3A4148] p-2"><div className="text-[9px] font-semibold tracking-[.12em] text-[#9AA4AE]">QUICK SETTINGS</div><label className="block text-[9px] text-[#AAB2BA]">Paper sheet<select aria-label="Edit menu paper sheet" value={sheetMode} onChange={event=>{setSheetMode(event.target.value as SheetMode);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="single">Single Photo</option><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option><option value="custom">Custom Paper Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Photo size<select aria-label="Edit menu photo size" value={preset} onChange={event=>{if(event.target.value==='india'&&!isStudioMember){showUpgradePrompt();return;}setPreset(event.target.value as StudioPreset);setSheetSlots([]);setSelectedSlotId(null);setSelectedSlotIds([]);setQuickPrintLayout(true);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]"><option value="india">Passport / General · 35 × 45 mm</option><option value="pan">PAN · 25 × 35 mm</option><option value="voter-35x45">Voter ID · 35 × 45 mm</option><option value="dl-35x45">Driving Licence · 35 × 45 mm</option><option value="exam-35x45">Exam form · 35 × 45 mm</option><option value="stamp">Stamp · 25 × 30 mm</option><option value="square-51">Visa · 2 × 2 inch</option><option value="oci-51">OCI · 51 × 51 mm</option><option value="passport-35x35">Consular square · 35 × 35 mm</option><option value="pcc-35x35">PCC / Birth · 35 × 35 mm</option><option value="frro-35x35">FRRO · 35 × 35 mm</option><option value="custom">Custom Size</option></select></label><label className="block text-[9px] text-[#AAB2BA]">Number of photos<select aria-label="Edit menu number of photos" value={sheetCopies} onChange={event=>{setSheetCopies(Math.min(anchoredCapacity,Number(event.target.value)));setQuickPrintLayout(false);}} className="studio-control mt-1 h-7 w-full px-2 text-[10px]">{Array.from({length:60},(_,index)=>index+1).map(count=><option key={count} value={count} disabled={count>1&&(sheetMode==='single'||count>anchoredCapacity)}>{count} {count===1?'Photo':'Photos'}</option>)}</select></label><p className="text-[8px] leading-4 text-[#87919B]">Custom dimensions appear beside the matching controls in the top toolbar.</p></div>}
               </div>}
             </div>)}
+            </>}
+            {String(studioMode) !== 'manual' && <span aria-hidden="true" className="mx-1 h-5 w-px bg-[#3A4148]"/>}
+            <button type="button" aria-pressed={studioMode==='auto'} title="Auto Photo Maker: use the quick print workflow; switches Single Photo to an A4 sheet and preserves the current canvas otherwise." onClick={()=>{try{sessionStorage.setItem('tanshu-studio-shell-mode','auto');}catch{}setStudioMode('auto');setActiveTool('Move');if(sheetMode==='single')setSheetMode('a4');setQuickPrintLayout(true);setMenuOpen(null);}} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='auto'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
+              <WandSparkles size={12}/> <span>Auto Photo Maker</span>
+            </button>
+            <button type="button" aria-pressed={studioMode==='manual'} title="Manual Photo Studio: keep the current page, photos, zoom and layout while working with the existing editing controls." onClick={()=>{
+              try{sessionStorage.setItem('tanshu-studio-shell-mode','manual');}catch{}
+              setStudioMode('manual');
+              setActiveTool('Move');
+              setOpenToolGroup('selection');
+              setMenuOpen(null);
+              // Manual Studio starts on a real, editable custom page. Keep imported
+              // photos and their source layers; only change the page workspace.
+              if (sheetMode !== 'custom') {
+                setCustomSheetWidthMm(sheetMode === 'single' ? 210 : sheetDimensions.widthMm);
+                setCustomSheetHeightMm(sheetMode === 'single' ? 297 : sheetDimensions.heightMm);
+                setSheetMode('custom');
+                setQuickPrintLayout(true);
+              }
+            }} className={'studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] '+(studioMode==='manual'?'border-[#A87943] bg-[#34291F] text-[#F2D5AD] shadow-[inset_0_0_0_1px_rgba(201,149,85,.18)]':'border-[#40382F] bg-[#211F1C] text-[#B7B0A6]')}>
+              <Move size={12}/> <span>Manual Photo Studio</span>
+            </button>
+            {String(studioMode) !== 'manual' && <label className="studio-control flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px]" title="Choose the paper sheet orientation; None keeps automatic layout orientation.">Orientation<select aria-label="Auto Photo Maker sheet orientation" value={sheetOrientation} disabled={sheetMode==='single'} onChange={event=>setSheetOrientation(event.target.value as 'none'|'portrait'|'landscape')} className="h-6 max-w-[92px] bg-transparent text-[10px] text-[#E1E5E8] outline-none disabled:opacity-40"><option value="none">None</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>}
           </div>
-          <div className="flex items-center gap-1.5">
+          {String(studioMode) !== 'manual' && <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
             <label className="studio-control flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[10px]" title="Lock or unlock selected sheet photos"><input type="checkbox" checked={!!selectedSlotId && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).length>0 && sheetSlots.filter(slot=>selectedSlotIds.length?selectedSlotIds.includes(slot.id):slot.id===selectedSlotId).every(slot=>slot.locked)} disabled={!selectedSlotId} onChange={toggleSelectedSlotsLock} className="accent-[#D0D7DE]"/> Lock Selected</label>
             <button type="button" title="Duplicate selected photo" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedSlot} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Duplicate</button>
             <button type="button" title="Copy selected row" disabled={!selectedSlotId||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} onClick={duplicateSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Copy Row</button>
             <button type="button" title="Delete selected row" disabled={!selectedSlotId} onClick={deleteSelectedRow} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Delete Row</button>
-            <button type="button" title="Automatically arrange sheet photos" disabled={!selected||sheetMode==='single'} onClick={autoArrangeSheet} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Auto Arrange</button>
+            <button type="button" title="Automatically arrange sheet photos" disabled={!selected||sheetMode==='single'} onClick={()=>{if(!isStudioMember)showUpgradePrompt();else autoArrangeSheet();}} className="studio-control h-7 px-2 text-[10px] disabled:opacity-35">Auto Arrange</button>
             <button type="button" title="Undo" aria-label="Undo" onClick={undo} disabled={!canUndo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Undo2 size={13}/></button>
             <button type="button" title="Redo" aria-label="Redo" onClick={redo} disabled={!canRedo} className="studio-control flex h-7 w-7 items-center justify-center disabled:opacity-35 hover:text-white"><Redo2 size={13}/></button>
-            <button type="button" onClick={openUploadPicker} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] hover:text-white"><Upload size={12}/> Import File</button>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={openUploadPicker} className="flex h-7 items-center gap-1.5 rounded-md border border-[#9B713A] bg-[#332719] px-2.5 text-[10px] font-semibold text-[#F3D7A5] shadow-[inset_0_1px_0_rgba(255,226,173,.08),0_2px_8px_rgba(0,0,0,.18)] transition-colors hover:border-[#C99555] hover:bg-[#44331F] hover:text-[#FFE7BC]"><Upload size={12}/> Import File</button>
             <div className="relative">
-              <button type="button" disabled={!selected} onClick={()=>setMenuOpen(menuOpen==='print-export'?null:'print-export')} className="studio-control flex h-7 items-center gap-1.5 px-2.5 text-[10px] disabled:opacity-40"><Printer size={12}/> Print Actual Size <ChevronDown size={11}/></button>
+              <button type="button" disabled={!selected} onClick={()=>setMenuOpen(menuOpen==='print-export'?null:'print-export')} className="flex h-7 items-center gap-1.5 rounded-md border border-[#9B713A] bg-[#332719] px-2.5 text-[10px] font-semibold text-[#F3D7A5] shadow-[inset_0_1px_0_rgba(255,226,173,.08),0_2px_8px_rgba(0,0,0,.18)] transition-colors hover:border-[#C99555] hover:bg-[#44331F] hover:text-[#FFE7BC] disabled:opacity-40"><Printer size={12}/> Print Actual Size <ChevronDown size={11}/></button>
               {menuOpen==='print-export'&&<div className="absolute right-0 top-9 z-50 min-w-[190px] rounded-lg border border-[#3A4148] bg-[#202429] p-1 shadow-2xl">
                 <div className="px-3 py-2 text-[9px] leading-4 text-[#929CA6]">{sheetDimensions.label} · {sheetDimensions.widthMm.toFixed(1)} × {sheetDimensions.heightMm.toFixed(1)} mm</div>
                 <button type="button" onClick={()=>{setMenuOpen(null);void printActualSize();}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#D9DEE1] hover:bg-[#30373E]">Print at Actual Size</button>
@@ -980,14 +1211,16 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 {(['jpg','png','pdf'] as const).map(format=><button key={format} type="button" onClick={()=>{setMenuOpen(null);void (sheetMode==='single'?exportSelectedPhoto(format):exportPrintSheet(format));}} className="block w-full rounded px-3 py-2 text-left text-[10px] uppercase text-[#D9DDE1] hover:bg-[#30373E]">Download {format.toUpperCase()}</button>)}
               </div>}
             </div>
+            </div>
             <input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={event => addPhotos(event.target.files)}/>
-          </div>
+          </div>}
         </nav>
 
+        {String(studioMode) === 'manual' ? <ManualPhotoStudioWorkspace onBackToAuto={() => { try{sessionStorage.setItem('tanshu-studio-shell-mode','auto');}catch{} setStudioMode('auto'); }} /> : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside className="studio-panel flex w-[82px] min-h-0 shrink-0 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-y-0 border-l-0 px-1.5 py-3">
             <div className="mb-1 w-full border-b border-[#343A42] pb-2">
-              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>setActiveTool(label as typeof activeTool)} data-tool={label.toLowerCase()} className={`studio-tool-button mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'is-active':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
+              {toolItems.map(({icon:Icon,label})=><button type="button" key={label} title={label+" tool"} onClick={()=>{if(!isStudioMember && ['Move','Crop','Portrait','Retouch','Background'].includes(label))showUpgradePrompt();else setActiveTool(label as typeof activeTool);}} data-tool={label.toLowerCase()} className={`studio-tool-button mb-1 flex w-full flex-col items-center gap-1 rounded-lg py-2 transition ${activeTool===label?'is-active':'studio-muted hover:bg-[#252B31]'}`}><Icon size={17} strokeWidth={1.7}/><span className="text-[9px]">{label}</span></button>)}
               <label htmlFor="studio-delete-mode" title="Delete mode" className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg py-2 text-[9px] ${deleteModeEnabled?'bg-red-500/15 text-red-300':'studio-muted hover:bg-[#252B31]'}`}>
                 <Trash2 size={17}/><input id="studio-delete-mode" type="checkbox" checked={deleteModeEnabled} onChange={event => setDeleteModeEnabled(event.target.checked)} className="h-3 w-3 accent-red-500"/><span>Delete</span>
               </label>
@@ -1011,13 +1244,14 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
           </aside>
           <main className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#14171A]">
             <div className="flex h-[52px] min-w-0 shrink-0 items-center justify-between gap-3 overflow-hidden border-b studio-line px-5">
-              <div className="flex min-w-0 shrink-0 items-center"><span className="text-[12px] font-medium text-[#E1E5E8]">Canvas</span></div>
+              <div className="flex min-w-0 shrink-0 items-center"><span className="text-[12px] font-medium text-[#E1E5E8]">{String(studioMode) === 'manual' ? 'Manual Photo Studio' : 'Canvas'}</span></div>
               <div className="flex items-center gap-2">
+                {String(studioMode) === 'manual' ? <button type="button" onClick={()=>setManualSettingsOpen(value=>!value)} className="studio-control flex h-7 items-center gap-1.5 px-2 text-[10px] text-[#E7D2B5]"><SlidersHorizontal size={12}/> Manual Settings</button> : <>
                 <span className="mr-1 text-[10px] studio-muted">SHEET</span>
                 <select aria-label="Print sheet size" value={sheetMode} onChange={event => { setSheetMode(event.target.value as SheetMode); setSheetSlots([]); setSelectedSlotId(null); setSelectedSlotIds([]); setQuickPrintLayout(true); }} className="studio-control h-7 px-2 text-[10px] outline-none"><option value="single">Single Photo</option><optgroup label="Common photo paper"><option value="3.5x5">3.5 × 5 Sheet</option><option value="4x6">4 × 6 Sheet</option><option value="5x7">5 × 7 Sheet</option><option value="6x8">6 × 8 Sheet</option><option value="8x10">8 × 10 Sheet</option></optgroup><optgroup label="Standard paper"><option value="a6">A6 Sheet</option><option value="a5">A5 Sheet</option><option value="a4">A4 Sheet</option><option value="a3">A3 Sheet</option><option value="letter">Letter Sheet</option><option value="legal">Legal Sheet</option></optgroup><option value="custom">Custom Paper Size</option></select>
                 {sheetMode === 'custom' && <div className="flex items-center gap-1"><input aria-label="Custom paper width in millimetres" type="number" min="10" max="1000" value={customSheetWidthMm} onChange={event=>setCustomSheetWidthMm(Math.max(10,Math.min(1000,Number(event.target.value)||10)))} className="studio-control h-7 w-[66px] px-1 text-[9px]"/><span className="text-[9px] studio-muted">×</span><input aria-label="Custom paper height in millimetres" type="number" min="10" max="1000" value={customSheetHeightMm} onChange={event=>setCustomSheetHeightMm(Math.max(10,Math.min(1000,Number(event.target.value)||10)))} className="studio-control h-7 w-[66px] px-1 text-[9px]"/><span className="text-[8px] studio-muted">mm</span></div>}
                 <span className="mr-1 text-[10px] studio-muted">PHOTO</span>
-                <select aria-label="Photo size preset" value={preset} onChange={event => setPreset(event.target.value as StudioPreset)} className="studio-control h-7 px-2 text-[10px] outline-none"><optgroup label="Common India print sizes">
+                <select aria-label="Photo size preset" value={preset} onChange={event => {if(event.target.value==='india'&&!isStudioMember){showUpgradePrompt();return;}setPreset(event.target.value as StudioPreset);}} className="studio-control h-7 px-2 text-[10px] outline-none"><optgroup label="Common India print sizes">
                     <option value="india">Passport / General form · 35 × 45 mm</option>
                     <option value="pan">PAN card print · 25 × 35 mm</option>
                     <option value="voter-35x45">Voter ID / Form · 35 × 45 mm</option>
@@ -1040,26 +1274,35 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                     {Array.from({length:60},(_,index)=>index+1).map(count => <option key={count} value={count} disabled={count > 1 && (sheetMode === 'single' || count > anchoredCapacity)}>{count} {count === 1 ? 'Photo' : 'Photos'}</option>)}
                   </select>
                 </label>
-                <button type="button" onClick={()=>{const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const source=selected||photos[0];if(!source)return;const id="slot-"+Date.now();if(source.kind==='signature'){const target=sheetSlots.find(slot=>photos.find(item=>item.id===slot.photoId)?.kind!=='signature')||sheetSlots[0];const width=Math.min(40,target?.width?target.width*.8:40);const ratio=source.width>0&&source.height>0?source.height/source.width:.25;const height=Math.max(3,Math.min(24,width*ratio));const x=target?target.x+(target.width-width)/2:sheetMargin;const y=target?target.y+target.height-height-2:sheetMargin;const slot={id,photoId:source.id,x:Math.max(0,Math.min(pageW-width,x)),y:Math.max(0,Math.min(pageH-height,y)),width,height,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}else{const anchor=sheetSlots[0]||{id:"anchor",photoId:source.id,x:sheetMargin,y:sheetMargin,width:documentSize.widthMm,height:documentSize.heightMm};const position=getPatternCopyPosition(anchor,pageW,pageH,sheetMargin,sheetGap,sheetSlots);const slot={id,photoId:source.id,...position,width:documentSize.widthMm,height:documentSize.heightMm,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}setSheetCopies(current=>Math.min(anchoredCapacity,current+1));}} disabled={!selected||sheetMode==="single"||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-35"><Plus size={12}/> Add Photo</button>
+                <button type="button" onClick={()=>{const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const source=selected||photos[0];if(!source)return;const id="slot-"+Date.now();if(source.kind==='signature'){const target=sheetSlots.find(slot=>photos.find(item=>item.id===slot.photoId)?.kind!=='signature')||sheetSlots[0];const width=Math.min(40,target?.width?target.width*.8:40);const ratio=source.width>0&&source.height>0?source.height/source.width:.25;const height=Math.max(3,Math.min(24,width*ratio));const x=target?target.x+(target.width-width)/2:sheetMargin;const y=target?target.y+target.height-height-2:sheetMargin;const slot={id,photoId:source.id,x:Math.max(0,Math.min(pageW-width,x)),y:Math.max(0,Math.min(pageH-height,y)),width,height,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}else{const anchor=sheetSlots.find(slot=>slot.id===selectedSlotId&&photos.find(item=>item.id===slot.photoId)?.kind!=='signature')||sheetSlots.find(slot=>photos.find(item=>item.id===slot.photoId)?.kind!=='signature')||{id:"anchor",photoId:source.id,x:AUTO_SHEET_MARGIN_MM,y:AUTO_SHEET_MARGIN_MM,width:layoutPhotoWidthMm,height:layoutPhotoHeightMm};const position=getPatternCopyPosition(anchor,pageW,pageH,AUTO_SHEET_MARGIN_MM,sheetGap,sheetGapY,sheetSlots);const slot={id,photoId:source.id,...position,width:layoutPhotoWidthMm,height:layoutPhotoHeightMm,cropZoom:100,positionX:50,positionY:50,locked:false};setSheetSlots(current=>[...current,slot]);setSelectedSlotId(id);setSelectedSlotIds([id]);}setSheetCopies(current=>Math.min(anchoredCapacity,current+1));}} disabled={!selected||sheetMode==="single"||sheetSlots.length>=anchoredCapacity||sheetSlots.length>=60} className="studio-control flex h-7 items-center gap-1 px-2 text-[10px] disabled:opacity-35"><Plus size={12}/> Add Photo</button>
+                </>}
               </div>
             </div>
 
             <div ref={previewStageRef} className="studio-stage relative flex min-h-0 flex-1 items-start justify-start overflow-auto overscroll-contain p-6">
-              <div className="absolute right-5 top-5 z-40 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>
+              {String(studioMode) === 'manual' && manualSettingsOpen && <div className="absolute right-5 top-5 z-40 w-[250px] rounded-xl border border-[#4A515A] bg-[#20262D]/95 p-3 shadow-2xl backdrop-blur-sm">
+                <div className="mb-3 flex items-center justify-between"><div><div className="text-[10px] font-semibold tracking-[.12em] text-[#E8D6BD]">MANUAL WORKSPACE</div><div className="mt-1 text-[9px] text-[#9DA8B2]">Independent page settings</div></div><button type="button" aria-label="Close Manual Settings" onClick={()=>setManualSettingsOpen(false)} className="rounded p-1 text-[#AAB2BA] hover:bg-[#343B42]"><X size={13}/></button></div>
+                <div className="grid grid-cols-2 gap-2"><label className="text-[9px] text-[#AAB2BA]">Width (mm)<input type="number" min="10" max="1000" value={customSheetWidthMm} onChange={event=>{setCustomSheetWidthMm(Math.max(10,Math.min(1000,Number(event.target.value)||10)));setSheetMode('custom');}} className="studio-control mt-1 h-8 w-full px-2 text-[11px]"/></label><label className="text-[9px] text-[#AAB2BA]">Height (mm)<input type="number" min="10" max="1000" value={customSheetHeightMm} onChange={event=>{setCustomSheetHeightMm(Math.max(10,Math.min(1000,Number(event.target.value)||10)));setSheetMode('custom');}} className="studio-control mt-1 h-8 w-full px-2 text-[11px]"/></label></div>
+                <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={()=>{setCustomSheetWidthMm(210);setCustomSheetHeightMm(297);setSheetMode('custom');}} className="studio-control h-8 text-[10px]">A4 Portrait</button><button type="button" onClick={()=>{setCustomSheetWidthMm(297);setCustomSheetHeightMm(210);setSheetMode('custom');}} className="studio-control h-8 text-[10px]">A4 Landscape</button></div>
+                <div className="mt-3 border-t border-[#3A4148] pt-3"><div className="mb-2 text-[9px] font-semibold tracking-[.1em] text-[#AAB2BA]">PAGE OPTIONS</div><label className="flex items-center justify-between text-[10px] text-[#C7CFD6]">Page background <input type="color" defaultValue="#ffffff" className="h-6 w-9 cursor-pointer rounded border-0 bg-transparent"/></label><label className="mt-2 flex items-center justify-between text-[10px] text-[#C7CFD6]">Outer margin · min 3 mm <input type="number" min="3" max="50" value={sheetMargin} onChange={event=>setSheetMargin(Math.max(3,Math.min(50,Number(event.target.value)||3)))} className="studio-control h-7 w-16 px-2 text-[10px]"/></label></div>
+                <p className="mt-3 text-[8px] leading-4 text-[#87919B]">Manual page size is separate from Auto Photo Maker quick settings. Multi-page and frame tools are being built as the next stage.</p>
+              </div>}
+              {String(studioMode) !== 'manual' && <div className="absolute right-5 top-5 z-40 rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">PREVIEW AREA</div>}
               {selected && sheetMode !== 'single' ? (
                 <div className="mx-auto flex w-max flex-col items-center gap-3">
                   <div className="rounded-md border border-[#3A4148] bg-[#1B1F23]/90 px-3 py-2 text-[10px] studio-muted">{sheetDimensions.label.toUpperCase()} · {visibleCopies} / {sheetCopies} COPIES · {anchoredCapacity} MAX FIT</div>
-                  <div tabIndex={0} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}} onDrop={event=>handleSignatureDrop(event,sheetDimensions.widthMm,sheetDimensions.heightMm)} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
-                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,sheetMargin,sheetGap,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-sheetMargin:pageW-sheetMargin-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-sheetMargin:pageH-sheetMargin-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(sheetMargin,x),y:Math.max(sheetMargin,y),width,height}:item));return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>sheetMargin-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-sheetMargin-item.width));const minDy=Math.max(...groupBounds.map(item=>sheetMargin-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-sheetMargin-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=current[0]?.id===moving.id?0:sheetMargin;const targetX=Math.max(0,Math.min(pageW-moving.width,slotDrag.sx+dx));const targetY=Math.max(0,Math.min(pageH-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:[borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'',isChosen?'0 0 0 1px rgba(201,149,85,.55), 0 5px 16px rgba(0,0,0,.22)':''].filter(Boolean).join(', ')||'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
-                      <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className={'pointer-events-none h-full w-full '+(photo.kind==='signature'?'object-contain':'object-cover')} style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:photo.kind==='signature'?'none':'scale('+((slot.cropZoom ?? 100)/100)+')'}}/>{photo.kind!=='signature'&&renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm,selectedSlotId===slot.id,()=>setSelectedSlotId(slot.id))}<div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/pageW*previewPageWidth)}px solid ${borderColor}`:'none'}}/>
+                  <div data-auto-photo-maker-paper tabIndex={0} onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}} onDrop={event=>handleSignatureDrop(event,sheetDimensions.widthMm,sheetDimensions.heightMm)} onClick={event=>{if(event.target===event.currentTarget){setSelectedSlotId(null);setSelectedSlotIds([]);setHoveredSlotId(null);setSignatureSelected(false);}}} onKeyDown={handleSheetKeyDown} aria-label="Photo sheet. Use arrow keys to move selected photo; Shift plus arrow moves 5 mm, Alt plus arrow moves 0.2 mm." className="relative overflow-hidden border border-white/20 bg-white shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" style={{width:previewPageWidth,height:previewPageHeight,flexShrink:0,zoom:zoom/100}}>
+                    {sheetSlots.map((slot,i)=>{const photo=photos.find(p=>p.id===slot.photoId)||selected;const pageW=sheetDimensions.widthMm;const pageH=sheetDimensions.heightMm;const isChosen=selectedSlotId===slot.id;return <div key={slot.id} data-auto-photo-slot={slot.id} onPointerEnter={()=>setHoveredSlotId(slot.id)} onPointerLeave={()=>setHoveredSlotId(current=>current===slot.id?null:current)} onClick={event=>{event.stopPropagation();if(suppressSlotClickRef.current){suppressSlotClickRef.current=false;return;}setSelectAllMode(false);if(event.ctrlKey||event.metaKey){setSelectedSlotIds(current=>current.includes(slot.id)?current.filter(id=>id!==slot.id):[...current,slot.id]);setSelectedSlotId(slot.id);setSelectedId(photo.id);}else{setSelectedSlotIds([slot.id]);setSelectedSlotId(slot.id);}}} onPointerDown={event=>{event.stopPropagation();setHoveredSlotId(null);setSelectAllMode(false);setSelectedId(photo.id);setSelectedSlotId(slot.id);if(!event.ctrlKey&&!event.metaKey)setSelectedSlotIds([slot.id]);if(!isStudioMember){lockedSlotMoveStartRef.current={id:slot.id,x:event.clientX,y:event.clientY};return;}if(slot.locked)return;event.currentTarget.setPointerCapture(event.pointerId);const wantsCopy=event.altKey||event.shiftKey;const canCopy=sheetSlots.length<anchoredCapacity&&sheetSlots.length<60;const dragId=wantsCopy&&canCopy?'slot-copy-'+Date.now()+'-'+Math.random().toString(36).slice(2):slot.id;let dragStartX=slot.x,dragStartY=slot.y;if(wantsCopy&&canCopy){const copyPosition=getPatternCopyPosition(slot,sheetDimensions.widthMm,sheetDimensions.heightMm,AUTO_SHEET_MARGIN_MM,sheetGap,sheetGapY,sheetSlots);dragStartX=copyPosition.x;dragStartY=copyPosition.y;setSheetSlots(current=>[...current,{...slot,id:dragId,...copyPosition,locked:false}]);setSheetCopies(current=>Math.min(60,sheetCapacity,current+1));setSelectedSlotId(dragId);setSelectedSlotIds([dragId]);}const groupIds=!wantsCopy&&slot.groupId?sheetSlots.filter(item=>item.groupId===slot.groupId).map(item=>item.id):!wantsCopy&&selectedSlotIds.includes(slot.id)&&selectedSlotIds.length>1?selectedSlotIds:[slot.id];const group=groupIds.length>1?sheetSlots.filter(item=>groupIds.includes(item.id)).map(item=>({id:item.id,x:item.x,y:item.y})):undefined;if(group&&sheetSlots.some(item=>groupIds.includes(item.id)&&item.locked))return;setSlotDrag({id:dragId,px:event.clientX,py:event.clientY,sx:dragStartX,sy:dragStartY,group});}} onPointerMove={event=>{if(lockedSlotMoveStartRef.current?.id===slot.id){if(Math.hypot(event.clientX-lockedSlotMoveStartRef.current.x,event.clientY-lockedSlotMoveStartRef.current.y)>4){lockedSlotMoveStartRef.current=null;showUpgradePrompt();}return;}const rect=event.currentTarget.parentElement!.getBoundingClientRect();if(slotResize){const dx=(event.clientX-slotResize.px)/rect.width*pageW;const dy=(event.clientY-slotResize.py)/rect.height*pageH;const horizontal=slotResize.corner.endsWith('w')?-dx:dx;const vertical=slotResize.corner.startsWith('n')?-dy:dy;let factor=Math.abs(horizontal/slotResize.width)>=Math.abs(vertical/slotResize.height)?horizontal/slotResize.width:vertical/slotResize.height;const minScale=Math.max(15/slotResize.width,15/slotResize.height)-1;const maxScale=Math.min((slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-AUTO_SHEET_MARGIN_MM:pageW-AUTO_SHEET_MARGIN_MM-slotResize.x)/slotResize.width,(slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-AUTO_SHEET_MARGIN_MM:pageH-AUTO_SHEET_MARGIN_MM-slotResize.y)/slotResize.height)-1;factor=Math.max(minScale,Math.min(maxScale,factor));const width=slotResize.width*(1+factor),height=slotResize.height*(1+factor);const x=slotResize.corner.endsWith('w')?slotResize.x+slotResize.width-width:slotResize.x;const y=slotResize.corner.startsWith('n')?slotResize.y+slotResize.height-height:slotResize.y;setSheetSlots(current=>current.map(item=>item.id===slotResize.id?{...item,x:Math.max(AUTO_SHEET_MARGIN_MM,x),y:Math.max(AUTO_SHEET_MARGIN_MM,y),width,height}:item));return;}if(!slotDrag)return;if(Math.hypot(event.clientX-slotDrag.px,event.clientY-slotDrag.py)>3)suppressSlotClickRef.current=true;const dx=(event.clientX-slotDrag.px)/rect.width*pageW;const dy=(event.clientY-slotDrag.py)/rect.height*pageH;if(slotDrag.group){const groupIds=slotDrag.group.map(item=>item.id);const groupBounds=slotDrag.group.map(origin=>{const current=sheetSlots.find(item=>item.id===origin.id);return {...origin,width:current?.width??0,height:current?.height??0};});const minDx=Math.max(...groupBounds.map(item=>AUTO_SHEET_MARGIN_MM-item.x)),maxDx=Math.min(...groupBounds.map(item=>pageW-AUTO_SHEET_MARGIN_MM-item.width));const minDy=Math.max(...groupBounds.map(item=>AUTO_SHEET_MARGIN_MM-item.y)),maxDy=Math.min(...groupBounds.map(item=>pageH-AUTO_SHEET_MARGIN_MM-item.height));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));setSheetSlots(current=>current.map(item=>{const origin=slotDrag.group!.find(groupItem=>groupItem.id===item.id);return origin?{...item,x:origin.x+gx,y:origin.y+gy}:item;}));return;}setSheetSlots(current=>{const moving=current.find(item=>item.id===slotDrag.id);if(!moving)return current;const minMargin=AUTO_SHEET_MARGIN_MM;const targetX=Math.max(AUTO_SHEET_MARGIN_MM,Math.min(pageW-AUTO_SHEET_MARGIN_MM-moving.width,slotDrag.sx+dx));const targetY=Math.max(AUTO_SHEET_MARGIN_MM,Math.min(pageH-AUTO_SHEET_MARGIN_MM-moving.height,slotDrag.sy+dy));const others=current.filter(item=>item.id!==moving.id);const movingPhoto=photos.find(photo=>photo.id===moving.photoId);const position=movingPhoto?.kind==='signature'?{x:targetX,y:targetY}:getSmartSheetPosition(targetX,targetY,moving,others,pageW,pageH,minMargin,sheetGap,sheetGapY);return current.map(item=>item.id===moving.id?{...item,...position}:item);});}} onPointerUp={event=>{lockedSlotMoveStartRef.current=null;setSlotDrag(null);setSlotResize(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{setSlotDrag(null);setSlotResize(null);}} className="absolute select-none bg-[#F3F3F3] cursor-move" style={{left:(slot.x/pageW*100)+'%',top:(slot.y/pageH*100)+'%',width:(slot.width/pageW*100)+'%',height:(slot.height/pageH*100)+'%',touchAction:'none',border:'none',boxShadow:[borderEnabled?'inset 0 0 0 '+Math.max(0.1,borderWidthMm/pageW*previewPageWidth)+'px '+borderColor:'',isChosen?'0 0 0 1px rgba(201,149,85,.55), 0 5px 16px rgba(0,0,0,.22)':''].filter(Boolean).join(', ')||'none',outline:(slotDrag?.id===slot.id||slotResize?.id===slot.id)?'1px solid rgba(90,110,130,.75)':'none',outlineOffset:'0px'}}>
+                      <img src={photo.url} alt={'Photo slot '+(i+1)} draggable={false} className={'pointer-events-none h-full w-full '+(photo.kind==='signature'?'object-contain':'object-cover')} style={{objectPosition:(slot.positionX ?? 50)+'% '+(slot.positionY ?? 50)+'%',transform:photo.kind==='signature'?'none':'scale('+((slot.cropZoom ?? 100)/100)+')'}}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] overflow-hidden select-none">{!isStudioMember && isAdminAuthChecked && <><span className="absolute left-0.5 top-0.5 max-w-[48%] -translate-x-[2%] -translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span><span className="absolute bottom-0.5 right-0.5 max-w-[48%] translate-x-[2%] translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span></>}</div>{photo.kind!=='signature'&&renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm,selectedSlotId===slot.id,()=>setSelectedSlotId(slot.id))}<div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/pageW*previewPageWidth)}px solid ${borderColor}`:'none'}}/>
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={selectAllMode?'Delete all photos from sheet':'Delete photo '+(i+1)+' from sheet'} title={selectAllMode?'Delete all photos from sheet':'Delete this photo'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();const ids=selectAllMode?sheetSlots.map(item=>item.id):[slot.id];const removedCount=sheetSlots.filter(item=>ids.includes(item.id)).length;setSheetSlots(current=>current.filter(item=>!ids.includes(item.id)));if(removedCount)setSheetCopies(count=>Math.max(0,count-removedCount));setSelectedSlotIds([]);setSelectedSlotId(null);setSelectAllMode(false);}} style={{transform:`scale(${100/zoom})`,transformOrigin:'top right'}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
-                      {(isChosen)&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`studio-photo-resize-handle absolute z-30 h-4 w-4 rounded-sm border-0 bg-transparent shadow-none focus:outline-none focus-visible:outline-none ${corner==='nw'?'left-[-6px] top-[-6px]':corner==='ne'?'right-[-6px] top-[-6px]':corner==='sw'?'bottom-[-6px] left-[-6px]':'bottom-[-6px] right-[-6px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
+                      {(isChosen)&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();if(!isStudioMember){showUpgradePrompt();return;}const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`studio-photo-resize-handle absolute z-30 h-4 w-4 rounded-sm border-0 bg-transparent shadow-none focus:outline-none focus-visible:outline-none ${corner==='nw'?'left-[-6px] top-[-6px]':corner==='ne'?'right-[-6px] top-[-6px]':corner==='sw'?'bottom-[-6px] left-[-6px]':'bottom-[-6px] right-[-6px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
                     </div>})}
 
                   </div>
                 </div>
               ) : selected ? (
                 <div
+                  data-auto-photo-maker-paper
                   className="mx-auto relative overflow-hidden border border-white/10 bg-[#E7E5E0] shadow-2xl cursor-grab active:cursor-grabbing"
                   style={{ zoom: zoom / 100, aspectRatio: `${documentSize.widthMm} / ${documentSize.heightMm}`, width: previewPageWidth, height: previewPageHeight, flexShrink: 0, touchAction: "none" }}
                   onDragOver={event=>{if(event.dataTransfer.types.includes('application/x-tanshu-signature-layer'))event.preventDefault();}}
@@ -1067,6 +1310,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   onClick={event=>{if(event.target===event.currentTarget)setSignatureSelected(false);}}
                   onPointerDown={event => {
                     event.preventDefault();
+                    if(!isStudioMember){showUpgradePrompt();return;}
                     event.currentTarget.setPointerCapture(event.pointerId);
                     cropDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, positionX:activePositionX, positionY:activePositionY };
                   }}
@@ -1084,7 +1328,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   }}
                   onPointerCancel={() => { cropDragRef.current = null; }}
                 >
-                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className={'pointer-events-none block h-full w-full select-none '+(selected.kind==='signature'?'object-contain':'object-cover')} style={{ objectPosition: `${activePositionX}% ${activePositionY}%`, transform: selected.kind==='signature'?'none':`scale(${activeCropZoom / 100})` }}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/documentSize.widthMm*previewPageWidth)}px solid ${borderColor}`:'none'}}/>{renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm)}
+                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className={'pointer-events-none block h-full w-full select-none '+(selected.kind==='signature'?'object-contain':'object-cover')} style={{ objectPosition: `${activePositionX}% ${activePositionY}%`, transform: selected.kind==='signature'?'none':`scale(${activeCropZoom / 100})` }}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] overflow-hidden select-none">{!isStudioMember && isAdminAuthChecked && <><span className="absolute left-0.5 top-0.5 max-w-[48%] -translate-x-[2%] -translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span><span className="absolute bottom-0.5 right-0.5 max-w-[48%] translate-x-[2%] translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span></>}</div><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/documentSize.widthMm*previewPageWidth)}px solid ${borderColor}`:'none'}}/>{renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm)}
                 </div>
               ) : (
                 <button type="button" onClick={openUploadPicker} className="group m-auto flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
@@ -1093,6 +1337,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   <span className="studio-control flex items-center gap-2 px-3 py-2 text-[10px]"><Plus size={13}/> Browse files</span>
                 </button>
               )}
+              
             </div>
 
             <div className="flex h-[38px] shrink-0 items-center justify-between border-t studio-line bg-[#191D21] px-5 text-[10px] studio-muted">
@@ -1122,10 +1367,13 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
               <div className="border-b studio-line p-3">
                 <div className="mb-2 text-[10px] font-semibold tracking-[.12em] studio-muted">SHEET SPACING & COPIES</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="text-[9px] studio-muted">Margin ({sizeUnit})<input aria-label="Sheet margin" type="number" min="0" max="50" step="0.5" value={Number(mmToUnit(sheetMargin,sizeUnit).toFixed(2))} onChange={event=>setSheetMargin(Math.max(0,Math.min(50,unitToMm(Number(event.target.value)||0,sizeUnit))))} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted">Photo Gap (mm)<input aria-label="Photo gap in millimetres" type="number" min="0" max="30" step="1" value={Number(sheetGap.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGap(next);setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+next)/(documentSize.widthMm+next)));return current.map((slot,index)=>index===0?slot:{...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+next),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+next)});});}} onWheel={event=>{event.preventDefault();setSheetGap(value=>{const next=Math.max(0,Math.min(30,Number((value+(event.deltaY<0?1:-1)).toFixed(1))));setSheetSlots(current=>{if(!current.length)return current;const anchor=current[0];const cols=Math.max(1,Math.floor((sheetDimensions.widthMm-anchor.x+next)/(documentSize.widthMm+next)));return current.map((slot,index)=>index===0?slot:{...slot,x:anchor.x+(index%cols)*(documentSize.widthMm+next),y:anchor.y+Math.floor(index/cols)*(documentSize.heightMm+next)});});return next;});}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
-                  <label className="text-[9px] studio-muted col-span-2">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Sheet Margin · fixed 3 mm<input aria-label="Fixed equal 3 millimetre sheet margin" type="text" value="3 mm" readOnly disabled className="studio-control mt-1 h-8 w-full px-2 text-[10px] opacity-80"/></label>
+                  <label className="text-[9px] studio-muted">Horizontal Photo Gap (mm)<input aria-label="Horizontal photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGap.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGap(next);reflowSheetSlots(next,sheetGapY);}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGap+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGap(next);reflowSheetSlots(next,sheetGapY);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Count Photo<input aria-label="Count Photo" type="number" min="1" max={Math.max(1,Math.min(60,anchoredCapacity))} step="1" value={sheetCopies} onChange={event=>{const count=Math.max(1,Math.min(60,anchoredCapacity,Number(event.target.value)||1));setSheetCopies(count);setQuickPrintLayout(false);}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}}} onWheel={event=>{event.preventDefault();const count=Math.max(1,Math.min(60,anchoredCapacity,sheetCopies+(event.deltaY<0?1:-1)));setSheetCopies(count);setQuickPrintLayout(false);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
+                  <label className="text-[9px] studio-muted">Vertical Photo Gap (mm)<input aria-label="Vertical photo gap in millimetres" type="number" min="0" max="30" step="0.5" value={Number(sheetGapY.toFixed(1))} onChange={event=>{const next=Math.max(0,Math.min(30,Number(event.target.value)||0));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}}} onWheel={event=>{event.preventDefault();const next=Math.max(0,Math.min(30,Number((sheetGapY+(event.deltaY<0 ? 0.5 : -0.5)).toFixed(1))));setSheetGapY(next);reflowSheetSlots(sheetGap,next);}} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label>
                 </div>
+                <button type="button" onClick={autoArrangeSheet} disabled={!sheetSlots.length} className="mt-2 w-full rounded-md border border-[#46515c] bg-[#252B31] py-2 text-[10px] font-semibold text-[#E2E8F0] transition hover:bg-[#303840] disabled:cursor-not-allowed disabled:opacity-40">Arrange Photos Using Gaps</button>
+                <button type="button" onClick={centerBalanceSheet} disabled={!sheetSlots.length || sheetMode === 'single'} title="Keep every photo at the exact selected size, arrange rows to save paper, and center the complete layout with equal safe margins." className="mt-2 w-full rounded-md border border-[#9B754D] bg-[#34291F] py-2 text-[10px] font-semibold text-[#F2D5AD] transition hover:bg-[#433426] disabled:cursor-not-allowed disabled:opacity-40">Smart Center & Balance</button>
               </div>
               <div className="border-b studio-line p-3">
                 <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">PHOTO BORDER</span><label className="flex items-center gap-1.5 text-[9px] studio-muted"><input type="checkbox" checked={borderEnabled} onChange={event=>setBorderEnabled(event.target.checked)} className="accent-[#D0D7DE]"/> Enable</label></div>
@@ -1134,7 +1382,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                 <div className="mt-2 flex items-center justify-between border-t studio-line pt-2 text-[10px]"><span className="studio-muted">Output size</span><span className="text-[#D5DADF]">{documentSize.widthPx} × {documentSize.heightPx} px</span></div>
                 <div className="flex items-center justify-between border-t studio-line py-2 text-[10px]"><span className="studio-muted">Resolution</span><span className="text-[#D5DADF]">300 DPI</span></div>
               </div>
-              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>{setSignaturePlacement(current=>current||{x:0.34,y:0.72,width:0.32});setSignatureSelected(true);}} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs />
+              <StudioAdvancedPanel selected={selected} photos={photos} widthPx={documentSize.widthPx} heightPx={documentSize.heightPx} onApplyImage={applyProcessedImage} onAddSignature={addSignatureLayer} onApplySignature={()=>{setSignaturePlacement(current=>current||{x:0.34,y:0.72,width:0.32});setSignatureSelected(true);}} activeSection={activeTool==='Move'?'move':activeTool==='Background'?'background':activeTool==='Retouch'?'portrait':activeTool==='Layout'?'layout':'adjust'} hideTabs onLockedAction={!isStudioMember ? showUpgradePrompt : undefined} />
               <div className="border-t studio-line p-4">
                 <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[.12em] studio-muted">LAYERS</span><span className="text-[9px] studio-muted">{photos.length.toString().padStart(2, '0')} ITEMS</span></div>
                 {photos.length ? <div className="space-y-2">{photos.map(photo => <div key={photo.id} draggable={photo.kind==='signature'} onDragStart={event=>{if(photo.kind!=='signature')return;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-tanshu-signature-layer',photo.id);}} className={`flex items-center gap-2 rounded-md border p-2 ${selectedId === photo.id || (photo.kind==='signature' && signatureSelected) ? 'border-[#3A4148] bg-[#252B31]' : 'studio-line bg-[#202429]'} ${photo.kind==='signature'?'cursor-grab active:cursor-grabbing':''}`}><button type="button" onClick={() => {if(photo.kind==='signature'){setSignatureSelected(true);}else{setSelectedId(photo.id);}}} className="flex min-w-0 flex-1 items-center gap-2 text-left"><img src={photo.url} alt="" className={'h-9 w-8 rounded bg-[#30363D] '+(photo.kind==='signature'?'object-contain':'object-cover')}/><span className="min-w-0"><span className="block truncate text-[10px] text-[#DCE1E5]">{photo.file.name}</span><span className="block text-[9px] studio-muted">{photo.kind==='signature'?'Signature layer · Drag to preview':'Image · '+(photo.width && photo.height ? `${photo.width} × ${photo.height}` : 'Loading dimensions')}</span></span></button><button type="button" aria-label={'Delete '+(photo.kind==='signature'?'signature':'photo')+' layer'} title="Delete layer" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();removeLayer(photo.id);}} className="rounded p-1 text-[#9AA3AD] hover:bg-red-500/15 hover:text-red-400"><Trash2 size={14}/></button></div>)}
@@ -1143,7 +1391,9 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
             </div>
           </aside>
         </div>
+        )}
                 {cropDialogOpen && <div className="fixed inset-0 z-[100] bg-black/50" onPointerDown={event=>{if(event.target===event.currentTarget)setCropDialogOpen(false);}}><div className="absolute w-[min(560px,calc(100vw-32px))] rounded-xl border border-[#46505A] bg-[#1B1F23] shadow-2xl" style={{left:cropDialogPosition.x,top:cropDialogPosition.y}}><div className="flex cursor-move items-center justify-between border-b border-[#343A42] px-4 py-3" onPointerDown={event=>{setCropDialogDrag({x:event.clientX,y:event.clientY,left:cropDialogPosition.x,top:cropDialogPosition.y});event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={event=>{if(cropDialogDrag)setCropDialogPosition({x:Math.max(0,cropDialogDrag.left+event.clientX-cropDialogDrag.x),y:Math.max(0,cropDialogDrag.top+event.clientY-cropDialogDrag.y)});}} onPointerUp={()=>setCropDialogDrag(null)} onPointerCancel={()=>setCropDialogDrag(null)}><div><div className="text-[12px] font-semibold text-[#E4E8EC]">Manual Crop Studio</div><div className="text-[9px] studio-muted">Exact size in mm, cm or inches · drag the dialog by its title bar</div></div><button type="button" onClick={()=>setCropDialogOpen(false)}><X size={16}/></button></div><div className="grid grid-cols-[1fr_180px] gap-4 p-4"><div className="relative h-[260px] w-full touch-none overflow-hidden rounded-lg border border-white/20 bg-[#E7E5E0]" onPointerDown={event=>{if(!selected)return;event.currentTarget.setPointerCapture(event.pointerId);cropDragRef.current={pointerId:event.pointerId,x:event.clientX,y:event.clientY,positionX:activePositionX,positionY:activePositionY};}} onPointerMove={event=>{const drag=cropDragRef.current;if(!drag||drag.pointerId!==event.pointerId)return;const rect=event.currentTarget.getBoundingClientRect();updateActiveCrop({positionX:Math.max(0,Math.min(100,drag.positionX-(event.clientX-drag.x)/rect.width*100)),positionY:Math.max(0,Math.min(100,drag.positionY-(event.clientY-drag.y)/rect.height*100))});}} onPointerUp={event=>{cropDragRef.current=null;if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}} onPointerCancel={()=>{cropDragRef.current=null;}}>{selected&&<img src={selected.url} alt="Drag photo to position crop" draggable={false} className="pointer-events-none h-full w-full select-none object-cover" style={{objectPosition:activePositionX+'% '+activePositionY+'%',transform:'scale('+(activeCropZoom/100)+')'}}/>}</div><div className="space-y-3"><label className="block text-[10px] studio-muted">Unit<select value={sizeUnit} onChange={event=>setSizeUnit(event.target.value as StudioUnit)} className="studio-control mt-1 h-8 w-full px-2"><option value="mm">Millimetres</option><option value="cm">Centimetres</option><option value="in">Inches</option></select></label><label className="block text-[10px] studio-muted">Width ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customWidthMm,sizeUnit).toFixed(2))} onChange={event=>{setPreset('custom');setCustomWidthMm(unitToMm(Math.max(.1,Number(event.target.value)||.1),sizeUnit));}} className="studio-control mt-1 h-8 w-full px-2"/></label><label className="block text-[10px] studio-muted">Height ({sizeUnit})<input type="number" min="0.1" step="0.1" value={Number(mmToUnit(customHeightMm,sizeUnit).toFixed(2))} onChange={event=>{setPreset('custom');setCustomHeightMm(unitToMm(Math.max(.1,Number(event.target.value)||.1),sizeUnit));}} className="studio-control mt-1 h-8 w-full px-2"/></label><label className="block text-[10px] studio-muted">Zoom {activeCropZoom}%<input type="range" min="100" max="300" value={activeCropZoom} onChange={event=>updateActiveCrop({cropZoom:Number(event.target.value)})} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Horizontal {activePositionX}%<input type="range" min="0" max="100" value={activePositionX} onChange={event=>updateActiveCrop({positionX:Number(event.target.value)})} className="mt-1 w-full"/></label><label className="block text-[10px] studio-muted">Vertical {activePositionY}%<input type="range" min="0" max="100" value={activePositionY} onChange={event=>updateActiveCrop({positionY:Number(event.target.value)})} className="mt-1 w-full"/></label><button type="button" onClick={()=>updateActiveCrop({cropZoom:100,positionX:50,positionY:50})} className="studio-control w-full py-2 text-[10px]">Reset selected crop</button><button type="button" onClick={()=>setCropDialogOpen(false)} className="w-full rounded-md bg-[#D9DEE2] py-2 text-[10px] font-semibold text-[#20252A]">Apply crop settings</button></div></div></div></div>}
+        {upgradePromptOpen && <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="studio-upgrade-title"><div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#5B4A35] bg-[#1B1F23] shadow-2xl"><div className="flex items-center justify-between border-b border-[#343A42] px-5 py-4"><div><div className="text-[10px] font-semibold tracking-[.18em] text-[#C99A60]">TANSHU ONLINE MEMBERSHIP</div><h2 id="studio-upgrade-title" className="mt-1 text-lg font-semibold text-white">Unlock this Studio feature</h2></div><button type="button" onClick={()=>setUpgradePromptOpen(false)} aria-label="Close upgrade prompt" className="rounded-lg p-2 text-[#AAB2BA] hover:bg-white/10"><X size={18}/></button></div><div className="p-5"><p className="text-sm leading-6 text-[#C4CBD2]">This feature is part of the paid Studio experience. Choose a membership to unlock premium tools, high-quality downloads and print.</p><div className="mt-4 grid grid-cols-3 gap-2">{[{name:'Basic',price:'₹49',term:'24 hours'},{name:'Standard',price:'₹199',term:'30 days'},{name:'Premium',price:'₹599',term:'90 days'}].map(plan=><div key={plan.name} className="rounded-xl border border-[#41464D] bg-[#22272D] p-3 text-center"><div className="text-[10px] text-[#AAB2BA]">{plan.name}</div><div className="mt-1 text-xl font-bold text-white">{plan.price}</div><div className="mt-1 text-[9px] text-[#9AA4AE]">{plan.term}</div></div>)}</div><div className="mt-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[10px] leading-5 text-amber-100">Membership sign-in and secure checkout are still being connected in this Preview. No payment has been started.</div><button type="button" onClick={()=>setUpgradePromptOpen(false)} className="mt-4 w-full rounded-lg bg-[#C99555] px-4 py-3 text-xs font-bold text-[#171A1D] hover:bg-[#E0B276]">Continue preview</button></div></div></div>}
         <footer className="flex h-[34px] shrink-0 items-center justify-between border-t studio-line bg-[#171A1D] px-5 text-[9px] studio-muted"><span>TANSHU STUDIO · DOCUMENT PRESETS</span><span className="flex items-center gap-4"><span>Import and layer selection enabled</span><span>© TANSHU ONLINE</span></span></footer>
       </div>
     </div>

@@ -1,0 +1,558 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { ManualAssetEditor, type ManualAssetDocument } from './ManualAssetEditor';
+import { ManualSignaturePanel } from './ManualSignaturePanel';
+import { ArrowLeft, Plus, Upload, Trash2, Copy, Image as ImageIcon, MousePointer2, Crop, SquareDashedMousePointer, Hand, Lock, Unlock, ChevronUp, ChevronDown, Download, RotateCw, Settings2, FilePlus2, ZoomIn, ZoomOut, Check, Palette } from 'lucide-react';
+
+type ManualLayer = { id: string; type: 'photo'|'frame'|'text'; name: string; x: number; y: number; w: number; h: number; src?: string; fileName?: string; text?: string; locked?: boolean; rotation?: number; cropZoom?: number; borderMm?: number; borderColor?: string; assetKind?: 'photo'|'signature'; aspectRatio?: number; autoCopy?: boolean; groupId?: string };
+type ManualPage = { id: string; name: string; width: number; height: number; background: string; margin: number; layers: ManualLayer[] };
+type Tool = 'move'|'frame'|'marquee'|'crop'|'hand'|'delete';
+
+const uid = () => 'manual-' + Math.random().toString(36).slice(2, 10);
+const makePage = (n: number, width = 210, height = 297): ManualPage => ({ id: uid(), name: 'Page ' + n, width, height, background: '#ffffff', margin: 5, layers: [] });
+const intersects = (a: {x:number;y:number;w:number;h:number}, b: {x:number;y:number;w:number;h:number}) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+
+const AnimatedTrashCan: React.FC<{size?:number}> = ({size=14}) => <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 5.5 4.2 14h7.6l.7-8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2.5 4.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path className="origin-[50%_50%] transition-transform duration-200 group-hover:-translate-y-1 group-hover:rotate-[-18deg]" d="M5.5 4.5V2.8h5v1.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+
+const MANUAL_STUDIO_DB = 'tanshu-manual-photo-studio';
+const MANUAL_STUDIO_STORE = 'workspace';
+const MANUAL_STUDIO_KEY = 'current-project';
+const openManualStudioDb = () => new Promise<IDBDatabase>((resolve, reject) => {
+  const request = indexedDB.open(MANUAL_STUDIO_DB, 1);
+  request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains(MANUAL_STUDIO_STORE)) request.result.createObjectStore(MANUAL_STUDIO_STORE); };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+});
+const readManualStudioProject = async () => {
+  const db = await openManualStudioDb();
+  return new Promise<any>((resolve, reject) => {
+    const request = db.transaction(MANUAL_STUDIO_STORE, 'readonly').objectStore(MANUAL_STUDIO_STORE).get(MANUAL_STUDIO_KEY);
+    request.onsuccess = () => { resolve(request.result || null); db.close(); };
+    request.onerror = () => { reject(request.error); db.close(); };
+  });
+};
+const writeManualStudioProject = async (project: any) => {
+  const db = await openManualStudioDb();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(MANUAL_STUDIO_STORE, 'readwrite');
+    tx.objectStore(MANUAL_STUDIO_STORE).put(project, MANUAL_STUDIO_KEY);
+    tx.oncomplete = () => { resolve(); db.close(); };
+    tx.onerror = () => { reject(tx.error); db.close(); };
+    tx.onabort = () => { reject(tx.error); db.close(); };
+  });
+};
+const persistImageSource = async (src?: string) => {
+  if (!src || src.startsWith('data:') || src.startsWith('https:') || src.startsWith('http:')) return src || '';
+  try {
+    const response = await fetch(src);
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return ''; }
+};
+
+export const ManualPhotoStudioWorkspace: React.FC<{ onBackToAuto: () => void }> = ({ onBackToAuto }) => {
+  const [pages, setPages] = useState<ManualPage[]>([makePage(1)]);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [manualOrientation, setManualOrientation] = useState<'none'|'portrait'|'landscape'>('none');
+  const [tool, setTool] = useState<Tool>('move');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [files, setFiles] = useState<{id:string;name:string;src:string}[]>([]);
+  const [assetDocuments, setAssetDocuments] = useState<ManualAssetDocument[]>([]);
+  const [activeAssetId, setActiveAssetId] = useState<string|null>(null);
+  const [assetWorkspaceOpen, setAssetWorkspaceOpen] = useState(false);
+  const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
+  const [signatureAsset, setSignatureAsset] = useState<{name:string;src:string}|null>(null);
+  const [importKind, setImportKind] = useState<'photo'|'signature'>('photo');
+  const [unit, setUnit] = useState<'mm'|'cm'|'in'>('mm');
+  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState<string|null>(null);
+  const [customPaperWidth, setCustomPaperWidth] = useState('210');
+  const [customPaperHeight, setCustomPaperHeight] = useState('297');
+  const [drag, setDrag] = useState<{id:string;px:number;py:number;x:number;y:number;group?:{id:string;x:number;y:number;w:number;h:number}[]}|null>(null);
+  const [draw, setDraw] = useState<{x:number;y:number;cx:number;cy:number}|null>(null);
+  const [cropZoom, setCropZoom] = useState(100);
+  const [pageZoom, setPageZoom] = useState(100);
+  const [horizontalGapMm, setHorizontalGapMm] = useState(2);
+  const [verticalGapMm, setVerticalGapMm] = useState(2);
+  const [manualPhotoCount, setManualPhotoCount] = useState(4);
+  const [manualBorderEnabled, setManualBorderEnabled] = useState(false);
+  const [manualBorderWidthMm, setManualBorderWidthMm] = useState(0.1);
+  const [manualBorderColor, setManualBorderColor] = useState('#000000');
+  const [manualCustomBorderColor, setManualCustomBorderColor] = useState('#000000');
+  const [cropBox, setCropBox] = useState({x:0,y:0,w:100,h:100});
+  const [cropDrag, setCropDrag] = useState<any>(null);
+  const [cropTargetW, setCropTargetW] = useState('');
+  const [cropTargetH, setCropTargetH] = useState('');
+  const [cropLockRatio, setCropLockRatio] = useState(false);
+  const [signatureResize, setSignatureResize] = useState<{id:string;corner:string;startX:number;startY:number;x:number;y:number;w:number;h:number;aspect:number}|null>(null);
+  const [marqueeBox, setMarqueeBox] = useState<{x:number;y:number;w:number;h:number}|null>(null);
+  const [stageSize, setStageSize] = useState({width:0,height:0});
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const undoStackRef = useRef<ManualPage[][]>([]);
+  const redoStackRef = useRef<ManualPage[][]>([]);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const menuBarRef = useRef<HTMLElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const pageRef = useRef<ManualPage>(pages[0]);
+  const pageIndexRef = useRef(0);
+  useEffect(() => { pageRef.current = pages[pageIndex] || pages[0]; pageIndexRef.current = pageIndex; }, [pages,pageIndex]);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  useEffect(() => {
+    let cancelled = false;
+    readManualStudioProject().then(saved => {
+      if (cancelled) return;
+      if (saved?.pages?.length) {
+        setPages(saved.pages);
+        setManualOrientation(saved.manualOrientation || 'none');
+        setPageIndex(Math.max(0, Math.min(saved.pageIndex || 0, saved.pages.length - 1)));
+        setTool(saved.tool || 'move');
+        setSelectedIds(saved.selectedIds || []);
+        setFiles(saved.files || []);
+        setAssetDocuments(saved.assetDocuments || []);
+        setActiveAssetId(saved.activeAssetId || null);
+        setAssetWorkspaceOpen(!!saved.assetWorkspaceOpen);
+        setSignatureAsset(saved.signatureAsset || null);
+        setImportKind(saved.importKind || 'photo');
+        setUnit(saved.unit || 'mm');
+        setSettingsOpen(saved.settingsOpen ?? true);
+        setPageZoom(saved.pageZoom || 100);
+        setHorizontalGapMm(saved.horizontalGapMm ?? 2);
+        setVerticalGapMm(saved.verticalGapMm ?? 2);
+        setManualPhotoCount(saved.manualPhotoCount ?? 4);
+        setManualBorderEnabled(saved.manualBorderEnabled ?? false);
+        setManualBorderWidthMm(saved.manualBorderWidthMm ?? 0.1);
+        setManualBorderColor(saved.manualBorderColor || '#000000');
+        setManualCustomBorderColor(saved.manualCustomBorderColor || '#000000');
+        setCropZoom(saved.cropZoom || 100);
+        setCropBox(saved.cropBox || {x:0,y:0,w:100,h:100});
+        setCropTargetW(saved.cropTargetW || '');
+        setCropTargetH(saved.cropTargetH || '');
+        setCropLockRatio(!!saved.cropLockRatio);
+      }
+    }).catch(error => console.warn('Manual Studio recovery could not read the saved project.', error))
+      .finally(() => { if (!cancelled) setHydrated(true); });
+    return () => { cancelled = true; };
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      const save = async () => {
+        const [savedPages, savedFiles, savedDocuments] = await Promise.all([
+          Promise.all(pages.map(async p => ({...p, layers: await Promise.all(p.layers.map(async l => l.src ? {...l, src: await persistImageSource(l.src)} : l))}))),
+          Promise.all(files.map(async f => ({...f, src: await persistImageSource(f.src)}))),
+          Promise.all(assetDocuments.map(async d => ({...d, src: await persistImageSource(d.src)})))
+        ]);
+        if (cancelled) return;
+        await writeManualStudioProject({
+          pages:savedPages,pageIndex,manualOrientation,tool,selectedIds,files:savedFiles,assetDocuments:savedDocuments,
+          activeAssetId,assetWorkspaceOpen,signatureAsset:signatureAsset?{...signatureAsset,src:await persistImageSource(signatureAsset.src)}:null,importKind,unit,settingsOpen,pageZoom,horizontalGapMm,verticalGapMm,manualPhotoCount,manualBorderEnabled,manualBorderWidthMm,manualBorderColor,manualCustomBorderColor,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
+          savedAt:Date.now()
+        });
+      };
+      saveQueueRef.current = saveQueueRef.current.then(save).catch(error => console.warn('Manual Studio auto-save failed.', error));
+    }, 100);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [hydrated,pages,pageIndex,manualOrientation,tool,selectedIds,files,assetDocuments,activeAssetId,assetWorkspaceOpen,signatureAsset,importKind,unit,settingsOpen,pageZoom,horizontalGapMm,verticalGapMm,manualPhotoCount,manualBorderEnabled,manualBorderWidthMm,manualBorderColor,manualCustomBorderColor,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio]);
+  useEffect(() => {
+    const handleOutsidePointer = (event: PointerEvent) => {
+      if (!(event.target as HTMLElement).closest('[data-menu-popup], [data-menu-toggle]')) setMenuOpen(null);
+    };
+    document.addEventListener('pointerdown', handleOutsidePointer);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointer);
+  }, []);
+  useEffect(() => {
+    const element = stageRef.current;
+    if (!element) return;
+    const handleWheelZoom = (event: WheelEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('[data-manual-page]')) return;
+      const photoElement = target.closest('[data-layer-id]') as HTMLElement | null;
+      const photoId = photoElement?.dataset.layerId;
+      const photo = photoId ? pageRef.current.layers.find(layer => layer.id === photoId) : null;
+      if (photo?.type === 'photo' && photo.assetKind !== 'signature' && !photo.locked) {
+        event.preventDefault();
+        const factor = event.deltaY < 0 ? 1.04 : 1 / 1.04;
+        setPages(current => current.map((p,i) => i !== pageIndexRef.current ? p : ({...p,layers:p.layers.map(layer => layer.id !== photo.id ? layer : (() => { const w=Math.max(5,Math.min(210,layer.w*factor)); const h=Math.max(5,Math.min(297,layer.h*factor)); return {...layer,w,h,x:Math.max(0,Math.min(p.width-w,layer.x-(w-layer.w)/2)),y:Math.max(0,Math.min(p.height-h,layer.y-(h-layer.h)/2))}; })())}))); 
+        return;
+      }
+      event.preventDefault();
+      const step = (value:number) => value < 200 ? 10 : value < 500 ? 25 : 50;
+      setPageZoom(value => Math.max(10, Math.min(1600, value + (event.deltaY < 0 ? step(value) : -step(value)))));
+    };
+    element.addEventListener('wheel', handleWheelZoom, { passive: false });
+    return () => element.removeEventListener('wheel', handleWheelZoom);
+  }, []);
+  useEffect(() => {
+    const node = stageRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver(entries => {
+      const rect = entries[0]?.contentRect;
+      if (rect) setStageSize({width:rect.width,height:rect.height});
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  const page = pages[pageIndex] || pages[0];
+  const pageAspect = page.width / page.height;
+  const fitPageHeight = stageSize.height > 0 ? Math.max(120, Math.min(700, stageSize.height - 40, (stageSize.width - 40) / pageAspect)) : 420;
+  const basePageWidth = fitPageHeight * pageAspect;
+  const zoomedPageWidth = basePageWidth * pageZoom / 100;
+  const zoomedPageHeight = fitPageHeight * pageZoom / 100;
+  const selected = page.layers.filter(layer => selectedIds.includes(layer.id));
+  const updatePage = (fn: (p:ManualPage)=>ManualPage) => { undoStackRef.current=[...undoStackRef.current.slice(-39),pages]; redoStackRef.current=[]; setPages(current=>current.map((p,i)=>i===pageIndex?fn(p):p)); };
+  const undoPage = () => { const previous=undoStackRef.current.pop(); if(previous){redoStackRef.current.push(pages);setPages(previous);setPageIndex(i=>Math.min(i,previous.length-1));setSelectedIds([]);} };
+  const redoPage = () => { const next=redoStackRef.current.pop(); if(next){undoStackRef.current.push(pages);setPages(next);setPageIndex(i=>Math.min(i,next.length-1));setSelectedIds([]);} };
+  const updateLayer = (id:string, patch:Partial<ManualLayer>) => updatePage(p=>({...p,layers:p.layers.map(l=>l.id===id?{...l,...patch}:l)}));
+  const addImage = (file:{id:string;name:string;src:string}, target?:{x:number;y:number;w:number;h:number}) => {
+    const layer:ManualLayer={id:uid(),type:'photo',name:file.name,fileName:file.name,src:file.src,x:target?.x??page.margin+8,y:target?.y??page.margin+8,w:target?.w??45,h:target?.h??60,cropZoom:100};
+    updatePage(p=>({...p,layers:[...p.layers,layer]})); setSelectedIds([layer.id]);
+  };
+  const addSignatureToPage = (asset:{name:string;src:string}) => {
+    const image=new Image();
+    image.onload=()=>{
+      const width=34,aspect=image.naturalHeight/Math.max(1,image.naturalWidth),height=width*aspect;
+      const layer:ManualLayer={id:uid(),type:'photo',assetKind:'signature',aspectRatio:aspect,name:asset.name,fileName:asset.name,src:asset.src,x:page.margin+8,y:page.margin+8,w:width,h:height,cropZoom:100};
+      updatePage(p=>({...p,layers:[...p.layers,layer]}));setSelectedIds([layer.id]);setTool('move');
+    };
+    image.onerror=()=>window.alert('Signature preview could not be loaded. Please upload it again.');
+    image.src=asset.src;
+  };
+  const applySignatureToPhoto = async () => {
+    const signatureLayer=page.layers.find(layer=>selectedIds.includes(layer.id)&&layer.assetKind==='signature'&&layer.src);
+    if(!signatureLayer)return;
+    const photoLayers=page.layers.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature'&&layer.src&&layer.id!==signatureLayer.id);
+    const target=photoLayers.map(layer=>({layer,area:Math.max(0,Math.min(layer.x+layer.w,signatureLayer.x+signatureLayer.w)-Math.max(layer.x,signatureLayer.x))*Math.max(0,Math.min(layer.y+layer.h,signatureLayer.y+signatureLayer.h)-Math.max(layer.y,signatureLayer.y))})).sort((a,b)=>b.area-a.area)[0];
+    if(!target||target.area<1){window.alert('सिग्नेचर को पहले फोटो के ऊपर रखें, फिर Apply & Save करें।');return;}
+    if(target.layer.rotation){window.alert('सिग्नेचर मर्ज करने से पहले फोटो को सीधा रखें।');return;}
+    try{
+      const [photoImage,signatureImage]=await Promise.all([target.layer.src,signatureLayer.src].map(src=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Image could not be loaded.'));image.src=src!;})));
+      const scale=300/25.4,canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(target.layer.w*scale));canvas.height=Math.max(1,Math.round(target.layer.h*scale));
+      const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas is unavailable.');
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.drawImage(photoImage,0,0,canvas.width,canvas.height);
+      const sx=(signatureLayer.x-target.layer.x)/target.layer.w*canvas.width;
+      const sy=(signatureLayer.y-target.layer.y)/target.layer.h*canvas.height;
+      const sw=signatureLayer.w/target.layer.w*canvas.width;
+      const sh=signatureLayer.h/target.layer.h*canvas.height;
+      ctx.drawImage(signatureImage,sx,sy,sw,sh);
+      const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));
+      if(!blob)throw new Error('Merged photo could not be created.');
+      const mergedSrc=URL.createObjectURL(blob);
+      updatePage(p=>({...p,layers:p.layers.filter(layer=>layer.id!==signatureLayer.id).map(layer=>layer.id===target.layer.id?{...layer,src:mergedSrc,name:layer.name.replace(/\.[^.]+$/,'')+'-signed.png',fileName:layer.name.replace(/\.[^.]+$/,'')+'-signed.png'}:layer)}));
+      setSelectedIds([]);setTool('move');
+    }catch(error){window.alert(error instanceof Error?error.message:'Could not apply signature to the photo.');}
+  };
+  const startSignatureResize = (event:React.PointerEvent<HTMLButtonElement>, layer:ManualLayer, corner:string) => {
+    if(layer.locked)return;event.preventDefault();event.stopPropagation();
+    const pageEl=event.currentTarget.closest('[data-manual-page]') as HTMLElement|null;if(!pageEl)return;
+    pageEl.setPointerCapture(event.pointerId);
+    undoStackRef.current=[...undoStackRef.current.slice(-39),pages];redoStackRef.current=[];
+    setSignatureResize({id:layer.id,corner,startX:event.clientX,startY:event.clientY,x:layer.x,y:layer.y,w:layer.w,h:layer.h,aspect:layer.aspectRatio||layer.h/Math.max(1,layer.w)});
+  };
+  const onFiles = (list:FileList|null) => {
+    if(!list)return;
+    const incoming=Array.from(list).filter(f=>f.type.startsWith('image/')).map(file=>{
+      const item={id:uid(),name:file.name,src:URL.createObjectURL(file)};
+      return {item,document:{...item,kind:importKind} as ManualAssetDocument};
+    });
+    if(incoming.length){
+      setFiles(current=>[...current,...incoming.map(x=>x.item)]);
+      setAssetDocuments(current=>[...current,...incoming.map(x=>x.document)]);
+      setActiveAssetId(incoming[incoming.length-1].document.id);
+      setAssetWorkspaceOpen(true);
+    }
+    if(uploadRef.current)uploadRef.current.value='';
+  };
+  const addFrame = () => { const l:ManualLayer={id:uid(),type:'frame',name:'Photo Frame',x:page.margin+8,y:page.margin+8,w:45,h:60};updatePage(p=>({...p,layers:[...p.layers,l]}));setSelectedIds([l.id]);setTool('move'); };
+  const addText = () => { const l:ManualLayer={id:uid(),type:'text',name:'Text Layer',text:'Your text',x:page.margin+8,y:page.margin+8,w:65,h:16};updatePage(p=>({...p,layers:[...p.layers,l]}));setSelectedIds([l.id]); };
+  const removeSelected = () => { updatePage(p=>({...p,layers:p.layers.filter(l=>!selectedIds.includes(l.id))}));setSelectedIds([]); };
+  const removeLayerById = (id:string) => {
+    updatePage(p=>({...p,layers:p.layers.filter(layer=>layer.id!==id)}));
+    setSelectedIds(current=>current.filter(selectedId=>selectedId!==id));
+  };
+  const removeImportedFile = (id:string) => {
+    setFiles(current=>current.filter(file=>file.id!==id));
+    setAssetDocuments(current=>current.filter(document=>document.id!==id));
+    setActiveAssetId(current=>current===id?null:current);
+    if(activeAssetId===id)setAssetWorkspaceOpen(false);
+  };
+  const groupSelectedPhotos = () => {
+    const chosen = selected.filter(layer => layer.type === 'photo' && layer.assetKind !== 'signature' && !!layer.src);
+    if (chosen.length < 2) return;
+    const groupId = 'manual-group-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    const ids = new Set(chosen.map(layer => layer.id));
+    updatePage(p => ({ ...p, layers: p.layers.map(layer => ids.has(layer.id) ? { ...layer, groupId, locked: false } : layer) }));
+    setSelectedIds(chosen.map(layer => layer.id));
+  };
+  const ungroupSelectedPhotos = () => {
+    const chosen = page.layers.filter(layer => selectedIds.includes(layer.id));
+    const groupIds = new Set(chosen.map(layer => layer.groupId).filter(Boolean));
+    if (!groupIds.size) return;
+    updatePage(p => ({ ...p, layers: p.layers.map(layer => { if (!groupIds.has(layer.groupId)) return layer; const { groupId, ...rest } = layer; return rest; }) }));
+    setSelectedIds(page.layers.filter(layer => groupIds.has(layer.groupId)).map(layer => layer.id));
+  };
+
+  const mergeSelectedPhotos = async () => {
+    const chosen = selected.filter(layer => layer.type === 'photo' && layer.src);
+    if (chosen.length < 2) return;
+    const left = Math.min(...chosen.map(layer => layer.x)), top = Math.min(...chosen.map(layer => layer.y));
+    const right = Math.max(...chosen.map(layer => layer.x + layer.w)), bottom = Math.max(...chosen.map(layer => layer.y + layer.h));
+    const scale = 300 / 25.4, canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round((right-left)*scale)); canvas.height = Math.max(1, Math.round((bottom-top)*scale));
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    for (const layer of chosen) {
+      const img = new Image(); img.src = layer.src!;
+      await new Promise<void>(resolve => { img.onload=()=>resolve(); img.onerror=()=>resolve(); });
+      if (!img.naturalWidth) continue;
+      const x=(layer.x-left)*scale,y=(layer.y-top)*scale,ww=layer.w*scale,hh=layer.h*scale;
+      ctx.save();ctx.translate(x+ww/2,y+hh/2);ctx.rotate((layer.rotation||0)*Math.PI/180);ctx.drawImage(img,-ww/2,-hh/2,ww,hh);ctx.restore();
+    }
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)return;
+    const merged:ManualLayer={id:uid(),type:'photo',name:'Merged Photos.png',fileName:'Merged Photos.png',src:URL.createObjectURL(blob),x:left,y:top,w:right-left,h:bottom-top,cropZoom:100};
+    updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!chosen.some(item=>item.id===layer.id)),merged]}));setSelectedIds([merged.id]);setTool('move');
+  };
+  const duplicateSelected = () => { const copies=selected.map(l=>({...l,id:uid(),name:l.name+' copy',x:l.x+5,y:l.y+5,locked:false,groupId:undefined}));updatePage(p=>({...p,layers:[...p.layers,...copies]}));setSelectedIds(copies.map(l=>l.id)); };
+  const pagePoint = (event:React.PointerEvent) => { const element=stageRef.current?.querySelector('[data-manual-page]') as HTMLDivElement|null;const rect=element?.getBoundingClientRect();if(!rect||!rect.width)return{x:0,y:0};const ratio=rect.width/page.width;return{x:Math.max(0,Math.min(page.width,(event.clientX-rect.left)/ratio)),y:Math.max(0,Math.min(page.height,(event.clientY-rect.top)/ratio))}; };
+  const addPage = () => {undoStackRef.current=[...undoStackRef.current.slice(-39),pages];redoStackRef.current=[];setPages(current=>[...current,makePage(current.length+1,page.width,page.height)]);setPageIndex(pages.length);setSelectedIds([]);};
+  const duplicatePage = () => {undoStackRef.current=[...undoStackRef.current.slice(-39),pages];redoStackRef.current=[];const copy={...page,id:uid(),name:'Page '+(pages.length+1),layers:page.layers.map(l=>({...l,id:uid(),x:l.x+3,y:l.y+3}))};setPages(current=>[...current,copy]);setPageIndex(pages.length);setSelectedIds([]);};
+  const deletePage = () => {if(pages.length===1){updatePage(p=>({...p,layers:[]}));setSelectedIds([]);return;}undoStackRef.current=[...undoStackRef.current.slice(-39),pages];redoStackRef.current=[];setPages(current=>current.filter((_,i)=>i!==pageIndex));setPageIndex(Math.max(0,pageIndex-1));setSelectedIds([]);};
+  const printPage = async () => {
+    const canvas=document.createElement('canvas');canvas.width=Math.round(page.width*300/25.4);canvas.height=Math.round(page.height*300/25.4);
+    const ctx=canvas.getContext('2d');if(!ctx)return;ctx.fillStyle=page.background;ctx.fillRect(0,0,canvas.width,canvas.height);
+    for(const layer of page.layers){const x=layer.x*300/25.4,y=layer.y*300/25.4,ww=layer.w*300/25.4,hh=layer.h*300/25.4;
+      if(layer.type==='text'){ctx.fillStyle='#111827';ctx.font=Math.max(12,Math.round(hh*.65))+'px Arial';ctx.fillText(layer.text||'',x,y+hh*.7);continue;}
+      if(layer.type==='frame'){ctx.strokeStyle='#64748b';ctx.setLineDash([8,6]);ctx.strokeRect(x,y,ww,hh);ctx.setLineDash([]);continue;}
+      if(layer.src){const img=new Image();img.src=layer.src;await new Promise<void>(resolve=>{img.onload=()=>{ctx.save();ctx.translate(x+ww/2,y+hh/2);ctx.rotate((layer.rotation||0)*Math.PI/180);ctx.drawImage(img,-ww/2,-hh/2,ww,hh);if(manualBorderEnabled&&manualBorderWidthMm>0){ctx.strokeStyle=manualBorderColor;ctx.lineWidth=manualBorderWidthMm*300/25.4;ctx.strokeRect(-ww/2,-hh/2,ww,hh);}ctx.restore();resolve();};img.onerror=()=>resolve();});}
+    }
+    const printWindow=window.open('','_blank');if(!printWindow){window.alert('Please allow pop-ups to print at actual size.');return;}
+    const data=canvas.toDataURL('image/png');
+    printWindow.document.write('<!doctype html><html><head><title>'+page.name+'</title><style>@page{size:'+page.width+'mm '+page.height+'mm;margin:0}html,body{margin:0;padding:0;width:'+page.width+'mm;height:'+page.height+'mm}img{display:block;width:'+page.width+'mm;height:'+page.height+'mm}</style></head><body><img src="'+data+'"><script>window.onload=function(){window.focus();window.print();};</script></body></html>');
+    printWindow.document.close();
+  };
+  const exportPage = async () => {
+    const canvas=document.createElement('canvas');canvas.width=Math.round(page.width*300/25.4);canvas.height=Math.round(page.height*300/25.4);
+    const ctx=canvas.getContext('2d');if(!ctx)return;ctx.fillStyle=page.background;ctx.fillRect(0,0,canvas.width,canvas.height);
+    for(const layer of page.layers){const x=layer.x*300/25.4,y=layer.y*300/25.4,w=layer.w*300/25.4,h=layer.h*300/25.4;
+      if(layer.type==='text'){ctx.fillStyle='#111827';ctx.font=Math.max(12,Math.round(h*.65))+'px Arial';ctx.fillText(layer.text||'',x,y+h*.7);continue;}
+      if(layer.type==='frame'){ctx.strokeStyle='#64748b';ctx.setLineDash([8,6]);ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);continue;}
+      if(layer.src){const img=new Image();img.src=layer.src;await new Promise<void>(resolve=>{img.onload=()=>{ctx.save();ctx.translate(x+w/2,y+h/2);ctx.rotate((layer.rotation||0)*Math.PI/180);ctx.drawImage(img,-w/2,-h/2,w,h);if(manualBorderEnabled&&manualBorderWidthMm>0){ctx.strokeStyle=manualBorderColor;ctx.lineWidth=manualBorderWidthMm*300/25.4;ctx.strokeRect(-w/2,-h/2,w,h);}ctx.restore();resolve();};img.onerror=()=>resolve();});}
+    }
+    const link=document.createElement('a');link.download=page.name.replace(/\s+/g,'-')+'.png';link.href=canvas.toDataURL('image/png');link.click();
+  };
+  const selectedPhoto = selected.find(layer=>layer.type==='photo') || null;
+  const arrangePhotosUsingGaps = (count = manualPhotoCount, horizontalGap = horizontalGapMm, verticalGap = verticalGapMm) => {
+    const existing = page.layers.filter(layer=>layer.type==='photo' && layer.assetKind!=='signature' && !!layer.src && !layer.autoCopy);
+    if (!existing.length) return;
+    const requested = Math.max(1,Math.min(60,Math.round(count)||1));
+    const candidates = existing.slice(0,requested);
+    while(candidates.length<requested){
+      const source=existing[(candidates.length-existing.length)%existing.length] || existing[0];
+      candidates.push({...source,id:uid(),name:source.name.replace(/ copy(?: \(\d+\))?$/,'')+' copy',locked:false,autoCopy:true});
+    }
+    const safeMargin=Math.max(3,page.margin||0);
+    let x=safeMargin,y=safeMargin,rowHeight=0;
+    const positions=new Map<string,{x:number;y:number}>();
+    const arranged:ManualLayer[]=[];
+    for(const layer of candidates){
+      if(x>safeMargin+0.001&&x+layer.w>page.width-safeMargin+0.001){x=safeMargin;y+=rowHeight+Math.max(0,verticalGap);rowHeight=0;}
+      if(x+layer.w>page.width-safeMargin+0.001||y+layer.h>page.height-safeMargin+0.001)break;
+      positions.set(layer.id,{x,y});
+      arranged.push(layer);
+      x+=layer.w+Math.max(0,horizontalGap);
+      rowHeight=Math.max(rowHeight,layer.h);
+    }
+    if(!arranged.length)return;
+    const additions=arranged.filter(layer=>!page.layers.some(existingLayer=>existingLayer.id===layer.id));
+    updatePage(p=>({...p,layers:[...p.layers.filter(layer=>!layer.autoCopy).map(layer=>{const position=positions.get(layer.id);return position?{...layer,...position}:layer;}),...additions.map(layer=>({...layer,...positions.get(layer.id)!}))]}));
+    setManualPhotoCount(arranged.length);
+    setSelectedIds(arranged.map(layer=>layer.id));
+  };
+  const smartPhotoAdjust = () => {
+    const reference=selected.find(layer=>layer.type==='photo'&&layer.assetKind!=='signature'&&!layer.locked);
+    if(!reference){window.alert('पहले A4 शीट पर एक फोटो चुनें, फिर Smart Photo Adjust दबाएँ।');return;}
+    const photos=page.layers.filter(layer=>layer.type==='photo'&&layer.assetKind!=='signature'&&!!layer.src);
+    if(!photos.length)return;
+    const resized=photos.map(layer=>({...layer,w:reference.w,h:reference.h}));
+    const nextCount=Math.max(manualPhotoCount,resized.length);
+    setManualPhotoCount(nextCount);
+    const safeMargin=Math.max(3,page.margin||0);
+    let x=safeMargin,y=safeMargin,rowHeight=0;
+    const positions=new Map<string,{x:number;y:number}>();
+    const arranged:ManualLayer[]=[];
+    for(const layer of resized){
+      if(x>safeMargin+0.001&&x+layer.w>page.width-safeMargin+0.001){x=safeMargin;y+=rowHeight+verticalGapMm;rowHeight=0;}
+      if(x+layer.w>page.width-safeMargin+0.001||y+layer.h>page.height-safeMargin+0.001)break;
+      positions.set(layer.id,{x,y});arranged.push(layer);
+      x+=layer.w+horizontalGapMm;rowHeight=Math.max(rowHeight,layer.h);
+    }
+    updatePage(p=>({...p,layers:p.layers.map(layer=>{const resizedLayer=resized.find(photo=>photo.id===layer.id);const position=positions.get(layer.id);return resizedLayer?{...resizedLayer,...(position||{})}:layer;})}));
+    setManualPhotoCount(arranged.length);
+    setSelectedIds(arranged.map(layer=>layer.id));
+  };
+  const startCropDrag = (event:React.PointerEvent<HTMLButtonElement>, corner:string) => {
+    if(!selectedPhoto)return; const wrapper=event.currentTarget.closest('[data-layer-id]') as HTMLElement|null; const rect=wrapper?.getBoundingClientRect(); if(!rect?.width||!rect.height)return;
+    event.preventDefault();event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);
+    setCropDrag({corner,rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},startX:event.clientX,startY:event.clientY,box:{...cropBox}});
+  };
+  const startCropDraw = (event:React.PointerEvent<HTMLDivElement>, layer:ManualLayer) => {
+    if(!layer.src || layer.locked)return;
+    event.preventDefault();event.stopPropagation();
+    const rect=event.currentTarget.getBoundingClientRect();
+    const pageElement=event.currentTarget.closest('[data-manual-page]') as HTMLElement|null;
+    if(!rect.width||!rect.height||!pageElement)return;
+    pageElement.setPointerCapture(event.pointerId);
+    setSelectedIds([layer.id]);
+    setCropBox({x:0,y:0,w:0,h:0});
+    setCropDrag({mode:'draw',rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},startX:event.clientX,startY:event.clientY,layerId:layer.id});
+  };
+  const moveCropDrag = (event:React.PointerEvent<HTMLButtonElement>) => {
+    if(!cropDrag)return; const dx=(event.clientX-cropDrag.startX)/cropDrag.rect.width*100; const dy=(event.clientY-cropDrag.startY)/cropDrag.rect.height*100; let {x,y,w,h}=cropDrag.box; const min=5;
+    if(cropDrag.corner.includes('e'))w=Math.max(min,Math.min(100-x,w+dx)); if(cropDrag.corner.includes('s'))h=Math.max(min,Math.min(100-y,h+dy));
+    if(cropDrag.corner.includes('w')){const right=x+w;x=Math.max(0,Math.min(right-min,x+dx));w=right-x;} if(cropDrag.corner.includes('n')){const bottom=y+h;y=Math.max(0,Math.min(bottom-min,y+dy));h=bottom-y;}
+    setCropBox({x,y,w,h});
+  };
+  const updateCropDraw = (event:React.PointerEvent<HTMLDivElement>) => {
+    if(!cropDrag || cropDrag.mode!=='draw')return;
+    const {rect,startX,startY,layerId}=cropDrag;
+    const layer=page.layers.find(l=>l.id===layerId);
+    if(!layer)return;
+    const sx=Math.max(0,Math.min(100,(startX-rect.left)/rect.width*100));
+    const sy=Math.max(0,Math.min(100,(startY-rect.top)/rect.height*100));
+    const ex=Math.max(0,Math.min(100,(event.clientX-rect.left)/rect.width*100));
+    const ey=Math.max(0,Math.min(100,(event.clientY-rect.top)/rect.height*100));
+    let x=Math.min(sx,ex),y=Math.min(sy,ey),w=Math.abs(ex-sx),h=Math.abs(ey-sy);
+    const tw=Number(cropTargetW),th=Number(cropTargetH);
+    if(cropLockRatio&&tw>0&&th>0&&w>0&&h>0){
+      const desired=tw/th;
+      const current=(w*layer.w)/(h*layer.h);
+      if(current>desired){const nextW=h*layer.h*desired/layer.w;x=ex>=sx?sx:sx-nextW;w=nextW;}
+      else {const nextH=w*layer.w/desired/layer.h;y=ey>=sy?sy:sy-nextH;h=nextH;}
+      x=Math.max(0,Math.min(100-w,x));y=Math.max(0,Math.min(100-h,y));
+    }
+    if(w>=1&&h>=1)setCropBox({x,y,w,h});
+  };
+  const applyManualCrop = async () => {
+    if(!selectedPhoto?.src)return; const image=new Image();image.src=selectedPhoto.src; await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Photo could not be loaded'));});
+    const sx=Math.round(image.naturalWidth*cropBox.x/100),sy=Math.round(image.naturalHeight*cropBox.y/100); const sw=Math.max(1,Math.round(image.naturalWidth*cropBox.w/100)),sh=Math.max(1,Math.round(image.naturalHeight*cropBox.h/100));
+    const canvas=document.createElement('canvas');canvas.width=sw;canvas.height=sh;const ctx=canvas.getContext('2d');if(!ctx)return;ctx.drawImage(image,sx,sy,sw,sh,0,0,sw,sh);
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)return;const src=URL.createObjectURL(blob);
+    const outW=Number(cropTargetW)>0?fromUnit(Number(cropTargetW)):selectedPhoto.w*cropBox.w/100;
+    const outH=Number(cropTargetH)>0?fromUnit(Number(cropTargetH)):selectedPhoto.h*cropBox.h/100;
+    updateLayer(selectedPhoto.id,{src,name:selectedPhoto.name.replace(/\.[^.]+$/,'')+'-cropped.png',fileName:selectedPhoto.name.replace(/\.[^.]+$/,'')+'-cropped.png',cropZoom:100,...(outW>0&&outH>0?{w:outW,h:outH}:{})});setTool('move');setCropDrag(null);setCropBox({x:0,y:0,w:100,h:100});setCropTargetW('');setCropTargetH('');setCropLockRatio(false);
+  };
+  const unitValue=(mm:number)=>unit==='mm'?mm:unit==='cm'?mm/10:mm/25.4;
+  const fromUnit=(v:number)=>unit==='mm'?v:unit==='cm'?v*10:v*25.4;
+  const saveWorkspaceNow = async () => {
+    const [savedPages, savedFiles, savedDocuments] = await Promise.all([
+      Promise.all(pages.map(async p => ({...p, layers: await Promise.all(p.layers.map(async l => l.src ? {...l, src: await persistImageSource(l.src)} : l))}))),
+      Promise.all(files.map(async f => ({...f, src: await persistImageSource(f.src)}))),
+      Promise.all(assetDocuments.map(async d => ({...d, src: await persistImageSource(d.src)})))
+    ]);
+    const save = async () => writeManualStudioProject({
+      pages:savedPages,pageIndex,tool,selectedIds,files:savedFiles,assetDocuments:savedDocuments,
+      activeAssetId,assetWorkspaceOpen,signatureAsset:signatureAsset?{...signatureAsset,src:await persistImageSource(signatureAsset.src)}:null,importKind,unit,settingsOpen,pageZoom,cropZoom,cropBox,cropTargetW,cropTargetH,cropLockRatio,
+      savedAt:Date.now()
+    });
+    saveQueueRef.current = saveQueueRef.current.then(save);
+    await saveQueueRef.current;
+  };
+  return <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#171b20] text-[#e4e8ec]">
+    <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#343b43] px-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2"><button onClick={()=>{void saveWorkspaceNow().then(onBackToAuto).catch(error=>{console.warn("Manual Studio could not finish saving before exit.",error);onBackToAuto();});}} className="rounded-md border border-[#424a53] px-2 py-1.5 text-xs hover:bg-[#303840]"><ArrowLeft size={13} className="mr-1 inline"/> Auto Photo Maker</button><strong className="shrink-0 text-xs tracking-wide">MANUAL PHOTO STUDIO</strong><span className="shrink-0 rounded bg-[#29352f] px-2 py-1 text-[9px] text-[#b8d6c4]">Independent workspace</span><div className="relative shrink-0"><button data-menu-toggle onClick={()=>setMenuOpen(menuOpen==='Sheets'?null:'Sheets')} className={'rounded border px-3 py-1.5 text-[10px] font-semibold '+(menuOpen==='Sheets'?'border-[#d5a66e] bg-[#35404a] text-white':'border-[#47515b] text-[#d5dce3] hover:bg-[#303840]')}>Sheets <span className="ml-1">▾</span></button>{menuOpen==='Sheets'&&<div data-menu-popup className="absolute left-0 top-9 z-[100] min-w-[170px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl"><button onClick={()=>{updatePage(p=>({...p,width:210,height:297}));setMenuOpen(null);}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">A4 Portrait</button><button onClick={()=>{updatePage(p=>({...p,width:101.6,height:152.4}));setMenuOpen(null);}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">4×6 Sheet</button><button onClick={()=>{setCustomPaperWidth(String(Number(page.width.toFixed(1))));setCustomPaperHeight(String(Number(page.height.toFixed(1))));setMenuOpen('Custom Sheets');}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">Custom paper size…</button></div>}{menuOpen==='Custom Sheets'&&<div data-menu-popup className="absolute left-0 top-9 z-[100] w-[230px] rounded-lg border border-[#46515c] bg-[#20272e] p-3 shadow-2xl"><div className="mb-2 text-[10px] font-semibold text-[#d5a66e]">CUSTOM PAPER SIZE (mm)</div><div className="grid grid-cols-2 gap-2"><label className="text-[9px] text-[#aeb8c2]">Width<input type="number" min="20" max="1000" step="0.1" value={customPaperWidth} onChange={e=>setCustomPaperWidth(e.target.value)} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label><label className="text-[9px] text-[#aeb8c2]">Height<input type="number" min="20" max="1000" step="0.1" value={customPaperHeight} onChange={e=>setCustomPaperHeight(e.target.value)} className="studio-control mt-1 h-8 w-full px-2 text-[10px]"/></label></div><div className="mt-3 flex justify-end gap-2"><button onClick={()=>setMenuOpen(null)} className="rounded border border-[#47515b] px-2.5 py-1.5 text-[9px] text-[#c5cdd5]">Cancel</button><button onClick={()=>{const w=Number(customPaperWidth),h=Number(customPaperHeight);if(w>=20&&w<=1000&&h>=20&&h<=1000){updatePage(p=>({...p,width:w,height:h}));setMenuOpen(null);}else window.alert('Width and height must be between 20 and 1000 mm.');}} className="rounded bg-[#d5a66e] px-3 py-1.5 text-[9px] font-semibold text-[#171b20]">Apply Size</button></div></div>}</div><label className="flex shrink-0 items-center gap-1.5 rounded border border-[#47515b] px-2 py-1 text-[10px] text-[#c5cdd5]">Orientation<select aria-label="Manual Photo Studio page orientation" value={manualOrientation} onChange={e=>{const next=e.target.value as 'none'|'portrait'|'landscape';setManualOrientation(next);if(next!=='none'){updatePage(p=>{const isLandscape=p.width>p.height;if((next==='landscape')!==isLandscape)return {...p,width:p.height,height:p.width};return p;});}}} className="studio-control h-7 max-w-[92px] px-1.5"><option value="none">None</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label><button onClick={()=>{setImportKind('photo');uploadRef.current?.click();}} className="ml-auto shrink-0 rounded border border-[#47515b] px-3 py-1.5 text-xs"><Upload size={13} className="mr-1 inline"/> Import Photo</button><div className="flex shrink-0 items-center gap-1.5 border-l border-[#3b4650] pl-2"><button onClick={()=>void exportPage()} className="rounded bg-[#d5a66e] px-2.5 py-1.5 text-[10px] font-semibold text-[#171b20]" title="Export the current Manual Studio page as a PNG file"><Download size={12} className="mr-1 inline"/> Export File</button><button onClick={()=>void printPage()} className="rounded border border-[#47515b] px-2.5 py-1.5 text-[10px]">Print Actual Size</button></div><input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={e=>onFiles(e.target.files)}/></div>
+    </div>
+    <nav ref={menuBarRef} className="relative z-40 flex h-10 shrink-0 items-center gap-1 overflow-visible border-b border-[#343b43] bg-[#1b2026] px-3 text-[11px]">
+      {['File','Edit','Image','Canvas','Arrange','Merge'].map(item=><div key={item} className="relative"><button data-menu-toggle onClick={()=>setMenuOpen(menuOpen===item?null:item)} className={'rounded px-2.5 py-2 '+(menuOpen===item?'bg-[#35404a] text-white':'text-[#aeb8c2] hover:bg-[#2b333b] hover:text-white')}>{item}</button>{menuOpen===item&&<div data-menu-popup className="absolute left-0 top-9 z-[80] min-w-[190px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl">{(item==='File'?['Export Page PNG','Print Actual Size']:item==='Edit'?['Undo','Redo','Duplicate Selected','Delete Selected','Select All Layers','Deselect All']:item==='Image'?['Crop Selected Photo']:item==='Canvas'?['Add Page','Duplicate Page','Delete Page']:item==='Arrange'?['Auto Arrange Selected','Bring Forward','Send Backward']:['Group Selected Photos','Ungroup Selected Photos','Merge Selected Photos']).map(action=><button key={action} disabled={(action==='Merge Selected Photos'||action==='Group Selected Photos')&&selected.filter(l=>l.type==='photo'&&l.assetKind!=='signature').length<2 || action==='Ungroup Selected Photos'&&!selected.some(l=>l.groupId)} onClick={()=>{setMenuOpen(null);if(action==='Export Page PNG')void exportPage();else if(action==='Print Actual Size')void printPage();else if(action==='Undo')undoPage();else if(action==='Redo')redoPage();else if(action==='Duplicate Selected')duplicateSelected();else if(action==='Delete Selected')removeSelected();else if(action==='Select All Layers')setSelectedIds(page.layers.map(l=>l.id));else if(action==='Deselect All')setSelectedIds([]);else if(action==='Crop Selected Photo')setTool('crop');else if(action==='Add Page')addPage();else if(action==='Duplicate Page')duplicatePage();else if(action==='Delete Page')deletePage();else if(action==='Bring Forward')updatePage(p=>{const a=[...p.layers],i=a.findIndex(l=>selectedIds.includes(l.id));if(i>=0&&i<a.length-1)[a[i],a[i+1]]=[a[i+1],a[i]];return {...p,layers:a};});else if(action==='Send Backward')updatePage(p=>{const a=[...p.layers],i=a.findIndex(l=>selectedIds.includes(l.id));if(i>0)[a[i],a[i-1]]=[a[i-1],a[i]];return {...p,layers:a};});else if(action==='Auto Arrange Selected'){const chosen=page.layers.filter(l=>selectedIds.includes(l.id));updatePage(p=>({...p,layers:p.layers.map(l=>{const i=chosen.findIndex(x=>x.id===l.id);return i<0?l:{...l,x:page.margin+5+(i%3)*(l.w+3),y:page.margin+5+Math.floor(i/3)*(l.h+3)};})}));}else if(action==='Group Selected Photos')groupSelectedPhotos();else if(action==='Ungroup Selected Photos')ungroupSelectedPhotos();else if(action==='Merge Selected Photos')void mergeSelectedPhotos();}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">{action}</button>)}</div>}</div>)}
+      <label className="ml-1 flex cursor-pointer items-center gap-1.5 rounded px-2 py-2 text-[#aeb8c2]"><input type="checkbox" checked={page.layers.length>0&&selectedIds.length===page.layers.length} onChange={e=>setSelectedIds(e.target.checked?page.layers.map(l=>l.id):[])} className="accent-[#d5a66e]"/> Select All</label>
+      <div className="relative"><button data-menu-toggle onClick={()=>setMenuOpen(menuOpen==='View'?null:'View')} className="rounded px-2.5 py-2 text-[#aeb8c2] hover:bg-[#2b333b]">View</button>{menuOpen==='View'&&<div data-menu-popup className="absolute left-0 top-9 z-[80] min-w-[150px] rounded-lg border border-[#46515c] bg-[#20272e] p-1 shadow-2xl">{['Zoom In','Zoom Out','Reset Zoom'].map(a=><button key={a} onClick={()=>{setPageZoom(v=>a==='Zoom In'?Math.min(1600,v+25):a==='Zoom Out'?Math.max(10,v-25):100);setMenuOpen(null);}} className="block w-full rounded px-3 py-2 text-left text-[10px] text-[#d0d7de] hover:bg-[#35404a]">{a}</button>)}</div>}</div>
+      <button data-menu-toggle onClick={()=>setMenuOpen(menuOpen==='Help'?null:'Help')} className="rounded px-2.5 py-2 text-[#aeb8c2] hover:bg-[#2b333b]">Help</button>{menuOpen==='Help'&&<div data-menu-popup className="absolute left-[520px] top-9 z-[80] rounded-lg border border-[#46515c] bg-[#20272e] p-3 text-[10px] text-[#d0d7de] shadow-2xl">Select a photo layer to move, resize, duplicate or delete it. Import Photo opens the separate photo workspace.</div>}
+
+      <div className="flex shrink-0 items-center gap-1 border-l border-[#3b4650] pl-2">
+        <button onClick={groupSelectedPhotos} disabled={selected.filter(l=>l.type==='photo'&&l.assetKind!=='signature').length<2} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Group Selected</button>
+        <button onClick={ungroupSelectedPhotos} disabled={!selected.some(l=>l.groupId)} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Ungroup</button>
+        <button onClick={()=>{if(!selected.length)return;const lock=!selected.every(l=>l.locked);updatePage(p=>({...p,layers:p.layers.map(l=>selectedIds.includes(l.id)?{...l,locked:lock}:l)}));}} disabled={!selected.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Lock Selected</button>
+        <button onClick={()=>setSelectedIds([])} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px]">Select None</button>
+        <button onClick={duplicateSelected} disabled={!selected.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Duplicate</button>
+        <button onClick={duplicateSelected} disabled={!selected.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Copy Row</button>
+        <button onClick={removeSelected} disabled={!selected.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Delete Row</button>
+        <button onClick={()=>{const chosen=page.layers.filter(l=>selectedIds.includes(l.id));if(!chosen.length)return;updatePage(p=>({...p,layers:p.layers.map(l=>{const i=chosen.findIndex(x=>x.id===l.id);return i<0?l:{...l,x:page.margin+5+(i%3)*(l.w+3),y:page.margin+5+Math.floor(i/3)*(l.h+3)};})}));}} disabled={!selected.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Auto Arrange</button>
+        <button onClick={undoPage} disabled={!undoStackRef.current.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Undo</button>
+        <button onClick={redoPage} disabled={!redoStackRef.current.length} className="rounded border border-[#53606c] px-2 py-1.5 text-[9px] disabled:opacity-40">Redo</button>
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-1 border-l border-[#3b4650] pl-2">
+        <button onClick={addPage} title="Add a new blank page" className="rounded border border-[#47515b] px-2 py-1.5 text-[10px] hover:bg-[#303840]"><FilePlus2 size={12} className="mr-1 inline"/> Add Page</button>
+        <button onClick={duplicatePage} title="Duplicate current page" className="rounded border border-[#47515b] px-2 py-1.5 text-[10px] hover:bg-[#303840]"><Copy size={12} className="mr-1 inline"/> Duplicate</button>
+        <button onClick={deletePage} title="Delete current page" className="rounded border border-[#47515b] px-2 py-1.5 text-[10px] hover:bg-[#303840]"><Trash2 size={12} className="mr-1 inline"/> Delete Page</button>
+        <span className="flex items-center gap-1 border-l border-[#3b4650] pl-2 text-[10px] text-[#aeb8c2]">
+          <button title="Zoom out" onClick={()=>setPageZoom(v=>Math.max(10,v-(v>500?50:25)))} className="rounded border border-[#47515b] p-1 hover:bg-[#303840]"><ZoomOut size={12}/></button>
+          <input aria-label="A4 sheet zoom" title="Drag to zoom the A4 sheet" type="range" min="10" max="1600" step="5" value={pageZoom} onChange={e=>setPageZoom(Number(e.target.value))} className="w-[92px] cursor-ew-resize accent-[#d5a66e]"/>
+          <button onClick={()=>setPageZoom(100)} className="min-w-[42px] rounded border border-[#47515b] px-1.5 py-1 tabular-nums">{pageZoom}%</button>
+          <button title="Zoom in" onClick={()=>setPageZoom(v=>Math.min(1600,v+(v>=500?50:25)))} className="rounded border border-[#47515b] p-1 hover:bg-[#303840]"><ZoomIn size={12}/></button>
+        </span>
+        <div className="flex max-w-[150px] min-w-0 items-center gap-1 overflow-x-auto">
+          {pages.map((p,i)=><button key={p.id} onClick={()=>{setPageIndex(i);setSelectedIds([]);}} className={'shrink-0 rounded px-2 py-1.5 text-[10px] '+(i===pageIndex?'bg-[#39434d] text-white':'text-[#9da8b3] hover:bg-[#28313a]')}>{p.name}</button>)}
+        </div>
+      </div>
+    </nav>
+    {assetDocuments.length>0&&<div className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-[#343b43] bg-[#20262d] px-2"><ManualAssetEditor documents={assetDocuments} activeId={activeAssetId||assetDocuments[0].id} workspaceOpen={assetWorkspaceOpen&&!!activeAssetId} signatureAsset={signatureAsset} onSignatureApplied={()=>setSignatureAsset(null)} onSignatureDrop={asset=>setSignatureAsset(asset)} onOpen={()=>setAssetWorkspaceOpen(true)} backgroundPickerOpen={backgroundPickerOpen} onToggleBackgroundPicker={()=>setBackgroundPickerOpen(v=>!v)} onActiveChange={id=>{setActiveAssetId(id);setAssetWorkspaceOpen(true);}} onReplaceSource={(id,src)=>setAssetDocuments(current=>current.map(doc=>doc.id===id?{...doc,src}:doc))} onClose={id=>{setAssetDocuments(current=>current.filter(d=>d.id!==id));setActiveAssetId(current=>current===id?(assetDocuments.find(d=>d.id!==id)?.id||null):current);}} onDuplicate={id=>{const source=assetDocuments.find(d=>d.id===id);if(!source)return;const copy={...source,id:uid(),name:source.name.replace(/\.[^.]+$/,'')+' copy'+(source.name.match(/\.[^.]+$/)?.[0]||''),src:source.src};setAssetDocuments(current=>[...current,copy]);setActiveAssetId(copy.id);}} onUseOnPage={async asset=>{if(!asset.src)throw new Error('No cropped photo is ready to add to A4.');const image=new Image();image.src=asset.src;await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Cropped photo could not be loaded for A4.'));if(image.complete&&image.naturalWidth>0)resolve();});const isA4=(candidate:ManualPage)=>((Math.abs(candidate.width-210)<0.1&&Math.abs(candidate.height-297)<0.1)||(Math.abs(candidate.width-297)<0.1&&Math.abs(candidate.height-210)<0.1));const activePage=pages[pageIndex]||pages[0];const existingA4Index=isA4(activePage)?pageIndex:pages.findIndex(isA4);const targetPageIndex=existingA4Index>=0?existingA4Index:pages.length;const targetPage=existingA4Index>=0?pages[existingA4Index]:makePage(pages.length+1,210,297);const photoLayer:ManualLayer={id:uid(),type:'photo',name:asset.name,fileName:asset.name,src:asset.src,x:targetPage.margin+8,y:targetPage.margin+8,w:Math.max(0.1,asset.widthMm),h:Math.max(0.1,asset.heightMm),cropZoom:100};const newLayers:ManualLayer[]=[photoLayer];let signatureLayerId:string|null=null;if(asset.signature?.src){const signatureImage=new Image();signatureImage.src=asset.signature.src;await new Promise<void>((resolve,reject)=>{signatureImage.onload=()=>resolve();signatureImage.onerror=()=>reject(new Error('Prepared signature could not be loaded for A4.'));if(signatureImage.complete&&signatureImage.naturalWidth>0)resolve();});const pos=asset.signature;const sigW=Math.max(2,Math.min(photoLayer.w,photoLayer.w*pos.width/100));const sigH=Math.max(1,photoLayer.h*pos.height/100);const sigX=Math.max(0,Math.min(targetPage.width-sigW,photoLayer.x+photoLayer.w*pos.x/100));const sigY=Math.max(0,Math.min(targetPage.height-sigH,photoLayer.y+photoLayer.h*pos.y/100));const signatureLayer:ManualLayer={id:uid(),type:'photo',assetKind:'signature',aspectRatio:signatureImage.naturalHeight/Math.max(1,signatureImage.naturalWidth),name:pos.name,fileName:pos.name,src:pos.src,x:sigX,y:sigY,w:sigW,h:sigH,cropZoom:100};newLayers.push(signatureLayer);signatureLayerId=signatureLayer.id;}undoStackRef.current=[...undoStackRef.current.slice(-39),pages];redoStackRef.current=[];if(existingA4Index>=0){setPages(current=>current.map((p,i)=>i===targetPageIndex?{...p,layers:[...p.layers,...newLayers]}:p));}else{setPages(current=>[...current,{...targetPage,layers:[...targetPage.layers,...newLayers]}]);}setPageIndex(targetPageIndex);setSelectedIds([signatureLayerId||photoLayer.id]);setTool('move');}} onFinish={()=>setAssetWorkspaceOpen(false)} cropMode={tool==='crop'}/></div>}
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <aside className="flex min-h-0 w-[64px] shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-[#343b43] py-3">
+        {([['move','Move',MousePointer2],['crop','Crop',Crop],['marquee','Rectangle Select',SquareDashedMousePointer],['frame','Photo Frame',ImageIcon],['hand','Hand',Hand]] as const).map(([id,label,Icon])=><button key={id} title={label} onClick={()=>{setTool(id);if(id!=='marquee')setMarqueeBox(null);}} className={'flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] '+(tool===id?'bg-[#3a4651] text-white':'text-[#a5afb9] hover:bg-[#28313a]')}><Icon size={17}/>{label}</button>)}
+        <button title="Delete mode" aria-pressed={tool==='delete'} onClick={()=>{setTool(current=>current==='delete'?'move':'delete');setMarqueeBox(null);}} className={'group relative flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] transition-colors '+(tool==='delete'?'bg-red-950/70 text-red-300 ring-1 ring-red-500/60':'text-[#f87171] hover:bg-[#3a2529]')}><AnimatedTrashCan size={18}/>Delete{tool==='delete'&&<span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white"><Check size={10}/></span>}</button>
+        <button title="Add text" onClick={addText} className="mt-2 flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] text-[#a5afb9] hover:bg-[#28313a]"><Plus size={17}/>Text</button>
+        {activeAssetId&&assetDocuments.some(doc=>doc.id===activeAssetId&&doc.kind==='photo')&&<button title="Photo Background Color" onClick={()=>setBackgroundPickerOpen(v=>!v)} className={"flex w-[54px] flex-col items-center gap-1 rounded-lg py-2 text-[9px] "+(backgroundPickerOpen?"bg-[#3a4651] text-white":"text-[#a5afb9] hover:bg-[#28313a]")}><Palette size={17}/>Background</button>}
+      </aside>
+      <main className="flex min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 overflow-auto bg-[#0b1118] p-5" style={{backgroundImage:"radial-gradient(ellipse at 50% 45%, rgba(46,65,82,.34), transparent 68%), linear-gradient(rgba(128,151,171,.075) 1px, transparent 1px), linear-gradient(90deg, rgba(128,151,171,.075) 1px, transparent 1px)",backgroundSize:"100% 100%, 24px 24px, 24px 24px"}} ref={stageRef} onPointerDown={e=>{if(tool==='marquee'||tool==='frame'){const p=pagePoint(e);setDraw({x:p.x,y:p.y,cx:p.x,cy:p.y});setMarqueeBox(null);e.currentTarget.setPointerCapture(e.pointerId);}}} onPointerMove={e=>{if(!draw)return;const p=pagePoint(e);setDraw(d=>d?{...d,cx:p.x,cy:p.y}:null);}} onPointerUp={()=>{if(!draw)return;const rect={x:Math.min(draw.x,draw.cx),y:Math.min(draw.y,draw.cy),w:Math.abs(draw.cx-draw.x),h:Math.abs(draw.cy-draw.y)};if(rect.w>2&&rect.h>2){if(tool==='frame'){const l:ManualLayer={id:uid(),type:'frame',name:'Photo Frame',...rect};updatePage(p=>({...p,layers:[...p.layers,l]}));setSelectedIds([l.id]);}else{setMarqueeBox(rect);setSelectedIds(page.layers.filter(l=>intersects(rect,l)).map(l=>l.id));}}setDraw(null);}}>
+          <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-md border border-[#53606c] bg-[#202a33]/95 px-2.5 py-1.5 text-[9px] font-semibold tracking-[.16em] text-[#d5a66e] shadow-lg">LIVE PREVIEW</div>
+          <div className="shrink-0" style={{width:Math.max(stageSize.width,zoomedPageWidth+40),height:Math.max(stageSize.height,zoomedPageHeight+40),display:'flex',alignItems:zoomedPageHeight<stageSize.height-40?'center':'flex-start',justifyContent:zoomedPageWidth<stageSize.width-40?'center':'flex-start'}}><div data-manual-page className="relative shrink-0 shadow-[0_14px_50px_rgba(0,0,0,.45)]" style={{width:basePageWidth,height:fitPageHeight,zoom:pageZoom/100,aspectRatio:page.width+'/'+page.height,background:page.background}} onPointerDown={e=>{if(tool!=='move')return;const target=(e.target as HTMLElement).closest('[data-layer-id]') as HTMLElement|null;if(!target)return;const id=target.dataset.layerId||'';const layer=page.layers.find(l=>l.id===id);if(!layer||layer.locked)return;e.stopPropagation();const groupLayers=layer.groupId?page.layers.filter(item=>item.groupId===layer.groupId):[layer];if(groupLayers.some(item=>item.locked))return;setSelectedIds(groupLayers.map(item=>item.id));const p=pagePoint(e);const dragLayer = (e.altKey || e.shiftKey) ? {...layer,id:uid(),name:layer.name+' copy',x:Math.min(page.width-layer.w,layer.x+2),y:Math.min(page.height-layer.h,layer.y+2),locked:false,groupId:undefined} : layer;
+          if (dragLayer.id !== layer.id) { updatePage(p=>({...p,layers:[...p.layers,dragLayer]})); setSelectedIds([dragLayer.id]); }
+          setDrag({id:dragLayer.id,px:p.x,py:p.y,x:dragLayer.x,y:dragLayer.y,group:dragLayer.id===layer.id&&layer.groupId?groupLayers.map(item=>({id:item.id,x:item.x,y:item.y,w:item.w,h:item.h})):undefined});e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(cropDrag?.mode==='draw'){updateCropDraw(e);return;}if(signatureResize){const rect=(e.currentTarget as HTMLElement).getBoundingClientRect();if(!rect.width||!rect.height)return;const dx=(e.clientX-signatureResize.startX)/rect.width*page.width;const dy=(e.clientY-signatureResize.startY)/rect.height*page.height;const west=signatureResize.corner.endsWith('w'),north=signatureResize.corner.startsWith('n');const anchorX=west?signatureResize.x+signatureResize.w:signatureResize.x;const anchorY=north?signatureResize.y+signatureResize.h:signatureResize.y;let w=signatureResize.w+(west?-dx:dx),h=signatureResize.h+(north?-dy:dy);if(page.layers.find(layer=>layer.id===signatureResize.id)?.assetKind==='signature'){const maxW=west?anchorX:page.width-anchorX,maxH=north?anchorY:page.height-anchorY;w=Math.max(2,Math.min(maxW,w));h=Math.max(2,Math.min(maxH,h));const x=west?anchorX-w:anchorX,y=north?anchorY-h:anchorY;setPages(current=>current.map((p,i)=>i===pageIndex?{...p,layers:p.layers.map(l=>l.id===signatureResize.id?{...l,x,y,w,h}:l)}:p));return;}const aspect=signatureResize.aspect;const startH=signatureResize.w*aspect;const horizontal=west?-dx:dx;const vertical=(north?-dy:dy)/Math.max(.01,aspect);const photoAnchorY=north?signatureResize.y+startH:signatureResize.y;const maxWidth=Math.max(3,Math.min(west?anchorX:page.width-anchorX,(north?photoAnchorY:page.height-photoAnchorY)/Math.max(.01,aspect)));w=Math.max(3,Math.min(maxWidth,signatureResize.w+(horizontal+vertical)/2));h=w*aspect;const x=west?anchorX-w:anchorX,y=north?photoAnchorY-h:photoAnchorY;const boundedX=Math.max(0,Math.min(page.width-w,x)),boundedY=Math.max(0,Math.min(page.height-h,y));setPages(current=>current.map((p,i)=>i===pageIndex?{...p,layers:p.layers.map(l=>l.id===signatureResize.id?{...l,x:boundedX,y:boundedY,w,h}:l)}:p));return;}if(!drag)return;const p=pagePoint(e);const dx=p.x-drag.px,dy=p.y-drag.py;if(drag.group){const minDx=Math.max(...drag.group.map(item=>-item.x)),maxDx=Math.min(...drag.group.map(item=>page.width-item.w-item.x));const minDy=Math.max(...drag.group.map(item=>-item.y)),maxDy=Math.min(...drag.group.map(item=>page.height-item.h-item.y));const gx=Math.max(minDx,Math.min(maxDx,dx)),gy=Math.max(minDy,Math.min(maxDy,dy));updatePage(current=>({...current,layers:current.layers.map(layer=>{const origin=drag.group!.find(item=>item.id===layer.id);return origin?{...layer,x:origin.x+gx,y:origin.y+gy}:layer;})}));}else updateLayer(drag.id,{x:Math.max(0,Math.min(page.width-5,drag.x+dx)),y:Math.max(0,Math.min(page.height-5,drag.y+dy))});}} onPointerUp={()=>{setDrag(null);setCropDrag(null);setSignatureResize(null);}} onPointerCancel={()=>setSignatureResize(null)}>
+            {page.layers.map(l=><div key={l.id} data-layer-id={l.id} onClick={e=>{e.stopPropagation();if(tool==='delete'&&l.type==='photo'){removeLayerById(l.id);return;}if(tool==='move'||tool==='crop')setSelectedIds(l.groupId?page.layers.filter(item=>item.groupId===l.groupId).map(item=>item.id):[l.id]);}} onPointerDown={e=>{if(tool==='crop'&&l.type==='photo')startCropDraw(e,l);}} className={'absolute '+(l.assetKind==='signature'?'overflow-visible':'overflow-hidden')+' '+(selectedIds.includes(l.id)?'outline outline-1 outline-[#d5a66e]':'')} style={{left:(l.x/page.width*100)+'%',top:(l.y/page.height*100)+'%',width:(l.w/page.width*100)+'%',height:(l.h/page.height*100)+'%',transform:'rotate('+(l.rotation||0)+'deg)',background:l.type==='frame'?'rgba(148,163,184,.08)':'transparent',border:l.type==='frame'?'2px dashed #8794a2':(l.type==='photo'&&manualBorderEnabled?`${Math.max(0.1,manualBorderWidthMm*basePageWidth/page.width)}px solid ${manualBorderColor}`:'none'),cursor:l.locked?'not-allowed':tool==='move'?'move':'default'}}>
+              {l.type==='photo'&&<><img src={l.src} alt={l.name} draggable={false} className={'h-full w-full select-none '+(l.assetKind==='signature'?'object-contain':(tool==='crop'&&selectedIds.includes(l.id)?'object-fill':'object-cover'))} style={{transform:'scale('+(l.cropZoom||100)/100+')'}}/>{tool==='delete'&&!l.locked&&<button type="button" title="Delete this photo" aria-label={'Delete '+l.name} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();removeLayerById(l.id);}} className="group absolute right-0.5 top-0.5 z-40 flex h-[5px] w-[5px] items-center justify-center rounded-[1px] border border-red-200/70 bg-red-600/95 p-0 text-white transition hover:scale-150 hover:bg-red-500"><AnimatedTrashCan size={3}/></button>}{l.type==='photo'&&selectedIds.includes(l.id)&&tool==='move'&&!l.locked&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} title="Resize photo" aria-label={'Resize photo '+corner} onPointerDown={e=>startSignatureResize(e,l,corner)} onPointerMove={()=>{}} onPointerUp={e=>{setSignatureResize(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setSignatureResize(null)} onClick={e=>e.stopPropagation()} className={'absolute z-30 touch-none shadow '+(l.assetKind==='signature'?'h-2 w-2 rounded-[2px] border border-[#60a5fa] bg-[#2563eb]':'h-3 w-3 rounded-full border-2 border-white bg-[#d5a66e]')} style={{left:corner.includes('w')?'0%':'100%',top:corner.includes('n')?'0%':'100%',transform:'translate(-50%,-50%)',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}{tool==='crop'&&selectedIds.includes(l.id)&&<><div className="pointer-events-none absolute border-2 border-[#ef4444] bg-[#ef4444]/[0.08]" style={{left:cropBox.x+'%',top:cropBox.y+'%',width:cropBox.w+'%',height:cropBox.h+'%'}}><span className="absolute -top-5 left-0 whitespace-nowrap rounded bg-[#991b1b] px-1.5 py-0.5 text-[9px] text-white">{unitValue((selectedPhoto?.w ?? 0)*cropBox.w/100||0).toFixed(1)} × {unitValue((selectedPhoto?.h ?? 0)*cropBox.h/100||0).toFixed(1)} {unit}</span></div>{(['nw','ne','sw','se'] as const).map(corner=><button key={corner} aria-label={'Adjust crop '+corner} onPointerDown={e=>startCropDrag(e,corner)} onPointerMove={moveCropDrag} onPointerUp={e=>{setCropDrag(null);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>setCropDrag(null)} onClick={e=>e.stopPropagation()} className="absolute z-20 h-3 w-3 rounded-full border border-[#b91c1c] bg-[#ef4444] touch-none" style={{left:corner.includes('w')?cropBox.x+'%':(cropBox.x+cropBox.w)+'%',top:corner.includes('n')?cropBox.y+'%':(cropBox.y+cropBox.h)+'%',transform:'translate(-50%,-50%)',cursor:corner==='nw'||corner==='se'?'nwse-resize':'nesw-resize'}}/>)}</>}</>}{l.type==='text'&&<span className="block p-1 text-sm text-black">{l.text}</span>}{l.type==='frame'&&<span className="flex h-full items-center justify-center text-[10px] text-[#9aa7b4]">Empty Photo Frame</span>}
+            </div>)}
+            {marqueeBox&&tool==='marquee'&&<div className="pointer-events-none absolute border-2 border-dashed border-[#60a5fa] bg-[#60a5fa]/10" style={{left:(marqueeBox.x/page.width*100)+'%',top:(marqueeBox.y/page.height*100)+'%',width:(marqueeBox.w/page.width*100)+'%',height:(marqueeBox.h/page.height*100)+'%'}}/>}{draw&&<div className="pointer-events-none absolute border border-dashed border-[#d4a66f] bg-[#d4a66f]/10" style={{left:(Math.min(draw.x,draw.cx)/page.width*100)+'%',top:(Math.min(draw.y,draw.cy)/page.height*100)+'%',width:(Math.abs(draw.cx-draw.x)/page.width*100)+'%',height:(Math.abs(draw.cy-draw.y)/page.height*100)+'%'}}/>}
+          </div></div>
+        </div>
+      </main>
+      <aside className="flex w-[270px] shrink-0 flex-col overflow-y-auto border-l border-[#343b43]">
+        <div className="flex items-center justify-between border-b border-[#343b43] p-3"><strong className="text-xs">Manual Settings</strong><button onClick={()=>setSettingsOpen(v=>!v)}><Settings2 size={15}/></button></div>
+        {settingsOpen&&<div className="space-y-3 border-b border-[#343b43] p-3 text-[10px] text-[#aeb8c2]">
+          <div className="border-b border-[#343b43] pb-3">
+            <div className="mb-2 text-[9px] font-semibold tracking-[.12em] text-[#d5a66e]">SPACING & COPIES</div>
+            <div className="grid grid-cols-2 gap-2">
+              <label>Margin (mm · minimum 3)<input type="number" min="3" max="50" step="0.5" value={Math.max(3,page.margin)} onChange={e=>updatePage(p=>({...p,margin:Math.max(3,Math.min(50,Number(e.target.value)||3))}))} onWheel={e=>{e.preventDefault();updatePage(p=>({...p,margin:Math.max(3,Math.min(50,Number((Math.max(3,p.margin)+(e.deltaY<0?0.5:-0.5)).toFixed(1))))}));}} className="studio-control mt-1 h-8 w-full px-2"/></label>
+              <label>Horizontal Gap (mm)<input type="number" min="0" max="30" step="0.5" value={horizontalGapMm} onChange={e=>{const v=Math.max(0,Math.min(30,Number(e.target.value)||0));setHorizontalGapMm(v);arrangePhotosUsingGaps(manualPhotoCount,v,verticalGapMm);}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur();arrangePhotosUsingGaps();}}} onWheel={e=>{e.preventDefault();const v=Math.max(0,Math.min(30,Number((horizontalGapMm+(e.deltaY<0?0.5:-0.5)).toFixed(1))));setHorizontalGapMm(v);arrangePhotosUsingGaps(manualPhotoCount,v,verticalGapMm);}} className="studio-control mt-1 h-8 w-full px-2"/></label>
+              <label>Count Photo<input type="number" min="1" max="60" step="1" value={manualPhotoCount} onChange={e=>{const v=Math.max(1,Math.min(60,Math.round(Number(e.target.value)||1)));setManualPhotoCount(v);arrangePhotosUsingGaps(v,horizontalGapMm,verticalGapMm);}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur();arrangePhotosUsingGaps();}}} onWheel={e=>{e.preventDefault();const v=Math.max(1,Math.min(60,manualPhotoCount+(e.deltaY<0?1:-1)));setManualPhotoCount(v);arrangePhotosUsingGaps(v,horizontalGapMm,verticalGapMm);}} className="studio-control mt-1 h-8 w-full px-2"/></label>
+              <label>Vertical Gap (mm)<input type="number" min="0" max="30" step="0.5" value={verticalGapMm} onChange={e=>{const v=Math.max(0,Math.min(30,Number(e.target.value)||0));setVerticalGapMm(v);arrangePhotosUsingGaps(manualPhotoCount,horizontalGapMm,v);}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur();arrangePhotosUsingGaps();}}} onWheel={e=>{e.preventDefault();const v=Math.max(0,Math.min(30,Number((verticalGapMm+(e.deltaY<0?0.5:-0.5)).toFixed(1))));setVerticalGapMm(v);arrangePhotosUsingGaps(manualPhotoCount,horizontalGapMm,v);}} className="studio-control mt-1 h-8 w-full px-2"/></label>
+            </div>
+            <button onClick={()=>arrangePhotosUsingGaps()} disabled={!page.layers.some(layer=>layer.type==='photo'&&layer.assetKind!=='signature')} className="mt-2 w-full rounded-md border border-[#46515c] bg-[#252B31] py-2 text-[10px] font-semibold text-[#E2E8F0] transition hover:bg-[#303840] disabled:cursor-not-allowed disabled:opacity-40">Arrange Photos Using Gaps</button><button onClick={smartPhotoAdjust} disabled={!selected.some(layer=>layer.type==='photo'&&layer.assetKind!=='signature'&&!layer.locked)} className="mt-2 w-full rounded-md border border-[#a87942] bg-gradient-to-r from-[#5c452d] to-[#3b3025] py-2 text-[10px] font-semibold text-[#f5d5a8] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">Smart Photo Adjust · Match Selected Size</button>
+            <p className="mt-2 leading-4 text-[#83909c]">Alt/Shift + drag copies a photo. Wheel over a photo resizes it; wheel on blank paper zooms the page.</p>
+          </div>
+          <div className="border-b border-[#343b43] pb-3">
+            <div className="mb-2 flex items-center justify-between"><span className="text-[9px] font-semibold tracking-[.12em] text-[#d5a66e]">PHOTO BORDER</span><label className="flex items-center gap-1.5 text-[9px]"><input type="checkbox" checked={manualBorderEnabled} onChange={e=>setManualBorderEnabled(e.target.checked)} className="accent-[#d5a66e]"/> Enable</label></div>
+            <label className="block">Thickness · {manualBorderWidthMm.toFixed(1)} mm<input type="range" min="0.1" max="10" step="0.1" value={manualBorderWidthMm} onChange={e=>setManualBorderWidthMm(Number(e.target.value))} className="mt-1 w-full accent-[#d5a66e]"/><div className="flex justify-between text-[8px] text-[#83909c]"><span>0.1 mm · Thin</span><span>10 mm · Thick</span></div></label>
+            <div className="mt-2 grid grid-cols-2 gap-2"><label>Border colour<select value={['#000000','#0000FF','#FF0000'].includes(manualBorderColor)?manualBorderColor:'custom'} onChange={e=>setManualBorderColor(e.target.value==='custom'?manualCustomBorderColor:e.target.value)} className="studio-control mt-1 h-8 w-full px-2"><option value="#000000">Black</option><option value="#0000FF">Blue</option><option value="#FF0000">Red</option><option value="custom">Custom</option></select></label><label>Custom colour<input type="color" value={manualCustomBorderColor} onChange={e=>{setManualCustomBorderColor(e.target.value);setManualBorderColor(e.target.value);}} className="studio-control mt-1 h-8 w-full p-1"/></label></div>
+            <div className="mt-2 flex items-center justify-between border-t border-[#343b43] pt-2 text-[10px]"><span className="text-[#83909c]">Output size</span><span>{selectedPhoto?`${Math.round(selectedPhoto.w*300/25.4)} × ${Math.round(selectedPhoto.h*300/25.4)} px`:`${Math.round(page.width*300/25.4)} × ${Math.round(page.height*300/25.4)} px`}</span></div>
+            <div className="flex items-center justify-between border-t border-[#343b43] py-2 text-[10px]"><span className="text-[#83909c]">Resolution</span><span>300 DPI</span></div>
+          </div>
+          <div className="flex gap-2"><label className="flex-1">Unit<select value={unit} onChange={e=>setUnit(e.target.value as typeof unit)} className="studio-control mt-1 h-8 w-full px-2"><option value="mm">mm</option><option value="cm">cm</option><option value="in">inch</option></select></label><label className="flex-1">Background<input type="color" value={page.background} onChange={e=>updatePage(p=>({...p,background:e.target.value}))} className="studio-control mt-1 h-8 w-full p-1"/></label></div>
+          <div className="grid grid-cols-2 gap-2">{(['width','height'] as const).map(k=><label key={k}>{k==='width'?'Page width':'Page height'} ({unit})<input type="number" min="20" max="1000" value={Number(unitValue(page[k]).toFixed(2))} onChange={e=>updatePage(p=>({...p,[k]:Math.max(20,Math.min(1000,fromUnit(Number(e.target.value)||20)))}))} className="studio-control mt-1 h-8 w-full px-2"/></label>)}</div>
+        </div>}
+        <ManualSignaturePanel onPlace={asset=>{const target=(assetDocuments.find(doc=>doc.id===activeAssetId&&doc.kind==='photo')||assetDocuments.find(doc=>doc.kind==='photo'));if(!target){window.alert('पहले Import Photo से फोटो खोलें, फिर सिग्नेचर को Crop Preview पर भेजें।');return;}setSignatureAsset(asset);setActiveAssetId(target.id);setAssetWorkspaceOpen(true);}}/>
+        <div className="border-b border-[#343b43] p-3"><div className="mb-2 flex items-center justify-between"><strong className="text-xs">Layers</strong><span>{page.layers.length} items</span></div>
+          <div className="space-y-1">{[...page.layers].reverse().map(l=><div key={l.id} className={'flex items-center gap-1 rounded border px-2 py-2 '+(selectedIds.includes(l.id)?'border-[#b88b59] bg-[#292e34]':'border-[#39424b]')}><button onClick={()=>setSelectedIds([l.id])} className="min-w-0 flex-1 truncate text-left">{l.name}</button><button title={l.locked?'Unlock':'Lock'} onClick={()=>updateLayer(l.id,{locked:!l.locked})}>{l.locked?<Lock size={12}/>:<Unlock size={12}/>}</button><button title="Move layer up" onClick={()=>updatePage(p=>{const i=p.layers.findIndex(x=>x.id===l.id);if(i<0||i===p.layers.length-1)return p;const a=[...p.layers];[a[i],a[i+1]]=[a[i+1],a[i]];return{...p,layers:a};})}><ChevronUp size={12}/></button><button title="Move layer down" onClick={()=>updatePage(p=>{const i=p.layers.findIndex(x=>x.id===l.id);if(i<=0)return p;const a=[...p.layers];[a[i],a[i-1]]=[a[i-1],a[i]];return{...p,layers:a};})}><ChevronDown size={12}/></button></div>)}</div>
+          <div className="mt-3 flex gap-1"><button onClick={duplicateSelected} disabled={!selected.length} className="flex-1 rounded border border-[#46515c] py-2 disabled:opacity-40"><Copy size={12} className="mr-1 inline"/>Duplicate</button><button onClick={removeSelected} disabled={!selected.length} className="flex-1 rounded border border-[#46515c] py-2 disabled:opacity-40"><Trash2 size={12} className="mr-1 inline"/>Delete</button></div>
+          {tool==='crop'&&!selectedPhoto&&<div className="m-3 rounded border border-[#46515c] p-2 text-[9px] leading-4 text-[#aeb8c2]">Crop टूल चुनकर फोटो के किसी भी हिस्से से माउस दबाकर खींचें। फिर दाईं ओर साइज सेट करके Apply Crop दबाएँ।</div>}{selected.some(l=>l.type==='photo')&&<div className="mt-3 border-t border-[#343b43] pt-3">{tool==='crop'&&<div className="mb-3 rounded border border-[#b88b59] p-2"><div className="mb-2 text-[10px] font-semibold text-[#f2c58e]">Manual Crop · Drag anywhere on photo</div><p className="mb-2 text-[9px] leading-4 text-[#aeb8c2]">फोटो के किसी भी कोने/हिस्से से माउस दबाकर खींचें। लाल बॉक्स आपका चुना हुआ crop area दिखाएगा।</p><div className="mb-2 grid grid-cols-2 gap-2"><label>Crop width ({unit})<input type="number" min="0" step="0.1" placeholder={unitValue((selectedPhoto?.w ?? 0)*cropBox.w/100||0).toFixed(2)} value={cropTargetW} onChange={e=>setCropTargetW(e.target.value)} className="studio-control mt-1 h-8 w-full px-2"/></label><label>Crop height ({unit})<input type="number" min="0" step="0.1" placeholder={unitValue((selectedPhoto?.h ?? 0)*cropBox.h/100||0).toFixed(2)} value={cropTargetH} onChange={e=>setCropTargetH(e.target.value)} className="studio-control mt-1 h-8 w-full px-2"/></label></div><label className="mb-2 flex items-center gap-2"><input type="checkbox" checked={cropLockRatio} onChange={e=>setCropLockRatio(e.target.checked)}/> Lock crop ratio to entered width/height</label><p className="mb-2 text-[9px] text-[#8d9aa6]">Live selection: {unitValue((selectedPhoto?.w ?? 0)*cropBox.w/100||0).toFixed(2)} × {unitValue((selectedPhoto?.h ?? 0)*cropBox.h/100||0).toFixed(2)} {unit}</p><button onClick={()=>void applyManualCrop()} className="flex w-full items-center justify-center gap-1 rounded bg-[#d5a66e] py-2 text-[10px] font-semibold text-[#171b20]"><Check size={13}/> Apply Crop</button><button onClick={()=>setCropBox({x:0,y:0,w:100,h:100})} className="mt-1 w-full rounded border border-[#46515c] py-1.5 text-[9px]">Reset crop frame</button></div>}<label>Photo crop zoom · {cropZoom}%<input type="range" min="100" max="300" value={cropZoom} onChange={e=>{setCropZoom(Number(e.target.value));selected.filter(l=>l.type==='photo').forEach(l=>updateLayer(l.id,{cropZoom:Number(e.target.value)}));}} className="mt-1 w-full"/></label><button onClick={()=>selected.filter(l=>l.type==='photo').forEach(l=>updateLayer(l.id,{rotation:((l.rotation||0)+90)%360}))} className="mt-2 w-full rounded border border-[#46515c] py-2"><RotateCw size={12} className="mr-1 inline"/>Rotate 90°</button><div className="mt-3 grid grid-cols-2 gap-2"><label>Width (mm)<input type="number" min="5" max="210" step="0.1" value={Number((selectedPhoto?.w||0).toFixed(1))} onChange={e=>selectedPhoto&&updateLayer(selectedPhoto.id,{w:Math.max(5,Math.min(210,Number(e.target.value)||5))})} className="studio-control mt-1 h-8 w-full px-2"/></label><label>Height (mm)<input type="number" min="5" max="297" step="0.1" value={Number((selectedPhoto?.h||0).toFixed(1))} onChange={e=>selectedPhoto&&updateLayer(selectedPhoto.id,{h:Math.max(5,Math.min(297,Number(e.target.value)||5))})} className="studio-control mt-1 h-8 w-full px-2"/></label></div></div>}
+        </div>
+        <div className="p-3"><div className="mb-2 flex items-center justify-between"><strong className="text-xs">Imported Assets</strong><span className="text-[9px] text-[#7f8b96]">{files.length} files</span></div>{files.length?files.map(f=><div key={f.id} className="mb-2 flex items-center gap-2 rounded border border-[#39424b] p-1.5"><img src={f.src} className="h-9 w-8 rounded object-cover" alt=""/><span className="min-w-0 flex-1 truncate text-[9px]">{f.name}</span><button type="button" title={'Remove '+f.name+' from imported assets'} aria-label={'Remove '+f.name+' from imported assets'} onClick={()=>removeImportedFile(f.id)} className="group flex h-6 w-6 shrink-0 items-center justify-center rounded text-red-400 transition hover:bg-red-950/60 hover:text-red-300"><AnimatedTrashCan size={14}/></button></div>):<p className="text-[10px] text-[#7f8b96]">Imported photos and signatures appear in the photo workspace.</p>}</div>
+      </aside>
+    </div>
+    <div className="flex h-8 shrink-0 items-center justify-between border-t border-[#343b43] px-3 text-[9px] text-[#87939e]"><span>{page.name} · {page.width.toFixed(1)} × {page.height.toFixed(1)} mm · {page.layers.length} layers</span><span>Manual workspace · Preview · Zoom {pageZoom}%</span></div>
+  </div>;
+};
