@@ -357,6 +357,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
         refundPolicyAccepted: refundAccepted, refundAcceptedAt, refundPolicyVersion: REFUND_POLICY_VERSION,
         websiteProjectAgreement: prepaidPayment?.websiteAgreementAccepted ? { accepted: true, acceptedAt: prepaidPayment.websiteAgreementAcceptedAt, termsVersion: prepaidPayment.websiteTermsPolicyVersion, refundVersion: prepaidPayment.websiteRefundPolicyVersion } : null,
+        creativeProjectAgreement: prepaidPayment?.creativeProjectAgreement ? { accepted: true, ...prepaidPayment.creativeProjectAgreement } : null,
         idempotencyKey: window.crypto.randomUUID(),
         paymentMode
       };
