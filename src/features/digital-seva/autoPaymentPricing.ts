@@ -47,7 +47,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
   'aadhaar-download': {
     serviceId: 'aadhaar-download', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'e-Aadhaar download assistance only',
-    note: '₹30 covers download assistance only. Optional printing is not included and must be quoted separately.'
+    note: '₹50 covers download assistance only. Optional printing is not included and must be quoted separately.'
   },
   'aadhaar-lost': {
     serviceId: 'aadhaar-lost', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
@@ -72,17 +72,17 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
   'pdf-compress': {
     serviceId: 'pdf-compress', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'One PDF compression task',
-    note: '₹30 is for one customer-provided PDF compression task.'
+    note: '₹50 is for one customer-provided PDF compression task.'
   },
   'pdf-merge': {
     serviceId: 'pdf-merge', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'One PDF merge task',
-    note: '₹30 is for one merge task using the customer-provided PDF files.'
+    note: '₹50 is for one merge task using the customer-provided PDF files.'
   },
   'pdf-jpg': {
     serviceId: 'pdf-jpg', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'One PDF to image conversion task',
-    note: '₹30 is for one standard PDF-to-image conversion task.'
+    note: '₹50 is for one standard PDF-to-image conversion task.'
   },
   'pdf-word': {
     serviceId: 'pdf-word', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
@@ -90,30 +90,30 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     note: '₹50 is for one standard PDF-to-Word conversion task. Complex OCR or formatting is quoted separately before work.'
   },
   'pdf-edit': {
-    serviceId: 'pdf-edit', totalAmount: 30, governmentFee: 0, tanshuFee: 30, currency: 'INR',
+    serviceId: 'pdf-edit', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'One basic PDF editing task',
-    note: '₹30 is for one basic PDF editing task. Extensive editing or multi-page reconstruction is quoted separately before work.'
+    note: '₹50 is for one basic PDF editing task. Extensive editing or multi-page reconstruction is quoted separately before work.'
   },
   'image-compress': {
     serviceId: 'image-compress', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'One image resize/compression task',
-    note: '₹30 is for one customer-provided image resize or compression task.'
+    note: '₹50 is for one customer-provided image resize or compression task.'
   },
   'signature-resize': {
     serviceId: 'signature-resize', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'One signature resize task',
-    note: '₹30 is for one customer-provided signature resize task.'
+    note: '₹50 is for one customer-provided signature resize task.'
   },
   'pdf-split': {
     serviceId: 'pdf-split', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR',
     routeLabel: 'Private PDF page-splitting task',
-    note: '₹30 is the TANSHU ONLINE fee for one PDF task. The customer supplies the PDF and selected page numbers/ranges; the separated PDF output is delivered after processing.'
+    note: '₹50 is the TANSHU ONLINE fee for one PDF task. The customer supplies the PDF and selected page numbers/ranges; the separated PDF output is delivered after processing.'
   }
   'pan-retrieve': { serviceId: 'pan-retrieve', totalAmount: 150, governmentFee: 0, tanshuFee: 150, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
   'aadhaar-mobile-check': { serviceId: 'aadhaar-mobile-check', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
   'driving-licence': { serviceId: 'driving-licence', totalAmount: 200, governmentFee: 0, tanshuFee: 200, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
   'pdf-text-edit': { serviceId: 'pdf-text-edit', totalAmount: 100, governmentFee: 0, tanshuFee: 100, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
-  'scan-clean': { serviceId: 'scan-clean', totalAmount: 10, governmentFee: 0, tanshuFee: 10, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
+  'scan-clean': { serviceId: 'scan-clean', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
   'typing-format': { serviceId: 'typing-format', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
   'passport-photo': { serviceId: 'passport-photo', totalAmount: 50, governmentFee: 0, tanshuFee: 50, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
   'photo-background': { serviceId: 'photo-background', totalAmount: 100, governmentFee: 0, tanshuFee: 100, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE service fee. Any government/provider fee is excluded, verified for the exact route and paid directly to the official department/provider. Scope limits and additional work are confirmed before starting.' },
@@ -194,7 +194,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
   'aadhaar-mobile': { serviceId: 'aadhaar-mobile', totalAmount: 100, governmentFee: 0, tanshuFee: 100, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE assistance fee. Any official department/provider fee is excluded, checked for the exact state, service level and route, and paid directly to the authority. For certificate services this base quote is for the basic/CO-level preparation; higher-level or complex work is quoted before starting.' },
   'aadhaar-email': { serviceId: 'aadhaar-email', totalAmount: 100, governmentFee: 0, tanshuFee: 100, currency: 'INR', routeLabel: 'TANSHU ONLINE assistance only; official fees paid separately where applicable', note: 'The Cashfree amount is only the TANSHU ONLINE assistance fee. Any official department/provider fee is excluded, checked for the exact state, service level and route, and paid directly to the authority. For certificate services this base quote is for the basic/CO-level preparation; higher-level or complex work is quoted before starting.' },
   'bw-print': { serviceId: 'bw-print', totalAmount: 5, governmentFee: 0, tanshuFee: 5, currency: 'INR', routeLabel: 'One black-and-white printed page', note: '₹5 covers one printed B/W page only. Additional pages require a separate page-count quote before payment.' },
-  'colour-print': { serviceId: 'colour-print', totalAmount: 10, governmentFee: 0, tanshuFee: 10, currency: 'INR', routeLabel: 'One colour printed page', note: '₹10 covers one standard colour printed page only. Special photo paper and additional pages are quoted separately before payment.' },
+  'colour-print': { serviceId: 'colour-print', totalAmount: 10, governmentFee: 0, tanshuFee: 10, currency: 'INR', routeLabel: 'One colour printed page', note: '₹50 covers one standard colour printed page only. Special photo paper and additional pages are quoted separately before payment.' },
 };
 
 export function getAutoPaymentQuote(service: SevaService | string): AutoPaymentQuote | null {
