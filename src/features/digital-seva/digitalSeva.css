@@ -879,3 +879,18 @@
 .ds-web-agreement-check small{font-size:10px;color:#64748b}
 .ds-web-agreement-accepted{color:#24643c;font-size:10px}
 @media(max-width:420px){.ds-web-agreement{padding:10px}.ds-web-agreement-facts{gap:5px}.ds-web-agreement-facts>div{padding:8px 4px}.ds-web-agreement-facts b{font-size:14px}.ds-web-agreement-facts small{font-size:9px}}
+
+
+/* Pre-payment requirements brief for custom creative projects — additive Preview styles */
+.ds-project-brief{display:grid;gap:13px;padding:16px;border:1px solid #cbd8e5;border-radius:15px;background:linear-gradient(145deg,#f7fbff,#fff)}
+.ds-project-brief h3{margin:5px 0;color:#1d3553;font-size:17px}
+.ds-project-brief>div>p{margin:4px 0 0;color:#64748b;font-size:11px;line-height:1.55}
+.ds-project-brief-selected{margin:0;padding:9px 11px;border-radius:9px;background:#edf4fa;color:#31506e;font-size:11px;line-height:1.5}
+.ds-project-brief-options{display:grid;gap:8px}
+.ds-project-brief-options>b{font-size:12px;color:#334155}
+.ds-project-brief-options>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.ds-project-brief-options label{display:flex;align-items:flex-start;gap:8px;padding:8px;border:1px solid #e1e8ef;border-radius:9px;background:#fff;color:#475569;font-size:11px;line-height:1.4;cursor:pointer}
+.ds-project-brief-options input{width:15px;height:15px;flex:0 0 auto;margin:1px 0 0;accent-color:#1d5c8c}
+.ds-project-brief textarea{width:100%;min-height:96px;resize:vertical;border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:11px 12px;color:#0f172a;font:inherit;font-size:12px;line-height:1.55}
+.ds-project-brief textarea:focus,.ds-project-brief select:focus{outline:2px solid rgba(37,99,235,.18);border-color:#7196bd}
+@media(max-width:520px){.ds-project-brief{padding:12px}.ds-project-brief-options>div{grid-template-columns:1fr}}
