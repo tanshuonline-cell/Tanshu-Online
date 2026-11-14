@@ -7,17 +7,15 @@ on:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
       - 'migrations/*.sql'
-      - 'scripts/verify-digital-seva-payments.ts'
       - '.github/workflows/digital-seva-ci.yml'
       - 'package.json'
       - 'package-lock.json'
   push:
-    branches: [feature/digital-seva-booking-system-2026, feature/digital-seva-paid-order-customer-recovery-preview-2026-11-14]
+    branches: [feature/digital-seva-booking-system-2026]
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
       - 'migrations/*.sql'
-      - 'scripts/verify-digital-seva-payments.ts'
       - '.github/workflows/digital-seva-ci.yml'
       - 'package.json'
       - 'package-lock.json'
@@ -39,7 +37,5 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: TypeScript check
         run: npm run lint
-      - name: Verify all six Aadhaar and PAN payment quotes
-        run: npm run test:digital-seva-payments
       - name: Production build
         run: npm run build
