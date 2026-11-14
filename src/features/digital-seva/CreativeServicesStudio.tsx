@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import './creativeStudio.css';
 import { ArrowLeft, ArrowRight, CheckCircle2, Code2, Layers3, Monitor, Palette, Smartphone, Sparkles, X } from 'lucide-react';
 
 type GalleryCategory = 'apps' | 'software' | 'design';
