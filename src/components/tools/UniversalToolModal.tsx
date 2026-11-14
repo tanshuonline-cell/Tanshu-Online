@@ -49,7 +49,8 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
   const isAdvancedStudio = tool.id === 'advanced-passport-photo-studio';
   const isPhotoSignatureResizer = tool.id === 'photo-signature-resizer';
   const isAutoDocumentCropper = tool.id === 'auto-document-cropper';
-  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer || isAutoDocumentCropper;
+  const isPhotoBackgroundRemover = tool.id === 'photo-background-remover';
+  const isImmersiveTool = isAdvancedStudio || isPhotoSignatureResizer || isAutoDocumentCropper || isPhotoBackgroundRemover;
   const showWelcome = (isAdvancedStudio && !showAdvancedStudio) || (isPhotoSignatureResizer && !showPhotoSignatureStudio);
 
   const renderToolComponent = () => {
@@ -119,7 +120,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
             </div>
             <button onClick={onClose} className="shrink-0 rounded-lg p-2 text-blue-100 hover:bg-white/10 hover:text-white" title="Close Tool (Esc)"><X className="h-5 w-5" /></button>
           </div>
-        ) : (
+        ) : isPhotoBackgroundRemover ? null : (
           <div className={`flex items-center justify-between border-b border-slate-200 bg-white shrink-0 ${isImmersiveTool ? 'px-4 sm:px-7 py-3 sm:py-4' : 'px-6 py-4'}`}>
             <div className="flex items-center gap-3">
               <div>
@@ -139,7 +140,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           </div>
         )}
 
-        <div data-copy-allowed="true" className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : isAutoDocumentCropper ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : isAutoDocumentCropper ? 'min-h-0 p-0 bg-[#081629]' : isPhotoSignatureResizer ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
+        <div data-copy-allowed="true" className={`${isAdvancedStudio ? (showWelcome ? 'min-h-0 overflow-y-auto' : 'min-h-0 overflow-hidden') : (isAutoDocumentCropper || isPhotoBackgroundRemover) ? 'min-h-0 overflow-hidden' : 'min-h-0 overflow-y-auto'} flex-1 space-y-6 ${isAdvancedStudio ? (showWelcome ? 'p-0 bg-slate-50' : 'p-3 sm:p-5 lg:p-6 bg-slate-50') : (isAutoDocumentCropper || isPhotoBackgroundRemover) ? 'min-h-0 p-0 bg-[#081629]' : isPhotoSignatureResizer ? 'p-0 bg-slate-50' : 'p-6 bg-white'}`}>
           {isImmersiveTool ? (
             renderToolComponent()
           ) : (
@@ -156,7 +157,7 @@ export const UniversalToolModal: React.FC<Props> = ({ tool, onClose }) => {
           )}
         </div>
 
-        {!isAutoDocumentCropper && <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        {!isAutoDocumentCropper && !isPhotoBackgroundRemover && <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 shrink-0">
           {((isAdvancedStudio && showAdvancedStudio) || (isPhotoSignatureResizer && showPhotoSignatureStudio)) && (
             <button
               type="button"
