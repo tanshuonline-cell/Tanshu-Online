@@ -303,7 +303,7 @@ const TANSHU_SERVICE_FEES: Record<string, string> = {
   'ews-certificate': '₹100 assistance fee for standard application preparation; official charges paid separately.',
   'obc-ncl-certificate': '₹100 assistance fee for standard application preparation; official charges paid separately.',
   'website-app-brief': '₹250 for one structured website/app requirements brief; development is a separate custom quote.',
-  'pension-old-age': '₹100 TANSHU ONLINE assistance fee for a standard online application/checklist. Any government biometric KYC must be completed in person at an authorised centre and is not performed by TANSHU.',
+  'pension-old-age': '₹50 TANSHU ONLINE assistance fee for basic pension application/KYC guidance only. Fingerprint/biometric KYC must be completed in person at an authorised centre and is not performed by TANSHU.',
   'pension-widow': '₹100 TANSHU ONLINE assistance fee for a standard application/checklist. Any government verification/appointment is separate.',
   'pension-disability': '₹150 TANSHU ONLINE assistance fee for a standard application/checklist. Medical/official assessment is separate.',
   'state-scholarship': '₹150 assistance fee for one standard scholarship application; institution/portal fees, if any, are separate.',
