@@ -54,10 +54,11 @@ interface Props {
   language: 'en' | 'hi';
   onClose: () => void;
   initialServiceId?: string;
+  onServiceChange?: (serviceId: string) => void;
   onPaid: (service: SevaService, payment: PrepaidDigitalSevaPayment) => void;
 }
 
-export default function DigitalSevaPayNow({ language, onClose, initialServiceId, onPaid }: Props) {
+export default function DigitalSevaPayNow({ language, onClose, initialServiceId, onServiceChange, onPaid }: Props) {
   const hi = language === 'hi';
   const [selectedId, setSelectedId] = useState(initialServiceId || 'pan-new');
   const [name, setName] = useState('');
@@ -205,7 +206,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         <p>{hi ? 'एक बार में एक सर्विस चुनें। भुगतान सफल होने पर उसी सर्विस का आवेदन फॉर्म खुलेगा।' : 'Choose one service per payment. Its application form opens after Cashfree confirms payment.'}</p>
         <form onSubmit={(event) => void pay(event)}>
           <label className="ds-paynow-field">{hi ? 'अपनी सर्विस चुनें' : 'Select your service'}
-            <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); setWebsiteAgreementAccepted(false); setWebsiteAgreementAcceptedAt(''); setCreativeAgreementAccepted(false); setCreativeAgreementAcceptedAt(''); setError(''); }}>
+            <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); onServiceChange?.(event.target.value); setWebsiteAgreementAccepted(false); setWebsiteAgreementAcceptedAt(''); setCreativeAgreementAccepted(false); setCreativeAgreementAcceptedAt(''); setError(''); }}>
               {enabledServices.map((service) => <option key={service.id} value={service.id}>{hi ? service.hindi : service.name}{getAutoPaymentQuote(service) ? '' : (hi ? ' — शुल्क पुष्टि बाकी' : ' — quote required')}</option>)}
             </select>
           </label>
