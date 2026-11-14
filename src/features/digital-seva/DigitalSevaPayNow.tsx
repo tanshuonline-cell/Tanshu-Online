@@ -48,17 +48,19 @@ export interface PrepaidDigitalSevaPayment {
   websiteTermsPolicyVersion?: string;
   websiteRefundPolicyVersion?: string;
   creativeProjectAgreement?: { category: CreativeAgreementCategory; acceptedAt: string; termsVersion: string; refundVersion: string };
+  projectBrief?: { platform: string; features: string[]; description: string; demoSampleId?: string; demoSampleTitle?: string };
 }
 
 interface Props {
   language: 'en' | 'hi';
   onClose: () => void;
   initialServiceId?: string;
+  initialProjectDirection?: { sampleId: string; sampleTitle: string } | null;
   onServiceChange?: (serviceId: string) => void;
   onPaid: (service: SevaService, payment: PrepaidDigitalSevaPayment) => void;
 }
 
-export default function DigitalSevaPayNow({ language, onClose, initialServiceId, onServiceChange, onPaid }: Props) {
+export default function DigitalSevaPayNow({ language, onClose, initialServiceId, initialProjectDirection, onServiceChange, onPaid }: Props) {
   const hi = language === 'hi';
   const [selectedId, setSelectedId] = useState(initialServiceId || 'pan-new');
   const [name, setName] = useState('');
@@ -75,6 +77,9 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const creativeAgreementCategory = CREATIVE_AGREEMENT_CATEGORY[selectedId] || null;
   const [creativeAgreementAccepted, setCreativeAgreementAccepted] = useState(false);
   const [creativeAgreementAcceptedAt, setCreativeAgreementAcceptedAt] = useState('');
+  const [projectPlatform, setProjectPlatform] = useState('');
+  const [projectFeatures, setProjectFeatures] = useState<string[]>([]);
+  const [projectDescription, setProjectDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [pendingOrderId, setPendingOrderId] = useState('');
