@@ -119,8 +119,8 @@ export default function DigitalSevaPage() {
     } catch { /* an unavailable or malformed recovery draft is ignored */ }
   }, []);
   const openPayNowCenter = () => setShowPayNowCenter(true);
-  const selectedState = states.find((item) => item.code === selectedStateCode);
-  const selectedDistrict = districts.find((item) => item.code === selectedDistrictCode);
+  const selectedState = states.find((item) => String(item.code) === selectedStateCode);
+  const selectedDistrict = districts.find((item) => String(item.code) === selectedDistrictCode);
   const results = useMemo(() => {
     const found = query.trim() ? searchSevaServices(query) : SEVA_SERVICES;
     const isBihar = selectedState?.name.toLocaleLowerCase('en-IN') === 'bihar';
