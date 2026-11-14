@@ -11,8 +11,8 @@ interface Env {
   CASHFREE_ENVIRONMENT?: string;
   CF_PAGES_BRANCH?: string;
 }
-const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
-const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
+const TERMS_POLICY_VERSION = 'terms-2026-11-14-v1';
+const REFUND_POLICY_VERSION = 'refund-2026-11-14-v1';
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
 function json(data: unknown, status = 200) {
