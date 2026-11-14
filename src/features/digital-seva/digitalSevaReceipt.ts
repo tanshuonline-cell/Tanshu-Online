@@ -17,6 +17,7 @@ export interface DigitalSevaReceiptView {
   selectedWork?: string[];
   documents?: string[];
   customerInstructions?: string;
+  paymentReference?: string | null;
   feeBreakdown?: { governmentFee: number; tanshuFee: number; totalAmount: number; paymentStatus: string } | null;
 }
 
@@ -120,7 +121,7 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
       <div class="fee-item"><small>Government / Provider Fee · सरकारी / प्रदाता शुल्क</small><b>₹${escapeHtml(data.feeBreakdown.governmentFee)}</b></div>
       <div class="fee-item"><small>TANSHU ONLINE Service Fee · सेवा शुल्क</small><b>₹${escapeHtml(data.feeBreakdown.tanshuFee)}</b></div>
       <div class="fee-item fee-total"><small>Total · कुल राशि</small><b>₹${escapeHtml(data.feeBreakdown.totalAmount)}</b></div>
-      <div class="fee-item"><small>Payment Status · भुगतान स्थिति</small><b>${escapeHtml(data.feeBreakdown.paymentStatus)}</b></div>
+      <div class="fee-item"><small>Payment Status · भुगतान स्थिति</small><b>${escapeHtml(data.feeBreakdown.paymentStatus)}</b></div>${data.paymentReference ? `<div class="fee-item"><small>Cashfree Order Reference · भुगतान संदर्भ</small><b>${escapeHtml(data.paymentReference)}</b></div>` : ''}
     </div></section>` : null;
   const mobileDigits = String(data.customerPhone || '').replace(/\D/g, '');
   const mobile = mobileDigits.length >= 4 ? `${mobileDigits.slice(0, 2)}XXXXXX${mobileDigits.slice(-2)}` : '—';
