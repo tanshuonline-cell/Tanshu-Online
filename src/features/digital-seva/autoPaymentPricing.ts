@@ -110,6 +110,7 @@ export const AUTO_PAYMENT_QUOTES: Record<string, AutoPaymentQuote> = {
     note: '₹30 is the TANSHU ONLINE fee for one PDF task. The customer supplies the PDF and selected page numbers/ranges; the separated PDF output is delivered after processing.'
   },
 
+  'custom-website-advance': { serviceId: 'custom-website-advance', totalAmount: 999, governmentFee: 0, tanshuFee: 999, currency: 'INR', routeLabel: 'Custom website project discovery booking advance', note: '₹999 is an initial scope-review advance only, not the full website build cost. Final written quote and milestones require customer approval before further payment or development.' },
   'website-basic': { serviceId: 'website-basic', totalAmount: 5999, governmentFee: 0, tanshuFee: 5999, currency: 'INR', routeLabel: 'Basic website package — up to 5 pages', note: 'Fixed scope only. Domain, hosting and third-party services are separate.' },
   'website-standard': { serviceId: 'website-standard', totalAmount: 11999, governmentFee: 0, tanshuFee: 11999, currency: 'INR', routeLabel: 'Standard business website — up to 10 pages', note: 'Fixed scope only. Domain, hosting and third-party services are separate.' },
   'website-premium': { serviceId: 'website-premium', totalAmount: 24999, governmentFee: 0, tanshuFee: 24999, currency: 'INR', routeLabel: 'Premium website package — up to 15 pages', note: 'Fixed scope only. E-commerce, SaaS and advanced custom integrations are separate.' },
