@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v1';
+export const WEBSITE_PROJECT_TERMS_VERSION = 'website-project-terms-2026-11-14-v2';
 export const WEBSITE_PROJECT_REFUND_VERSION = 'website-project-refund-2026-11-14-v1';
 
 interface Props {
@@ -70,6 +70,12 @@ const SECTIONS: Array<{ title: string; hiTitle: string; body: string; hiBody: st
     hiTitle: '10. संपर्क और विवाद समाधान',
     body: 'Project decisions, approvals, change requests, delivery notices and cancellation requests should be recorded through the customer support channel shown on the live website or the agreed written communication channel. The customer should quote the project/booking reference and must not send passwords, OTPs or recovery codes. TANSHU ONLINE will acknowledge a project complaint within 3 working days and aim to provide an update/resolution plan within 7 working days. These terms do not exclude any remedy available under Indian consumer law.',
     hiBody: 'प्रोजेक्ट के निर्णय, मंजूरी, बदलाव, डिलीवरी सूचना और cancellation अनुरोध live वेबसाइट पर दिए गए customer support माध्यम या पहले से तय लिखित माध्यम से रिकॉर्ड किए जाएँ। ग्राहक project/booking reference बताए; password, OTP या recovery code न भेजे। TANSHU ONLINE प्रोजेक्ट शिकायत की प्राप्ति 3 कार्यदिवस में स्वीकार करने और 7 कार्यदिवस में अपडेट/समाधान योजना देने का प्रयास करेगा। ये शर्तें भारतीय उपभोक्ता कानून के तहत ग्राहक के किसी अधिकार या उपाय को समाप्त नहीं करतीं।'
+  },
+  {
+    title: '11. Personal data, privacy and access security',
+    hiTitle: '11. व्यक्तिगत डेटा, गोपनीयता और access सुरक्षा',
+    body: 'The customer should provide only the information genuinely required for the agreed website functions. The customer is responsible for publishing an appropriate privacy notice and obtaining any legally required permissions from its own website visitors/customers, including where forms, analytics, cookies, marketing tools or third-party integrations are used. TANSHU ONLINE will use customer-provided project information only to perform the agreed work, provide support and meet lawful obligations; it will not sell customer personal data. Do not send passwords, OTPs, payment credentials or unnecessary identity/biometric information in a project brief. Demo/staging data should be fictional or appropriately masked. Access credentials must be shared through an agreed secure method and rotated/revoked at handover. Suspected unauthorised access or data exposure should be reported promptly through the agreed support channel.',
+    hiBody: 'ग्राहक वेबसाइट के तय फीचर के लिए वास्तव में जरूरी जानकारी ही देगा। अपनी वेबसाइट पर forms, analytics, cookies, marketing tools या third-party integrations होने पर visitors/customers के लिए उचित privacy notice प्रकाशित करना और कानूनन जरूरी अनुमति लेना ग्राहक की जिम्मेदारी होगी। TANSHU ONLINE ग्राहक की project जानकारी केवल सहमत काम, सहायता और कानूनी जिम्मेदारी के लिए उपयोग करेगा; व्यक्तिगत डेटा बेचेगा नहीं। Project brief में password, OTP, payment credentials या अनावश्यक पहचान/biometric जानकारी न भेजें। Demo/staging में काल्पनिक या उचित रूप से छिपाया गया डेटा होना चाहिए। Credentials तय सुरक्षित माध्यम से साझा होंगे और handover पर बदले/रद्द किए जाएँगे। अनधिकृत access या data exposure का शक हो तो तय support channel पर तुरंत सूचना दें।'
   }
 ];
 
