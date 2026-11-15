@@ -25,7 +25,7 @@ const BIHAR = 'https://serviceonline.bihar.gov.in/';
 
 const DEFAULT_DISCLOSURE: Omit<ServiceFeeDisclosure, 'governmentFee' | 'governmentRefund' | 'governmentStatus' | 'officialSourceLabel' | 'officialSourceUrl' | 'note'> = {
   serviceFee: 'Not configured yet — no TANSHU ONLINE amount will be collected in this Preview.',
-  serviceRefund: 'If the customer cancels before TANSHU ONLINE starts the agreed work, the full TANSHU service fee is refunded. After work starts, any retained amount is limited to the fair, disclosed value of work actually completed; the unearned balance is refunded. If TANSHU cannot deliver the agreed work or makes an error attributable to us, the unearned fee is refunded or the work is corrected without an extra service fee, subject to the official process and applicable consumer law.',
+  serviceRefund: 'If the customer cancels before TANSHU ONLINE starts the agreed work, the full TANSHU service fee is refunded. If the customer cancels after work starts but before application submission, any retained amount is limited to the fair, disclosed value of work actually completed; the unearned balance is refunded. Where the selected service includes an application and it has been successfully submitted with an acknowledgement/reference, the TANSHU ONLINE service fee earned for the preparation, processing and submission work is not refundable solely because the government later rejects the application, delays its decision or does not update its status. This does not apply to an error or failure attributable to TANSHU ONLINE, failure to deliver the agreed service, or customer rights under applicable consumer law.',
   checkedOn: CHECKED_ON,
 };
 
