@@ -41,7 +41,7 @@ interface Booking {
   tanshu_service_fee?: number | null;
   government_payment_status?: 'UNVERIFIED' | 'NOT_REQUIRED' | 'PENDING' | 'PAID' | null;
   government_payment_reference?: string | null;
-  government_paid_at?: string | null;
+  government_paid_at?: string | null;\n  government_evidence_id?: string | null;
   created_at: string;
   updated_at: string;
   documents?: BookingDocument[];
@@ -295,7 +295,7 @@ export default function DigitalSevaAdminPage() {
   const [draftEstimates, setDraftEstimates] = useState<Record<string, string>>({});
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [draftPaymentAmounts, setDraftPaymentAmounts] = useState<Record<string, string>>({});
-  const [draftGovernmentReferences, setDraftGovernmentReferences] = useState<Record<string, string>>({});
+  const [draftGovernmentReferences, setDraftGovernmentReferences] = useState<Record<string, string>>({});\n  const [draftGovernmentEvidence, setDraftGovernmentEvidence] = useState<Record<string, File | null>>({});
   const [paymentSavingId, setPaymentSavingId] = useState('');
   const [paymentMessage, setPaymentMessage] = useState('');
 
@@ -401,21 +401,36 @@ export default function DigitalSevaAdminPage() {
 
   const markGovernmentFeePaid = async (booking: Booking) => {
     const reference = (draftGovernmentReferences[booking.id] || '').trim();
-    if (!reference) { setError('Enter the official department/provider receipt or transaction reference first.'); return; }
+    const receipt = draftGovernmentEvidence[booking.id];
+    if (!reference || reference.length < 6) { setError('Enter the official receipt/reference (at least 6 characters).'); return; }
+    if (!receipt) { setError('Attach the actual government department receipt (PDF, JPG or PNG, maximum 5 MB).'); return; }
     setSavingId(booking.id);
     setError('');
     try {
-      const response = await fetch('/api/digital-seva/admin', {
-        method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'MARK_GOVERNMENT_FEE_PAID', bookingId: booking.id, governmentPaymentReference: reference })
+      const form = new FormData();
+      form.append('bookingId', booking.id);
+      form.append('governmentPaymentReference', reference);
+      form.append('receipt', receipt);
+      const response = await fetch('/api/digital-seva/admin/government-deposit-evidence', {
+        method: 'POST', credentials: 'same-origin', body: form
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.success) throw new Error(data.error || 'Could not record the official government payment.');
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not securely record the government receipt.');
       setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: '' }));
-      setPaymentMessage(`Official fee deposit recorded for ${booking.booking_reference}.`);
+      setDraftGovernmentEvidence((old) => ({ ...old, [booking.id]: null }));
+      setPaymentMessage(`Official receipt evidence securely stored for ${booking.booking_reference}. The upload is recorded; the department payment itself is not independently verified by TANSHU ONLINE.`);
       await loadBookings();
-    } catch (e: any) { setError(e?.message || 'Could not record the official government payment.'); }
+    } catch (e: any) { setError(e?.message || 'Could not securely record the government receipt.'); }
     finally { setSavingId(''); }
+  };
+
+  const openGovernmentEvidence = async (booking: Booking) => {
+    try {
+      const response = await fetch(`/api/digital-seva/admin/government-deposit-evidence?bookingId=${encodeURIComponent(booking.id)}`, { credentials: 'same-origin', cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.url) throw new Error(data.error || 'Could not open the stored official receipt.');
+      window.open(String(data.url), '_blank', 'noopener,noreferrer');
+    } catch (e: any) { setError(e?.message || 'Could not open the stored official receipt.'); }
   };
 
   const createPaymentLink = async (booking: Booking) => {
@@ -497,8 +512,8 @@ export default function DigitalSevaAdminPage() {
   <div className="dsa-payment-status"><span><b>Customer payment status:</b> {booking.payment_status || 'AWAITING PRICE'}</span>{booking.payment_amount != null && <span><b>Total collected:</b> ₹{Number(booking.payment_amount).toFixed(2)}</span>}{booking.payment_paid_at && <span><b>Customer paid at:</b> {formatSlipTime(booking.payment_paid_at)} IST</span>}</div>
   <div className="dsa-payment-status"><span><b>Government/provider fee collected:</b> ₹{Number(booking.government_fee || 0).toFixed(2)}</span><span><b>TANSHU ONLINE service fee:</b> ₹{Number(booking.tanshu_service_fee || 0).toFixed(2)}</span><span><b>Official deposit status:</b> {booking.government_payment_status || 'UNVERIFIED'}</span></div>
   {Number(booking.government_fee || 0) > 0 && (booking.government_payment_status !== 'PAID'
-    ? <div className="dsa-payment-link"><input aria-label="Official government payment receipt reference" placeholder="Enter actual official receipt / transaction reference" minLength={6} maxLength={120} value={draftGovernmentReferences[booking.id] || ''} onChange={(e) => setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: e.target.value }))} /><button type="button" onClick={() => void markGovernmentFeePaid(booking)} disabled={savingId === booking.id || booking.payment_status !== 'PAID'}>Record government fee deposited</button><small>{booking.payment_status !== 'PAID' ? 'Customer payment must be confirmed first.' : 'Only record this after the fee is actually deposited. Enter the genuine department receipt/reference (minimum 6 characters); this field does not independently verify the department payment.'}</small></div>
-    : <div className="dsa-payment-status"><span><b>Official payment reference:</b> {booking.government_payment_reference || 'Recorded'}</span>{booking.government_paid_at && <span><b>Deposited at:</b> {formatSlipTime(booking.government_paid_at)} IST</span>}</div>)}
+    ? <div className="dsa-payment-link"><input aria-label="Official government payment receipt reference" placeholder="Official receipt / transaction reference" minLength={6} maxLength={120} value={draftGovernmentReferences[booking.id] || ''} onChange={(e) => setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: e.target.value }))} /><input aria-label="Upload official government receipt" type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => setDraftGovernmentEvidence((old) => ({ ...old, [booking.id]: e.target.files?.[0] || null }))} /><button type="button" onClick={() => void markGovernmentFeePaid(booking)} disabled={savingId === booking.id || booking.payment_status !== 'PAID' || !draftGovernmentEvidence[booking.id]}>Upload receipt &amp; record deposit</button><small>{booking.payment_status !== 'PAID' ? 'Customer payment must be confirmed first.' : 'Required: genuine department receipt (PDF/JPG/PNG, max 5 MB) plus its official reference. Stored privately; upload records operator evidence, it does not independently verify the department payment.'}</small></div>
+    : <div className="dsa-payment-status"><span><b>Official payment reference:</b> {booking.government_payment_reference || 'Recorded'}</span>{booking.government_paid_at && <span><b>Evidence recorded:</b> {formatSlipTime(booking.government_paid_at)} IST</span>}<button type="button" onClick={() => void openGovernmentEvidence(booking)}>View official receipt evidence</button></div>)} 
   {booking.payment_link_url && <div className="dsa-payment-link"><a href={booking.payment_link_url} target="_blank" rel="noreferrer">Open payment link</a><button type="button" onClick={() => void copyPaymentLink(String(booking.payment_link_url))}>Copy link to share</button></div>}
 </section><div className="dsa-status-row"><label>Status<select value={draftStatuses[booking.id] || booking.status} onChange={(e) => setDraftStatuses((old) => ({ ...old, [booking.id]: e.target.value as BookingStatus }))}>{STATUS_OPTIONS.map((status) => <option value={status} key={status}>{status.replaceAll('_', ' ')}</option>)}</select></label><label>Estimated completion (local time)<input type="datetime-local" value={draftEstimates[booking.id] || ''} onChange={(e) => setDraftEstimates((old) => ({ ...old, [booking.id]: e.target.value }))} /></label><label>Customer update note<input value={draftNotes[booking.id] || ''} maxLength={500} placeholder="Visible to customer — short progress update" onChange={(e) => setDraftNotes((old) => ({ ...old, [booking.id]: e.target.value }))} /></label><button onClick={() => void updateStatus(booking)} disabled={savingId === booking.id || ((draftStatuses[booking.id] || booking.status) === booking.status && (draftEstimates[booking.id] || '') === toLocalDateTimeInput(booking.estimated_completion_at) && !(draftNotes[booking.id] || '').trim())}>{savingId === booking.id ? 'Saving…' : 'Save update'}</button></div></article>)}</div><footer className="dsa-footer"><a href="/digital-seva">← Back to Digital Seva</a><span>Booking records are private. Do not share customer contact details.</span></footer></div>;
 }
