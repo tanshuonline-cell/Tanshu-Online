@@ -260,8 +260,25 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
         createdAt: String(order.created_at || ''),
         bookingId: order.booking_id ? String(order.booking_id) : null,
         bookingReference: order.booking_reference ? String(order.booking_reference) : null,
-        events: eventGroups.get(String(order.order_id)) || []
+        events: eventGroups.get(String(order.order_id)) || [],
+        refunds: []
       }));
+      try {
+        const refundRows = await env.DIGITAL_SEVA_DB.prepare(
+          `SELECT order_id, refund_id, amount, status, cashfree_refund_id, created_at
+           FROM digital_seva_refunds ORDER BY created_at DESC LIMIT 200`
+        ).all();
+        const refundGroups = new Map<string, any[]>();
+        for (const row of refundRows.results || []) {
+          const key = String(row.order_id);
+          const list = refundGroups.get(key) || [];
+          list.push({ refundId: String(row.refund_id), amount: Number(row.amount), status: String(row.status), cashfreeRefundId: row.cashfree_refund_id ? String(row.cashfree_refund_id) : null, createdAt: String(row.created_at || '') });
+          refundGroups.set(key, list);
+        }
+        paymentHistory = paymentHistory.map((order) => ({ ...order, refunds: refundGroups.get(order.orderId) || [] }));
+      } catch {
+        console.error('Digital Seva refund ledger is not available yet; apply Preview migration 0013.');
+      }
     } catch (historyError) {
       // Keep the existing booking and paid-recovery panels usable before migration 0011 is applied.
       console.error('Digital Seva payment history is not available yet; apply migration 0011.');
