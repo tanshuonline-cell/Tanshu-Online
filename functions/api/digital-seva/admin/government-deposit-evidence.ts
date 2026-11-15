@@ -86,16 +86,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   try {
     await uploadPrivateDocument(env, objectKey, bytes, file.type);
     try {
-      await env.DIGITAL_SEVA_DB.prepare(
-        `INSERT INTO digital_seva_government_deposit_evidence
-         (id, booking_id, government_payment_reference, object_key, original_file_name, content_type, size_bytes, sha256, uploaded_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(id, bookingId, reference, objectKey, safeName(file.name), file.type, file.size, digest, actor).run();
-      await env.DIGITAL_SEVA_DB.prepare(
-        `UPDATE digital_seva_bookings SET government_payment_status = 'PAID',
-         government_payment_reference = ?, government_paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND government_payment_status IN ('PENDING','UNVERIFIED','PAID')`
-      ).bind(reference, bookingId).run();
+      await env.DIGITAL_SEVA_DB.batch([
+        env.DIGITAL_SEVA_DB.prepare(
+          `INSERT INTO digital_seva_government_deposit_evidence
+           (id, booking_id, government_payment_reference, object_key, original_file_name, content_type, size_bytes, sha256, uploaded_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, bookingId, reference, objectKey, safeName(file.name), file.type, file.size, digest, actor),
+        env.DIGITAL_SEVA_DB.prepare(
+          `UPDATE digital_seva_bookings SET government_payment_status = 'PAID',
+           government_payment_reference = ?, government_paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ? AND government_payment_status IN ('PENDING','UNVERIFIED','PAID')`
+        ).bind(reference, bookingId)
+      ]);
     } catch (error) {
       await deletePrivateDocument(env, objectKey).catch(() => {});
       throw error;
