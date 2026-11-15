@@ -125,6 +125,16 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
          FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
       ).all();
     }
+    const evidenceIds = new Map<string, string>();
+    try {
+      const evidenceResult = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT booking_id, id FROM digital_seva_government_deposit_evidence
+         WHERE id IN (SELECT MAX(id) FROM digital_seva_government_deposit_evidence GROUP BY booking_id)`
+      ).all();
+      for (const evidence of evidenceResult.results || []) evidenceIds.set(String(evidence.booking_id), String(evidence.id));
+    } catch {
+      // Preview migration 0013 may not have been applied yet.
+    }
     const documentResult = await env.DIGITAL_SEVA_DB.prepare(
       `SELECT id, booking_id, document_type, original_file_name, content_type, size_bytes, created_at
        FROM digital_seva_documents ORDER BY created_at DESC`
@@ -137,6 +147,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     }
     const bookings = await Promise.all((result.results || []).map(async (booking: any) => ({
       ...booking,
+      government_evidence_id: evidenceIds.get(String(booking.id)) || null,
       application_details_json: await revealApplicationDetails(booking.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index)),
       documents: grouped.get(booking.id) || []
     })));
