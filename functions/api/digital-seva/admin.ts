@@ -132,7 +132,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       ).all();
       for (const evidence of evidenceResult.results || []) { const key = String(evidence.booking_id); if (!evidenceIds.has(key)) evidenceIds.set(key, String(evidence.id)); }
     } catch {
-      // Preview migration 0013 may not have been applied yet.
+      // Production migration 0002 may not have been applied yet.
     }
     const documentResult = await env.DIGITAL_SEVA_DB.prepare(
       `SELECT id, booking_id, document_type, original_file_name, content_type, size_bytes, created_at
@@ -287,7 +287,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
         }
         paymentHistory = paymentHistory.map((order) => ({ ...order, refunds: refundGroups.get(order.orderId) || [] }));
       } catch {
-        console.error('Digital Seva refund ledger is not available yet; apply Preview migration 0013.');
+        console.error('Digital Seva refund ledger is not available yet; apply Production migration 0002.');
       }
     } catch (historyError) {
       // Keep the existing booking and paid-recovery panels usable before migration 0011 is applied.
