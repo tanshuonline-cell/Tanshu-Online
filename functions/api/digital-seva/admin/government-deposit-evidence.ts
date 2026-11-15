@@ -25,7 +25,7 @@ async function adminUser(request: Request, env: Env): Promise<string | null> {
   const secret = env.ADMIN_SECRET_TOKEN || '';
   if (secret.length < 32 || secret.includes('YOUR_')) return null;
   const cookie = request.headers.get('Cookie') || '';
-  const token = cookie.match(/(?:^|;\\s*)tanshu_admin_session=([^;]+)/)?.[1];
+  const token = cookie.match(/(?:^|;\s*)tanshu_admin_session=([^;]+)/)?.[1];
   if (!token || token.length > 4096) return null;
   try {
     const [payload, signature, extra] = token.split('.');
