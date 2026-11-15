@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS csp_email_otps (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL COLLATE NOCASE,
   otp_hash TEXT NOT NULL,
+  client_ip_hash TEXT,
   purpose TEXT NOT NULL CHECK (purpose IN ('signup','login')),
   expires_at TEXT NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 0,
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS csp_email_otps (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_csp_otp_email_created ON csp_email_otps(email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_csp_otp_ip_created ON csp_email_otps(client_ip_hash, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS csp_subscriptions (
   id TEXT PRIMARY KEY,
