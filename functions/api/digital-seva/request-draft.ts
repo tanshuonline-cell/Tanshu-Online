@@ -61,9 +61,11 @@ function toBase64(bytes: Uint8Array): string {
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
-function fromBase64(value: string): Uint8Array {
+function fromBase64(value: string): Uint8Array<ArrayBuffer> {
   const binary = atob(value);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
 }
 async function encryptionKey(env: Env): Promise<CryptoKey> {
   const secret = String(env.DIGITAL_SEVA_PII_SECRET || env.ADMIN_SECRET_TOKEN || '');
@@ -72,7 +74,7 @@ async function encryptionKey(env: Env): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 async function seal(env: Env, value: unknown): Promise<any> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iv = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(12)));
   const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await encryptionKey(env), new TextEncoder().encode(JSON.stringify(value)));
   return { version: 1, iv: toBase64(iv), data: toBase64(new Uint8Array(encrypted)) };
 }
