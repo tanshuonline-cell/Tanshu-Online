@@ -157,7 +157,6 @@ export async function onRequestPost(context: { request: Request; env: Env }): Pr
     return new Response(
       JSON.stringify({
         success: true,
-        token: sessionToken,
         user: {
           username: adminUser,
           role: 'superadmin',
