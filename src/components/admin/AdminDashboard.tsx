@@ -34,9 +34,10 @@ interface Props {
 }
 
 export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToSite }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases' | 'csp-customers'>('overview');
   const [videos, setVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
+  const [cspCustomers, setCspCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -112,6 +113,34 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const fetchCspCustomers = async () => {
+    try {
+      const response = await fetch('/api/admin/csp-customers', { credentials: 'include', cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load CSP customers.');
+      setCspCustomers(Array.isArray(data.customers) ? data.customers : []);
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Unable to load CSP customers.');
+    }
+  };
+
+  const manageCspCustomer = async (customerId: string, action: string, planCode?: string) => {
+    if (action === 'activate' && !window.confirm('Confirm that the customer payment has been received and verified manually?')) return;
+    const reference = action === 'activate' ? (window.prompt('Enter payment reference / UTR (optional):') || '') : '';
+    try {
+      const response = await fetch('/api/admin/csp-customers', {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, action, planCode, months: 1, reference })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Update failed.');
+      showNotification('success', data.message || 'Customer updated.');
+      await fetchCspCustomers();
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Update failed.');
+    }
   };
 
   const handleOpenAddVideo = () => {
@@ -387,6 +416,13 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
             >
               <Users className="w-4 h-4" />
               <span>Customer Purchases</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('csp-customers'); void fetchCspCustomers(); }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${activeTab === 'csp-customers' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}
+            >
+              <Users className="w-4 h-4" />
+              <span>CSP &amp; Travel Cafe Members</span>
             </button>
           </nav>
         </div>
@@ -1197,6 +1233,38 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'csp-customers' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 className="text-xl font-extrabold text-white">CSP &amp; Travel Cafe Customers</h2><p className="mt-1 text-xs text-slate-400">Gmail-verified accounts, manual memberships and expiry controls.</p></div>
+              <button onClick={fetchCspCustomers} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white">Refresh</button>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
+              <table className="w-full min-w-[850px] text-left text-xs">
+                <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Account</th><th className="p-3">Plan</th><th className="p-3">Expiry</th><th className="p-3">Manage</th></tr></thead>
+                <tbody className="divide-y divide-slate-800">
+                  {cspCustomers.length ? cspCustomers.map(customer => (
+                    <tr key={customer.id}>
+                      <td className="p-3 font-semibold text-white">{customer.email}</td>
+                      <td className="p-3 text-slate-300">{customer.status} · Verified</td>
+                      <td className="p-3 text-slate-300">{customer.plan_code ? customer.plan_code.toUpperCase() + ' · ₹' + customer.amount_inr : 'No active plan'}</td>
+                      <td className="p-3 text-slate-300">{customer.expires_at ? new Date(customer.expires_at).toLocaleDateString() : '—'}</td>
+                      <td className="p-3"><div className="flex flex-wrap gap-1.5">
+                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'basic')} className="rounded bg-blue-900 px-2 py-1 text-[10px] font-bold text-blue-100">BASIC ₹99</button>
+                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'advanced')} className="rounded bg-violet-900 px-2 py-1 text-[10px] font-bold text-violet-100">ADV ₹199</button>
+                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'premium')} className="rounded bg-amber-900 px-2 py-1 text-[10px] font-bold text-amber-100">PREM ₹299</button>
+                        {customer.status === 'active' ? <button onClick={() => manageCspCustomer(customer.id, 'suspend')} className="rounded bg-red-950 px-2 py-1 text-[10px] font-bold text-red-200">Suspend</button> : <button onClick={() => manageCspCustomer(customer.id, 'restore')} className="rounded bg-emerald-950 px-2 py-1 text-[10px] font-bold text-emerald-200">Restore</button>}
+                        <button onClick={() => manageCspCustomer(customer.id, 'expire')} className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-200">Expire</button>
+                      </div></td>
+                    </tr>
+                  )) : <tr><td colSpan={5} className="p-8 text-center text-slate-500">No Gmail-verified CSP customers yet, or the database migration is pending.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] leading-5 text-slate-500">Membership activation is manual and should only be used after payment is independently verified. Plans are activated for one month at a time; no auto-renewal is configured.</p>
           </div>
         )}
       </main>
