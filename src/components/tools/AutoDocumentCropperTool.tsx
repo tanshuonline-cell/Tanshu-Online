@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import { Upload, Download, Crop, RotateCcw, Maximize2, Minimize2, SlidersHorizontal, Image as ImageIcon, CheckCircle2, Move, ZoomIn, ZoomOut, X, Eye } from 'lucide-react';
 
 type Point = { x: number; y: number };
@@ -14,6 +15,7 @@ const PRESETS: Record<ExportPreset, { label: string; target: number; quality: nu
 };
 
 export const AutoDocumentCropperTool: React.FC = () => {
+  const requestExport = useCspExportGate();
   const [imageUrl,setImageUrl]=useState<string|null>(null);
   const [imageSize,setImageSize]=useState({width:0,height:0});
   const [corners,setCorners]=useState<Quad|null>(null);
@@ -128,12 +130,12 @@ export const AutoDocumentCropperTool: React.FC = () => {
     return best;
   };
   const saveJpeg=async()=>{
-    if(!resultBlob)return;setBusy(true);setError('');
+    if(!resultBlob || !(await requestExport()))return;setBusy(true);setError('');
     try{const blob=await makeExportBlob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=cleanName(documentName)+'.jpg';a.click();URL.revokeObjectURL(url);}
     catch(e){setError(e instanceof Error?e.message:'Export failed');}finally{setBusy(false);}
   };
   const savePdf=async()=>{
-    if(!resultBlob)return;setBusy(true);setError('');
+    if(!resultBlob || !(await requestExport()))return;setBusy(true);setError('');
     try{
       const blob=await makeExportBlob();const data=await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=()=>reject(new Error('Could not read image'));r.readAsDataURL(blob);});
       const img=new Image();img.onload=()=>{
