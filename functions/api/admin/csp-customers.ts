@@ -27,7 +27,10 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     const { results } = await env.DB.prepare(
       "SELECT c.id, c.email, c.status, c.email_verified_at, c.created_at, s.plan_code, s.amount_inr, s.starts_at, s.expires_at, s.status AS subscription_status, (SELECT COUNT(*) FROM csp_payments p WHERE p.customer_id = c.id) AS payment_count FROM csp_customers c LEFT JOIN csp_subscriptions s ON s.id = (SELECT s2.id FROM csp_subscriptions s2 WHERE s2.customer_id = c.id ORDER BY s2.created_at DESC LIMIT 1) ORDER BY c.created_at DESC"
     ).all();
-    return json({ success: true, customers: results || [] });
+    const payments = await env.DB.prepare(
+      "SELECT p.id, c.email, p.amount_inr, p.payment_method, p.reference, p.status, p.verified_by, p.verified_at, p.created_at FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id ORDER BY p.created_at DESC LIMIT 200"
+    ).all();
+    return json({ success: true, customers: results || [], payments: payments.results || [] });
   } catch { return json({ success: false, error: 'CSP membership tables are not installed. Apply migration 0012 first.' }, 503); }
 }
 
