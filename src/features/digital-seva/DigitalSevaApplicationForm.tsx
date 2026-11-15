@@ -205,7 +205,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       });
     }, 1200);
     return () => window.clearTimeout(timer);
-  }, [service.id, draftReady, pendingCheckoutOrderId, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt]);
+  }, [service.id, draftReady, pendingCheckoutOrderId, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt, prepaidPayment?.customerPhone]);
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
   const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections)
