@@ -100,7 +100,8 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     let result: any;
     try {
       result = await env.DIGITAL_SEVA_DB.prepare(
-        `SELECT b.id, b.booking_reference, b.service_id, b.customer_name, b.customer_phone, b.customer_email, b.requester_type, b.application_for, b.operator_name, b.operator_phone, b.operator_email, b.centre_name, b.centre_address, b.agency_name, b.agency_address, b.application_details_json, b.status, b.estimated_completion_at, b.consent_at, b.terms_accepted_at, b.terms_policy_version, b.refund_policy_accepted_at, b.refund_policy_version, b.created_at, b.updated_at,
+        `SELECT b.id, b.booking_reference, b.service_id, b.customer_name, b.customer_phone, b.customer_email, b.requester_type, b.application_for, b.operator_name, b.operator_phone, b.operator_email, b.centre_name, b.centre_address, b.agency_name, b.agency_address, b.application_details_json, b.status, b.estimated_completion_at, b.consent_at, b.terms_accepted_at, b.terms_policy_version, b.refund_policy_accepted_at, b.refund_policy_version,
+          b.government_fee, b.tanshu_service_fee, b.government_payment_status, b.government_payment_reference, b.government_paid_at, b.created_at, b.updated_at,
           COALESCE(
             (SELECT p.amount FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1),
             (SELECT o.amount FROM digital_seva_checkout_orders o WHERE o.order_id = b.checkout_order_id)
@@ -281,6 +282,33 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The status update is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
+  if (body?.action === 'MARK_GOVERNMENT_FEE_PAID') {
+    const bookingId = String(body?.bookingId || '');
+    const reference = String(body?.governmentPaymentReference || '').trim().slice(0, 120);
+    if (!bookingId || bookingId.length > 64 || !reference) return json({ success: false, error: 'Enter the official government payment receipt/reference number.' }, 400);
+    try {
+      const booking = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT b.government_fee, b.government_payment_status, b.checkout_order_id,
+          (SELECT o.status FROM digital_seva_checkout_orders o WHERE o.order_id = b.checkout_order_id) AS checkout_status,
+          (SELECT p.status FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS link_status
+         FROM digital_seva_bookings b WHERE b.id = ?`
+      ).bind(bookingId).first();
+      if (!booking) return json({ success: false, error: 'Booking not found.' }, 404);
+      if (Number(booking.government_fee || 0) <= 0) return json({ success: false, error: 'This booking has no government fee to deposit.' }, 409);
+      if (booking.checkout_status !== 'CLAIMED' && booking.link_status !== 'PAID') return json({ success: false, error: 'The customer payment is not confirmed as PAID. Do not mark the government fee as deposited yet.' }, 409);
+      if (booking.government_payment_status === 'PAID') return json({ success: true, unchanged: true });
+      await env.DIGITAL_SEVA_DB.prepare(
+        `UPDATE digital_seva_bookings
+         SET government_payment_status = 'PAID', government_payment_reference = ?,
+             government_paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND government_payment_status IN ('PENDING','UNVERIFIED')`
+      ).bind(reference, bookingId).run();
+      return json({ success: true, bookingId, governmentPaymentStatus: 'PAID' });
+    } catch (error) {
+      console.error('Digital Seva government fee reconciliation failed:', error);
+      return json({ success: false, error: 'Could not record the official payment receipt. Confirm Preview migration 0012 is applied.' }, 503);
+    }
+  }
   const id = String(body?.bookingId || '');
   const nextStatus = String(body?.status || '');
   const note = String(body?.note || '').trim().slice(0, 500);

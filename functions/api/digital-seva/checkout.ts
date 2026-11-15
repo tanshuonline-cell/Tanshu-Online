@@ -67,6 +67,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     ).bind(idempotencyKey).first();
     if (prior) {
       if (prior.status === 'PENDING' || prior.status === 'PAID') {
+        if (Math.round(Number(prior.amount) * 100) !== Math.round(quote.totalAmount * 100)) {
+          return json({ success: false, error: 'This earlier payment attempt was created with a different fee breakdown. Do not pay again or close the page; contact TANSHU ONLINE to reconcile the existing payment before starting a new checkout.' }, 409);
+        }
         return json({ success: true, orderId: prior.order_id, paymentSessionId: prior.payment_session_id, amount: prior.amount, status: prior.status, cashfreeMode, reused: true });
       }
       return json({ success: false, error: 'This checkout attempt has already been used. Please start a fresh payment attempt.' }, 409);
@@ -98,7 +101,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           notify_url: `${origin}/api/digital-seva/cashfree-order-webhook`
         },
         order_note: `TANSHU ONLINE Digital Seva - ${serviceId}`.slice(0, 250),
-        order_tags: { service_id: serviceId, pricing_version: 'digital-seva-initial-2026-11-08' }
+        order_tags: { service_id: serviceId, pricing_version: 'combined-government-plus-tanshu-2026-11-14', government_fee: String(quote.governmentFee), tanshu_fee: String(quote.tanshuFee) }
       })
     });
     const result = await cashfreeResponse.json().catch(() => ({})) as any;
@@ -121,7 +124,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       currency: 'INR',
       status: 'PENDING',
       cashfreeMode,
-      quote: { governmentFee: quote.governmentFee, tanshuFee: quote.tanshuFee, routeLabel: quote.routeLabel, note: quote.note }
+      quote: { governmentFee: quote.governmentFee, tanshuFee: quote.tanshuFee, totalAmount: quote.totalAmount, governmentFeeStatus: quote.governmentFeeStatus, routeLabel: quote.routeLabel, note: quote.note }
     }, 201);
   } catch (error) {
     console.error('Digital Seva Cashfree checkout creation failed:', error);
