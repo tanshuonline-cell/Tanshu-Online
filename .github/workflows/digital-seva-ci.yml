@@ -2,7 +2,7 @@ name: Digital Seva Preview Build and Type Check
 
 on:
   pull_request:
-    branches: [main, feature/digital-seva-booking-system-2026]
+    branches: [main, feature/digital-seva-booking-system-2026, feature/digital-seva-total-fee-receipt-preview-2026-11-14]
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
@@ -11,7 +11,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
   push:
-    branches: [feature/digital-seva-booking-system-2026]
+    branches: [feature/digital-seva-booking-system-2026, feature/digital-seva-production-readiness-fixes-preview-2026-11-15]
     paths:
       - 'src/features/digital-seva/**'
       - 'functions/api/digital-seva/**'
