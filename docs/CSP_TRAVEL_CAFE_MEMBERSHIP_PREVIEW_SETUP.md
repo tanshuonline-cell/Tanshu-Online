@@ -5,13 +5,13 @@ This feature is isolated on branch `csp-travel-cafe-membership-preview`. It does
 ## Included in this preview
 
 - Gmail-only customer registration/login using email OTP (no phone login).
-- Server-generated six-digit OTP, ten-minute expiry, maximum five verification attempts and three OTP requests per 15 minutes per Gmail address.
+- Server-generated six-digit OTP, ten-minute expiry, maximum five verification attempts, three OTP requests per 15 minutes per Gmail address and ten per 15 minutes per IP (stored as a keyed hash).
 - HttpOnly customer session cookie (30 days).
 - Free-signup access for Photo & Signature Resizer, Auto Document Cropper and Photo Background Remover.
 - Monthly plans: BASIC ₹99, ADVANCED ₹199, PREMIUM ₹299; pricing is editable in the existing Admin Dashboard.
 - Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = ADVANCED + WhatsApp Selfie to Passport Photo.
 - Manual membership activation only after payment is independently verified. No payment gateway, auto-debit or auto-renewal is added.
-- Admin customer list, suspend/restore/expire actions, manual activation, payment audit history and audit records.
+- Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
 - Separate scheduled Worker source for 7/3/1-day expiry reminder emails.
 
 ## Required Cloudflare setup (not performed by this code change)
