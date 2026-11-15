@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowUpRight, CheckCircle2, ShieldCheck } from 'lucide-react
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { ToolItem } from '../types';
 import { UniversalToolModal } from './tools/UniversalToolModal';
-import { CspToolAccess } from './auth/CspToolAccess';
+import { CspMembershipPlans, CspToolAccess } from './auth/CspToolAccess';
 
 type ToolkitEntry = {
   slug: string; title: string; hindi: string; summary: string; summaryHi: string;
@@ -62,11 +62,7 @@ export const CscToolkitSeoPage: React.FC<{ slug: string }> = ({ slug }) => {
           <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-2xl font-black">Membership Plans · सदस्यता प्लान</h2>
             <p className="mt-2 text-sm text-slate-600">Manual payment and admin verification only. No auto-debit or automatic renewal.</p>
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 p-5"><p className="text-xs font-black tracking-widest text-slate-500">BASIC</p><p className="mt-2 text-3xl font-black">₹99<span className="text-xs font-medium text-slate-500"> / month</span></p><p className="mt-2 text-sm text-slate-700">Instant Passport Photo Studio</p></div>
-              <div className="rounded-2xl border border-slate-200 p-5"><p className="text-xs font-black tracking-widest text-slate-500">ADVANCED</p><p className="mt-2 text-3xl font-black">₹199<span className="text-xs font-medium text-slate-500"> / month</span></p><p className="mt-2 text-sm text-slate-700">Passport Studio + PVC Card Maker + Multi Customer Photo Maker</p></div>
-              <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5"><p className="text-xs font-black tracking-widest text-rose-800">PREMIUM</p><p className="mt-2 text-3xl font-black">₹299<span className="text-xs font-medium text-slate-500"> / month</span></p><p className="mt-2 text-sm text-slate-700">All four premium tools, including WhatsApp Selfie to Passport Photo</p></div>
-            </div>
+            <CspMembershipPlans />
             <p className="mt-4 text-xs text-slate-500">Auto Document Cropper, Photo Background Remover and Photo &amp; Signature Resizer require only free Gmail OTP sign-up.</p>
           </section>
           </>
