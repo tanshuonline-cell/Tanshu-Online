@@ -46,6 +46,7 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
             <p className="mt-1 text-sm text-slate-600">
               Essential digital service, cyber cafe and document tools — all in one place.
             </p>
+            <a href="/csc-cyber-cafe-toolkits" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-rose-800 underline-offset-4 hover:underline">Explore all 7 CSC &amp; Cyber Cafe tools <ArrowUpRight className="h-3 w-3" /></a>
           </div>
           <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
             Available to Use

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudioShell';
 import { Header, TANSHU_PROFILE_PHOTO } from './components/Header';
+import { CscToolkitSeoPage } from './components/CscToolkitSeoPage';
 import { Hero } from './components/Hero';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
@@ -76,6 +77,8 @@ export default function App() {
     const isVideoDetail = pathname.startsWith('/video/');
     const isDigitalSevaAdmin = pathname === '/digital-seva-admin';
     const isDigitalSeva = pathname === '/digital-seva' || isDigitalSevaAdmin;
+    const cscToolkitTitles: Record<string, string> = { '/csc-cyber-cafe-toolkits':'CSC & Cyber Cafe Toolkits | TANSHU ONLINE','/instant-passport-photo-studio':'Instant Passport Photo Studio Online | TANSHU ONLINE','/instant-pvc-card-maker':'Instant PVC Card Maker & Print Layout | TANSHU ONLINE','/whatsapp-selfie-to-passport-photo':'WhatsApp Selfie to Passport Photo Maker | TANSHU ONLINE','/instant-multi-customer-photo-maker':'Multi Customer Passport Photo Maker | TANSHU ONLINE','/photo-signature-resizer':'Photo & Signature Resizer in KB | TANSHU ONLINE','/auto-document-cropper':'Auto Document Cropper Online | TANSHU ONLINE','/photo-background-remover':'Photo Background Remover Online | TANSHU ONLINE' };
+    const cscToolkitDescriptions: Record<string, string> = { '/csc-cyber-cafe-toolkits':'Explore seven useful CSC and cyber cafe tools for passport photos, PVC cards, photo resizing, document cropping and background removal. हिंदी और English में।','/instant-passport-photo-studio':'Create passport-size photos with smart crop, signature editing and 4x6 or A4 print sheets. पासपोर्ट फोटो ऑनलाइन तैयार करें।','/instant-pvc-card-maker':'Arrange front and back ID card sides and prepare PVC card print layouts. PVC कार्ड प्रिंट लेआउट तैयार करें।','/whatsapp-selfie-to-passport-photo':'Turn a selfie into a passport-style photo with guided crop, face alignment and print options. सेल्फी से पासपोर्ट फोटो बनाएं।','/instant-multi-customer-photo-maker':'Edit multiple customer photos in one workspace and prepare batch print layouts. कई ग्राहकों की फोटो एक साथ तैयार करें।','/photo-signature-resizer':'Resize application photos and signatures to required dimensions and KB limits with JPG or PNG downloads. फोटो और सिग्नेचर रिसाइज करें।','/auto-document-cropper':'Detect document edges, crop and straighten document photos, then download PNG or PDF. डॉक्यूमेंट ऑटो क्रॉप करें।','/photo-background-remover':'Remove photo backgrounds and export transparent PNG or custom-colour images. फोटो का बैकग्राउंड हटाएं।' };
     const video = isVideoDetail
       ? (catalogVideos.find((item) => item.id === pathname.replace('/video/', '')) ||
          LATEST_VIDEOS.find((item) => item.id === pathname.replace('/video/', '')))
@@ -407,7 +410,7 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
-  // Dedicated Instant Passport Photo Studio preview route.
+  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Dedicated Instant Passport Photo Studio preview route.
   if (window.location.pathname === '/advanced-photo-studio-preview') {
     return <AdvancedPhotoStudioShell />;
   }
