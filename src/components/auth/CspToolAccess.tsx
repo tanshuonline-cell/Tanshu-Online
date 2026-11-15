@@ -32,7 +32,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const isSignedIn = Boolean(session?.authenticated);
 
   if (loading) return <div className="min-h-screen grid place-items-center bg-slate-50 text-slate-600">Checking secure access…</div>;
-  if (allowed) return <>{children}</>;
+  if (allowed) return <>{!requiresFreeSignup && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-xs font-bold text-emerald-900">Premium Quality Print · बेहतरीन क्वालिटी में डाउनलोड और प्रिंट करें · Best Quality Printing Access</div>}{children}</>;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900">
