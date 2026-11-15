@@ -186,7 +186,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName,
         taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt,
         refundAccepted, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
-        refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId, paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\\D/g, '')
+        refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId, paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\D/g, '')
       };
       remoteDraftQueueRef.current = remoteDraftQueueRef.current.catch(() => undefined).then(() =>
         fetch('/api/digital-seva/request-draft', {
