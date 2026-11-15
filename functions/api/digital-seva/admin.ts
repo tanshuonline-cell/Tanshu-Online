@@ -285,7 +285,7 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   if (body?.action === 'MARK_GOVERNMENT_FEE_PAID') {
     const bookingId = String(body?.bookingId || '');
     const reference = String(body?.governmentPaymentReference || '').trim().slice(0, 120);
-    if (!bookingId || bookingId.length > 64 || !reference) return json({ success: false, error: 'Enter the official government payment receipt/reference number.' }, 400);
+    if (!bookingId || bookingId.length > 64 || reference.length < 6) return json({ success: false, error: 'Enter the genuine official government receipt/reference (at least 6 characters). Do not use an amount or placeholder.' }, 400);
     try {
       const booking = await env.DIGITAL_SEVA_DB.prepare(
         `SELECT b.government_fee, b.government_payment_status, b.checkout_order_id,
