@@ -12,6 +12,7 @@ import {
   Type, PenTool, Shapes, Hand, Download, Sparkles, ScanSearch, UserRound,
   Highlighter, Eye, CircleHelp, Blend, Wand, CircleDot, Focus, ScanLine, Search
 } from 'lucide-react';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import { jsPDF } from 'jspdf';
 
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number; kind?: 'photo'|'signature'; cropZoom?: number; positionX?: number; positionY?: number };
@@ -199,6 +200,7 @@ const dataUrlToFile = async (data: string, name: string) => {
 
 
 export const AdvancedPhotoStudioShell: React.FC = () => {
+  const requestExport = useCspExportGate();
   const studioRootRef = useRef<HTMLDivElement>(null);
   const [isStudioFullscreen, setIsStudioFullscreen] = useState(false);
   useEffect(() => {
@@ -879,6 +881,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportPrintSheet = async (format: 'jpg'|'png'|'pdf') => {
+    if (!(await requestExport())) return;
     if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
@@ -941,6 +944,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
+    if (!(await requestExport())) return;
     if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const image = new Image();
