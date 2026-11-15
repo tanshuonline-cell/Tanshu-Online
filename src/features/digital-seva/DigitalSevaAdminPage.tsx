@@ -68,6 +68,7 @@ interface PaymentHistoryEvent {
   currency: string;
   eventTime?: string | null;
 }
+interface PaymentHistoryRefund { refundId: string; amount: number; status: string; cashfreeRefundId?: string | null; createdAt: string; }
 interface PaymentHistoryOrder {
   orderId: string;
   serviceId: string;
@@ -79,6 +80,7 @@ interface PaymentHistoryOrder {
   createdAt: string;
   bookingReference?: string | null;
   events: PaymentHistoryEvent[];
+  refunds?: PaymentHistoryRefund[];
 }
 const STATUS_OPTIONS: BookingStatus[] = ['RECEIVED', 'IN_REVIEW', 'WAITING_FOR_CUSTOMER', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
