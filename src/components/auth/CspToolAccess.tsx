@@ -8,6 +8,28 @@ const defaultPaidPlans = [
   { code: 'premium', price: 299, name: 'PREMIUM', tools: 'All four premium photo tools', active: true },
 ];
 
+
+export const CspMembershipPlans: React.FC = () => {
+  const [plans, setPlans] = useState(defaultPaidPlans);
+  useEffect(() => {
+    fetch('/api/csp/plans').then(response => response.json()).then(data => {
+      if (data?.success && Array.isArray(data.plans)) {
+        setPlans(current => current.map(plan => {
+          const price = data.plans.find((item: any) => item.plan_code === plan.code);
+          return price ? { ...plan, price: Number(price.amount_inr), active: true } : { ...plan, active: false };
+        }));
+      }
+    }).catch(() => {});
+  }, []);
+  return <div className="grid gap-4 md:grid-cols-3">
+    {plans.filter(plan => plan.active).map(plan => <div key={plan.code} className={`rounded-2xl border p-5 ${plan.code === 'premium' ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200'}`}>
+      <p className="text-xs font-black tracking-widest text-slate-500">{plan.name}</p>
+      <p className="mt-2 text-3xl font-black">₹{plan.price}<span className="text-xs font-medium text-slate-500"> / month</span></p>
+      <p className="mt-2 text-sm text-slate-700">{plan.tools}</p>
+    </div>)}
+  </div>;
+};
+
 export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode }> = ({ toolId, children }) => {
   const { isHindi } = useLanguage();
   const [session, setSession] = useState<Session | null>(null);
