@@ -282,7 +282,77 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The status update is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
+  if (body?.action === 'REQUEST_CASHFREE_REFUND') {
+    const orderId = String(body?.orderId || '');
+    const amount = Number(body?.amount);
+    const note = String(body?.note || 'TANSHU ONLINE service refund').trim().slice(0, 200);
+    if (!/^ds_[0-9a-f]{32}$/i.test(orderId) || !Number.isFinite(amount) || amount <= 0 || Math.round(amount * 100) !== amount * 100) {
+      return json({ success: false, error: 'Enter a valid paid checkout order and refund amount (up to 2 decimal places).' }, 400);
+    }
+    if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured for this Preview environment.' }, 503);
+    try {
+      const order = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT order_id, amount, currency, status FROM digital_seva_checkout_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+      if (!order || !['PAID','CLAIMED'].includes(String(order.status))) return json({ success: false, error: 'Only a Cashfree-verified paid order can be refunded.' }, 409);
+      const verifiedResponse = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}`, {
+        headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
+      });
+      const verified = await verifiedResponse.json().catch(() => ({})) as any;
+      if (!verifiedResponse.ok || String(verified.order_id || '') !== orderId ||
+          String(verified.order_status || '').toUpperCase() !== 'PAID' ||
+          String(verified.order_currency || '').toUpperCase() !== 'INR' ||
+          Math.round(Number(verified.order_amount) * 100) !== Math.round(Number(order.amount) * 100)) {
+        return json({ success: false, error: 'Cashfree could not independently verify this paid order and amount. No refund was sent.' }, 409);
+      }
+      const existing = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT COALESCE(SUM(amount), 0) AS total FROM digital_seva_refunds
+         WHERE order_id = ? AND status IN ('PENDING','SUCCESS','UNKNOWN')`
+      ).bind(orderId).first();
+      const remaining = Math.round((Number(order.amount) - Number(existing?.total || 0)) * 100) / 100;
+      if (amount > remaining || remaining <= 0) return json({ success: false, error: `Refund exceeds the remaining refundable amount ₹${Math.max(0, remaining).toFixed(2)}.` }, 409);
+      const unresolved = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT id FROM digital_seva_refunds WHERE order_id = ? AND status IN ('PENDING','UNKNOWN') LIMIT 1`
+      ).bind(orderId).first();
+      if (unresolved) return json({ success: false, error: 'A previous refund is pending or has an unknown gateway result. Reconcile it in Cashfree before creating another refund.' }, 409);
+      const refundId = `dsr_${crypto.randomUUID().replace(/-/g, '')}`;
+      const localId = crypto.randomUUID();
+      await env.DIGITAL_SEVA_DB.prepare(
+        `INSERT INTO digital_seva_refunds (id, order_id, refund_id, amount, currency, status, refund_note, created_by)
+         VALUES (?, ?, ?, ?, 'INR', 'PENDING', ?, ?)`
+      ).bind(localId, orderId, refundId, amount, note, actor).run();
+      let gatewayResponse: Response;
+      try {
+        gatewayResponse = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}/refunds`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01', 'x-idempotency-key': refundId },
+          body: JSON.stringify({ refund_amount: amount, refund_id: refundId, refund_note: note, refund_speed: 'STANDARD' })
+        });
+      } catch {
+        await env.DIGITAL_SEVA_DB.prepare(`UPDATE digital_seva_refunds SET status = 'UNKNOWN', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(localId).run();
+        return json({ success: false, refundId, status: 'UNKNOWN', error: 'Cashfree response was interrupted. Do not retry until this refund is reconciled in the Cashfree dashboard.' }, 502);
+      }
+      const gateway = await gatewayResponse.json().catch(() => ({})) as any;
+      if (!gatewayResponse.ok) {
+        const knownRejection = gatewayResponse.status >= 400 && gatewayResponse.status < 500;
+        const state = knownRejection ? 'FAILED' : 'UNKNOWN';
+        await env.DIGITAL_SEVA_DB.prepare(`UPDATE digital_seva_refunds SET status = ?, cashfree_refund_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .bind(state, gateway.cf_refund_id ? String(gateway.cf_refund_id) : null, localId).run();
+        return json({ success: false, refundId, status: state, error: knownRejection ? 'Cashfree rejected the refund request. Review the reason before taking another action.' : 'Cashfree returned an uncertain result. Reconcile the refund in Cashfree before retrying.' }, 502);
+      }
+      const rawStatus = String(gateway.refund_status || 'PENDING').toUpperCase();
+      const state = rawStatus === 'SUCCESS' ? 'SUCCESS' : rawStatus === 'FAILED' ? 'FAILED' : 'PENDING';
+      await env.DIGITAL_SEVA_DB.prepare(
+        `UPDATE digital_seva_refunds SET status = ?, cashfree_refund_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+      ).bind(state, gateway.cf_refund_id ? String(gateway.cf_refund_id) : null, localId).run();
+      return json({ success: true, refundId, cashfreeRefundId: gateway.cf_refund_id || null, status: state, amount, currency: 'INR' }, 201);
+    } catch (error) {
+      console.error('Cashfree refund request failed:', error);
+      return json({ success: false, error: 'Refund request could not be safely completed. Check the refund ledger and Cashfree dashboard before retrying.' }, 503);
+    }
+  }
   if (body?.action === 'MARK_GOVERNMENT_FEE_PAID') {
+    return json({ success: false, error: 'A private official receipt upload is now required. Use the Government Deposit Evidence upload control; a typed reference alone cannot mark the fee as paid.' }, 409);
     const bookingId = String(body?.bookingId || '');
     const reference = String(body?.governmentPaymentReference || '').trim().slice(0, 120);
     if (!bookingId || bookingId.length > 64 || reference.length < 6) return json({ success: false, error: 'Enter the genuine official government receipt/reference (at least 6 characters). Do not use an amount or placeholder.' }, 400);
