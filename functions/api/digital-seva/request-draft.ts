@@ -118,7 +118,6 @@ async function verifiedPaidOrder(env: Env, orderId: string, serviceId?: string) 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
   if (!(request.headers.get('Content-Type') || '').toLowerCase().includes('application/json')) return json({ success: false, error: 'A JSON request is required.' }, 415);
-  if (!rateLimit(request)) return json({ success: false, error: 'Too many recovery attempts. Please wait a few minutes.' }, 429);
   const raw = await request.text();
   if (raw.length > 48 * 1024) return json({ success: false, error: 'The recovery draft is too large.' }, 413);
   let body: any;
