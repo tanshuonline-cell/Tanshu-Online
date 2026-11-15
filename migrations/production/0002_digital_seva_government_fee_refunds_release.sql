@@ -59,6 +59,12 @@ CREATE TABLE IF NOT EXISTS digital_seva_refunds (
 CREATE INDEX IF NOT EXISTS idx_digital_seva_refunds_order
   ON digital_seva_refunds(order_id, created_at DESC);
 
+-- Prevent concurrent Admin requests from reserving multiple in-flight refunds
+-- for the same order. Keep this aligned with the application-level conflict check.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_digital_seva_refunds_one_unresolved_per_order
+  ON digital_seva_refunds(order_id)
+  WHERE status IN ('PENDING', 'UNKNOWN');
+
 CREATE TABLE IF NOT EXISTS digital_seva_government_deposit_evidence (
   id TEXT PRIMARY KEY,
   booking_id TEXT NOT NULL,
