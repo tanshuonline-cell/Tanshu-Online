@@ -38,6 +38,8 @@ export interface PrepaidDigitalSevaPayment {
   termsAcceptedAt: string;
   refundPolicyAccepted: true;
   refundAcceptedAt: string;
+  termsPolicyVersion: string;
+  refundPolicyVersion: string;
 }
 
 interface Props {
@@ -72,7 +74,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
     try {
       const saved = window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
       if (!saved) return;
-      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string };
+      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; termsPolicyVersion?: string; refundPolicyVersion?: string };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
       setSelectedId(data.serviceId);
       setName(data.name || '');
@@ -80,13 +82,15 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       setEmail(data.email || '');
       setPendingOrderId(data.orderId);
       setContactConsent(true);
-      setTermsAccepted(true);
-      setRefundAccepted(true);
-      setTermsAcceptedAt(data.termsAcceptedAt || new Date().toISOString());
-      setRefundAcceptedAt(data.refundAcceptedAt || new Date().toISOString());
+      const currentPolicyVersions = data.termsPolicyVersion === TERMS_POLICY_VERSION && data.refundPolicyVersion === REFUND_POLICY_VERSION;
+      setTermsAccepted(currentPolicyVersions);
+      setRefundAccepted(currentPolicyVersions);
+      setTermsAcceptedAt(currentPolicyVersions ? (data.termsAcceptedAt || new Date().toISOString()) : '');
+      setRefundAcceptedAt(currentPolicyVersions ? (data.refundAcceptedAt || new Date().toISOString()) : '');
     } catch { /* invalid recovery data is ignored */ }
   }, []);
   const verifyAndContinue = async (orderId: string) => {
+    if (!termsAccepted || !refundAccepted) throw new Error(hi ? 'भुगतान आगे बढ़ाने से पहले अपडेटेड Terms & Conditions और Refund Policy पढ़कर दोनों बॉक्स टिक करें।' : 'Before continuing, read the updated Terms & Conditions and Refund Policy and accept both checkboxes.');
     const response = await fetch('/api/digital-seva/verify-checkout', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId })
@@ -105,7 +109,9 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       termsAccepted: true,
       termsAcceptedAt: termsAcceptedAt || new Date().toISOString(),
       refundPolicyAccepted: true,
-      refundAcceptedAt: refundAcceptedAt || new Date().toISOString()
+      refundAcceptedAt: refundAcceptedAt || new Date().toISOString(),
+      termsPolicyVersion: TERMS_POLICY_VERSION,
+      refundPolicyVersion: REFUND_POLICY_VERSION
     };
     try { window.sessionStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.sessionStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
     onPaid(selected, payment);
@@ -145,7 +151,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         orderId = String(data.orderId);
         setPendingOrderId(orderId);
         setCashfreeMode(data.cashfreeMode === 'production' ? 'production' : 'sandbox');
-        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt })); } catch { /* session storage is optional */ }
+        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
       const sessionResponse = await fetch('/api/digital-seva/checkout', {
