@@ -127,6 +127,27 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     window.addEventListener('message', onFrameMessage);
     return () => window.removeEventListener('message', onFrameMessage);
   }, [session, allowed, toolEnabled, isFreeTool]);
+
+  // Last-resort export guard: catch native print calls and download-anchor clicks
+  // so a missed UI handler cannot silently bypass the subscription/signup gate.
+  useEffect(() => {
+    const originalPrint = window.print;
+    const originalAnchorClick = HTMLAnchorElement.prototype.click;
+    const guardedPrint = () => {
+      void requestExport().then(ok => { if (ok) originalPrint.call(window); });
+    };
+    const guardedAnchorClick = function (this: HTMLAnchorElement) {
+      if (!this.hasAttribute('download')) return originalAnchorClick.call(this);
+      const anchor = this;
+      void requestExport().then(ok => { if (ok) originalAnchorClick.call(anchor); });
+    };
+    window.print = guardedPrint;
+    HTMLAnchorElement.prototype.click = guardedAnchorClick;
+    return () => {
+      if (window.print === guardedPrint) window.print = originalPrint;
+      if (HTMLAnchorElement.prototype.click === guardedAnchorClick) HTMLAnchorElement.prototype.click = originalAnchorClick;
+    };
+  }, [session, toolEnabled, isFreeTool, toolId]);
   if (!toolEnabled) return <div className="min-h-screen grid place-items-center bg-slate-50 px-5 text-center"><div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"><h1 className="text-xl font-black">{isHindi ? 'यह टूल फिलहाल उपलब्ध नहीं है' : 'This tool is temporarily unavailable'}</h1><p className="mt-2 text-sm text-slate-600">{isHindi ? 'कृपया बाद में दोबारा प्रयास करें।' : 'Please check back later.'}</p><a href="/csc-cyber-cafe-toolkits" className="mt-4 inline-block font-bold text-rose-800">{isHindi ? 'सभी टूल देखें' : 'View all tools'}</a></div></div>;
   return <Gate.Provider value={{ requestExport }}>
     <div className="relative min-h-screen">
