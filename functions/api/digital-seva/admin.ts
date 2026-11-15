@@ -404,32 +404,7 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
     }
   }
   if (body?.action === 'MARK_GOVERNMENT_FEE_PAID') {
-    return json({ success: false, error: 'A private official receipt upload is now required. Use the Government Deposit Evidence upload control; a typed reference alone cannot mark the fee as paid.' }, 409);
-    const bookingId = String(body?.bookingId || '');
-    const reference = String(body?.governmentPaymentReference || '').trim().slice(0, 120);
-    if (!bookingId || bookingId.length > 64 || reference.length < 6) return json({ success: false, error: 'Enter the genuine official government receipt/reference (at least 6 characters). Do not use an amount or placeholder.' }, 400);
-    try {
-      const booking = await env.DIGITAL_SEVA_DB.prepare(
-        `SELECT b.government_fee, b.government_payment_status, b.checkout_order_id,
-          (SELECT o.status FROM digital_seva_checkout_orders o WHERE o.order_id = b.checkout_order_id) AS checkout_status,
-          (SELECT p.status FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS link_status
-         FROM digital_seva_bookings b WHERE b.id = ?`
-      ).bind(bookingId).first();
-      if (!booking) return json({ success: false, error: 'Booking not found.' }, 404);
-      if (Number(booking.government_fee || 0) <= 0) return json({ success: false, error: 'This booking has no government fee to deposit.' }, 409);
-      if (booking.checkout_status !== 'CLAIMED' && booking.link_status !== 'PAID') return json({ success: false, error: 'The customer payment is not confirmed as PAID. Do not mark the government fee as deposited yet.' }, 409);
-      if (booking.government_payment_status === 'PAID') return json({ success: true, unchanged: true });
-      await env.DIGITAL_SEVA_DB.prepare(
-        `UPDATE digital_seva_bookings
-         SET government_payment_status = 'PAID', government_payment_reference = ?,
-             government_paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND government_payment_status IN ('PENDING','UNVERIFIED')`
-      ).bind(reference, bookingId).run();
-      return json({ success: true, bookingId, governmentPaymentStatus: 'PAID' });
-    } catch (error) {
-      console.error('Digital Seva government fee reconciliation failed:', error);
-      return json({ success: false, error: 'Could not record the official payment receipt. Confirm Preview migration 0012 is applied.' }, 503);
-    }
+    return json({ success: false, error: 'A private official receipt upload is required. Use the Government Deposit Evidence upload control; a typed reference alone cannot mark the fee as paid.' }, 409);
   }
   const id = String(body?.bookingId || '');
   const nextStatus = String(body?.status || '');
