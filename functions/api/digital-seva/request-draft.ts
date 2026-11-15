@@ -91,7 +91,8 @@ function rateLimit(request: Request, action: string): boolean {
   const now = Date.now();
   const current = attempts.get(ip);
   if (attempts.size > 1000) for (const [key, value] of attempts) if (value.resetAt <= now) attempts.delete(key);
-  const limit = action === 'save' ? 180 : 8;\n  if (current && current.resetAt > now && current.count >= limit) return false;
+  const limit = action === 'save' ? 180 : 8;
+  if (current && current.resetAt > now && current.count >= limit) return false;
   if (!current || current.resetAt <= now) attempts.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
   else attempts.set(ip, { count: current.count + 1, resetAt: current.resetAt });
   return true;
