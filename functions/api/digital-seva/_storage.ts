@@ -46,14 +46,14 @@ function storageHeaders(key: string, extra: Record<string, string> = {}): Record
   // Bearer token so Storage evaluates requests with the service_role.
   // New sb_secret_* API keys are opaque keys, not JWTs; send those via apikey only.
   if (key.startsWith('eyJ') && key.split('.').length === 3) {
-    headers.Authorization = \`Bearer \${key}\`;
+    headers.Authorization = 'Bearer ' + key;
   }
   return headers;
 }
 
 function objectUrl(base: string, bucket: string, objectKey: string) {
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
-  return \`\${base}/storage/v1/object/\${bucket}/\${path}\`;
+  return base + '/storage/v1/object/' + bucket + '/' + path;
 }
 
 export async function uploadPrivateDocument(
@@ -97,7 +97,7 @@ export async function createPrivateDocumentUrl(
 ): Promise<string> {
   const { base, key, bucket } = storageConfig(env);
   const path = objectKey.split('/').map(encodeURIComponent).join('/');
-  const response = await fetch(\`\${base}/storage/v1/object/sign/\${bucket}/\${path}\`, {
+  const response = await fetch(base + '/storage/v1/object/sign/' + bucket + '/' + path, {
     method: 'POST',
     headers: storageHeaders(key, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }),
     body: JSON.stringify({ expiresIn, ...(downloadName ? { download: downloadName } : {}) })
@@ -108,7 +108,7 @@ export async function createPrivateDocumentUrl(
   }
   const data = await response.json() as { signedURL?: string };
   if (!data.signedURL) throw new Error('Supabase did not return a secure document link.');
-  return data.signedURL.startsWith('http') ? data.signedURL : \`\${base}/storage/v1\${data.signedURL.startsWith('/') ? data.signedURL : \`/\${data.signedURL}\`}\`;
+  return data.signedURL.startsWith('http') ? data.signedURL : base + '/storage/v1' + (data.signedURL.startsWith('/') ? data.signedURL : '/' + data.signedURL);
 }
 
 export const DOCUMENT_BUCKET_NAME = PREVIEW_BUCKET;
