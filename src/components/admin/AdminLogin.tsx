@@ -39,7 +39,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToSite }) =>
       const data = await response.json();
 
       if (response.ok && data.success) {
-        onLoginSuccess(data.user, data.token);
+        onLoginSuccess(data.user, '');
       } else {
         setErrorMessage(data.error || 'Admin authentication failed.');
       }

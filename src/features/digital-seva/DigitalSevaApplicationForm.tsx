@@ -108,10 +108,11 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         manuallyEditedHindiFieldsRef.current = new Set(Array.isArray(d.manualHindiFields) ? d.manualHindiFields : []);
         setServiceOptions(d.serviceOptions || {});
         setBookingConsent(Boolean(d.bookingConsent));
-        setTermsAccepted(Boolean(d.termsAccepted));
-        setTermsAcceptedAt(typeof d.termsAcceptedAt === 'string' ? d.termsAcceptedAt : null);
-        setRefundAccepted(Boolean(d.refundAccepted));
-        setRefundAcceptedAt(typeof d.refundAcceptedAt === 'string' ? d.refundAcceptedAt : null);
+        const currentPolicyVersions = d.termsPolicyVersion === TERMS_POLICY_VERSION && d.refundPolicyVersion === REFUND_POLICY_VERSION;
+        setTermsAccepted(currentPolicyVersions && Boolean(d.termsAccepted));
+        setTermsAcceptedAt(currentPolicyVersions && typeof d.termsAcceptedAt === 'string' ? d.termsAcceptedAt : null);
+        setRefundAccepted(currentPolicyVersions && Boolean(d.refundAccepted));
+        setRefundAcceptedAt(currentPolicyVersions && typeof d.refundAcceptedAt === 'string' ? d.refundAcceptedAt : null);
         setPaymentMode('AUTO_PAY');
         setPendingCheckoutOrderId(typeof d.pendingCheckoutOrderId === 'string' ? d.pendingCheckoutOrderId : '');
         setPendingPaymentSessionId(typeof d.pendingPaymentSessionId === 'string' ? d.pendingPaymentSessionId : '');
@@ -121,10 +122,11 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (prepaidPayment) {
         setApplicant({ name: prepaidPayment.customerName, phone: prepaidPayment.customerPhone, email: prepaidPayment.customerEmail });
         setBookingConsent(true);
-        setTermsAccepted(true);
-        setTermsAcceptedAt(prepaidPayment.termsAcceptedAt);
-        setRefundAccepted(true);
-        setRefundAcceptedAt(prepaidPayment.refundAcceptedAt);
+        const currentPolicyVersions = prepaidPayment.termsPolicyVersion === TERMS_POLICY_VERSION && prepaidPayment.refundPolicyVersion === REFUND_POLICY_VERSION;
+        setTermsAccepted(currentPolicyVersions);
+        setTermsAcceptedAt(currentPolicyVersions ? prepaidPayment.termsAcceptedAt : null);
+        setRefundAccepted(currentPolicyVersions);
+        setRefundAcceptedAt(currentPolicyVersions ? prepaidPayment.refundAcceptedAt : null);
         setPaymentMode('AUTO_PAY');
         setPendingCheckoutOrderId(prepaidPayment.orderId);
         setPendingPaymentSessionId('');
@@ -143,7 +145,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       step, requesterType, applicationFor, operator, centerName, centerAddress,
       agencyName, agencyAddress, applicant, corrections, selectedDocuments,
       documentFiles, otherDocumentName, taskDetails, fieldValues, serviceOptions,
-      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt,
+      manualHindiFields: Array.from(manuallyEditedHindiFieldsRef.current), bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION,
       paymentMode, pendingCheckoutOrderId, pendingPaymentSessionId
     };
     draftStateRef.current = data;

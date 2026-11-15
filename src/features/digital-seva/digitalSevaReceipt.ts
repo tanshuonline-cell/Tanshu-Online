@@ -133,7 +133,7 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
     ['Contact Consent / संपर्क सहमति', formatDate(data.contactConsentAt)],
     ['Terms & Conditions / नियम एवं शर्तें', `${data.termsAcceptedAt ? 'Accepted / स्वीकार किया' : 'Not recorded / दर्ज नहीं'} · ${formatDate(data.termsAcceptedAt)} · ${data.termsPolicyVersion || 'Version not recorded'}`],
     ['Refund Policy / रिफंड नीति', `${data.refundPolicyAcceptedAt ? 'Accepted / स्वीकार किया' : 'Not recorded / दर्ज नहीं'} · ${formatDate(data.refundPolicyAcceptedAt)} · ${data.refundPolicyVersion || 'Version not recorded'}`],
-    ['Application Submitted / आवेदन जमा', formatDate(data.submittedAt)]
+    ['Service Request Recorded / सेवा अनुरोध दर्ज', formatDate(data.submittedAt)]
   ];
   const auditHtml = audit.map(([label, value]) => `<div class="audit-item"><b>${escapeHtml(label)}</b><span>${escapeHtml(value)}</span></div>`).join('');
   const estimate = data.estimatedCompletionAt
@@ -154,7 +154,7 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
     @page{size:A4 portrait;margin:7mm}@media print{html,body{width:auto;background:#fff}.sheet{max-width:none;margin:0}.actions{display:none}section{break-inside:auto}.detail-item,.customer-cell,.audit-item{break-inside:avoid}}
     @media screen{body{background:#f2f2f2;padding:12px}.sheet{max-width:190mm;background:#fff;padding:8mm;box-shadow:0 2px 16px #00000012}.actions button{font-size:12px}}
   </style></head><body><main class="sheet"><header class="brand"><h1>TANSHU ONLINE</h1><p>RELIABLE • SECURE • PROFESSIONAL SERVICE</p></header>
-    <div class="heading"><h2>DIGITAL SEVA APPLICATION RECEIPT</h2><p>डिजिटल सेवा आवेदन एवं अनुरोध रसीद</p></div>
+    <div class="heading"><h2>DIGITAL SEVA SERVICE REQUEST RECEIPT</h2><p>डिजिटल सेवा अनुरोध रसीद</p></div>
     <div class="ref"><span>Booking Reference / बुकिंग संदर्भ</span><b>${escapeHtml(data.bookingReference)}</b></div>
     <section><h2>01. Customer Details / ग्राहक की जानकारी</h2><div class="customer-grid">
       <div class="customer-cell"><small>CUSTOMER NAME / ग्राहक का नाम</small><b>${escapeHtml(data.customerName)}</b></div>
@@ -162,10 +162,11 @@ export function buildDigitalSevaReceiptHtml(data: DigitalSevaReceiptView): strin
       <div class="customer-cell"><small>SERVICE / सेवा</small><b>${escapeHtml(data.serviceName)}</b></div>
       <div class="customer-cell"><small>EMAIL / ईमेल</small><b>${escapeHtml(data.customerEmail || '—')}</b></div>
     </div></section>
-    <section><h2>02. Application Details / आवेदन का विवरण</h2><div class="detail-grid">${detailHtml || '<div class="detail-item"><b>No additional details recorded / कोई अतिरिक्त विवरण दर्ज नहीं</b></div>'}</div></section>
+    <section><h2>02. Service Request Details / सेवा अनुरोध का विवरण</h2><div class="detail-grid">${detailHtml || '<div class="detail-item"><b>No additional details recorded / कोई अतिरिक्त विवरण दर्ज नहीं</b></div>'}</div></section>
     ${workHtml}${docsHtml}${instructionsHtml}${feeHtml || ''}
-    <section><h2>04. Application Status / आवेदन की स्थिति</h2><div class="status-line"><span class="status">${escapeHtml(data.status.replaceAll('_', ' '))}</span><span class="estimate"><b>Estimated completion / अनुमानित पूरा होने का समय:</b> ${escapeHtml(estimate)}</span></div></section>
-    <section><h2>05. Legal Consent &amp; Submission / कानूनी सहमति एवं जमा विवरण</h2><div class="audit-grid">${auditHtml}</div></section>
-    <footer class="foot">This is a TANSHU ONLINE service request receipt, not proof that a government application has been filed.<br>यह TANSHU ONLINE की सेवा अनुरोध रसीद है, सरकारी आवेदन जमा होने का प्रमाण नहीं।</footer>
+    <section><h2>04. Service Request Status / सेवा अनुरोध की स्थिति</h2><div class="status-line"><span class="status">${escapeHtml(data.status.replaceAll('_', ' '))}</span><span class="estimate"><b>Estimated completion / अनुमानित पूरा होने का समय:</b> ${escapeHtml(estimate)}</span></div></section>
+    <section><h2>05. Consent &amp; Request Record / सहमति एवं अनुरोध विवरण</h2><div class="audit-grid">${auditHtml}</div></section>
+    <section class="compact-section"><h2>06. Service &amp; Refund Note / सेवा एवं रिफंड सूचना</h2><p>TANSHU ONLINE's service fee is the professional charge for preparing, processing and submitting your application. Once the application is successfully submitted, this service fee is not refundable solely because the government later rejects it, delays it or does not update it. Any refund of the Government / Provider Fee is subject to the concerned authority's rules. / TANSHU ONLINE का सेवा शुल्क आपके आवेदन को तैयार करने, प्रक्रिया करने और जमा करने में किए गए कार्य का मेहनताना है। आवेदन सफलतापूर्वक जमा होने के बाद, सरकार द्वारा बाद में आवेदन रिजेक्ट करने, देरी करने या अपडेट न करने मात्र से यह सेवा शुल्क रिफंड नहीं होगा। सरकारी / प्रदाता शुल्क का रिफंड संबंधित विभाग के नियमों के अधीन होगा।</p></section>
+    <footer class="foot">This is a TANSHU ONLINE service request receipt, not proof that any government application has been submitted or filed.<br>यह TANSHU ONLINE की सेवा अनुरोध रसीद है, किसी भी सरकारी आवेदन के जमा होने का प्रमाण नहीं।</footer>
   </main><div class="actions"><button onclick="window.print()">Download / Save as PDF / Print</button></div></body></html>`;
 }

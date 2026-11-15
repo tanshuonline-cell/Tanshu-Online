@@ -125,6 +125,15 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
          FROM digital_seva_bookings ORDER BY created_at DESC LIMIT 200`
       ).all();
     }
+    const evidenceIds = new Map<string, string>();
+    try {
+      const evidenceResult = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT booking_id, id FROM digital_seva_government_deposit_evidence ORDER BY created_at DESC`
+      ).all();
+      for (const evidence of evidenceResult.results || []) { const key = String(evidence.booking_id); if (!evidenceIds.has(key)) evidenceIds.set(key, String(evidence.id)); }
+    } catch {
+      // Preview migration 0013 may not have been applied yet.
+    }
     const documentResult = await env.DIGITAL_SEVA_DB.prepare(
       `SELECT id, booking_id, document_type, original_file_name, content_type, size_bytes, created_at
        FROM digital_seva_documents ORDER BY created_at DESC`
@@ -137,6 +146,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     }
     const bookings = await Promise.all((result.results || []).map(async (booking: any) => ({
       ...booking,
+      government_evidence_id: evidenceIds.get(String(booking.id)) || null,
       application_details_json: await revealApplicationDetails(booking.application_details_json, [env.DIGITAL_SEVA_PII_SECRET || '', env.ADMIN_SECRET_TOKEN || ''].filter((secret, index, all) => Boolean(secret) && all.indexOf(secret) === index)),
       documents: grouped.get(booking.id) || []
     })));
@@ -260,8 +270,25 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
         createdAt: String(order.created_at || ''),
         bookingId: order.booking_id ? String(order.booking_id) : null,
         bookingReference: order.booking_reference ? String(order.booking_reference) : null,
-        events: eventGroups.get(String(order.order_id)) || []
+        events: eventGroups.get(String(order.order_id)) || [],
+        refunds: []
       }));
+      try {
+        const refundRows = await env.DIGITAL_SEVA_DB.prepare(
+          `SELECT order_id, refund_id, amount, status, cashfree_refund_id, created_at
+           FROM digital_seva_refunds ORDER BY created_at DESC LIMIT 200`
+        ).all();
+        const refundGroups = new Map<string, any[]>();
+        for (const row of refundRows.results || []) {
+          const key = String(row.order_id);
+          const list = refundGroups.get(key) || [];
+          list.push({ refundId: String(row.refund_id), amount: Number(row.amount), status: String(row.status), cashfreeRefundId: row.cashfree_refund_id ? String(row.cashfree_refund_id) : null, createdAt: String(row.created_at || '') });
+          refundGroups.set(key, list);
+        }
+        paymentHistory = paymentHistory.map((order) => ({ ...order, refunds: refundGroups.get(order.orderId) || [] }));
+      } catch {
+        console.error('Digital Seva refund ledger is not available yet; apply Preview migration 0013.');
+      }
     } catch (historyError) {
       // Keep the existing booking and paid-recovery panels usable before migration 0011 is applied.
       console.error('Digital Seva payment history is not available yet; apply migration 0011.');
@@ -282,32 +309,111 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The status update is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
-  if (body?.action === 'MARK_GOVERNMENT_FEE_PAID') {
-    const bookingId = String(body?.bookingId || '');
-    const reference = String(body?.governmentPaymentReference || '').trim().slice(0, 120);
-    if (!bookingId || bookingId.length > 64 || !reference) return json({ success: false, error: 'Enter the official government payment receipt/reference number.' }, 400);
+  if (body?.action === 'REFRESH_CASHFREE_REFUND') {
+    const refundId = String(body?.refundId || '');
+    if (!/^DSR[0-9a-f]{32}$/i.test(refundId)) return json({ success: false, error: 'Invalid refund reference.' }, 400);
+    if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured.' }, 503);
     try {
-      const booking = await env.DIGITAL_SEVA_DB.prepare(
-        `SELECT b.government_fee, b.government_payment_status, b.checkout_order_id,
-          (SELECT o.status FROM digital_seva_checkout_orders o WHERE o.order_id = b.checkout_order_id) AS checkout_status,
-          (SELECT p.status FROM digital_seva_payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS link_status
-         FROM digital_seva_bookings b WHERE b.id = ?`
-      ).bind(bookingId).first();
-      if (!booking) return json({ success: false, error: 'Booking not found.' }, 404);
-      if (Number(booking.government_fee || 0) <= 0) return json({ success: false, error: 'This booking has no government fee to deposit.' }, 409);
-      if (booking.checkout_status !== 'CLAIMED' && booking.link_status !== 'PAID') return json({ success: false, error: 'The customer payment is not confirmed as PAID. Do not mark the government fee as deposited yet.' }, 409);
-      if (booking.government_payment_status === 'PAID') return json({ success: true, unchanged: true });
+      const refund = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT id, order_id, status FROM digital_seva_refunds WHERE refund_id = ?'
+      ).bind(refundId).first();
+      if (!refund) return json({ success: false, error: 'Refund record not found.' }, 404);
+      const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(String(refund.order_id))}/refunds/${encodeURIComponent(refundId)}`, {
+        headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
+      });
+      const gateway = await response.json().catch(() => ({})) as any;
+      if (!response.ok || String(gateway.refund_id || '') !== refundId) return json({ success: false, error: 'Cashfree could not confirm this refund. Keep its current status and check the Cashfree dashboard.' }, 502);
+      const rawStatus = String(gateway.refund_status || '').toUpperCase();
+      const status = rawStatus === 'SUCCESS' ? 'SUCCESS' : rawStatus === 'FAILED' ? 'FAILED' : 'PENDING';
       await env.DIGITAL_SEVA_DB.prepare(
-        `UPDATE digital_seva_bookings
-         SET government_payment_status = 'PAID', government_payment_reference = ?,
-             government_paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND government_payment_status IN ('PENDING','UNVERIFIED')`
-      ).bind(reference, bookingId).run();
-      return json({ success: true, bookingId, governmentPaymentStatus: 'PAID' });
+        `UPDATE digital_seva_refunds SET status = ?, cashfree_refund_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+      ).bind(status, gateway.cf_refund_id ? String(gateway.cf_refund_id) : null, refund.id).run();
+      return json({ success: true, refundId, status, cashfreeRefundId: gateway.cf_refund_id || null, processedAt: gateway.processed_at || null });
     } catch (error) {
-      console.error('Digital Seva government fee reconciliation failed:', error);
-      return json({ success: false, error: 'Could not record the official payment receipt. Confirm Preview migration 0012 is applied.' }, 503);
+      console.error('Cashfree refund reconciliation failed:', error);
+      return json({ success: false, error: 'Could not reconcile refund status with Cashfree.' }, 503);
     }
+  }
+  if (body?.action === 'REQUEST_CASHFREE_REFUND') {
+    const orderId = String(body?.orderId || '');
+    const amount = Number(body?.amount);
+    const note = String(body?.note || 'TANSHU ONLINE service refund').trim().slice(0, 200);
+    if (!/^ds_[0-9a-f]{32}$/i.test(orderId) || !Number.isFinite(amount) || amount <= 0 || Math.round(amount * 100) !== amount * 100) {
+      return json({ success: false, error: 'Enter a valid paid checkout order and refund amount (up to 2 decimal places).' }, 400);
+    }
+    if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured for this Preview environment.' }, 503);
+    try {
+      const order = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT order_id, amount, currency, status FROM digital_seva_checkout_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+      if (!order || !['PAID','CLAIMED'].includes(String(order.status))) return json({ success: false, error: 'Only a Cashfree-verified paid order can be refunded.' }, 409);
+      const verifiedResponse = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}`, {
+        headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
+      });
+      const verified = await verifiedResponse.json().catch(() => ({})) as any;
+      if (!verifiedResponse.ok || String(verified.order_id || '') !== orderId ||
+          String(verified.order_status || '').toUpperCase() !== 'PAID' ||
+          String(verified.order_currency || '').toUpperCase() !== 'INR' ||
+          Math.round(Number(verified.order_amount) * 100) !== Math.round(Number(order.amount) * 100)) {
+        return json({ success: false, error: 'Cashfree could not independently verify this paid order and amount. No refund was sent.' }, 409);
+      }
+      const existing = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT COALESCE(SUM(amount), 0) AS total FROM digital_seva_refunds
+         WHERE order_id = ? AND status IN ('PENDING','SUCCESS','UNKNOWN')`
+      ).bind(orderId).first();
+      const remaining = Math.round((Number(order.amount) - Number(existing?.total || 0)) * 100) / 100;
+      if (amount > remaining || remaining <= 0) return json({ success: false, error: `Refund exceeds the remaining refundable amount ₹${Math.max(0, remaining).toFixed(2)}.` }, 409);
+      const unresolved = await env.DIGITAL_SEVA_DB.prepare(
+        `SELECT id FROM digital_seva_refunds WHERE order_id = ? AND status IN ('PENDING','UNKNOWN') LIMIT 1`
+      ).bind(orderId).first();
+      if (unresolved) return json({ success: false, error: 'A previous refund is pending or has an unknown gateway result. Reconcile it in Cashfree before creating another refund.' }, 409);
+      const refundId = `DSR${crypto.randomUUID().replace(/-/g, '')}`;
+      const localId = crypto.randomUUID();
+      try {
+        await env.DIGITAL_SEVA_DB.prepare(
+          `INSERT INTO digital_seva_refunds (id, order_id, refund_id, amount, currency, status, refund_note, created_by)
+           VALUES (?, ?, ?, ?, 'INR', 'PENDING', ?, ?)`
+        ).bind(localId, orderId, refundId, amount, note, actor).run();
+      } catch (reservationError) {
+        // A partial unique index reserves one unresolved refund per order atomically.
+        const activeRefund = await env.DIGITAL_SEVA_DB.prepare(
+          `SELECT id FROM digital_seva_refunds WHERE order_id = ? AND status IN ('PENDING','UNKNOWN') LIMIT 1`
+        ).bind(orderId).first();
+        if (activeRefund) return json({ success: false, error: 'A previous refund is pending or has an unknown gateway result. Reconcile it in Cashfree before creating another refund.' }, 409);
+        throw reservationError;
+      }
+      let gatewayResponse: Response;
+      try {
+        gatewayResponse = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}/refunds`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01', 'x-idempotency-key': refundId },
+          body: JSON.stringify({ refund_amount: amount, refund_id: refundId, refund_note: note, refund_speed: 'STANDARD' })
+        });
+      } catch {
+        await env.DIGITAL_SEVA_DB.prepare(`UPDATE digital_seva_refunds SET status = 'UNKNOWN', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(localId).run();
+        return json({ success: false, refundId, status: 'UNKNOWN', error: 'Cashfree response was interrupted. Do not retry until this refund is reconciled in the Cashfree dashboard.' }, 502);
+      }
+      const gateway = await gatewayResponse.json().catch(() => ({})) as any;
+      if (!gatewayResponse.ok) {
+        const knownRejection = gatewayResponse.status >= 400 && gatewayResponse.status < 500;
+        const state = knownRejection ? 'FAILED' : 'UNKNOWN';
+        await env.DIGITAL_SEVA_DB.prepare(`UPDATE digital_seva_refunds SET status = ?, cashfree_refund_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .bind(state, gateway.cf_refund_id ? String(gateway.cf_refund_id) : null, localId).run();
+        return json({ success: false, refundId, status: state, error: knownRejection ? 'Cashfree rejected the refund request. Review the reason before taking another action.' : 'Cashfree returned an uncertain result. Reconcile the refund in Cashfree before retrying.' }, 502);
+      }
+      const rawStatus = String(gateway.refund_status || 'PENDING').toUpperCase();
+      const state = rawStatus === 'SUCCESS' ? 'SUCCESS' : rawStatus === 'FAILED' ? 'FAILED' : 'PENDING';
+      await env.DIGITAL_SEVA_DB.prepare(
+        `UPDATE digital_seva_refunds SET status = ?, cashfree_refund_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+      ).bind(state, gateway.cf_refund_id ? String(gateway.cf_refund_id) : null, localId).run();
+      return json({ success: true, refundId, cashfreeRefundId: gateway.cf_refund_id || null, status: state, amount, currency: 'INR' }, 201);
+    } catch (error) {
+      console.error('Cashfree refund request failed:', error);
+      return json({ success: false, error: 'Refund request could not be safely completed. Check the refund ledger and Cashfree dashboard before retrying.' }, 503);
+    }
+  }
+  if (body?.action === 'MARK_GOVERNMENT_FEE_PAID') {
+    return json({ success: false, error: 'A private official receipt upload is required. Use the Government Deposit Evidence upload control; a typed reference alone cannot mark the fee as paid.' }, 409);
   }
   const id = String(body?.bookingId || '');
   const nextStatus = String(body?.status || '');
