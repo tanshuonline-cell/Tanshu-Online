@@ -27,6 +27,7 @@ const ringStyle: Record<string, string> = {
 
 export const CspMembershipPlans: React.FC = () => {
   const [plans, setPlans] = useState(defaultPaidPlans);
+  const [selectedPlan, setSelectedPlan] = useState('basic');
   useEffect(() => {
     fetch('/api/csp/plans').then(r => r.json()).then(data => {
       if (data?.success && Array.isArray(data.plans)) setPlans(current => current.map(plan => {
@@ -35,15 +36,19 @@ export const CspMembershipPlans: React.FC = () => {
       }));
     }).catch(() => {});
   }, []);
-  return <div className="grid gap-4 md:grid-cols-3">
-    {plans.filter(plan => plan.active).map(plan => <div key={plan.code} className={`group relative isolate overflow-hidden rounded-2xl p-[2px] shadow-sm transition-all duration-300 before:absolute before:inset-[-150%] before:animate-[spin_4s_linear_infinite] before:content-[''] hover:-translate-y-2 hover:scale-[1.025] hover:shadow-xl ${ringStyle[plan.code]}`}>
-      <div className={`relative h-full rounded-[14px] border p-5 transition-all ${planStyle[plan.code]}`}>
-        <div className="flex items-center justify-between gap-2"><p className="text-xs font-black tracking-[.2em]">{plan.name}</p><span className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-[9px] font-extrabold uppercase">{plan.code === 'basic' ? 'Starter' : plan.code === 'advanced' ? 'Pro' : 'Elite'}</span></div>
-        <p className="mt-3 text-3xl font-black">₹{plan.price}<span className="text-xs font-semibold opacity-65"> / month</span></p>
-        <p className="mt-2 min-h-10 text-sm font-semibold leading-5">{plan.tools}</p>
-        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/70"><div className={`h-full w-full rounded-full ${plan.code === 'basic' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : plan.code === 'advanced' ? 'bg-gradient-to-r from-sky-400 to-indigo-500' : 'bg-gradient-to-r from-fuchsia-500 to-rose-500'}`} /></div>
-      </div>
-    </div>)}
+  const selected = plans.find(plan => plan.code === selectedPlan && plan.active) || plans.find(plan => plan.active);
+  return <div>
+    <div className="grid gap-4 md:grid-cols-3">
+      {plans.filter(plan => plan.active).map(plan => <button type="button" key={plan.code} onClick={() => setSelectedPlan(plan.code)} className={`group relative isolate overflow-hidden rounded-2xl p-[2px] text-left shadow-sm transition-all duration-300 before:absolute before:inset-[-150%] before:animate-[spin_4s_linear_infinite] before:content-[''] hover:-translate-y-2 hover:scale-[1.025] hover:shadow-xl ${ringStyle[plan.code]} ${selectedPlan === plan.code ? '-translate-y-1 scale-[1.02] shadow-xl ring-4 ring-offset-2 ring-slate-300' : ''}`}>
+        <span className={`relative z-10 block h-full rounded-[14px] border p-5 ${planStyle[plan.code]}`}>
+          <span className="flex items-center justify-between gap-2"><span className="text-xs font-black tracking-[.2em]">{plan.name}</span><span className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-[9px] font-extrabold uppercase">{plan.code === 'basic' ? 'Starter' : plan.code === 'advanced' ? 'Pro' : 'Elite'}</span></span>
+          <span className="mt-3 block text-3xl font-black">₹{plan.price}<small className="text-xs font-semibold opacity-65"> / month</small></span>
+          <span className="mt-2 block min-h-10 text-sm font-semibold leading-5">{plan.tools}</span>
+          <span className="mt-4 block h-1.5 overflow-hidden rounded-full bg-white/70"><span className={`block h-full w-full rounded-full ${plan.code === 'basic' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : plan.code === 'advanced' ? 'bg-gradient-to-r from-sky-400 to-indigo-500' : 'bg-gradient-to-r from-fuchsia-500 to-rose-500'}`} /></span>
+        </span>
+      </button>)}
+    </div>
+    {selected && <p className="mt-3 text-center text-xs font-semibold text-slate-600">{selected.name} selected · {selected.tools} · {selected.price} INR / month</p>}
   </div>;
 };
 
