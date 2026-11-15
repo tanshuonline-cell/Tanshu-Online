@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { Upload, Download, Printer, RefreshCw, Scissors, Sparkles } from 'lucide-react';
+import { useCspExportGate } from '../auth/CspToolAccess';
 
 export const IdCardPrintLayoutTool: React.FC = () => {
+  const requestExport = useCspExportGate();
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<'side-by-side' | 'stacked'>('side-by-side');
@@ -160,7 +162,8 @@ export const IdCardPrintLayoutTool: React.FC = () => {
     }
   };
 
-  const handleDownloadImage = () => {
+  const handleDownloadImage = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current) return;
     const link = document.createElement('a');
     link.download = `tanshu_id_card_layout_${paperFormat}.jpg`;
@@ -168,7 +171,8 @@ export const IdCardPrintLayoutTool: React.FC = () => {
     link.click();
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current) return;
     const is4x6 = paperFormat === '4x6';
     const doc = new jsPDF({
