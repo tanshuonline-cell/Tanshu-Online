@@ -24,7 +24,8 @@ export async function onRequestGet({ request, env }: { request: Request; env: Cs
     success: true,
     authenticated: true,
     customer: { id: customer.id, email: customer.email },
-    subscription: subscription || null,\n    latestPayment: latestPayment || null,
+    subscription: subscription || null,
+    latestPayment: latestPayment || null,
     allowedTools: [...freeTools, ...paidTools].filter(toolId => enabledToolIds.has(toolId))
   });
 }
