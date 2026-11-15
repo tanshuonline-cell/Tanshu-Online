@@ -21,7 +21,7 @@ async function sendReminder(env: Env, email: string, plan: string, expiry: strin
 }
 
 export default {
-  async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+  async scheduled(_controller: unknown, env: Env, _ctx: unknown): Promise<void> {
     if (!env.DB || !env.BREVO_API_KEY || !env.CSP_SENDER_EMAIL) throw new Error('CSP reminder worker is missing its D1 or Brevo configuration.');
     const istToday = new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10);
     for (const days of [7, 3, 1]) {
