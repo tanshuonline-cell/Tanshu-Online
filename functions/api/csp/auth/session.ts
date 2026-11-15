@@ -7,7 +7,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: Cs
   const customer = await env.DB.prepare('SELECT id, email, status FROM csp_customers WHERE id = ?').bind(session.id).first();
   if (!customer || customer.status !== 'active') return json({ success: true, authenticated: false });
   const subscription = await env.DB.prepare(
-    "SELECT plan_code, amount_inr, starts_at, expires_at FROM csp_subscriptions WHERE customer_id = ? AND status = 'active' AND starts_at <= CURRENT_TIMESTAMP AND expires_at > CURRENT_TIMESTAMP ORDER BY CASE plan_code WHEN 'premium' THEN 3 WHEN 'advanced' THEN 2 ELSE 1 END DESC, expires_at DESC LIMIT 1"
+    "SELECT plan_code, amount_inr, starts_at, expires_at FROM csp_subscriptions WHERE customer_id = ? AND status = 'active' AND datetime(starts_at) <= CURRENT_TIMESTAMP AND datetime(expires_at) > CURRENT_TIMESTAMP ORDER BY CASE plan_code WHEN 'premium' THEN 3 WHEN 'advanced' THEN 2 ELSE 1 END DESC, expires_at DESC LIMIT 1"
   ).bind(customer.id).first();
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
   const paidTools = subscription?.plan_code === 'premium'
