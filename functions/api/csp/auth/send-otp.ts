@@ -14,6 +14,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
       "SELECT COUNT(*) AS total FROM csp_email_otps WHERE email = ? AND created_at >= datetime('now', '-15 minutes')"
     ).bind(email).first();
     if (Number(recent?.total || 0) >= 3) return json({ success: false, error: 'OTP limit reached. Please try again after 15 minutes.' }, 429);
+    const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+    const ipHash = await hmac('ip:' + ip, env.CSP_OTP_SECRET);
+    const ipRecent = await env.DB.prepare(
+      "SELECT COUNT(*) AS total FROM csp_email_otps WHERE client_ip_hash = ? AND created_at >= datetime('now', '-15 minutes')"
+    ).bind(ipHash).first();
+    if (Number(ipRecent?.total || 0) >= 10) return json({ success: false, error: 'Too many OTP requests from this network. Please wait 15 minutes.' }, 429);
 
     const otpBytes = new Uint32Array(1);
     crypto.getRandomValues(otpBytes);
@@ -23,8 +29,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     await env.DB.prepare(
-      'INSERT INTO csp_email_otps (id, email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?, ?)'
-    ).bind(id, email, otpHash, purpose, expiresAt).run();
+      'INSERT INTO csp_email_otps (id, email, otp_hash, client_ip_hash, purpose, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(id, email, otpHash, ipHash, purpose, expiresAt).run();
 
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
