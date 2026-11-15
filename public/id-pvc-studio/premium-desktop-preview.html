@@ -1,5 +1,18 @@
 <!doctype html>
 <html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · INSTANT PVC CARD MAKER</title>
+<script>
+(async function () {
+  try {
+    const response = await fetch('/api/csp/auth/session', { credentials: 'include', cache: 'no-store' });
+    const access = await response.json();
+    if (!access.authenticated || !Array.isArray(access.allowedTools) || !access.allowedTools.includes('pdf-to-pvc-card-auto-cropper')) {
+      window.location.replace('/instant-pvc-card-maker');
+    }
+  } catch (_) {
+    window.location.replace('/instant-pvc-card-maker');
+  }
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{font-family:Inter,system-ui,Arial;color:#17233d;background:#eef1f6}*{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden}
