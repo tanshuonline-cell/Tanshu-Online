@@ -8,7 +8,6 @@ import {
   ShieldCheck, SlidersHorizontal, Sparkles, UploadCloud, WandSparkles, ScanLine,
   X, ZoomIn, ZoomOut, Maximize2, Minimize2, Undo2, Redo2, Trash2, Merge
 } from 'lucide-react';
-import { useCspExportGate } from '../auth/CspToolAccess';
 
 type StudioTool = 'crop' | 'face' | 'straighten' | 'background' | 'signature' | 'adjustments' | 'photoFromPhoto' | 'print';
 
@@ -76,7 +75,6 @@ const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;
 };
 
 export const WhatsAppSelfiePassportTool: React.FC = () => {
-  const requestExport = useCspExportGate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [processedPhotoUrl, setProcessedPhotoUrl] = useState('');
@@ -795,7 +793,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
   const saveBlob=(blob:Blob,fileName:string)=>{const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),30000);};
   const runExport=async(format:'pdf'|'jpg'|'png'|'print')=>{
-    if(!selectedFile||exportBusy || !(await requestExport()))return;
+    if(!selectedFile||exportBusy)return;
     const printWindow=format==='print'?window.open('','_blank'):null;
     setExportBusy(true);
     try{
