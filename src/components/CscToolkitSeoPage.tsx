@@ -58,6 +58,16 @@ export const CscToolkitSeoPage: React.FC<{ slug: string }> = ({ slug }) => {
             <p className="mt-2 text-slate-600">Choose a tool to read how it works and open its actual workspace.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{CSC_TOOLKIT_ENTRIES.map(item => <a key={item.slug} href={'/'+item.slug} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-rose-300 hover:shadow-md"><h3 className="font-extrabold text-slate-900 group-hover:text-rose-800">{item.title}</h3><p className="mt-1 text-sm font-semibold text-slate-600">{item.hindi}</p><p className="mt-3 text-sm leading-6 text-slate-600">{item.summary}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-rose-800">Explore tool <ArrowUpRight className="h-4 w-4"/></span></a>)}</div>
           </section>
+          <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-2xl font-black">Membership Plans · सदस्यता प्लान</h2>
+            <p className="mt-2 text-sm text-slate-600">Manual payment and admin verification only. No auto-debit or automatic renewal.</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 p-5"><p className="text-xs font-black tracking-widest text-slate-500">BASIC</p><p className="mt-2 text-3xl font-black">₹99<span className="text-xs font-medium text-slate-500"> / month</span></p><p className="mt-2 text-sm text-slate-700">Instant Passport Photo Studio</p></div>
+              <div className="rounded-2xl border border-slate-200 p-5"><p className="text-xs font-black tracking-widest text-slate-500">ADVANCED</p><p className="mt-2 text-3xl font-black">₹199<span className="text-xs font-medium text-slate-500"> / month</span></p><p className="mt-2 text-sm text-slate-700">Passport Studio + PVC Card Maker + Multi Customer Photo Maker</p></div>
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5"><p className="text-xs font-black tracking-widest text-rose-800">PREMIUM</p><p className="mt-2 text-3xl font-black">₹299<span className="text-xs font-medium text-slate-500"> / month</span></p><p className="mt-2 text-sm text-slate-700">All four premium tools, including WhatsApp Selfie to Passport Photo</p></div>
+            </div>
+            <p className="mt-4 text-xs text-slate-500">Auto Document Cropper, Photo Background Remover and Photo &amp; Signature Resizer require only free Gmail OTP sign-up.</p>
+          </section>
         ) : entry && (
           <>
             <section className="mt-9 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
