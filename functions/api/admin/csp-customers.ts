@@ -30,7 +30,8 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     const payments = await env.DB.prepare(
       "SELECT p.id, c.email, p.amount_inr, p.payment_method, p.reference, p.status, p.verified_by, p.verified_at, p.created_at FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id ORDER BY p.created_at DESC LIMIT 200"
     ).all();
-    return json({ success: true, customers: results || [], payments: payments.results || [] });
+    const plans = await env.DB.prepare('SELECT plan_code, amount_inr, is_active FROM csp_plan_prices ORDER BY amount_inr ASC').all();
+    return json({ success: true, customers: results || [], payments: payments.results || [], plans: plans.results || [] });
   } catch { return json({ success: false, error: 'CSP membership tables are not installed. Apply migration 0012 first.' }, 503); }
 }
 
@@ -46,11 +47,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!customer) return json({ success: false, error: 'Customer not found.' }, 404);
     const now = new Date();
     if (body.action === 'activate') {
-      const plans: Record<string, number> = { basic: 99, advanced: 199, premium: 299 };
       const planCode = String(body.planCode || '');
-      const amount = plans[planCode];
+      const plan = await env.DB.prepare('SELECT amount_inr, is_active FROM csp_plan_prices WHERE plan_code = ?').bind(planCode).first();
+      const amount = Number(plan?.amount_inr);
       const months = Math.min(12, Math.max(1, Math.floor(Number(body.months) || 1)));
-      if (!amount) return json({ success: false, error: 'Choose BASIC, ADVANCED or PREMIUM.' }, 400);
+      if (!plan || Number(plan.is_active) !== 1 || !Number.isFinite(amount) || amount < 0) return json({ success: false, error: 'Choose an active membership plan.' }, 400);
       const id = crypto.randomUUID();
       const startsAt = now.toISOString();
       const expiresAt = new Date(now.getTime());
