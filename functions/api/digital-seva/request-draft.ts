@@ -1,4 +1,5 @@
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
+import { cashfreeApiBase } from './_cashfree';
 
 interface Env {
   DIGITAL_SEVA_DB?: any;
@@ -104,7 +105,7 @@ async function verifiedPaidOrder(env: Env, orderId: string, serviceId?: string) 
   if (serviceId && local.service_id !== serviceId) return null;
   const quote = getAutoPaymentQuote(String(local.service_id || ''));
   if (!quote || String(local.currency).toUpperCase() !== 'INR' || Math.round(Number(local.amount) * 100) !== Math.round(quote.totalAmount * 100)) return null;
-  const response = await fetch(`https://api.cashfree.com/pg/orders/${encodeURIComponent(orderId)}`, {
+  const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}`, {
     headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
   });
   const order = await response.json().catch(() => ({})) as any;
