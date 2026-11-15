@@ -59,9 +59,17 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [toolEnabled, setToolEnabled] = useState(true);
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
   const isFreeTool = freeTools.includes(toolId);
-  const refresh = async () => {
-    try { const r = await fetch('/api/csp/auth/session', { credentials: 'include', cache: 'no-store' }); setSession(await r.json()); }
-    catch { setSession({ authenticated: false }); }
+  const refresh = async (): Promise<Session> => {
+    try {
+      const r = await fetch('/api/csp/auth/session', { credentials: 'include', cache: 'no-store' });
+      const data = await r.json() as Session;
+      setSession(data);
+      return data;
+    } catch {
+      const data: Session = { authenticated: false };
+      setSession(data);
+      return data;
+    }
   };
   useEffect(() => {
     void refresh();
@@ -92,8 +100,10 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   };
   const requestExport = async () => {
     if (!toolEnabled) { setNotice(isHindi ? 'यह टूल अभी अस्थायी रूप से बंद है।' : 'This tool is temporarily unavailable.'); return false; }
-    if (!session?.authenticated) { setAuthOpen(true); setNotice(isHindi ? 'फोटो सेव करने से पहले फ्री Gmail OTP सत्यापन करें।' : 'Verify your Gmail with a free OTP before saving.'); return false; }
-    if (isFreeTool || allowed) return true;
+    const currentSession = session || await refresh();
+    if (!currentSession.authenticated) { setAuthOpen(true); setNotice(isHindi ? 'फोटो सेव करने से पहले फ्री Gmail OTP सत्यापन करें।' : 'Verify your Gmail with a free OTP before saving.'); return false; }
+    const currentAllowed = Boolean(currentSession.allowedTools?.includes(toolId));
+    if (isFreeTool || currentAllowed) return true;
     setPlansOpen(true); return false;
   };
   useEffect(() => {
