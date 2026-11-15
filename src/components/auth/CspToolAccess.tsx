@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 
 type Session = { authenticated: boolean; customer?: { id: string; email: string }; subscription?: { plan_code: string; amount_inr: number; expires_at: string } | null; allowedTools?: string[] };
-const paidPlans = [
+const defaultPaidPlans = [
   { code: 'basic', price: 99, name: 'BASIC', tools: 'Instant Passport Photo Studio' },
   { code: 'advanced', price: 199, name: 'ADVANCED', tools: 'Passport Studio + PVC Card + Multi Customer' },
   { code: 'premium', price: 299, name: 'PREMIUM', tools: 'All four premium photo tools' },
@@ -14,6 +14,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [loading, setLoading] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [paidPlans, setPaidPlans] = useState(defaultPaidPlans);
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
 
   const refresh = async () => {
@@ -25,7 +26,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     } catch { setSession({ authenticated: false }); }
     finally { setLoading(false); }
   };
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => { void refresh(); fetch('/api/csp/plans').then(response => response.json()).then(data => { if (data?.success && Array.isArray(data.plans)) setPaidPlans(current => current.map(plan => { const price = data.plans.find((item: any) => item.plan_code === plan.code); return price ? { ...plan, price: Number(price.amount_inr) } : plan; })); }).catch(() => {}); }, []);
 
   const allowed = Boolean(session?.authenticated && session.allowedTools?.includes(toolId));
   const requiresFreeSignup = freeTools.includes(toolId);
