@@ -15,6 +15,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [authOpen, setAuthOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [paidPlans, setPaidPlans] = useState(defaultPaidPlans);
+  const [toolEnabled, setToolEnabled] = useState(true);
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
 
   const refresh = async () => {
@@ -26,13 +27,14 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     } catch { setSession({ authenticated: false }); }
     finally { setLoading(false); }
   };
-  useEffect(() => { void refresh(); fetch('/api/csp/plans').then(response => response.json()).then(data => { if (data?.success && Array.isArray(data.plans)) setPaidPlans(current => current.map(plan => { const price = data.plans.find((item: any) => item.plan_code === plan.code); return price ? { ...plan, price: Number(price.amount_inr) } : plan; })); }).catch(() => {}); }, []);
+  useEffect(() => { void refresh(); fetch('/api/csp/plans').then(response => response.json()).then(data => { if (data?.success && Array.isArray(data.plans)) setPaidPlans(current => current.map(plan => { const price = data.plans.find((item: any) => item.plan_code === plan.code); return price ? { ...plan, price: Number(price.amount_inr) } : plan; })); }).catch(() => {}); fetch('/api/csp/tools').then(response => response.json()).then(data => { const item = data?.tools?.find((tool: any) => tool.tool_id === toolId); if (item) setToolEnabled(Number(item.enabled) === 1); }).catch(() => {}); }, []);
 
   const allowed = Boolean(session?.authenticated && session.allowedTools?.includes(toolId));
   const requiresFreeSignup = freeTools.includes(toolId);
   const isSignedIn = Boolean(session?.authenticated);
 
   if (loading) return <div className="min-h-screen grid place-items-center bg-slate-50 text-slate-600">Checking secure access…</div>;
+  if (!toolEnabled) return <div className="min-h-screen grid place-items-center bg-slate-50 px-5 text-center"><div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"><h1 className="text-xl font-black">{isHindi ? 'यह टूल फिलहाल उपलब्ध नहीं है' : 'This tool is temporarily unavailable'}</h1><p className="mt-2 text-sm text-slate-600">{isHindi ? 'कृपया बाद में दोबारा प्रयास करें।' : 'Please check back later.'}</p><a href="/csc-cyber-cafe-toolkits" className="mt-4 inline-block font-bold text-rose-800">{isHindi ? 'सभी टूल देखें' : 'View all tools'}</a></div></div>;
   if (allowed) return <>{!requiresFreeSignup && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-xs font-bold text-emerald-900">Premium Quality Print · बेहतरीन क्वालिटी में डाउनलोड और प्रिंट करें · Best Quality Printing Access</div>}{children}</>;
 
   return (
