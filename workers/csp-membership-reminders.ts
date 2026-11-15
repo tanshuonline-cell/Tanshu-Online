@@ -1,20 +1,31 @@
 interface Env {
   DB: any;
-  BREVO_API_KEY: string;
-  CSP_SENDER_EMAIL: string;
+  BREVO_API_KEY?: string;
+  CSP_SENDER_EMAIL?: string;
   CSP_SENDER_NAME?: string;
+  CSP_MAILER_URL?: string;
+  CSP_MAILER_SECRET?: string;
 }
 
 async function sendReminder(env: Env, email: string, plan: string, expiry: string, days: number): Promise<boolean> {
+  const subject = 'TANSHU ONLINE membership expires in ' + days + ' days';
+  const text = 'Your ' + plan.toUpperCase() + ' membership expires on ' + expiry + '. Please contact TANSHU ONLINE if you want to renew. No automatic payment will be taken.';
+  const html = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#172033"><h2>TANSHU ONLINE</h2><p>Your <b>' + plan.toUpperCase() + '</b> membership expires in <b>' + days + ' days</b>.</p><p>Expiry date: <b>' + expiry + '</b></p><p>Please contact TANSHU ONLINE if you wish to renew. No automatic payment will be taken.</p></div>';
+  if (env.CSP_MAILER_URL && env.CSP_MAILER_SECRET) {
+    const response = await fetch(env.CSP_MAILER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: env.CSP_MAILER_SECRET, to: email, subject, text, html })
+    });
+    const result = await response.json().catch(() => ({})) as { success?: boolean };
+    return response.ok && result.success === true;
+  }
+  if (!env.BREVO_API_KEY || !env.CSP_SENDER_EMAIL) return false;
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'accept': 'application/json', 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json' },
     body: JSON.stringify({
       sender: { email: env.CSP_SENDER_EMAIL, name: env.CSP_SENDER_NAME || 'TANSHU ONLINE' },
-      to: [{ email }],
-      subject: 'TANSHU ONLINE membership expires in ' + days + ' days',
-      textContent: 'Your ' + plan.toUpperCase() + ' membership expires on ' + expiry + '. Please contact TANSHU ONLINE if you want to renew. No automatic payment will be taken.',
-      htmlContent: '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#172033"><h2>TANSHU ONLINE</h2><p>Your <b>' + plan.toUpperCase() + '</b> membership expires in <b>' + days + ' days</b>.</p><p>Expiry date: <b>' + expiry + '</b></p><p>Please contact TANSHU ONLINE if you wish to renew. No automatic payment will be taken.</p></div>'
+      to: [{ email }], subject, textContent: text, htmlContent: html
     })
   });
   return response.ok;
@@ -22,7 +33,7 @@ async function sendReminder(env: Env, email: string, plan: string, expiry: strin
 
 export default {
   async scheduled(_controller: unknown, env: Env, _ctx: unknown): Promise<void> {
-    if (!env.DB || !env.BREVO_API_KEY || !env.CSP_SENDER_EMAIL) throw new Error('CSP reminder worker is missing its D1 or Brevo configuration.');
+    if (!env.DB || !(env.CSP_MAILER_URL && env.CSP_MAILER_SECRET) && !(env.BREVO_API_KEY && env.CSP_SENDER_EMAIL)) throw new Error('CSP reminder worker is missing its D1 or email-provider configuration.');
     const istToday = new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10);
     for (const days of [7, 3, 1]) {
       const target = new Date(istToday + 'T00:00:00.000Z');
