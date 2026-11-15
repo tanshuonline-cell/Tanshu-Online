@@ -87,7 +87,7 @@ async function identityKey(phone: string, name: string, email: string): Promise<
   return Array.from(digest).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 function rateLimit(request: Request, action: string): boolean {
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const ip = `${request.headers.get('cf-connecting-ip') || 'unknown'}:${action}`;
   const now = Date.now();
   const current = attempts.get(ip);
   if (attempts.size > 1000) for (const [key, value] of attempts) if (value.resetAt <= now) attempts.delete(key);
@@ -124,6 +124,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   let body: any;
   try { body = JSON.parse(raw); } catch { return json({ success: false, error: 'The recovery request is invalid.' }, 400); }
   const action = String(body?.action || '');
+  if (!rateLimit(request, action)) return json({ success: false, error: 'Too many recovery attempts. Please wait a few minutes.' }, 429);
   try {
     if (action === 'save') {
       const orderId = String(body.orderId || '');
