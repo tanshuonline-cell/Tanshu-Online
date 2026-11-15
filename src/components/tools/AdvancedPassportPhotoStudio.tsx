@@ -7,6 +7,7 @@ import {
   ShieldCheck, Sparkles, SlidersHorizontal, Trash2, PenTool,
   Eraser, Palette, Square, Scissors
 } from 'lucide-react';
+import { useCspExportGate } from '../auth/CspToolAccess';
 
 type Photo = { id: string; name: string; src: string };
 type PhotoPreset = 'india' | 'stamp' | 'pan' | 'custom';
@@ -143,6 +144,7 @@ const writePhotoStudioWork = async (value: unknown): Promise<void> => { const db
 const clearPhotoStudioWork = async (): Promise<void> => { const db = await openPhotoStudioDb(); return new Promise((resolve, reject) => { const tx = db.transaction(PHOTO_STUDIO_STORE, "readwrite"); tx.objectStore(PHOTO_STUDIO_STORE).delete(PHOTO_STUDIO_KEY); tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => { db.close(); reject(tx.error); }; }); };
 
 export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const requestExport = useCspExportGate();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [restoreReady, setRestoreReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"loading"|"saved"|"saving"|"error">("loading");
@@ -638,7 +640,7 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
     } catch { setError('सिग्नेचर इमेज पढ़ी नहीं जा सकी।'); }
   };
   const downloadSignaturePng = async () => {
-    if (!signatureSrc) return;
+    if (!signatureSrc || !(await requestExport())) return;
     const img = new Image();
     img.onload = () => {
       const sx = img.width * signatureCrop.x / 100, sy = img.height * signatureCrop.y / 100;
@@ -941,7 +943,8 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
     setSelectedSheetSlot(null);
   };
 
-  const downloadJpg = () => {
+  const downloadJpg = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current || !selected) return;
     const link = document.createElement('a');
     link.download = `tanshu-photo-${selected.name.replace(/\.[^.]+$/, '')}-${paper}.jpg`;
@@ -949,7 +952,8 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
     link.click();
   };
 
-  const downloadPdf = () => {
+  const downloadPdf = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current || !selected) return;
     const doc = paper === 'single' ? new jsPDF({ orientation: 'portrait', unit: 'mm', format: [dimensions.width * 25.4 / 300, dimensions.height * 25.4 / 300] }) : new jsPDF({ orientation: 'portrait', unit: 'in', format: paper === '4x6' ? [4, 6] : 'a4' });
     const pageW = paper === 'single' ? dimensions.width * 25.4 / 300 : paper === '4x6' ? 4 : 8.27;
@@ -957,7 +961,8 @@ export const AdvancedPassportPhotoStudio: React.FC<{ onBack: () => void }> = ({ 
     doc.addImage(canvasRef.current.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, pageW, pageH);
     doc.save(`tanshu-photo-sheet-${paper}.pdf`);
   };
-  const printSheet = () => {
+  const printSheet = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current || !selected) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) { setError('Print window blocked. कृपया pop-up allow करके फिर Print दबाएँ।'); return; }
