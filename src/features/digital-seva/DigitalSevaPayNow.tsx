@@ -72,7 +72,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
 
   useEffect(() => {
     try {
-      const saved = window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
+      const saved = window.localStorage.getItem('tanshu-ds-pending-checkout-v1') || window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
       if (!saved) return;
       const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; termsPolicyVersion?: string; refundPolicyVersion?: string };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
@@ -113,7 +113,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       termsPolicyVersion: TERMS_POLICY_VERSION,
       refundPolicyVersion: REFUND_POLICY_VERSION
     };
-    try { window.sessionStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.sessionStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
+    try { window.localStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.localStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
     onPaid(selected, payment);
   };
 
@@ -153,7 +153,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         setPendingOrderId(orderId);
         checkoutMode = data.cashfreeMode === 'production' ? 'production' : 'sandbox';
         setCashfreeMode(checkoutMode);
-        try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION })); } catch { /* session storage is optional */ }
+        try { window.localStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
       const sessionResponse = await fetch('/api/digital-seva/checkout', {
