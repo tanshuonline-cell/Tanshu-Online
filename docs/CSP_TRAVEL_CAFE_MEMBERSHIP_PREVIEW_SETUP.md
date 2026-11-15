@@ -5,9 +5,11 @@ This feature is isolated on branch `csp-travel-cafe-membership-preview` and a dr
 ## Included in this preview
 
 - Gmail-only customer registration/login using email OTP (no phone login).
+- Preview-first access: all seven workspaces open before sign-up or payment; customers can upload and edit before export.
 - Server-generated six-digit OTP, ten-minute expiry, maximum five verification attempts, three OTP requests per 15 minutes per Gmail address and ten per 15 minutes per IP (stored as a keyed hash).
 - HttpOnly customer session cookie (30 days).
-- Free-signup access for Photo & Signature Resizer, Auto Document Cropper and Photo Background Remover.
+- The three free tools require free Gmail OTP only when the customer downloads or prints; no paid plan is required.
+- The four paid tools ask for Gmail OTP and a membership only when the customer tries to download or print. Plan requests are recorded as pending manual payments for the existing admin dashboard.
 - Monthly plans: BASIC ₹99, ADVANCED ₹199, PREMIUM ₹299; pricing is editable in the existing Admin Dashboard.
 - Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = ADVANCED + WhatsApp Selfie to Passport Photo.
 - Manual membership activation only after payment is independently verified. No payment gateway, auto-debit or auto-renewal is added.
@@ -48,6 +50,7 @@ The reminder Worker is separate so the Pages app remains unchanged. Before deplo
 
 - The app returns a clear setup error instead of pretending to send OTP when the mail relay/D1 secrets are missing.
 - Customer-facing prices are read from D1; admin price changes affect new activations. Existing memberships keep their recorded amount and expiry.
-- The membership UI gates tool entry in the browser. Because the photo tools perform image processing locally, this preview does not turn those tools into server-hosted protected downloads; do not treat a client-side gate as DRM or as a guarantee against a technically skilled user bypassing browser code.
+- The membership UI gates export actions in the browser. Because the photo tools perform image processing locally, this preview does not turn those tools into server-hosted protected downloads; do not treat a client-side gate as DRM or as a guarantee against a technically skilled user bypassing browser code.
+- A visible low-opacity TANSHU ONLINE DP overlay is applied to unpaid previews to discourage casual reuse. No website can reliably prevent screenshots or guarantee that a watermark cannot be cropped or edited out.
 - The 7/3/1 reminder Worker is a separate deployment and will not send emails until it is configured with the correct D1 database and Gmail relay.
 - Existing video admin, Digital Seva, other tools, homepage layout and language controls are intentionally left outside this feature branch's scope.
