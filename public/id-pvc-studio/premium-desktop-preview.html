@@ -473,4 +473,27 @@ document.addEventListener('fullscreenchange',render);document.addEventListener('
 new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});render();
 })();
 </script>
+
+<script>
+(()=> {
+  if (window.parent === window) return;
+  let bypass = false;
+  let pendingButton = null;
+  const exportWords = /\\b(print|download|export|save pdf|save image|save file)\\b/i;
+  document.addEventListener('click', event => {
+    if (bypass) { bypass = false; return; }
+    const button = event.target && event.target.closest ? event.target.closest('button,[role="button"],input[type="button"],input[type="submit"]') : null;
+    if (!button) return;
+    const label = ((button.innerText || button.value || button.getAttribute('aria-label') || button.id || '') + ' ' + (button.title || '')).trim();
+    if (!exportWords.test(label)) return;
+    event.preventDefault(); event.stopImmediatePropagation(); pendingButton = button;
+    window.parent.postMessage({ type: 'CSP_PREMIUM_EXPORT_REQUEST' }, window.location.origin);
+  }, true);
+  window.addEventListener('message', event => {
+    if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_ALLOWED' || !pendingButton) return;
+    const button = pendingButton; pendingButton = null; bypass = true; button.click();
+  });
+})();
+</script>
+
 </body></html>
