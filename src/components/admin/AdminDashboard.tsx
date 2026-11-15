@@ -40,6 +40,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const [cspCustomers, setCspCustomers] = useState<any[]>([]);
   const [cspPayments, setCspPayments] = useState<any[]>([]);
   const [cspPlans, setCspPlans] = useState<any[]>([]);
+  const [cspTools, setCspTools] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -125,6 +126,9 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       setCspCustomers(Array.isArray(data.customers) ? data.customers : []);
       setCspPayments(Array.isArray(data.payments) ? data.payments : []);
       setCspPlans(Array.isArray(data.plans) ? data.plans : []);
+      const toolResponse = await fetch('/api/admin/csp-tools', { credentials: 'include', cache: 'no-store' });
+      const toolData = await toolResponse.json();
+      if (toolResponse.ok && toolData.success) setCspTools(Array.isArray(toolData.tools) ? toolData.tools : []);
     } catch (error) {
       showNotification('error', error instanceof Error ? error.message : 'Unable to load CSP customers.');
     }
@@ -155,6 +159,16 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       showNotification('success', data.message || 'Plan price saved.');
       await fetchCspCustomers();
     } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not save plan price.'); }
+  };
+
+  const saveCspToolEnabled = async (toolId: string, enabled: boolean) => {
+    try {
+      const response = await fetch('/api/admin/csp-tools', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ toolId, enabled }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not update tool.');
+      showNotification('success', data.message || 'Tool setting saved.');
+      await fetchCspCustomers();
+    } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not update tool.'); }
   };
 
   const handleOpenAddVideo = () => {
@@ -1265,6 +1279,15 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                   <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" checked={Boolean(plan.is_active)} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, is_active: event.target.checked ? 1 : 0 } : item))} /> Active</label>
                   <button onClick={() => saveCspPlanPrice(plan)} className="mt-3 rounded-lg bg-rose-800 px-3 py-2 text-[10px] font-bold text-white">Save price</button>
                 </div>)}
+              </div>
+            </section>
+            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <h3 className="mb-3 text-sm font-extrabold text-white">Per-tool Availability</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {cspTools.map(tool => <label key={tool.tool_id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
+                  <span><span className="block text-xs font-bold text-slate-200">{tool.title}</span><span className="text-[10px] text-slate-500">{tool.access_type === 'paid' ? 'Paid membership' : 'Free Gmail signup'}</span></span>
+                  <input type="checkbox" checked={Number(tool.enabled) === 1} onChange={event => { const enabled = event.target.checked; setCspTools(current => current.map(item => item.tool_id === tool.tool_id ? { ...item, enabled: enabled ? 1 : 0 } : item)); void saveCspToolEnabled(tool.tool_id, enabled); }} />
+                </label>)}
               </div>
             </section>
             <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
