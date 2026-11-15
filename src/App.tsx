@@ -421,6 +421,11 @@ export default function App() {
     return <CspToolAccess toolId="advanced-passport-photo-studio"><AdvancedPhotoStudioShell /></CspToolAccess>;
   }
 
+  // Dedicated gated Multi Customer Photo Maker workspace.
+  if (window.location.pathname === '/csp-multi-customer-photo-maker') {
+    return <CspToolAccess toolId="instant-multi-customer-photo-maker"><InstantMultiCustomerPhotoMaker /></CspToolAccess>;
+  }
+
   // Dedicated WhatsApp Selfie to Passport Photo Studio.
   if (window.location.pathname === '/whatsapp-selfie-passport-photo') {
     return <CspToolAccess toolId="whatsapp-selfie-to-passport-photo"><WhatsAppSelfiePassportTool /></CspToolAccess>;
