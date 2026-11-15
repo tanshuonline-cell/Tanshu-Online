@@ -3,9 +3,9 @@ import { useLanguage } from '../../context/LanguageContext';
 
 type Session = { authenticated: boolean; customer?: { id: string; email: string }; subscription?: { plan_code: string; amount_inr: number; expires_at: string } | null; allowedTools?: string[] };
 const defaultPaidPlans = [
-  { code: 'basic', price: 99, name: 'BASIC', tools: 'Instant Passport Photo Studio' },
-  { code: 'advanced', price: 199, name: 'ADVANCED', tools: 'Passport Studio + PVC Card + Multi Customer' },
-  { code: 'premium', price: 299, name: 'PREMIUM', tools: 'All four premium photo tools' },
+  { code: 'basic', price: 99, name: 'BASIC', tools: 'Instant Passport Photo Studio', active: true },
+  { code: 'advanced', price: 199, name: 'ADVANCED', tools: 'Passport Studio + PVC Card + Multi Customer', active: true },
+  { code: 'premium', price: 299, name: 'PREMIUM', tools: 'All four premium photo tools', active: true },
 ];
 
 export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode }> = ({ toolId, children }) => {
@@ -27,7 +27,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     } catch { setSession({ authenticated: false }); }
     finally { setLoading(false); }
   };
-  useEffect(() => { void refresh(); fetch('/api/csp/plans').then(response => response.json()).then(data => { if (data?.success && Array.isArray(data.plans)) setPaidPlans(current => current.map(plan => { const price = data.plans.find((item: any) => item.plan_code === plan.code); return price ? { ...plan, price: Number(price.amount_inr) } : plan; })); }).catch(() => {}); fetch('/api/csp/tools').then(response => response.json()).then(data => { const item = data?.tools?.find((tool: any) => tool.tool_id === toolId); if (item) setToolEnabled(Number(item.enabled) === 1); }).catch(() => {}); }, []);
+  useEffect(() => { void refresh(); fetch('/api/csp/plans').then(response => response.json()).then(data => { if (data?.success && Array.isArray(data.plans)) setPaidPlans(current => current.map(plan => { const price = data.plans.find((item: any) => item.plan_code === plan.code); return price ? { ...plan, price: Number(price.amount_inr), active: true } : { ...plan, active: false }; })); }).catch(() => {}); fetch('/api/csp/tools').then(response => response.json()).then(data => { const item = data?.tools?.find((tool: any) => tool.tool_id === toolId); if (item) setToolEnabled(Number(item.enabled) === 1); }).catch(() => {}); }, []);
 
   const allowed = Boolean(session?.authenticated && session.allowedTools?.includes(toolId));
   const requiresFreeSignup = freeTools.includes(toolId);
@@ -46,7 +46,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
           ? (isHindi ? 'इस टूल का उपयोग और डाउनलोड शुरू करने के लिए फ्री Gmail OTP से अकाउंट बनाएं या लॉगिन करें। कोई पेड सब्सक्रिप्शन जरूरी नहीं है।' : 'Create a free account or sign in with a Gmail OTP to use this tool and download results. No paid subscription is required.')
           : (isHindi ? 'इस टूल की Premium Quality Print सुविधा के लिए सक्रिय सदस्यता जरूरी है।' : 'An active membership is required for Premium Quality Print access in this tool.')}</p>
         {session?.subscription && <p className="mt-3 text-sm text-emerald-700">Active plan: {session.subscription.plan_code.toUpperCase()} · Expires {new Date(session.subscription.expires_at).toLocaleDateString()}</p>}
-        {!requiresFreeSignup && <div className="mt-6 grid gap-3 md:grid-cols-3">{paidPlans.map(plan => <div key={plan.code} className="rounded-2xl border border-slate-200 p-4"><div className="text-xs font-black tracking-widest text-slate-500">{plan.name}</div><div className="mt-2 text-2xl font-black">₹{plan.price}<span className="text-xs font-medium text-slate-500"> / month</span></div><p className="mt-2 text-xs leading-5 text-slate-600">{plan.tools}</p></div>)}</div>}
+        {!requiresFreeSignup && <div className="mt-6 grid gap-3 md:grid-cols-3">{paidPlans.filter(plan => plan.active).map(plan => <div key={plan.code} className="rounded-2xl border border-slate-200 p-4"><div className="text-xs font-black tracking-widest text-slate-500">{plan.name}</div><div className="mt-2 text-2xl font-black">₹{plan.price}<span className="text-xs font-medium text-slate-500"> / month</span></div><p className="mt-2 text-xs leading-5 text-slate-600">{plan.tools}</p></div>)}</div>}
         {notice && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{notice}</p>}
         <div className="mt-6 flex flex-wrap gap-3">
           <button onClick={() => setAuthOpen(true)} className="rounded-xl bg-rose-900 px-5 py-3 text-sm font-bold text-white">{isSignedIn ? (isHindi ? 'दूसरे अकाउंट से लॉगिन' : 'Sign in with another Gmail') : (isHindi ? 'फ्री Gmail OTP से लॉगिन / साइन अप' : 'Sign up / Sign in with Gmail OTP')}</button>
