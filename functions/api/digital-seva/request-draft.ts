@@ -137,7 +137,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         return json({ success: false, error: 'Complete applicant mobile, name and email before enabling online recovery.' }, 400);
       }
       const verified = await verifiedPaidOrder(env, orderId, serviceId);
-      if (!verified) return json({ success: false, error: 'Only a verified paid request can be saved for recovery. Do not pay again; check the existing payment.' }, 409);
+      const paymentContactPhone = String(draft.paymentContactPhone || '').replace(/\D/g, '');
+      if (!verified || !/^\d{10}$/.test(paymentContactPhone) || String(verified.local.customer_phone || '').replace(/\D/g, '').slice(-10) !== paymentContactPhone.slice(-10)) {
+        return json({ success: false, error: 'This paid request does not match the verified payer contact. Do not pay again; check the existing payment.' }, 409);
+      }
       const identity = await identityKey(phone, name, email);
       const objectKey = `digital-seva-drafts/${identity}.json`;
       const existingRaw = await readObject(env, objectKey);
