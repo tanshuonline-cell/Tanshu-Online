@@ -41,7 +41,8 @@ interface Booking {
   tanshu_service_fee?: number | null;
   government_payment_status?: 'UNVERIFIED' | 'NOT_REQUIRED' | 'PENDING' | 'PAID' | null;
   government_payment_reference?: string | null;
-  government_paid_at?: string | null;\n  government_evidence_id?: string | null;
+  government_paid_at?: string | null;
+  government_evidence_id?: string | null;
   created_at: string;
   updated_at: string;
   documents?: BookingDocument[];
@@ -295,7 +296,8 @@ export default function DigitalSevaAdminPage() {
   const [draftEstimates, setDraftEstimates] = useState<Record<string, string>>({});
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [draftPaymentAmounts, setDraftPaymentAmounts] = useState<Record<string, string>>({});
-  const [draftGovernmentReferences, setDraftGovernmentReferences] = useState<Record<string, string>>({});\n  const [draftGovernmentEvidence, setDraftGovernmentEvidence] = useState<Record<string, File | null>>({});
+  const [draftGovernmentReferences, setDraftGovernmentReferences] = useState<Record<string, string>>({});
+  const [draftGovernmentEvidence, setDraftGovernmentEvidence] = useState<Record<string, File | null>>({});
   const [paymentSavingId, setPaymentSavingId] = useState('');
   const [paymentMessage, setPaymentMessage] = useState('');
 
