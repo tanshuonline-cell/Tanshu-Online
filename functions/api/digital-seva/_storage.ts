@@ -1,6 +1,16 @@
 const PREVIEW_BUCKET = 'digital-seva-preview-docs';
-function bucketName(env: { DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string }): string {
-  const configured = String(env.DIGITAL_SEVA_STORAGE_BUCKET || '').trim();
+type StorageEnv = {
+  SUPABASE_URL?: string;
+  SUPABASE_SECRET_KEY?: string;
+  DIGITAL_SEVA_STORAGE_BUCI?: string;
+  DIGITAL_SEVA_STORAGE_BUCKET?: string;
+  CF_PAGES_BRANCH?: string;
+};
+
+function bucketName(env: StorageEnv): string {
+  // DIGITAL_SEVA_STORAGE_BUCI is the intentionally configured production
+  // variable name. Keep BUCKET as a backwards-compatible alias.
+  const configured = String(env.DIGITAL_SEVA_STORAGE_BUCI || env.DIGITAL_SEVA_STORAGE_BUCKET || '').trim();
   if (configured) return configured;
   if (String(env.CF_PAGES_BRANCH || '').toLowerCase() === 'main') {
     throw new Error('Production Digital Seva document storage bucket is not configured.');
@@ -19,7 +29,7 @@ export interface StoredDocument {
   sha256: string;
 }
 
-function storageConfig(env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string }) {
+function storageConfig(env: StorageEnv) {
   const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = String(env.SUPABASE_SECRET_KEY || '');
   if (!base || !key) throw new Error('Private document storage is not configured.');
@@ -36,7 +46,7 @@ function objectUrl(base: string, bucket: string, objectKey: string) {
 }
 
 export async function uploadPrivateDocument(
-  env: { SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_STORAGE_BUCKET?: string; CF_PAGES_BRANCH?: string },
+  env: StorageEnv,
   objectKey: string,
   bytes: ArrayBuffer,
   contentType: string
