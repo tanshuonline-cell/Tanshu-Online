@@ -27,6 +27,9 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
 import { CspToolAccess } from './components/auth/CspToolAccess';
+import { AutoDocumentCropperTool } from './components/tools/AutoDocumentCropperTool';
+import { PhotoBackgroundRemoverTool } from './components/tools/PhotoBackgroundRemoverTool';
+import { PhotoSignatureResizerTool } from './components/tools/PhotoSignatureResizerTool';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
@@ -409,6 +412,17 @@ export default function App() {
   // ISOLATED DIGITAL SEVA PREVIEW — does not alter existing homepage or legacy routes.
   if (window.location.pathname === '/digital-seva') {
     return <DigitalSevaPage />;
+  }
+
+  // Dedicated free-signup workspaces: preview and editing are open before account creation.
+  if (window.location.pathname === '/csp-photo-signature-resizer') {
+    return <CspToolAccess toolId="photo-signature-resizer"><PhotoSignatureResizerTool onBack={() => { window.location.href = '/photo-signature-resizer'; }} /></CspToolAccess>;
+  }
+  if (window.location.pathname === '/csp-auto-document-cropper') {
+    return <CspToolAccess toolId="auto-document-cropper"><AutoDocumentCropperTool /></CspToolAccess>;
+  }
+  if (window.location.pathname === '/csp-photo-background-remover') {
+    return <CspToolAccess toolId="photo-background-remover"><PhotoBackgroundRemoverTool /></CspToolAccess>;
   }
 
   // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Gated entry to the existing PVC studio; the underlying workspace remains unchanged.
