@@ -86,12 +86,12 @@ async function identityKey(phone: string, name: string, email: string): Promise<
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)));
   return Array.from(digest).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
-function rateLimit(request: Request): boolean {
+function rateLimit(request: Request, action: string): boolean {
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
   const now = Date.now();
   const current = attempts.get(ip);
   if (attempts.size > 1000) for (const [key, value] of attempts) if (value.resetAt <= now) attempts.delete(key);
-  if (current && current.resetAt > now && current.count >= 8) return false;
+  const limit = action === 'save' ? 180 : 8;\n  if (current && current.resetAt > now && current.count >= limit) return false;
   if (!current || current.resetAt <= now) attempts.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
   else attempts.set(ip, { count: current.count + 1, resetAt: current.resetAt });
   return true;
