@@ -41,7 +41,8 @@ export default function DigitalSevaSlipRecovery({ language, onClose, onResumeDra
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [bookings, setBookings] = useState<RecoveredBooking[]>([]);\n  const [drafts, setDrafts] = useState<RecoveredDraft[]>([]);
+  const [bookings, setBookings] = useState<RecoveredBooking[]>([]);
+  const [drafts, setDrafts] = useState<RecoveredDraft[]>([]);
 
   const recover = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
