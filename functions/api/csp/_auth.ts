@@ -1,6 +1,8 @@
 export interface CspEnv {
   DB?: any;
   BREVO_API_KEY?: string;
+  CSP_MAILER_URL?: string;
+  CSP_MAILER_SECRET?: string;
   CSP_SENDER_EMAIL?: string;
   CSP_SENDER_NAME?: string;
   CSP_OTP_SECRET?: string;
