@@ -9,8 +9,8 @@ interface Env {
   CASHFREE_ENVIRONMENT?: string;
 }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
-const TERMS_POLICY_VERSION = 'terms-2026-11-07-v1';
-const REFUND_POLICY_VERSION = 'refund-2026-11-07-v2';
+const TERMS_POLICY_VERSION = 'terms-2026-11-14-v1';
+const REFUND_POLICY_VERSION = 'refund-2026-11-14-v1';
 function json(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status, headers }); }
 async function hmac(payload: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);

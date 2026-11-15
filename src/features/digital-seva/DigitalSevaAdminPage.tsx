@@ -37,6 +37,12 @@ interface Booking {
   payment_link_url?: string | null;
   cashfree_link_id?: string | null;
   payment_paid_at?: string | null;
+  government_fee?: number | null;
+  tanshu_service_fee?: number | null;
+  government_payment_status?: 'UNVERIFIED' | 'NOT_REQUIRED' | 'PENDING' | 'PAID' | null;
+  government_payment_reference?: string | null;
+  government_paid_at?: string | null;
+  government_evidence_id?: string | null;
   created_at: string;
   updated_at: string;
   documents?: BookingDocument[];
@@ -62,6 +68,7 @@ interface PaymentHistoryEvent {
   currency: string;
   eventTime?: string | null;
 }
+interface PaymentHistoryRefund { refundId: string; amount: number; status: string; cashfreeRefundId?: string | null; createdAt: string; }
 interface PaymentHistoryOrder {
   orderId: string;
   serviceId: string;
@@ -73,6 +80,7 @@ interface PaymentHistoryOrder {
   createdAt: string;
   bookingReference?: string | null;
   events: PaymentHistoryEvent[];
+  refunds?: PaymentHistoryRefund[];
 }
 const STATUS_OPTIONS: BookingStatus[] = ['RECEIVED', 'IN_REVIEW', 'WAITING_FOR_CUSTOMER', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
@@ -214,7 +222,7 @@ function printBookingSlip(booking: Booking, serviceName: string) {
   );
   const feeQuote = getAutoPaymentQuote(booking.service_id);
   const feeBreakdown = feeQuote && booking.payment_amount != null && Number(booking.payment_amount) === feeQuote.totalAmount
-    ? { governmentFee: feeQuote.governmentFee, tanshuFee: feeQuote.tanshuFee, totalAmount: feeQuote.totalAmount, paymentStatus: booking.payment_status === 'PAID' ? 'SANDBOX PAID / परीक्षण भुगतान सफल' : 'PENDING / भुगतान बाकी' }
+    ? { governmentFee: Number(booking.government_fee ?? feeQuote.governmentFee), tanshuFee: Number(booking.tanshu_service_fee ?? feeQuote.tanshuFee), totalAmount: feeQuote.totalAmount, paymentStatus: booking.payment_status === 'PAID' ? 'PAID — Cashfree verified / भुगतान सत्यापित' : 'PENDING / भुगतान बाकी', governmentDepositStatus: booking.government_payment_status || (feeQuote.governmentFee > 0 ? 'PENDING' : 'NOT_REQUIRED'), governmentPaymentReference: booking.government_payment_reference || null, governmentPaidAt: booking.government_paid_at || null }
     : null;
   const html = buildDigitalSevaReceiptHtml({
     bookingReference: booking.booking_reference,
@@ -290,6 +298,8 @@ export default function DigitalSevaAdminPage() {
   const [draftEstimates, setDraftEstimates] = useState<Record<string, string>>({});
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [draftPaymentAmounts, setDraftPaymentAmounts] = useState<Record<string, string>>({});
+  const [draftGovernmentReferences, setDraftGovernmentReferences] = useState<Record<string, string>>({});
+  const [draftGovernmentEvidence, setDraftGovernmentEvidence] = useState<Record<string, File | null>>({});
   const [paymentSavingId, setPaymentSavingId] = useState('');
   const [paymentMessage, setPaymentMessage] = useState('');
 
@@ -393,6 +403,82 @@ export default function DigitalSevaAdminPage() {
     finally { setSavingId(''); }
   };
 
+  const markGovernmentFeePaid = async (booking: Booking) => {
+    const reference = (draftGovernmentReferences[booking.id] || '').trim();
+    const receipt = draftGovernmentEvidence[booking.id];
+    if (!reference || reference.length < 6) { setError('Enter the official receipt/reference (at least 6 characters).'); return; }
+    if (!receipt) { setError('Attach the actual government department receipt (PDF, JPG or PNG, maximum 5 MB).'); return; }
+    setSavingId(booking.id);
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('bookingId', booking.id);
+      form.append('governmentPaymentReference', reference);
+      form.append('receipt', receipt);
+      const response = await fetch('/api/digital-seva/admin/government-deposit-evidence', {
+        method: 'POST', credentials: 'same-origin', body: form
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not securely record the government receipt.');
+      setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: '' }));
+      setDraftGovernmentEvidence((old) => ({ ...old, [booking.id]: null }));
+      setPaymentMessage(`Official receipt evidence securely stored for ${booking.booking_reference}. The upload is recorded; the department payment itself is not independently verified by TANSHU ONLINE.`);
+      await loadBookings();
+    } catch (e: any) { setError(e?.message || 'Could not securely record the government receipt.'); }
+    finally { setSavingId(''); }
+  };
+
+  const openGovernmentEvidence = async (booking: Booking) => {
+    const tab = window.open('about:blank', '_blank');
+    if (!tab) { setError('Please allow pop-ups to view the official receipt.'); return; }
+    try {
+      const response = await fetch(`/api/digital-seva/admin/government-deposit-evidence?bookingId=${encodeURIComponent(booking.id)}`, { credentials: 'same-origin', cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.url) throw new Error(data.error || 'Could not open the stored official receipt.');
+      tab.location.href = String(data.url);
+    } catch (e: any) { tab.close(); setError(e?.message || 'Could not open the stored official receipt.'); }
+  };
+
+  const refreshCashfreeRefund = async (refundId: string) => {
+    setError('');
+    try {
+      const response = await fetch('/api/digital-seva/admin', {
+        method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'REFRESH_CASHFREE_REFUND', refundId })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not refresh Cashfree refund status.');
+      setPaymentMessage(`Cashfree refund ${refundId}: ${data.status}. Bank credit may take additional time.`);
+      await loadBookings();
+    } catch (e: any) { setError(e?.message || 'Could not refresh refund status.'); }
+  };
+
+  const requestCashfreeRefund = async (order: PaymentHistoryOrder) => {
+    const remaining = Math.max(0, Number(order.amount) - (order.refunds || []).filter((item) => ['PENDING','SUCCESS','UNKNOWN'].includes(item.status)).reduce((sum, item) => sum + Number(item.amount || 0), 0));
+    if (remaining <= 0) { setError('No refundable balance remains, or a previous refund needs reconciliation.'); return; }
+    const entered = window.prompt(`Enter refund amount in INR (maximum ₹${remaining.toFixed(2)}). A refund request will be sent to Cashfree Sandbox/Live according to this Preview environment configuration.`, remaining.toFixed(2));
+    if (entered === null) return;
+    const amount = Number(entered);
+    if (!Number.isFinite(amount) || amount <= 0 || Math.round(amount * 100) !== amount * 100 || amount > remaining) { setError('Enter a valid refund amount up to the remaining refundable balance.'); return; }
+    const note = window.prompt('Refund note. For Cashfree Sandbox simulation only, enter exactly SUCCESS, FAILED or PENDING. Otherwise enter the actual refund reason.', 'TANSHU ONLINE Digital Seva customer refund');
+    if (note === null) return;
+    if (!window.confirm(`Confirm Cashfree refund request of ₹${amount.toFixed(2)} for order ${order.orderId}?`)) return;
+    setPaymentMessage('');
+    setError('');
+    setPaymentSavingId(order.orderId);
+    try {
+      const response = await fetch('/api/digital-seva/admin', {
+        method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'REQUEST_CASHFREE_REFUND', orderId: order.orderId, amount, note: note.trim() || 'TANSHU ONLINE Digital Seva customer refund' })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || `Refund status: ${data.status || 'not confirmed'}. Check Cashfree dashboard before retrying.`);
+      setPaymentMessage(`Cashfree refund ${data.status}: ₹${amount.toFixed(2)} · Refund ID ${data.refundId}. This is a gateway status, not a bank-credit confirmation.`);
+      await loadBookings();
+    } catch (e: any) { setError(e?.message || 'Could not request Cashfree refund. Reconcile with Cashfree before retrying.'); }
+    finally { setPaymentSavingId(''); }
+  };
+
   const createPaymentLink = async (booking: Booking) => {
     const amount = Number(draftPaymentAmounts[booking.id] || 0);
     if (!Number.isFinite(amount) || amount < 1 || amount > 100000 || Math.round(amount * 100) !== amount * 100) {
@@ -462,14 +548,20 @@ export default function DigitalSevaAdminPage() {
       <div><small>Booking reference</small><b>{order.bookingReference || 'Not created'}</b></div>
     </div>
     {order.events.length > 0 ? <div className="dsa-detail-panel"><strong>Payment attempts / भुगतान प्रयास</strong>{order.events.map((event, index) => <p key={`${order.orderId}-${event.paymentId || index}`}><b>{event.paymentStatus}</b> · {event.eventType}{event.message ? ` — ${event.message}` : ''}{event.paymentId ? ` · Payment ID: ${event.paymentId}` : ''}<small> · {formatSlipTime(event.eventTime || order.createdAt)} IST</small></p>)}</div> : <p className="dsa-payment-policy-warning">No payment-attempt webhook has been recorded for this order yet. The order may still be awaiting payment or the gateway has not sent an attempt event.</p>}
+    {(order.refunds || []).length > 0 && <div className="dsa-detail-panel"><strong>Refund history</strong>{order.refunds!.map((refund) => <p key={refund.refundId}><b>{refund.status}</b> · ₹{refund.amount.toFixed(2)} · {refund.refundId}{refund.cashfreeRefundId ? ` · Cashfree ID: ${refund.cashfreeRefundId}` : ''}<small> · {formatSlipTime(refund.createdAt)} IST</small>{!['SUCCESS','FAILED'].includes(refund.status) && <button type="button" onClick={() => void refreshCashfreeRefund(refund.refundId)}>Refresh from Cashfree</button>}</p>)}</div>}
+    {['PAID','CLAIMED'].includes(order.status) && <div className="dsa-payment-link"><button type="button" onClick={() => void requestCashfreeRefund(order)} disabled={paymentSavingId === order.orderId}>{paymentSavingId === order.orderId ? 'Sending refund request…' : 'Request Cashfree refund'}</button><small>Only verified paid orders; refund amount is checked against the remaining balance. Reconcile any pending/unknown refund before retrying.</small></div>}
   </article>)}</div>
-</section>}{error && <p className="dsa-error" role="alert">{error}</p>}{paymentMessage && <p className="dsa-payment-message" role="status">{paymentMessage}</p>}{loading && <p>Loading booking requests…</p>}{!loading && filtered.length === 0 && <div className="dsa-empty"><ClipboardList size={30} /><h2>No booking requests found</h2><p>New customer requests will appear here once submitted.</p></div>}<div className="dsa-booking-list">{filtered.map((booking) => <article className="dsa-booking-card" key={booking.id}><div className="dsa-booking-card-top"><strong>{booking.booking_reference}</strong><span>{new Date(booking.created_at + (booking.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString()}</span></div><h2>{serviceNames.get(booking.service_id) || booking.service_id}</h2><div className="dsa-slip-action"><div><strong>Application receipt</strong><small>Customer details, complete address and submitted documents</small></div><button type="button" onClick={() => downloadSlip(booking)}>Download / Print PDF · रसीद</button></div><div className="dsa-customer-grid"><div><small>Applicant / Customer</small><b>{booking.customer_name}</b></div><div><small>Applicant mobile</small><b>{booking.customer_phone}</b></div>{booking.customer_email && <div><small>Applicant email</small><b>{booking.customer_email}</b></div>}<div><small>Submitted by</small><b>{booking.requester_type || 'Legacy request'} · {booking.application_for || '—'}</b></div>{booking.operator_name && <div><small>Operator / Agent</small><b>{booking.operator_name} · {booking.operator_phone} · {booking.operator_email}</b></div>}{booking.centre_name && <div><small>Centre</small><b>{booking.centre_name} · {booking.centre_address}</b></div>}{booking.agency_name && <div><small>Agency</small><b>{booking.agency_name} · {booking.agency_address}</b></div>}</div><details className="dsa-application-details" open><summary>Service details &amp; selected documents / सेवा विवरण और चुने गए दस्तावेज़</summary><BookingApplicationDetails booking={booking} /></details><section className="dsa-documents"><h3>Customer documents ({(booking.documents || []).length})</h3>{(booking.documents || []).length === 0 ? <p>No files uploaded.</p> : <div className="dsa-document-list">{booking.documents!.map((document) => <div className="dsa-document-row" key={document.id}><div><b>{document.fileName}</b><small>{document.documentType} · {document.contentType} · {(document.sizeBytes / 1024 / 1024).toFixed(2)} MB</small></div><div><button type="button" onClick={() => void openDocument(document, false)} disabled={documentActionId === document.id}>View</button><button type="button" onClick={() => void openDocument(document, true)} disabled={documentActionId === document.id}>Download</button><button type="button" onClick={() => void openDocument(document, false)} disabled={documentActionId === document.id}>Print</button><button type="button" className="dsa-document-delete" onClick={() => void removeDocument(document)} disabled={documentActionId === document.id}>Delete</button></div></div>)}</div>}</section><div className="dsa-policy-audit"><span><b>Terms &amp; Conditions:</b> {booking.terms_accepted_at ? `Accepted / स्वीकार किया · ${formatSlipTime(booking.terms_accepted_at)} IST · ${booking.terms_policy_version || 'version missing'}` : 'Not recorded / दर्ज नहीं'}</span><span><b>Refund Policy:</b> {booking.refund_policy_accepted_at ? `Accepted / स्वीकार किया · ${formatSlipTime(booking.refund_policy_accepted_at)} IST · ${booking.refund_policy_version || 'version missing'}` : 'Not recorded'}</span></div><section className="dsa-payment-panel">
+</section>}{error && <p className="dsa-error" role="alert">{error}</p>}{paymentMessage && <p className="dsa-payment-message" role="status">{paymentMessage}</p>}{loading && <p>Loading booking requests…</p>}{!loading && filtered.length === 0 && <div className="dsa-empty"><ClipboardList size={30} /><h2>No booking requests found</h2><p>New customer requests will appear here once submitted.</p></div>}<div className="dsa-booking-list">{filtered.map((booking) => <article className="dsa-booking-card" key={booking.id}><div className="dsa-booking-card-top"><strong>{booking.booking_reference}</strong><span>{new Date(booking.created_at + (booking.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString()}</span></div><h2>{serviceNames.get(booking.service_id) || booking.service_id}</h2><div className="dsa-slip-action"><div><strong>Service request receipt</strong><small>Customer details, complete address and submitted documents</small></div><button type="button" onClick={() => downloadSlip(booking)}>Download / Print Service Request PDF · रसीद</button></div><div className="dsa-customer-grid"><div><small>Applicant / Customer</small><b>{booking.customer_name}</b></div><div><small>Applicant mobile</small><b>{booking.customer_phone}</b></div>{booking.customer_email && <div><small>Applicant email</small><b>{booking.customer_email}</b></div>}<div><small>Submitted by</small><b>{booking.requester_type || 'Legacy request'} · {booking.application_for || '—'}</b></div>{booking.operator_name && <div><small>Operator / Agent</small><b>{booking.operator_name} · {booking.operator_phone} · {booking.operator_email}</b></div>}{booking.centre_name && <div><small>Centre</small><b>{booking.centre_name} · {booking.centre_address}</b></div>}{booking.agency_name && <div><small>Agency</small><b>{booking.agency_name} · {booking.agency_address}</b></div>}</div><details className="dsa-application-details" open><summary>Service details &amp; selected documents / सेवा विवरण और चुने गए दस्तावेज़</summary><BookingApplicationDetails booking={booking} /></details><section className="dsa-documents"><h3>Customer documents ({(booking.documents || []).length})</h3>{(booking.documents || []).length === 0 ? <p>No files uploaded.</p> : <div className="dsa-document-list">{booking.documents!.map((document) => <div className="dsa-document-row" key={document.id}><div><b>{document.fileName}</b><small>{document.documentType} · {document.contentType} · {(document.sizeBytes / 1024 / 1024).toFixed(2)} MB</small></div><div><button type="button" onClick={() => void openDocument(document, false)} disabled={documentActionId === document.id}>View</button><button type="button" onClick={() => void openDocument(document, true)} disabled={documentActionId === document.id}>Download</button><button type="button" onClick={() => void openDocument(document, false)} disabled={documentActionId === document.id}>Print</button><button type="button" className="dsa-document-delete" onClick={() => void removeDocument(document)} disabled={documentActionId === document.id}>Delete</button></div></div>)}</div>}</section><div className="dsa-policy-audit"><span><b>Terms &amp; Conditions:</b> {booking.terms_accepted_at ? `Accepted / स्वीकार किया · ${formatSlipTime(booking.terms_accepted_at)} IST · ${booking.terms_policy_version || 'version missing'}` : 'Not recorded / दर्ज नहीं'}</span><span><b>Refund Policy:</b> {booking.refund_policy_accepted_at ? `Accepted / स्वीकार किया · ${formatSlipTime(booking.refund_policy_accepted_at)} IST · ${booking.refund_policy_version || 'version missing'}` : 'Not recorded'}</span></div><section className="dsa-payment-panel">
   <div className="dsa-payment-panel-heading"><strong>Payment &amp; Service Fee</strong><small>Review the request, set the final amount manually, then create a one-time Cashfree payment link.</small></div>
   <div className="dsa-payment-controls">
     <label>Final fee (₹)<input type="number" min="1" max="100000" step="0.01" inputMode="decimal" value={draftPaymentAmounts[booking.id] || ''} onChange={(e) => setDraftPaymentAmounts((old) => ({ ...old, [booking.id]: e.target.value }))} placeholder="Enter service fee" /></label>
-    <button type="button" onClick={() => void createPaymentLink(booking)} disabled={paymentSavingId === booking.id || booking.payment_status === 'PAID' || !booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== 'terms-2026-11-07-v1' || !booking.refund_policy_accepted_at || booking.refund_policy_version !== 'refund-2026-11-07-v2'}>{paymentSavingId === booking.id ? 'Creating link…' : 'Create Cashfree Pay Link'}</button>{booking.payment_status === 'PAID' ? <small className="dsa-payment-policy-warning">This booking is already PAID. A new payment link is disabled.</small> : (!booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== 'terms-2026-11-07-v1' || !booking.refund_policy_accepted_at || booking.refund_policy_version !== 'refund-2026-11-07-v2') ? <small className="dsa-payment-policy-warning">Payment link locked: current Terms &amp; Conditions and Refund Policy consent must be recorded first.</small> : null}
+    <button type="button" onClick={() => void createPaymentLink(booking)} disabled={paymentSavingId === booking.id || booking.payment_status === 'PAID' || !booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== 'terms-2026-11-14-v1' || !booking.refund_policy_accepted_at || booking.refund_policy_version !== 'refund-2026-11-14-v1'}>{paymentSavingId === booking.id ? 'Creating link…' : 'Create Cashfree Pay Link'}</button>{booking.payment_status === 'PAID' ? <small className="dsa-payment-policy-warning">This booking is already PAID. A new payment link is disabled.</small> : (!booking.consent_at || !booking.terms_accepted_at || booking.terms_policy_version !== 'terms-2026-11-14-v1' || !booking.refund_policy_accepted_at || booking.refund_policy_version !== 'refund-2026-11-14-v1') ? <small className="dsa-payment-policy-warning">Payment link locked: current Terms &amp; Conditions and Refund Policy consent must be recorded first.</small> : null}
   </div>
-  <div className="dsa-payment-status"><span><b>Payment status:</b> {booking.payment_status || 'AWAITING PRICE'}</span>{booking.payment_amount != null && <span><b>Amount:</b> ₹{Number(booking.payment_amount).toFixed(2)}</span>}{booking.payment_paid_at && <span><b>Paid at:</b> {formatSlipTime(booking.payment_paid_at)} IST</span>}</div>
+  <div className="dsa-payment-status"><span><b>Customer payment status:</b> {booking.payment_status || 'AWAITING PRICE'}</span>{booking.payment_amount != null && <span><b>Total collected:</b> ₹{Number(booking.payment_amount).toFixed(2)}</span>}{booking.payment_paid_at && <span><b>Customer paid at:</b> {formatSlipTime(booking.payment_paid_at)} IST</span>}</div>
+  <div className="dsa-payment-status"><span><b>Government/provider fee collected:</b> ₹{Number(booking.government_fee || 0).toFixed(2)}</span><span><b>TANSHU ONLINE service fee:</b> ₹{Number(booking.tanshu_service_fee || 0).toFixed(2)}</span><span><b>Official deposit status:</b> {booking.government_payment_status || 'UNVERIFIED'}</span></div>
+  {Number(booking.government_fee || 0) > 0 && (booking.government_payment_status !== 'PAID'
+    ? <div className="dsa-payment-link"><input aria-label="Official government payment receipt reference" placeholder="Official receipt / transaction reference" minLength={6} maxLength={120} value={draftGovernmentReferences[booking.id] || ''} onChange={(e) => setDraftGovernmentReferences((old) => ({ ...old, [booking.id]: e.target.value }))} /><input aria-label="Upload official government receipt" type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => setDraftGovernmentEvidence((old) => ({ ...old, [booking.id]: e.target.files?.[0] || null }))} /><button type="button" onClick={() => void markGovernmentFeePaid(booking)} disabled={savingId === booking.id || booking.payment_status !== 'PAID' || !draftGovernmentEvidence[booking.id]}>Upload receipt &amp; record deposit</button><small>{booking.payment_status !== 'PAID' ? 'Customer payment must be confirmed first.' : 'Required: genuine department receipt (PDF/JPG/PNG, max 5 MB) plus its official reference. Stored privately; upload records operator evidence, it does not independently verify the department payment.'}</small></div>
+    : booking.government_evidence_id ? <div className="dsa-payment-status"><span><b>Official payment reference:</b> {booking.government_payment_reference || 'Recorded'}</span>{booking.government_paid_at && <span><b>Evidence uploaded:</b> {formatSlipTime(booking.government_paid_at)} IST</span>}<button type="button" onClick={() => void openGovernmentEvidence(booking)}>View official receipt evidence</button></div> : <div className="dsa-payment-policy-warning">Legacy reference-only record. No receipt evidence is on file; re-upload the official receipt to verify the record.</div>)} 
   {booking.payment_link_url && <div className="dsa-payment-link"><a href={booking.payment_link_url} target="_blank" rel="noreferrer">Open payment link</a><button type="button" onClick={() => void copyPaymentLink(String(booking.payment_link_url))}>Copy link to share</button></div>}
 </section><div className="dsa-status-row"><label>Status<select value={draftStatuses[booking.id] || booking.status} onChange={(e) => setDraftStatuses((old) => ({ ...old, [booking.id]: e.target.value as BookingStatus }))}>{STATUS_OPTIONS.map((status) => <option value={status} key={status}>{status.replaceAll('_', ' ')}</option>)}</select></label><label>Estimated completion (local time)<input type="datetime-local" value={draftEstimates[booking.id] || ''} onChange={(e) => setDraftEstimates((old) => ({ ...old, [booking.id]: e.target.value }))} /></label><label>Customer update note<input value={draftNotes[booking.id] || ''} maxLength={500} placeholder="Visible to customer — short progress update" onChange={(e) => setDraftNotes((old) => ({ ...old, [booking.id]: e.target.value }))} /></label><button onClick={() => void updateStatus(booking)} disabled={savingId === booking.id || ((draftStatuses[booking.id] || booking.status) === booking.status && (draftEstimates[booking.id] || '') === toLocalDateTimeInput(booking.estimated_completion_at) && !(draftNotes[booking.id] || '').trim())}>{savingId === booking.id ? 'Saving…' : 'Save update'}</button></div></article>)}</div><footer className="dsa-footer"><a href="/digital-seva">← Back to Digital Seva</a><span>Booking records are private. Do not share customer contact details.</span></footer></div>;
 }

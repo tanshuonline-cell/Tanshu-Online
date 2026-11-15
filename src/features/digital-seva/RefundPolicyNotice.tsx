@@ -48,7 +48,12 @@ interface RefundPolicyNoticeProps { service: SevaService; language?: 'en' | 'hi'
 export default function RefundPolicyNotice({ service, language = 'en' }: RefundPolicyNoticeProps) {
   const hindi = language === 'hi';
   const rawFee = getServiceFeeDisclosure(service);
-  const hindiCopy = HINDI_FEE_COPY[service.id] || (rawFee.governmentStatus === 'not-applicable' ? { governmentFee: 'इस निजी डिजिटल / दस्तावेज़ सेवा पर कोई सरकारी शुल्क लागू नहीं है।', governmentRefund: 'इस कार्य पर सरकारी शुल्क नहीं लिया जाता। यदि बाद में किसी आधिकारिक पोर्टल का शुल्क लगे, तो उसके अपने नियम लागू होंगे।', serviceFee: 'TANSHU ONLINE सेवा शुल्क अभी कॉन्फ़िगर नहीं है; भुगतान से पहले राशि और काम का विवरण स्पष्ट दिखाया जाएगा।', note: 'भुगतान स्वीकार करने से पहले सेवा का शुल्क और मिलने वाला परिणाम स्पष्ट रूप से बताया जाएगा।' } : { governmentFee: 'सटीक सेवा, आवेदक और आधिकारिक आवेदन मार्ग के लिए लाइव सरकारी / प्रदाता शुल्क की पुष्टि आवश्यक है।', governmentRefund: 'रिफंड और रद्दीकरण चुने गए विभाग / प्रदाता के सटीक नियमों के अनुसार होंगे। भुगतान से पहले वर्तमान नियम जाँचें।', serviceFee: 'TANSHU ONLINE सेवा शुल्क अभी कॉन्फ़िगर नहीं है; भुगतान से पहले राशि और काम का विवरण स्पष्ट दिखाया जाएगा।', note: 'सटीक प्राधिकरण, आवेदन मार्ग, शुल्क और रिफंड नियम की पुष्टि के बाद ही भुगतान का कोटेशन दिया जाएगा।' });
+  const hindiCopy = HINDI_FEE_COPY[service.id] || {
+    governmentFee: rawFee.governmentFee,
+    governmentRefund: rawFee.governmentRefund,
+    serviceFee: rawFee.serviceFee,
+    note: rawFee.note
+  };
   const fee = hindi ? { ...rawFee, ...hindiCopy } : rawFee;
   const governmentStatus = fee.governmentStatus === 'not-applicable'
     ? (hindi ? 'लागू नहीं' : 'NOT APPLICABLE')
@@ -71,11 +76,15 @@ export default function RefundPolicyNotice({ service, language = 'en' }: RefundP
       <div className="ds-refund-row">
         <b>{hindi ? '2. TANSHU ONLINE सेवा शुल्क' : '2. TANSHU ONLINE Service Fee'}</b>
         <p>{fee.serviceFee}</p>
-        <p className="ds-fee-refund"><strong>{hindi ? 'सेवा शुल्क रिफंड:' : 'Service-fee refund:'}</strong> {hindi ? 'वास्तव में पूरे किए गए काम के अनुपात में उचित समायोजन होगा। पूरी नीति नीचे पढ़ें।' : fee.serviceRefund}</p>
+        <p className="ds-fee-refund"><strong>{hindi ? 'सेवा शुल्क रिफंड:' : 'Service-fee refund:'}</strong> {fee.serviceRefund}</p>
       </div>
       <div className="ds-refund-row">
         <b>{hindi ? '3. इस सेवा से जुड़ी खास जानकारी' : '3. Service-specific note'}</b>
         <p>{fee.note}</p>
+      </div>
+      <div className="ds-refund-row">
+        <b>{hindi ? 'आवेदन जमा होने के बाद सेवा शुल्क का नियम' : 'Service-fee rule after application submission'}</b>
+        <p>{hindi ? 'जहाँ इस सेवा में आवेदन जमा करना शामिल है, वहाँ सफलतापूर्वक आवेदन जमा होकर पावती / रेफरेंस मिलने के बाद TANSHU ONLINE सेवा शुल्क जमा-कार्य के मेहनताना के रूप में अर्जित होता है। केवल बाद में सरकारी विभाग द्वारा आवेदन रिजेक्ट करने, निर्णय में देरी करने या स्टेटस अपडेट न करने से यह शुल्क रिफंड नहीं होगा। TANSHU ONLINE की गलती, सहमत काम पूरा न होना और लागू उपभोक्ता कानून के अधिकार इससे प्रभावित नहीं होते। सरकारी / प्रदाता शुल्क का रिफंड संबंधित विभाग / प्रदाता के नियमों के अनुसार होगा।' : 'Where this service includes application submission, once the application is successfully submitted and an acknowledgement/reference is received, the TANSHU ONLINE service fee is earned as remuneration for the submission work. It is not refundable solely because the government later rejects the application, delays its decision or does not update its status. Errors or failures attributable to TANSHU ONLINE, failure to deliver the agreed work and customer rights under applicable consumer law are not affected. Government/provider-fee refunds follow the relevant authority/provider rules.'}</p>
       </div>
       <div className="ds-refund-timeline">
         <b>{hindi ? 'काम पूरा करने का सामान्य समय' : 'Normal completion time'}</b>

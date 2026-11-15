@@ -6,7 +6,7 @@ import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaym
 import { cashfreeApiBase } from './_cashfree';
 interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 
-const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print"]);
+const ALLOWED_SERVICE_IDS = new Set(["pan-new","pan-retrieve","pan-correction","pan-photo-signature","aadhaar-address-doc","aadhaar-address-hof","aadhaar-co","aadhaar-mobile","aadhaar-mobile-check","aadhaar-email","aadhaar-lost","aadhaar-download","certificate-income","certificate-caste","certificate-residence","certificate-correction","voter-new","voter-correction","ration-new","driving-licence","ration-update","scheme-check","online-form","website-services","pdf-text-edit","pdf-compress","pdf-merge","pdf-split","pdf-jpg","pdf-word","pdf-edit","image-compress","signature-resize","scan-clean","typing-format","aadhaar-pvc-assistance","bw-print","colour-print","passport-photo","photo-background","photo-enhance","photo-edit","image-format","signature-clean","thumbnail","poster-banner","social-post","logo-brand","reel-edit","long-video-edit","video-subtitles","video-convert","resume","cover-letter","biodata","invoice","receipt","quotation","letter-doc","presentation","state-income-certificate","state-caste-certificate","state-residence-certificate","birth-certificate-copy","marriage-certificate","land-record-copy","state-ration-card","death-certificate-copy","ews-certificate","obc-ncl-certificate","website-app-brief","pension-old-age","pension-widow","pension-disability","state-scholarship","employment-exchange","labour-card","construction-worker-benefits","land-mutation","land-revenue-payment","legal-heir-certificate","character-certificate","senior-citizen-certificate","trade-license","shop-establishment","rti-application","public-grievance","family-register-copy","marriage-assistance-scheme","water-utility-grievance","electricity-utility","marksheet-cleanup","document-restoration","handwritten-to-digital","affidavit-draft-format","photo-print-sheet","id-card-print-layout","resume-professional","job-application-pack","up-family-register-copy","up-land-record-copy","mp-samagra-id-assistance","rajasthan-jan-aadhaar-update","odisha-legal-heir-certificate","odisha-ror-certified-copy","jharkhand-local-resident-certificate"]);
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
@@ -189,8 +189,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (issue) return json({ success: false, error: `Invalid service option: ${field}. ${issue}` }, 400);
   }
   if (!consent) return json({ success: false, error: 'Please confirm that TANSHU ONLINE may contact you about this request.' }, 400);
-  if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-07-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
-  if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-07-v2') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
+  if (!termsAccepted || termsPolicyVersion !== 'terms-2026-11-14-v1') return json({ success: false, error: 'Please read and accept the current Terms & Conditions.' }, 400);
+  if (!refundPolicyAccepted || refundPolicyVersion !== 'refund-2026-11-14-v1') return json({ success: false, error: 'Please read and accept the current Refund Policy separately.' }, 400);
   if (!/^[0-9a-f-]{36}$/i.test(key)) return json({ success: false, error: 'The booking session expired. Please reopen the form.' }, 400);
   if (body.validateOnly === true) {
     if (body.paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId)) return json({ success: false, error: 'Validation-only mode is reserved for an enabled automatic-payment service.' }, 400);
@@ -201,6 +201,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (paymentMode !== 'AUTO_PAY' || !getAutoPaymentQuote(serviceId) || !/^ds_[0-9a-f]{32}$/i.test(paymentOrderId)) {
     return json({ success: false, error: 'A verified online payment is required before booking submission. Unpaid booking requests are not accepted.' }, 402);
   }
+  const approvedQuote = getAutoPaymentQuote(serviceId)!;
 
   try {
     const prior = await env.DIGITAL_SEVA_DB.prepare(
@@ -210,7 +211,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     if (paymentMode === 'AUTO_PAY') {
       if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree verification is not configured for this environment.' }, 503);
-      const quote = getAutoPaymentQuote(serviceId)!;
+      const quote = approvedQuote;
       const checkoutOrder = await env.DIGITAL_SEVA_DB.prepare(
         'SELECT order_id, service_id, customer_phone, amount, currency, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
       ).bind(paymentOrderId).first();
@@ -221,7 +222,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         return json({ success: false, error: 'This payment order is already being attached to a booking. Please contact support before retrying.' }, 409);
       }
       if (!['PENDING', 'PAID'].includes(String(checkoutOrder.status)) || checkoutOrder.service_id !== serviceId ||
-          normalizePhone(checkoutOrder.customer_phone) !== phone || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
+          normalizePhone(checkoutOrder.customer_phone) !== normalizePhone(body.paymentContactPhone || phone) || String(checkoutOrder.currency).toUpperCase() !== 'INR' ||
           Math.round(Number(checkoutOrder.amount) * 100) !== quote.totalAmount * 100) {
         return json({ success: false, error: 'The payment order does not match this service, customer or approved total.' }, 409);
       }
@@ -271,12 +272,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
            (id, booking_reference, idempotency_key, service_id, customer_name, customer_phone, customer_email,
             requester_type, application_for, operator_name, operator_phone, operator_email, centre_name, centre_address,
             agency_name, agency_address, application_details_json, checkout_order_id,
+            government_fee, tanshu_service_fee, government_payment_status,
             status, consent_at, terms_accepted_at, terms_policy_version, refund_policy_accepted_at, refund_policy_version)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', CURRENT_TIMESTAMP, ?, ?, ?, ?)`
         ).bind(bookingId, bookingReference, key, serviceId, name, phone, email,
           requesterType, applicationFor, operatorName || null, operatorPhone || null, operatorEmail || null,
           centerName || null, centerAddress || null, agencyName || null, agencyAddress || null, applicationDetails,
-          paymentMode === 'AUTO_PAY' ? paymentOrderId : null, termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
+          paymentMode === 'AUTO_PAY' ? paymentOrderId : null, approvedQuote.governmentFee, approvedQuote.tanshuFee,
+           approvedQuote.governmentFee > 0 ? 'PENDING' : 'NOT_REQUIRED', termsAcceptedAt, termsPolicyVersion, refundPolicyAcceptedAt, refundPolicyVersion),
         env.DIGITAL_SEVA_DB.prepare(
           `INSERT INTO digital_seva_booking_events (id, booking_id, old_status, new_status, actor, note)
            VALUES (?, ?, NULL, 'RECEIVED', 'customer', 'Booking request submitted')`
