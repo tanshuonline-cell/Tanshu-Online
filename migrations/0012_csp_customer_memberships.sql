@@ -86,3 +86,19 @@ CREATE TABLE IF NOT EXISTS csp_reminder_log (
   FOREIGN KEY (subscription_id) REFERENCES csp_subscriptions(id),
   FOREIGN KEY (customer_id) REFERENCES csp_customers(id)
 );
+
+CREATE TABLE IF NOT EXISTS csp_tool_settings (
+  tool_id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  access_type TEXT NOT NULL CHECK (access_type IN ('free_signup','paid')),
+  enabled INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+INSERT OR IGNORE INTO csp_tool_settings (tool_id, title, access_type) VALUES
+  ('advanced-passport-photo-studio', 'Instant Passport Photo Studio', 'paid'),
+  ('pdf-to-pvc-card-auto-cropper', 'Instant PVC Card Maker', 'paid'),
+  ('instant-multi-customer-photo-maker', 'Instant Multi Customer Photo Maker', 'paid'),
+  ('whatsapp-selfie-to-passport-photo', 'WhatsApp Selfie to Passport Photo', 'paid'),
+  ('photo-signature-resizer', 'Photo & Signature Resizer', 'free_signup'),
+  ('auto-document-cropper', 'Auto Document Cropper', 'free_signup'),
+  ('photo-background-remover', 'Photo Background Remover', 'free_signup');
