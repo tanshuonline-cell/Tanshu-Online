@@ -1,4 +1,4 @@
-import { createPrivateDocumentUrl, deletePrivateDocument, uploadPrivateDocument } from './_storage';
+import { createPrivateDocumentUrl, deletePrivateDocument, uploadPrivateDocument } from '../_storage';
 
 interface Env {
   DIGITAL_SEVA_DB?: any;
