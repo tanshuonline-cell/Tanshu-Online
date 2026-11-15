@@ -108,7 +108,14 @@ export default function App() {
       element.content = value;
     };
     setMeta('meta[name="description"]', 'name', 'description', description);
-    setMeta('meta[name="robots"]', 'name', 'robots', isDigitalSevaAdmin ? 'noindex, nofollow' : 'index, follow');
+    // Keep video catalog/detail pages out of Google Search while leaving playback available on the site.
+    const isVideoPage = isVideoCatalog || isVideoDetail;
+    const robotsDirective = isDigitalSevaAdmin
+      ? 'noindex, nofollow'
+      : isVideoPage
+        ? 'noindex, follow'
+        : 'index, follow';
+    setMeta('meta[name="robots"]', 'name', 'robots', robotsDirective);
     setMeta('meta[property="og:title"]', 'property', 'og:title', title);
     setMeta('meta[property="og:description"]', 'property', 'og:description', description);
     setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
