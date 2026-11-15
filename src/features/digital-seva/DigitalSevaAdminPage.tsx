@@ -427,12 +427,14 @@ export default function DigitalSevaAdminPage() {
   };
 
   const openGovernmentEvidence = async (booking: Booking) => {
+    const tab = window.open('about:blank', '_blank');
+    if (!tab) { setError('Please allow pop-ups to view the official receipt.'); return; }
     try {
       const response = await fetch(`/api/digital-seva/admin/government-deposit-evidence?bookingId=${encodeURIComponent(booking.id)}`, { credentials: 'same-origin', cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success || !data.url) throw new Error(data.error || 'Could not open the stored official receipt.');
-      window.open(String(data.url), '_blank', 'noopener,noreferrer');
-    } catch (e: any) { setError(e?.message || 'Could not open the stored official receipt.'); }
+      tab.location.href = String(data.url);
+    } catch (e: any) { tab.close(); setError(e?.message || 'Could not open the stored official receipt.'); }
   };
 
   const refreshCashfreeRefund = async (refundId: string) => {
