@@ -54,6 +54,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [plansOpen, setPlansOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('basic');
+  const [requestBusy, setRequestBusy] = useState(false);
   const [toolEnabled, setToolEnabled] = useState(true);
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
   const isFreeTool = freeTools.includes(toolId);
@@ -69,6 +70,19 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     }).catch(() => {});
   }, [toolId]);
   const allowed = Boolean(session?.authenticated && session.allowedTools?.includes(toolId));
+  const submitMembershipRequest = async () => {
+    setRequestBusy(true);
+    try {
+      const response = await fetch('/api/csp/membership/request', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: selectedPlan }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not submit membership request.');
+      setPlansOpen(false);
+      setNotice(data.message || 'Membership request submitted.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not submit membership request.');
+      setPlansOpen(false);
+    } finally { setRequestBusy(false); }
+  };
   const requestExport = async () => {
     if (!toolEnabled) { setNotice(isHindi ? 'यह टूल अभी अस्थायी रूप से बंद है।' : 'This tool is temporarily unavailable.'); return false; }
     if (!session?.authenticated) { setAuthOpen(true); setNotice(isHindi ? 'फोटो सेव करने से पहले फ्री Gmail OTP सत्यापन करें।' : 'Verify your Gmail with a free OTP before saving.'); return false; }
@@ -95,7 +109,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-rose-800">TANSHU ONLINE · PREMIUM PRINT</p><h2 className="mt-2 text-2xl font-black text-slate-950">{isHindi ? 'अपना Premium प्लान चुनें' : 'Choose your Premium plan'}</h2><p className="mt-2 text-sm text-slate-600">{isHindi ? 'आपका काम और प्रीव्यू सुरक्षित है। Premium डाउनलोड के लिए प्लान चुनें।' : 'Your work and preview remain available. Choose a plan to unlock premium downloads.'}</p></div><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-200 px-3 py-2">✕</button></div>
       <div className="mt-5 grid gap-3 md:grid-cols-3">{defaultPaidPlans.map(plan => <button type="button" key={plan.code} onClick={() => setSelectedPlan(plan.code)} className={`rounded-2xl border-2 p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${planStyle[plan.code]} ${selectedPlan === plan.code ? 'ring-4 ring-offset-2 ring-slate-300 -translate-y-1 shadow-xl' : ''}`}><span className="text-xs font-black tracking-widest">{plan.name}</span><span className="mt-2 block text-2xl font-black">₹{plan.price}<small className="text-xs"> / month</small></span><span className="mt-2 block text-xs font-semibold">{plan.tools}</span></button>)}</div>
       <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>{isHindi ? 'भुगतान का तरीका:' : 'Payment method:'}</strong> {isHindi ? 'सदस्यता मैन्युअल भुगतान सत्यापन के बाद सक्रिय होगी। कोई ऑटो-डेबिट नहीं है। भुगतान विवरण Admin से प्राप्त करें।' : 'Membership activates only after manual payment verification. No auto-debit. Obtain payment instructions from the site administrator.'}</div>
-      <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold">{isHindi ? 'बाद में' : 'Not now'}</button><button type="button" onClick={() => { setNotice((isHindi ? 'आपने ' : 'Selected ') + selectedPlan.toUpperCase() + (isHindi ? ' प्लान चुना है। Admin से भुगतान विवरण लेकर सत्यापन करवाएं।' : ' plan. Contact admin for payment instructions and verification.')); setPlansOpen(false); }} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">{isHindi ? 'यह प्लान चुनें' : 'Select this plan'}</button></div>
+      <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold">{isHindi ? 'बाद में' : 'Not now'}</button><button type="button" disabled={requestBusy} onClick={() => void submitMembershipRequest()} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{requestBusy ? (isHindi ? 'भेज रहे हैं…' : 'Sending…') : (isHindi ? 'प्लान रिक्वेस्ट भेजें' : 'Request this plan')}</button></div>
     </section></div>}
     {notice && !authOpen && !plansOpen && <div role="status" className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,560px)] -translate-x-1/2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl">{notice}<button type="button" onClick={() => setNotice('')} className="ml-3 font-black text-rose-800">×</button></div>}
   </Gate.Provider>;
