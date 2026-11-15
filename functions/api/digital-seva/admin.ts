@@ -309,6 +309,31 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   const rawBody = await request.text();
   if (rawBody.length > 4096) return json({ success: false, error: 'The status update is too large.' }, 413);
   const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })() as any;
+  if (body?.action === 'REFRESH_CASHFREE_REFUND') {
+    const refundId = String(body?.refundId || '');
+    if (!/^DSR[0-9a-f]{32}$/i.test(refundId)) return json({ success: false, error: 'Invalid refund reference.' }, 400);
+    if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false, error: 'Cashfree credentials are not configured.' }, 503);
+    try {
+      const refund = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT id, order_id, status FROM digital_seva_refunds WHERE refund_id = ?'
+      ).bind(refundId).first();
+      if (!refund) return json({ success: false, error: 'Refund record not found.' }, 404);
+      const response = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(String(refund.order_id))}/refunds/${encodeURIComponent(refundId)}`, {
+        headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': '2022-09-01' }
+      });
+      const gateway = await response.json().catch(() => ({})) as any;
+      if (!response.ok || String(gateway.refund_id || '') !== refundId) return json({ success: false, error: 'Cashfree could not confirm this refund. Keep its current status and check the Cashfree dashboard.' }, 502);
+      const rawStatus = String(gateway.refund_status || '').toUpperCase();
+      const status = rawStatus === 'SUCCESS' ? 'SUCCESS' : rawStatus === 'FAILED' ? 'FAILED' : 'PENDING';
+      await env.DIGITAL_SEVA_DB.prepare(
+        `UPDATE digital_seva_refunds SET status = ?, cashfree_refund_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+      ).bind(status, gateway.cf_refund_id ? String(gateway.cf_refund_id) : null, refund.id).run();
+      return json({ success: true, refundId, status, cashfreeRefundId: gateway.cf_refund_id || null, processedAt: gateway.processed_at || null });
+    } catch (error) {
+      console.error('Cashfree refund reconciliation failed:', error);
+      return json({ success: false, error: 'Could not reconcile refund status with Cashfree.' }, 503);
+    }
+  }
   if (body?.action === 'REQUEST_CASHFREE_REFUND') {
     const orderId = String(body?.orderId || '');
     const amount = Number(body?.amount);
@@ -342,7 +367,7 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
         `SELECT id FROM digital_seva_refunds WHERE order_id = ? AND status IN ('PENDING','UNKNOWN') LIMIT 1`
       ).bind(orderId).first();
       if (unresolved) return json({ success: false, error: 'A previous refund is pending or has an unknown gateway result. Reconcile it in Cashfree before creating another refund.' }, 409);
-      const refundId = `dsr_${crypto.randomUUID().replace(/-/g, '')}`;
+      const refundId = `DSR${crypto.randomUUID().replace(/-/g, '')}`;
       const localId = crypto.randomUUID();
       await env.DIGITAL_SEVA_DB.prepare(
         `INSERT INTO digital_seva_refunds (id, order_id, refund_id, amount, currency, status, refund_note, created_by)
