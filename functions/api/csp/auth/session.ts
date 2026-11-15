@@ -15,12 +15,14 @@ export async function onRequestGet({ request, env }: { request: Request; env: Cs
     : subscription?.plan_code === 'advanced'
       ? ['advanced-passport-photo-studio', 'pdf-to-pvc-card-auto-cropper', 'id-card-front-back-print-layout-maker', 'instant-multi-customer-photo-maker']
       : subscription?.plan_code === 'basic' ? ['advanced-passport-photo-studio'] : [];
+  const settings = await env.DB.prepare('SELECT tool_id FROM csp_tool_settings WHERE enabled = 1').all();
+  const enabledToolIds = new Set((settings.results || []).map((row: { tool_id: string }) => row.tool_id));
   return json({
     success: true,
     authenticated: true,
     customer: { id: customer.id, email: customer.email },
     subscription: subscription || null,
-    allowedTools: [...freeTools, ...paidTools]
+    allowedTools: [...freeTools, ...paidTools].filter(toolId => enabledToolIds.has(toolId))
   });
 }
 
