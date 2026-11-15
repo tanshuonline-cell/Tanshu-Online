@@ -31,3 +31,10 @@ CREATE TABLE IF NOT EXISTS digital_seva_government_deposit_evidence (
 );
 CREATE INDEX IF NOT EXISTS idx_digital_seva_deposit_evidence_booking
 ON digital_seva_government_deposit_evidence(booking_id, created_at DESC);
+
+-- Previous manual reference-only entries are not evidence-backed; require operators to attach proof again.
+UPDATE digital_seva_bookings
+SET government_payment_status = 'UNVERIFIED',
+    government_payment_reference = NULL,
+    government_paid_at = NULL
+WHERE government_payment_status = 'PAID';
