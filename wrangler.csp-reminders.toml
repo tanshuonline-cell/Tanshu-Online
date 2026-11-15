@@ -8,6 +8,7 @@ crons = ["30 4 * * *"] # 10:00 AM India Standard Time daily
 
 [vars]
 CSP_SENDER_NAME = "TANSHU ONLINE"
+CSP_SENDER_EMAIL = "REPLACE_WITH_BREVO_VERIFIED_SENDER_EMAIL"
 
 [[d1_databases]]
 binding = "DB"
