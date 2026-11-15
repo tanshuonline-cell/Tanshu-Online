@@ -6,7 +6,6 @@ import {
   LayoutGrid, Plus, Printer, RotateCw, Settings2, SlidersHorizontal,
   Sparkles, Trash2, Upload, Users, UserRound, X, WandSparkles, PenTool, Undo2, Redo2, Maximize2, Minimize2, Merge
 } from 'lucide-react';
-import { useCspExportGate } from '../auth/CspToolAccess';
 
 type CropBox = { x: number; y: number; w: number; h: number };
 type CropHistoryState = { cropBox: CropBox|null; selectedId: string; customers: Array<{id:string;workingUrl:string;signatureMerged:boolean;signatureBaseUrl?:string}> };
@@ -170,7 +169,6 @@ const removeSignaturePaperFast = async (src: string) => {
 };
 
 export const InstantMultiCustomerPhotoMaker: React.FC = () => {
-  const requestExport = useCspExportGate();
   const [customers, setCustomers] = useState<CustomerPhoto[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [activeStep, setActiveStep] = useState('upload');
@@ -401,7 +399,6 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
   const endSheetItemDrag=()=>{sheetDragRef.current=null;setPrintPages([]);};
 
   const exportInteractiveSheet=async(options?:{format?:'pdf'|'jpg'|'png'|'print';dpi?:number;quality?:'compact'|'medium'|'high'|'maximum'})=>{
-    if (!(await requestExport())) return;
     const format=options?.format||'pdf',dpi=Math.max(72,Math.min(600,options?.dpi||300)),quality=options?.quality||'high';
     if(!customers.length){setNotice('Upload at least one customer photo first.');return;}
     if(paperSize!=='single'&&!sheetItems.length){arrangeSheetItems(customers);setNotice('Smart Arrange prepared the sheet. Review it, then export again.');return;}
@@ -440,8 +437,8 @@ export const InstantMultiCustomerPhotoMaker: React.FC = () => {
       setExportModalOpen(false);
     }catch(error){setNotice(error instanceof Error?'Export failed: '+error.message:'Could not export the print job.');}finally{setBusy(false);}
   };
-  const exportPrintPages=async(ids?:string[])=>{if (!(await requestExport())) return;const chosen=ids?.length?printPages.filter(p=>ids.includes(p.id)):printPages;if(!chosen.length){setNotice('Create a print sheet or select pages first.');return;}const defaultW=paperSize==='custom'?customPaperWidth:paperMm.w,defaultH=paperSize==='custom'?customPaperHeight:paperMm.h;const firstW=chosen[0].widthMm||defaultW,firstH=chosen[0].heightMm||defaultH;const pdf=new jsPDF({orientation:firstW>firstH?'landscape':'portrait',unit:'mm',format:[firstW,firstH],compress:true});chosen.forEach((p,i)=>{const w=p.widthMm||defaultW,h=p.heightMm||defaultH;if(i>0)pdf.addPage([w,h],w>h?'landscape':'portrait');pdf.addImage(p.dataUrl,'JPEG',0,0,w,h,undefined,'FAST');});pdf.save('tanshu-multi-customer-print-sheets.pdf');setNotice(chosen.length+' page(s) exported. Print at Actual Size / 100%.');};
-  const buildPrintSheet=async()=>{if (!(await requestExport())) return;if(!customers.length)return;setBusy(true);setNotice('Arranging customer photos on print sheets…');try{
+  const exportPrintPages=(ids?:string[])=>{const chosen=ids?.length?printPages.filter(p=>ids.includes(p.id)):printPages;if(!chosen.length){setNotice('Create a print sheet or select pages first.');return;}const defaultW=paperSize==='custom'?customPaperWidth:paperMm.w,defaultH=paperSize==='custom'?customPaperHeight:paperMm.h;const firstW=chosen[0].widthMm||defaultW,firstH=chosen[0].heightMm||defaultH;const pdf=new jsPDF({orientation:firstW>firstH?'landscape':'portrait',unit:'mm',format:[firstW,firstH],compress:true});chosen.forEach((p,i)=>{const w=p.widthMm||defaultW,h=p.heightMm||defaultH;if(i>0)pdf.addPage([w,h],w>h?'landscape':'portrait');pdf.addImage(p.dataUrl,'JPEG',0,0,w,h,undefined,'FAST');});pdf.save('tanshu-multi-customer-print-sheets.pdf');setNotice(chosen.length+' page(s) exported. Print at Actual Size / 100%.');};
+  const buildPrintSheet=async()=>{if(!customers.length)return;setBusy(true);setNotice('Arranging customer photos on print sheets…');try{
     if(paperSize==='single'){const singlePages:PrintPagePreview[]=[];for(const c of customers){const img=await loadImage(c.workingUrl);let source:CanvasImageSource=img;if(c.bgRemoved&&backgroundColor!=='transparent'){const bg=document.createElement('canvas');bg.width=img.naturalWidth;bg.height=img.naturalHeight;const bc=bg.getContext('2d');if(bc){bc.fillStyle=backgroundColor;bc.fillRect(0,0,bg.width,bg.height);bc.drawImage(img,0,0);source=bg;}}let sig:HTMLImageElement|null=null;if(c.includeSignature&&!c.signatureMerged&&c.signatureUrl){try{sig=await loadImage(c.signatureUrl);}catch{sig=null;}}const mm=mmFor(c),w=Math.round(mm.w/25.4*300),h=Math.round(mm.h/25.4*300);for(let n=0;n<c.quantity;n++){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');if(!cx)continue;cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(source,0,0,w,h);if(sig){const sw=Math.min(w*.72,sig.naturalWidth),sh=sw*sig.naturalHeight/sig.naturalWidth,scale=Math.min(1,(h*.18*c.signatureScale/100)/Math.max(1,sh));cx.drawImage(sig,(w-sw*scale)/2,h-sh*scale-h*.025,sw*scale,sh*scale);}if(photoBorder){const lineWidth=Math.max(1,borderWidth/25.4*300);cx.strokeStyle='#9ca3af';cx.lineWidth=lineWidth;cx.strokeRect(lineWidth/2,lineWidth/2,Math.max(0,w-lineWidth),Math.max(0,h-lineWidth));}singlePages.push({id:'single-'+Date.now()+'-'+singlePages.length,dataUrl:cv.toDataURL('image/jpeg',.94),widthMm:mm.w,heightMm:mm.h});}}setPrintPages(singlePages);setSelectedPrintPages(singlePages.map(p=>p.id));if(singlePages.length){const first=singlePages[0],pdf=new jsPDF({orientation:(first.widthMm||35)>(first.heightMm||45)?'landscape':'portrait',unit:'mm',format:[first.widthMm||35,first.heightMm||45],compress:true});singlePages.forEach((p,i)=>{const w=p.widthMm||35,h=p.heightMm||45;if(i>0)pdf.addPage([w,h],w>h?'landscape':'portrait');pdf.addImage(p.dataUrl,'JPEG',0,0,w,h,undefined,'FAST');});pdf.save('tanshu-single-customer-photos.pdf');}setNotice(singlePages.length+' individual photo page(s) created at each customer’s exact photo size.');return;}
     const width=paperSize==='custom'?customPaperWidth:paperMm.w,height=paperSize==='custom'?customPaperHeight:paperMm.h,pageW=Math.round(width/25.4*300),pageH=Math.round(height/25.4*300),margin=sheetMargin/25.4*300,gap=cutGap/25.4*300;
     const pages:HTMLCanvasElement[]=[];let page=document.createElement('canvas');let ctx:CanvasRenderingContext2D|null=null;
