@@ -64,3 +64,23 @@ CREATE TABLE IF NOT EXISTS csp_admin_audit (
   details_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS csp_plan_prices (
+  plan_code TEXT PRIMARY KEY CHECK (plan_code IN ('basic','advanced','premium')),
+  amount_inr INTEGER NOT NULL CHECK (amount_inr >= 0),
+  is_active INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+INSERT OR IGNORE INTO csp_plan_prices (plan_code, amount_inr) VALUES
+  ('basic', 99), ('advanced', 199), ('premium', 299);
+
+CREATE TABLE IF NOT EXISTS csp_reminder_log (
+  id TEXT PRIMARY KEY,
+  subscription_id TEXT NOT NULL,
+  customer_id TEXT NOT NULL,
+  reminder_days INTEGER NOT NULL CHECK (reminder_days IN (7,3,1)),
+  sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(subscription_id, reminder_days),
+  FOREIGN KEY (subscription_id) REFERENCES csp_subscriptions(id),
+  FOREIGN KEY (customer_id) REFERENCES csp_customers(id)
+);
