@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import {
   ArrowLeft, Upload, Download, Printer, RefreshCw, ImagePlus, ShieldCheck,
   Sparkles, CheckCircle2, Zap, SlidersHorizontal, FileDown, Trash2
@@ -333,6 +334,7 @@ async function renderImage(asset: Asset, settings: Settings) {
 }
 
 export const PhotoSignatureResizerTool: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const requestExport = useCspExportGate();
   const [language, setLanguage] = useState<'hi' | 'en'>('hi');
   const [assets, setAssets] = useState<Record<Slot, Asset | null>>({ photo: null, signature: null });
   const assetsRef = useRef(assets);
@@ -699,7 +701,8 @@ export const PhotoSignatureResizerTool: React.FC<{ onBack: () => void }> = ({ on
     }
   };
 
-  const downloadSlot = (slot: Slot) => {
+  const downloadSlot = async (slot: Slot) => {
+    if (!(await requestExport())) return;
     const asset = assets[slot];
     if (!asset?.outputUrl) return;
     const outputType = asset.outputBlob?.type || 'image/jpeg';
@@ -713,6 +716,7 @@ export const PhotoSignatureResizerTool: React.FC<{ onBack: () => void }> = ({ on
   };
 
   const downloadBoth = async () => {
+    if (!(await requestExport())) return;
     const ready = (['photo', 'signature'] as Slot[]).filter((slot) => assets[slot]?.outputBlob);
     if (!ready.length) {
       setStatus(copy.noOutput);
@@ -739,7 +743,8 @@ export const PhotoSignatureResizerTool: React.FC<{ onBack: () => void }> = ({ on
     }
   };
 
-  const printPreview = () => {
+  const printPreview = async () => {
+    if (!(await requestExport())) return;
     const ready = (['photo', 'signature'] as Slot[]).filter((slot) => assets[slot]?.outputUrl);
     if (!ready.length) {
       setStatus(copy.noOutput);
