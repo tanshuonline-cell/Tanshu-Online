@@ -369,10 +369,19 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
       if (unresolved) return json({ success: false, error: 'A previous refund is pending or has an unknown gateway result. Reconcile it in Cashfree before creating another refund.' }, 409);
       const refundId = `DSR${crypto.randomUUID().replace(/-/g, '')}`;
       const localId = crypto.randomUUID();
-      await env.DIGITAL_SEVA_DB.prepare(
-        `INSERT INTO digital_seva_refunds (id, order_id, refund_id, amount, currency, status, refund_note, created_by)
-         VALUES (?, ?, ?, ?, 'INR', 'PENDING', ?, ?)`
-      ).bind(localId, orderId, refundId, amount, note, actor).run();
+      try {
+        await env.DIGITAL_SEVA_DB.prepare(
+          `INSERT INTO digital_seva_refunds (id, order_id, refund_id, amount, currency, status, refund_note, created_by)
+           VALUES (?, ?, ?, ?, 'INR', 'PENDING', ?, ?)`
+        ).bind(localId, orderId, refundId, amount, note, actor).run();
+      } catch (reservationError) {
+        // A partial unique index reserves one unresolved refund per order atomically.
+        const activeRefund = await env.DIGITAL_SEVA_DB.prepare(
+          `SELECT id FROM digital_seva_refunds WHERE order_id = ? AND status IN ('PENDING','UNKNOWN') LIMIT 1`
+        ).bind(orderId).first();
+        if (activeRefund) return json({ success: false, error: 'A previous refund is pending or has an unknown gateway result. Reconcile it in Cashfree before creating another refund.' }, 409);
+        throw reservationError;
+      }
       let gatewayResponse: Response;
       try {
         gatewayResponse = await fetch(`${cashfreeApiBase(env)}/orders/${encodeURIComponent(orderId)}/refunds`, {
