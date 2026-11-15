@@ -72,7 +72,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem('tanshu-ds-pending-checkout-v1');
+      const saved = window.localStorage.getItem('tanshu-ds-pending-checkout-v1') || window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
       if (!saved) return;
       const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; termsPolicyVersion?: string; refundPolicyVersion?: string };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
