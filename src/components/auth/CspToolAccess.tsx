@@ -55,6 +55,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [notice, setNotice] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('basic');
   const [requestBusy, setRequestBusy] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState(defaultPaidPlans);
   const [toolEnabled, setToolEnabled] = useState(true);
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
   const isFreeTool = freeTools.includes(toolId);
@@ -67,6 +68,12 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     fetch('/api/csp/tools').then(r => r.json()).then(data => {
       const item = data?.tools?.find((tool: any) => tool.tool_id === toolId);
       if (item) setToolEnabled(Number(item.enabled) === 1);
+    }).catch(() => {});
+    fetch('/api/csp/plans').then(r => r.json()).then(data => {
+      if (data?.success && Array.isArray(data.plans)) setAvailablePlans(current => current.map(plan => {
+        const match = data.plans.find((item: any) => item.plan_code === plan.code);
+        return match ? { ...plan, price: Number(match.amount_inr), active: true } : { ...plan, active: false };
+      }));
     }).catch(() => {});
   }, [toolId]);
   const allowed = Boolean(session?.authenticated && session.allowedTools?.includes(toolId));
@@ -107,7 +114,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     {authOpen && <CspGmailOtpModal onClose={() => setAuthOpen(false)} onVerified={async () => { setAuthOpen(false); await refresh(); if (!isFreeTool) setPlansOpen(true); }} />}
     {plansOpen && <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-slate-950/75 p-4"><section role="dialog" aria-modal="true" className="my-auto w-full max-w-4xl rounded-3xl bg-white p-5 shadow-2xl sm:p-8">
       <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-rose-800">TANSHU ONLINE · PREMIUM PRINT</p><h2 className="mt-2 text-2xl font-black text-slate-950">{isHindi ? 'अपना Premium प्लान चुनें' : 'Choose your Premium plan'}</h2><p className="mt-2 text-sm text-slate-600">{isHindi ? 'आपका काम और प्रीव्यू सुरक्षित है। Premium डाउनलोड के लिए प्लान चुनें।' : 'Your work and preview remain available. Choose a plan to unlock premium downloads.'}</p></div><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-200 px-3 py-2">✕</button></div>
-      <div className="mt-5 grid gap-3 md:grid-cols-3">{defaultPaidPlans.map(plan => <button type="button" key={plan.code} onClick={() => setSelectedPlan(plan.code)} className={`rounded-2xl border-2 p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${planStyle[plan.code]} ${selectedPlan === plan.code ? 'ring-4 ring-offset-2 ring-slate-300 -translate-y-1 shadow-xl' : ''}`}><span className="text-xs font-black tracking-widest">{plan.name}</span><span className="mt-2 block text-2xl font-black">₹{plan.price}<small className="text-xs"> / month</small></span><span className="mt-2 block text-xs font-semibold">{plan.tools}</span></button>)}</div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">{availablePlans.filter(plan => plan.active).map(plan => <button type="button" key={plan.code} onClick={() => setSelectedPlan(plan.code)} className={`rounded-2xl border-2 p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${planStyle[plan.code]} ${selectedPlan === plan.code ? 'ring-4 ring-offset-2 ring-slate-300 -translate-y-1 shadow-xl' : ''}`}><span className="text-xs font-black tracking-widest">{plan.name}</span><span className="mt-2 block text-2xl font-black">₹{plan.price}<small className="text-xs"> / month</small></span><span className="mt-2 block text-xs font-semibold">{plan.tools}</span></button>)}</div>
       <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>{isHindi ? 'भुगतान का तरीका:' : 'Payment method:'}</strong> {isHindi ? 'सदस्यता मैन्युअल भुगतान सत्यापन के बाद सक्रिय होगी। कोई ऑटो-डेबिट नहीं है। भुगतान विवरण Admin से प्राप्त करें।' : 'Membership activates only after manual payment verification. No auto-debit. Obtain payment instructions from the site administrator.'}</div>
       <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold">{isHindi ? 'बाद में' : 'Not now'}</button><button type="button" disabled={requestBusy} onClick={() => void submitMembershipRequest()} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{requestBusy ? (isHindi ? 'भेज रहे हैं…' : 'Sending…') : (isHindi ? 'प्लान रिक्वेस्ट भेजें' : 'Request this plan')}</button></div>
     </section></div>}
