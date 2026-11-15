@@ -12,7 +12,7 @@ type RequesterType = 'DIRECT_CUSTOMER' | 'CYBER_CAFE' | 'CSC_CENTER' | 'INDEPEND
 type ApplicationFor = 'SELF' | 'CUSTOMER';
 interface Contact { name: string; phone: string; email: string; }
 export interface DigitalSevaReceiptData { paymentMode: 'AUTO_PAY' | 'SHARE_LINK'; paymentOrderId?: string; customerName: string; customerPhone: string; customerEmail: string; fieldValues: Record<string, string>; serviceOptions: Record<string, string>; corrections: string[]; selectedDocuments: string[]; otherDocumentName: string; taskDetails: string; submittedAt: string; termsAccepted: boolean; termsAcceptedAt: string | null; termsPolicyVersion: string; refundAccepted: boolean; refundAcceptedAt: string | null; refundPolicyVersion: string; }
-interface Props { service: SevaService; language: 'en' | 'hi'; prepaidPayment?: PrepaidDigitalSevaPayment | null; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
+interface Props { service: SevaService; language: 'en' | 'hi'; prepaidPayment?: PrepaidDigitalSevaPayment | null; recoveredDraft?: Record<string, unknown> | null; onSubmitted: (reference: string, receipt: DigitalSevaReceiptData) => void; }
 const emptyContact = (): Contact => ({ name: '', phone: '', email: '' });
 const phoneValid = (v: string) => /^\d{10}$/.test(v.replace(/\D/g, ''));
 const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -42,7 +42,7 @@ async function loadCashfreeSdk(): Promise<void> {
 const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
 
 
-export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, onSubmitted }: Props) {
+export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, recoveredDraft, onSubmitted }: Props) {
   const hi = language === 'hi';
   const [step, setStep] = useState(0);
   const [requesterType, setRequesterType] = useState<RequesterType | ''>('');
@@ -79,6 +79,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const formRef = useRef<HTMLFormElement>(null);
   const manuallyEditedHindiFieldsRef = useRef<Set<string>>(new Set());
   const autoResumeAttemptedRef = useRef(false);
+  const remoteDraftQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
 
   useEffect(() => {
@@ -88,8 +89,9 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     setDraftRestored(false);
     loadDigitalSevaDraft(service.id).then((saved) => {
       if (!active) return;
-      if (saved?.data) {
-        const d = saved.data as any;
+      const restoredData = recoveredDraft || saved?.data || null;
+      if (restoredData) {
+        const d = restoredData as any;
         setStep(Number.isInteger(d.step) ? d.step : 0);
         setRequesterType(d.requesterType || '');
         setApplicationFor(d.applicationFor || 'SELF');
@@ -119,7 +121,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         setPendingCashfreeMode(d.pendingCashfreeMode === 'production' ? 'production' : 'sandbox');
         setDraftRestored(true);
       }
-      if (prepaidPayment) {
+      if (prepaidPayment && !restoredData) {
         setApplicant({ name: prepaidPayment.customerName, phone: prepaidPayment.customerPhone, email: prepaidPayment.customerEmail });
         setBookingConsent(true);
         const currentPolicyVersions = prepaidPayment.termsPolicyVersion === TERMS_POLICY_VERSION && prepaidPayment.refundPolicyVersion === REFUND_POLICY_VERSION;
@@ -137,7 +139,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (active) setDraftReady(true);
     });
     return () => { active = false; };
-  }, [service.id, prepaidPayment?.orderId]);
+  }, [service.id, prepaidPayment?.orderId, recoveredDraft]);
 
   useEffect(() => {
     if (!draftReady || completedRef.current) return;
@@ -169,6 +171,39 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       void saveDigitalSevaDraft(service.id, draftStateRef.current).catch(() => {});
     }
   }, [service.id]);
+
+  // Keep a server-side encrypted copy of paid, incomplete requests so they can
+  // be recovered on another browser/device. Uploaded File objects remain in
+  // this browser's IndexedDB and may need to be selected again on another device.
+  useEffect(() => {
+    if (!draftReady || completedRef.current || !pendingCheckoutOrderId ||
+        !applicant.name.trim() || !phoneValid(applicant.phone) || !emailValid(applicant.email)) return;
+    const timer = window.setTimeout(() => {
+      const snapshot = {
+        serviceId: service.id, step, requesterType, applicationFor, operator, centerName, centerAddress,
+        agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName,
+        taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt,
+        refundAccepted, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
+        refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId
+      };
+      remoteDraftQueueRef.current = remoteDraftQueueRef.current.catch(() => undefined).then(() =>
+        fetch('/api/digital-seva/request-draft', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', orderId: pendingCheckoutOrderId, draft: snapshot })
+        })
+      ).then(async (response: any) => {
+        if (!response?.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.error || 'Could not sync the recovery draft.');
+        }
+      }).catch((cause) => {
+        // Local IndexedDB autosave remains available if remote sync is offline.
+        console.warn('Digital Seva remote draft sync deferred:', cause);
+      });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [service.id, draftReady, pendingCheckoutOrderId, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt]);
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
   const documents = useMemo(() => getServiceDocumentOptions(service.id, corrections)
