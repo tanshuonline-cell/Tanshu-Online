@@ -51,7 +51,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Preview D1 is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Digital Seva database is not connected.' }, 503);
   const declaredLength = Number(request.headers.get('Content-Length') || 0);
   if (declaredLength > 6 * 1024 * 1024) return json({ success: false, error: 'Receipt upload is too large (maximum 5 MB).' }, 413);
   let form: FormData;
@@ -105,7 +105,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ success: true, bookingId, evidenceId: id, governmentPaymentStatus: 'PAID', sha256: digest });
   } catch (error) {
     console.error('Government deposit evidence upload failed:', error);
-    return json({ success: false, error: 'Could not securely store the government receipt. Confirm Preview migration 0013 and private storage configuration.' }, 503);
+    return json({ success: false, error: 'Could not securely store the government receipt. Confirm Production migration 0002 and private storage configuration.' }, 503);
   }
 }
 
@@ -113,7 +113,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!validOrigin(request)) return json({ success: false, error: 'Request origin was not accepted.' }, 403);
   const actor = await adminUser(request, env);
   if (!actor) return json({ success: false, error: 'Admin login required.' }, 401);
-  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Preview D1 is not connected.' }, 503);
+  if (!env.DIGITAL_SEVA_DB) return json({ success: false, error: 'Digital Seva database is not connected.' }, 503);
   const bookingId = new URL(request.url).searchParams.get('bookingId') || '';
   if (!bookingId || bookingId.length > 64) return json({ success: false, error: 'Invalid booking.' }, 400);
   try {
