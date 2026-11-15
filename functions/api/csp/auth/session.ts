@@ -9,6 +9,9 @@ export async function onRequestGet({ request, env }: { request: Request; env: Cs
   const subscription = await env.DB.prepare(
     "SELECT plan_code, amount_inr, starts_at, expires_at FROM csp_subscriptions WHERE customer_id = ? AND status = 'active' AND datetime(starts_at) <= CURRENT_TIMESTAMP AND datetime(expires_at) > CURRENT_TIMESTAMP ORDER BY CASE plan_code WHEN 'premium' THEN 3 WHEN 'advanced' THEN 2 ELSE 1 END DESC, expires_at DESC LIMIT 1"
   ).bind(customer.id).first();
+  const latestPayment = await env.DB.prepare(
+    'SELECT amount_inr, status, notes, reference, created_at FROM csp_payments WHERE customer_id = ? ORDER BY created_at DESC LIMIT 1'
+  ).bind(customer.id).first();
   const freeTools = ['photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'];
   const paidTools = subscription?.plan_code === 'premium'
     ? ['advanced-passport-photo-studio', 'pdf-to-pvc-card-auto-cropper', 'id-card-front-back-print-layout-maker', 'instant-multi-customer-photo-maker', 'whatsapp-selfie-to-passport-photo']
@@ -21,7 +24,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: Cs
     success: true,
     authenticated: true,
     customer: { id: customer.id, email: customer.email },
-    subscription: subscription || null,
+    subscription: subscription || null,\n    latestPayment: latestPayment || null,
     allowedTools: [...freeTools, ...paidTools].filter(toolId => enabledToolIds.has(toolId))
   });
 }
