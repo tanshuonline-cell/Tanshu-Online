@@ -649,10 +649,11 @@ export default function App() {
 
       {/* Universal Interactive Tool Workspace Modal */}
       {activeTool && (
-        <UniversalToolModal
-          tool={activeTool}
-          onClose={handleCloseTool}
-        />
+        ['advanced-passport-photo-studio','pdf-to-pvc-card-auto-cropper','govt-id-card-print','id-card-front-back-print-layout-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(activeTool.id)
+          ? <CspToolAccess toolId={activeTool.id === 'govt-id-card-print' || activeTool.id === 'id-card-front-back-print-layout-maker' ? 'pdf-to-pvc-card-auto-cropper' : activeTool.id}>
+              <UniversalToolModal tool={activeTool} onClose={handleCloseTool} />
+            </CspToolAccess>
+          : <UniversalToolModal tool={activeTool} onClose={handleCloseTool} />
       )}
 
       {/* Customer Access / Login Modal */}
