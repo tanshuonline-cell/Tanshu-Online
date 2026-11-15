@@ -39,6 +39,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
   const [cspCustomers, setCspCustomers] = useState<any[]>([]);
   const [cspPayments, setCspPayments] = useState<any[]>([]);
+  const [cspPlans, setCspPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -123,6 +124,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load CSP customers.');
       setCspCustomers(Array.isArray(data.customers) ? data.customers : []);
       setCspPayments(Array.isArray(data.payments) ? data.payments : []);
+      setCspPlans(Array.isArray(data.plans) ? data.plans : []);
     } catch (error) {
       showNotification('error', error instanceof Error ? error.message : 'Unable to load CSP customers.');
     }
@@ -143,6 +145,16 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     } catch (error) {
       showNotification('error', error instanceof Error ? error.message : 'Update failed.');
     }
+  };
+
+  const saveCspPlanPrice = async (plan: any) => {
+    try {
+      const response = await fetch('/api/admin/csp-plans', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: plan.plan_code, amountInr: Number(plan.amount_inr), isActive: Boolean(plan.is_active) }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not save plan price.');
+      showNotification('success', data.message || 'Plan price saved.');
+      await fetchCspCustomers();
+    } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not save plan price.'); }
   };
 
   const handleOpenAddVideo = () => {
@@ -1244,6 +1256,17 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
               <div><h2 className="text-xl font-extrabold text-white">CSP &amp; Travel Cafe Customers</h2><p className="mt-1 text-xs text-slate-400">Gmail-verified accounts, manual memberships and expiry controls.</p></div>
               <button onClick={fetchCspCustomers} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white">Refresh</button>
             </div>
+            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <h3 className="mb-3 text-sm font-extrabold text-white">Membership Pricing Controls</h3>
+              <div className="grid gap-3 md:grid-cols-3">
+                {cspPlans.map(plan => <div key={plan.plan_code} className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+                  <div className="mb-2 text-xs font-black uppercase text-slate-300">{plan.plan_code}</div>
+                  <label className="block text-[10px] text-slate-400">Monthly price (INR)<input type="number" min="0" max="100000" value={plan.amount_inr} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, amount_inr: event.target.value } : item))} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
+                  <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" checked={Boolean(plan.is_active)} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, is_active: event.target.checked ? 1 : 0 } : item))} /> Active</label>
+                  <button onClick={() => saveCspPlanPrice(plan)} className="mt-3 rounded-lg bg-rose-800 px-3 py-2 text-[10px] font-bold text-white">Save price</button>
+                </div>)}
+              </div>
+            </section>
             <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
               <table className="w-full min-w-[850px] text-left text-xs">
                 <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Account</th><th className="p-3">Plan</th><th className="p-3">Expiry</th><th className="p-3">Manage</th></tr></thead>
