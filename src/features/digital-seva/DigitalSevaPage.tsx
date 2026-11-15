@@ -110,8 +110,9 @@ export default function DigitalSevaPage() {
   }, []);
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem('tanshu-ds-paid-checkout-v1');
+      const saved = window.localStorage.getItem('tanshu-ds-paid-checkout-v1') || window.sessionStorage.getItem('tanshu-ds-paid-checkout-v1');
       if (!saved) return;
+      window.localStorage.setItem('tanshu-ds-paid-checkout-v1', saved);
       const parsed = JSON.parse(saved) as { serviceId?: string; payment?: PrepaidDigitalSevaPayment };
       const service = SEVA_SERVICES.find((item) => item.id === parsed.serviceId);
       if (service && parsed.payment?.orderId) {
