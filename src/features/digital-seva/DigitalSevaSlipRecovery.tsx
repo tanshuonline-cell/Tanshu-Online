@@ -116,7 +116,7 @@ export default function DigitalSevaSlipRecovery({ language, onClose, onResumeDra
         <label>{hi ? 'आवेदक का मोबाइल नंबर' : 'Applicant mobile number'}<input inputMode="numeric" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={14} required /></label>
         <label>{hi ? 'आवेदक का पूरा नाम' : 'Applicant full name'}<input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} required /></label>
         <label>{hi ? 'आवेदन में दिया गया ईमेल' : 'Email used in the application'}<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} required /></label>
-        <button className="ds-modal-book" type="submit" disabled={loading}>{loading ? (hi ? 'जाँच हो रही है…' : 'Searching…') : (hi ? 'मेरी स्लिप खोजें' : 'Find my slips')}</button>
+        <button className="ds-modal-book" type="submit" disabled={loading}>{loading ? (hi ? 'जाँच हो रही है…' : 'Searching…') : (hi ? 'मेरे अनुरोध खोजें' : 'Find my requests')}</button>
       </form>
       {error && <p className="ds-booking-error" role="alert">{error}</p>}
       {drafts.length > 0 && <div className="ds-tracking-result">
