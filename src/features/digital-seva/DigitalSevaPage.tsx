@@ -67,7 +67,8 @@ export default function DigitalSevaPage() {
   const [payNowInitialServiceId, setPayNowInitialServiceId] = useState<string | undefined>(undefined);
   const [paidCheckout, setPaidCheckout] = useState<PrepaidDigitalSevaPayment | null>(null);
   const [bookingReference, setBookingReference] = useState('');
-  const [bookingReceipt, setBookingReceipt] = useState<DigitalSevaReceiptData | null>(null);\n  const [recoveredDraft, setRecoveredDraft] = useState<Record<string, unknown> | null>(null);
+  const [bookingReceipt, setBookingReceipt] = useState<DigitalSevaReceiptData | null>(null);
+  const [recoveredDraft, setRecoveredDraft] = useState<Record<string, unknown> | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetch('https://india-lgd-index-api.vercel.app/v1/states')
