@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS csp_subscriptions (
   id TEXT PRIMARY KEY,
   customer_id TEXT NOT NULL,
   plan_code TEXT NOT NULL CHECK (plan_code IN ('basic','advanced','premium')),
-  amount_inr INTEGER NOT NULL CHECK (amount_inr IN (99,199,299)),
+  amount_inr INTEGER NOT NULL CHECK (amount_inr >= 0),
   starts_at TEXT NOT NULL,
   expires_at TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','suspended','cancelled')),
