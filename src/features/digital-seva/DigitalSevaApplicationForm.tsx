@@ -180,17 +180,19 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   useEffect(() => {
     if (!draftReady || completedRef.current || !pendingCheckoutOrderId ||
         !applicant.name.trim() || !phoneValid(applicant.phone) || !emailValid(applicant.email)) return;
-    const timer = window.setTimeout(() => {
+    const persistRemote = (keepalive = false) => {
+      if (completedRef.current) return;
       const snapshot = {
         serviceId: service.id, step, requesterType, applicationFor, operator, centerName, centerAddress,
         agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName,
         taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt,
         refundAccepted, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
-        refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId, paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\D/g, '')
+        refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId,
+        paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\D/g, '')
       };
       remoteDraftQueueRef.current = remoteDraftQueueRef.current.catch(() => undefined).then(() =>
         fetch('/api/digital-seva/request-draft', {
-          method: 'POST', credentials: 'same-origin',
+          method: 'POST', credentials: 'same-origin', keepalive,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'save', orderId: pendingCheckoutOrderId, draft: snapshot })
         })
@@ -203,8 +205,17 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         // Local IndexedDB autosave remains available if remote sync is offline.
         console.warn('Digital Seva remote draft sync deferred:', cause);
       });
-    }, 1200);
-    return () => window.clearTimeout(timer);
+    };
+    const timer = window.setTimeout(() => persistRemote(), 1200);
+    const onPageHide = () => persistRemote(true);
+    const onVisibilityChange = () => { if (document.visibilityState === 'hidden') persistRemote(true); };
+    window.addEventListener('pagehide', onPageHide);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [service.id, draftReady, pendingCheckoutOrderId, step, requesterType, applicationFor, operator, centerName, centerAddress, agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName, taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt, refundAccepted, refundAcceptedAt, prepaidPayment?.customerPhone]);
 
   const correctionsForService = CORRECTION_OPTIONS[service.id] || [];
