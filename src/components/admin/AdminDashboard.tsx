@@ -38,6 +38,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const [videos, setVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
   const [cspCustomers, setCspCustomers] = useState<any[]>([]);
+  const [cspPayments, setCspPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -121,6 +122,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load CSP customers.');
       setCspCustomers(Array.isArray(data.customers) ? data.customers : []);
+      setCspPayments(Array.isArray(data.payments) ? data.payments : []);
     } catch (error) {
       showNotification('error', error instanceof Error ? error.message : 'Unable to load CSP customers.');
     }
@@ -1265,6 +1267,17 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
               </table>
             </div>
             <p className="text-[11px] leading-5 text-slate-500">Membership activation is manual and should only be used after payment is independently verified. Plans are activated for one month at a time; no auto-renewal is configured.</p>
+            <section className="space-y-3">
+              <h3 className="text-base font-extrabold text-white">CSP Payment History</h3>
+              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
+                <table className="w-full min-w-[700px] text-left text-xs">
+                  <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Amount</th><th className="p-3">Reference / UTR</th><th className="p-3">Status</th><th className="p-3">Verified By</th><th className="p-3">Date</th></tr></thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {cspPayments.length ? cspPayments.map(payment => <tr key={payment.id}><td className="p-3 text-slate-200">{payment.email}</td><td className="p-3 font-bold text-emerald-300">₹{payment.amount_inr}</td><td className="p-3 text-slate-300">{payment.reference || '—'}</td><td className="p-3 text-slate-300">{payment.status}</td><td className="p-3 text-slate-300">{payment.verified_by || '—'}</td><td className="p-3 text-slate-400">{payment.verified_at ? new Date(payment.verified_at).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</td></tr>) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">No CSP payments recorded yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
       </main>
