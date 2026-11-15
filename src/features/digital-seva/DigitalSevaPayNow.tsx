@@ -135,6 +135,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
     setBusy(true);
     try {
       let orderId = pendingOrderId;
+      let checkoutMode: 'sandbox' | 'production' = cashfreeMode;
       if (!orderId) {
         const idempotencyKey = window.crypto.randomUUID();
         const response = await fetch('/api/digital-seva/checkout', {
@@ -150,7 +151,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         if (!response.ok || !data.success || !data.orderId || !data.paymentSessionId) throw new Error(data.error || 'Could not prepare secure payment.');
         orderId = String(data.orderId);
         setPendingOrderId(orderId);
-        setCashfreeMode(data.cashfreeMode === 'production' ? 'production' : 'sandbox');
+        checkoutMode = data.cashfreeMode === 'production' ? 'production' : 'sandbox';
+        setCashfreeMode(checkoutMode);
         try { window.sessionStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
@@ -160,7 +162,9 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       });
       const session = await sessionResponse.json().catch(() => ({}));
       if (!sessionResponse.ok || !session.paymentSessionId) throw new Error(session.error || 'Could not restore the secure payment session. Please use payment recovery before retrying.');
-      const checkout = window.Cashfree!({ mode: cashfreeMode });
+      checkoutMode = session.cashfreeMode === 'production' ? 'production' : 'sandbox';
+      setCashfreeMode(checkoutMode);
+      const checkout = window.Cashfree!({ mode: checkoutMode });
       const result = await checkout.checkout({ paymentSessionId: String(session.paymentSessionId), redirectTarget: '_modal' });
       if (result?.error) {
         setError(result.error.message || (hi ? 'भुगतान पूरा नहीं हुआ। यदि राशि कट गई है तो दोबारा भुगतान न करें; भुगतान जाँचें।' : 'Payment was not completed. If money was deducted, do not pay again; check payment status.'));
