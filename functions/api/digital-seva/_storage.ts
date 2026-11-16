@@ -30,14 +30,23 @@ export interface StoredDocument {
 }
 
 function storageConfig(env: StorageEnv) {
-  const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
-  const key = String(env.SUPABASE_SECRET_KEY || '');
+  // Dashboard values are sometimes pasted with surrounding whitespace or
+  // quotes. Normalize those harmless formatting characters before URL parsing.
+  const configuredUrl = String(env.SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+  const base = configuredUrl.replace(/\/+$/, '');
+  const key = String(env.SUPABASE_SECRET_KEY || '').trim();
   if (!base || !key) throw new Error('Private document storage is not configured.');
-  const parsed = new URL(base);
-  if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
-    throw new Error('Private document storage URL is invalid.');
+
+  let parsed: URL;
+  try {
+    parsed = new URL(base);
+  } catch {
+    throw new Error('Private document storage URL is invalid. Set SUPABASE_URL to https://<project-ref>.supabase.co without quotes or a path.');
   }
-  return { base, key, bucket: bucketName(env) };
+  if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co') || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+    throw new Error('Private document storage URL is invalid. Set SUPABASE_URL to https://<project-ref>.supabase.co without quotes or a path.');
+  }
+  return { base: parsed.origin, key, bucket: bucketName(env) };
 }
 
 function objectUrl(base: string, bucket: string, objectKey: string) {
