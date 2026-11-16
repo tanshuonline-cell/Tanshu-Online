@@ -15,18 +15,31 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
     ).bind(email).first();
     if (!record) return json({ success: false, error: 'No active OTP found. Request a new code.' }, 400);
     if (new Date(record.expires_at).getTime() <= Date.now()) {
-      await env.DB.prepare('UPDATE csp_email_otps SET consumed_at = CURRENT_TIMESTAMP WHERE id = ?').bind(record.id).run();
+      await env.DB.prepare('UPDATE csp_email_otps SET consumed_at = CURRENT_TIMESTAMP WHERE id = ? AND consumed_at IS NULL').bind(record.id).run();
       return json({ success: false, error: 'OTP expired. Request a new code.' }, 400);
     }
     if (Number(record.attempts) >= 5) return json({ success: false, error: 'Too many incorrect attempts. Request a new OTP.' }, 429);
 
     const suppliedHash = await hmac(email + ':' + otp, env.CSP_OTP_SECRET);
     if (!safeEqual(String(record.otp_hash), suppliedHash)) {
-      await env.DB.prepare('UPDATE csp_email_otps SET attempts = attempts + 1 WHERE id = ?').bind(record.id).run();
+      const attempt = await env.DB.prepare(
+        'UPDATE csp_email_otps SET attempts = attempts + 1 WHERE id = ? AND consumed_at IS NULL AND attempts < 5'
+      ).bind(record.id).run();
+      if (Number(attempt?.meta?.changes || 0) !== 1) {
+        return json({ success: false, error: 'This OTP is no longer active. Request a new code.' }, 429);
+      }
       return json({ success: false, error: 'Incorrect OTP. Please check the code and try again.' }, 400);
     }
 
-    await env.DB.prepare('UPDATE csp_email_otps SET consumed_at = CURRENT_TIMESTAMP WHERE id = ?').bind(record.id).run();
+    // Atomically consume the OTP so simultaneous/replayed verification requests cannot
+    // both create a valid customer session from the same one-time code.
+    const consumed = await env.DB.prepare(
+      'UPDATE csp_email_otps SET consumed_at = CURRENT_TIMESTAMP WHERE id = ? AND consumed_at IS NULL AND attempts < 5 AND datetime(expires_at) > CURRENT_TIMESTAMP'
+    ).bind(record.id).run();
+    if (Number(consumed?.meta?.changes || 0) !== 1) {
+      return json({ success: false, error: 'This OTP was already used or has expired. Request a new code.' }, 400);
+    }
+
     const customerId = crypto.randomUUID();
     await env.DB.prepare(
       "INSERT INTO csp_customers (id, email, email_verified_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(email) DO UPDATE SET email_verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP"
