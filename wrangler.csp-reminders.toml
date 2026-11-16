@@ -1,0 +1,16 @@
+name = "tanshu-csp-membership-reminders"
+main = "workers/csp-membership-reminders.ts"
+compatibility_date = "2026-11-15"
+
+# Separate scheduled Worker so the existing Cloudflare Pages deployment is untouched.
+[triggers]
+crons = ["30 4 * * *"] # 10:00 AM India Standard Time daily
+
+[vars]
+CSP_SENDER_NAME = "TANSHU ONLINE"
+CSP_MAILER_URL = "REPLACE_WITH_GOOGLE_APPS_SCRIPT_WEB_APP_URL"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "REPLACE_WITH_EXISTING_CSP_D1_DATABASE_NAME"
+database_id = "REPLACE_WITH_EXISTING_CSP_D1_DATABASE_ID"

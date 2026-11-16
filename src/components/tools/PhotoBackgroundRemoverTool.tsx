@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import {
   Upload, Download, Image as ImageIcon, Crop, RotateCcw, RotateCw,
   Eraser, CheckCircle2, Loader2, X, Maximize2, Minimize2,
@@ -214,6 +215,7 @@ function addJpegDpi(blob: Blob, dpi: number): Promise<Blob> {
 }
 
 export const PhotoBackgroundRemoverTool: React.FC = () => {
+  const requestExport = useCspExportGate();
   const [file, setFile] = useState<File | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
@@ -419,6 +421,7 @@ export const PhotoBackgroundRemoverTool: React.FC = () => {
   };
 
   const exportPhoto = async () => {
+    if (!(await requestExport())) return;
     const exportBlob = cropApplied && croppedBlob ? croppedBlob : null;
     if (!resultBlob || !backgroundSaved || !exportBlob) return;
     setBusy(true);

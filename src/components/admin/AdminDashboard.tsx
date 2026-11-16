@@ -34,9 +34,13 @@ interface Props {
 }
 
 export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToSite }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'add' | 'purchases' | 'csp-customers'>('overview');
   const [videos, setVideos] = useState<VideoGuide[]>(LATEST_VIDEOS);
   const [purchases, setPurchases] = useState<CustomerPurchaseRecord[]>([]);
+  const [cspCustomers, setCspCustomers] = useState<any[]>([]);
+  const [cspPayments, setCspPayments] = useState<any[]>([]);
+  const [cspPlans, setCspPlans] = useState<any[]>([]);
+  const [cspTools, setCspTools] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -112,6 +116,59 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const fetchCspCustomers = async () => {
+    try {
+      const response = await fetch('/api/admin/csp-customers', { credentials: 'include', cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load CSP customers.');
+      setCspCustomers(Array.isArray(data.customers) ? data.customers : []);
+      setCspPayments(Array.isArray(data.payments) ? data.payments : []);
+      setCspPlans(Array.isArray(data.plans) ? data.plans : []);
+      const toolResponse = await fetch('/api/admin/csp-tools', { credentials: 'include', cache: 'no-store' });
+      const toolData = await toolResponse.json();
+      if (toolResponse.ok && toolData.success) setCspTools(Array.isArray(toolData.tools) ? toolData.tools : []);
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Unable to load CSP customers.');
+    }
+  };
+
+  const manageCspCustomer = async (customerId: string, action: string, planCode?: string) => {
+    if (action === 'activate' && !window.confirm('Confirm that the customer payment has been received and verified manually?')) return;
+    const reference = action === 'activate' ? (window.prompt('Enter payment reference / UTR (optional):') || '') : '';
+    try {
+      const response = await fetch('/api/admin/csp-customers', {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, action, planCode, months: 1, reference })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Update failed.');
+      showNotification('success', data.message || 'Customer updated.');
+      await fetchCspCustomers();
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Update failed.');
+    }
+  };
+
+  const saveCspPlanPrice = async (plan: any) => {
+    try {
+      const response = await fetch('/api/admin/csp-plans', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: plan.plan_code, amountInr: Number(plan.amount_inr), isActive: Boolean(plan.is_active) }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not save plan price.');
+      showNotification('success', data.message || 'Plan price saved.');
+      await fetchCspCustomers();
+    } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not save plan price.'); }
+  };
+
+  const saveCspToolEnabled = async (toolId: string, enabled: boolean) => {
+    try {
+      const response = await fetch('/api/admin/csp-tools', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ toolId, enabled }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not update tool.');
+      showNotification('success', data.message || 'Tool setting saved.');
+      await fetchCspCustomers();
+    } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not update tool.'); }
   };
 
   const handleOpenAddVideo = () => {
@@ -387,6 +444,13 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
             >
               <Users className="w-4 h-4" />
               <span>Customer Purchases</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('csp-customers'); void fetchCspCustomers(); }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${activeTab === 'csp-customers' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}
+            >
+              <Users className="w-4 h-4" />
+              <span>CSP &amp; Travel Cafe Members</span>
             </button>
           </nav>
         </div>
@@ -1197,6 +1261,69 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'csp-customers' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 className="text-xl font-extrabold text-white">CSP &amp; Travel Cafe Customers</h2><p className="mt-1 text-xs text-slate-400">Gmail-verified accounts, manual memberships and expiry controls.</p></div>
+              <button onClick={fetchCspCustomers} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white">Refresh</button>
+            </div>
+            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <h3 className="mb-3 text-sm font-extrabold text-white">Membership Pricing Controls</h3>
+              <div className="grid gap-3 md:grid-cols-3">
+                {cspPlans.map(plan => <div key={plan.plan_code} className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+                  <div className="mb-2 text-xs font-black uppercase text-slate-300">{plan.plan_code}</div>
+                  <label className="block text-[10px] text-slate-400">Monthly price (INR)<input type="number" min="0" max="100000" value={plan.amount_inr} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, amount_inr: event.target.value } : item))} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
+                  <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" checked={Boolean(plan.is_active)} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, is_active: event.target.checked ? 1 : 0 } : item))} /> Active</label>
+                  <button onClick={() => saveCspPlanPrice(plan)} className="mt-3 rounded-lg bg-rose-800 px-3 py-2 text-[10px] font-bold text-white">Save price</button>
+                </div>)}
+              </div>
+            </section>
+            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <h3 className="mb-3 text-sm font-extrabold text-white">Per-tool Availability</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {cspTools.map(tool => <label key={tool.tool_id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
+                  <span><span className="block text-xs font-bold text-slate-200">{tool.title}</span><span className="text-[10px] text-slate-500">{tool.access_type === 'paid' ? 'Paid membership' : 'Free Gmail signup'}</span></span>
+                  <input type="checkbox" checked={Number(tool.enabled) === 1} onChange={event => { const enabled = event.target.checked; setCspTools(current => current.map(item => item.tool_id === tool.tool_id ? { ...item, enabled: enabled ? 1 : 0 } : item)); void saveCspToolEnabled(tool.tool_id, enabled); }} />
+                </label>)}
+              </div>
+            </section>
+            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
+              <table className="w-full min-w-[850px] text-left text-xs">
+                <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Account</th><th className="p-3">Plan</th><th className="p-3">Expiry</th><th className="p-3">Manage</th></tr></thead>
+                <tbody className="divide-y divide-slate-800">
+                  {cspCustomers.length ? cspCustomers.map(customer => (
+                    <tr key={customer.id}>
+                      <td className="p-3 font-semibold text-white">{customer.email}</td>
+                      <td className="p-3 text-slate-300">{customer.status} · Verified</td>
+                      <td className="p-3 text-slate-300">{customer.plan_code ? customer.plan_code.toUpperCase() + ' · ₹' + customer.amount_inr : 'No active plan'}</td>
+                      <td className="p-3 text-slate-300">{customer.expires_at ? new Date(customer.expires_at).toLocaleDateString() : '—'}</td>
+                      <td className="p-3"><div className="flex flex-wrap gap-1.5">
+                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'basic')} className="rounded bg-blue-900 px-2 py-1 text-[10px] font-bold text-blue-100">BASIC ₹99</button>
+                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'advanced')} className="rounded bg-violet-900 px-2 py-1 text-[10px] font-bold text-violet-100">ADV ₹199</button>
+                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'premium')} className="rounded bg-amber-900 px-2 py-1 text-[10px] font-bold text-amber-100">PREM ₹299</button>
+                        {customer.status === 'active' ? <button onClick={() => manageCspCustomer(customer.id, 'suspend')} className="rounded bg-red-950 px-2 py-1 text-[10px] font-bold text-red-200">Suspend</button> : <button onClick={() => manageCspCustomer(customer.id, 'restore')} className="rounded bg-emerald-950 px-2 py-1 text-[10px] font-bold text-emerald-200">Restore</button>}
+                        <button onClick={() => manageCspCustomer(customer.id, 'expire')} className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-200">Expire</button>
+                      </div></td>
+                    </tr>
+                  )) : <tr><td colSpan={5} className="p-8 text-center text-slate-500">No Gmail-verified CSP customers yet, or the database migration is pending.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] leading-5 text-slate-500">Membership activation is manual and should only be used after payment is independently verified. Plans are activated for one month at a time; no auto-renewal is configured.</p>
+            <section className="space-y-3">
+              <h3 className="text-base font-extrabold text-white">CSP Payment History</h3>
+              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
+                <table className="w-full min-w-[700px] text-left text-xs">
+                  <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Amount</th><th className="p-3">Reference / UTR</th><th className="p-3">Status</th><th className="p-3">Verified By</th><th className="p-3">Date</th></tr></thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {cspPayments.length ? cspPayments.map(payment => <tr key={payment.id}><td className="p-3 text-slate-200">{payment.email}</td><td className="p-3 font-bold text-emerald-300">₹{payment.amount_inr}</td><td className="p-3 text-slate-300">{payment.reference || '—'}</td><td className="p-3 text-slate-300">{payment.status}</td><td className="p-3 text-slate-300">{payment.verified_by || '—'}</td><td className="p-3 text-slate-400">{payment.verified_at ? new Date(payment.verified_at).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</td></tr>) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">No CSP payments recorded yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
       </main>
