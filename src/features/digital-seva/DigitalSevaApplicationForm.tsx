@@ -464,11 +464,18 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       await deleteDigitalSevaDraft(service.id);
       onSubmitted(String(data.bookingReference), { paymentMode, paymentOrderId: pendingCheckoutOrderId, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), customerEmail: applicant.email.trim(), fieldValues: { ...fieldValues }, serviceOptions: { ...serviceOptions }, corrections: [...corrections], selectedDocuments: [...selectedDocuments], otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(), submittedAt: new Date().toISOString(), termsAccepted, termsAcceptedAt: termsAccepted ? (termsAcceptedAt || new Date().toISOString()) : null, termsPolicyVersion: TERMS_POLICY_VERSION, refundAccepted, refundAcceptedAt: refundAccepted ? (refundAcceptedAt || new Date().toISOString()) : null, refundPolicyVersion: REFUND_POLICY_VERSION });
     } catch (e: any) {
-      setError(paymentMayHaveCompleted
-        ? (hi
-          ? 'आपका भुगतान पहले से सत्यापित है, लेकिन आवेदन सेव नहीं हुआ। दोबारा भुगतान न करें। इसी फॉर्म में Submit Application फिर से करें या सहायता से संपर्क करें।'
-          : 'Your payment is already verified, but the application was not saved. Do not pay again. Keep this form open and retry Submit Application, or contact support.')
-        : (e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.')));
+      const detail = String(e?.message || (hi ? 'नेटवर्क समस्या। दोबारा कोशिश करें।' : 'Network error. Please try again.'));
+      if (e?.status === 402 || /payment is not confirmed yet/i.test(detail)) {
+        setError(hi
+          ? 'भुगतान की पुष्टि अभी Cashfree से नहीं मिली है। दोबारा भुगतान न करें। कुछ देर बाद Pay Now केंद्र में “भुगतान जाँचें” करें।'
+          : 'Cashfree has not confirmed this payment yet. Do not pay again. Wait briefly, then use “Check payment” in the Pay Now center.');
+      } else if (paymentMayHaveCompleted) {
+        setError(hi
+          ? `आपके भुगतान ऑर्डर से यह आवेदन जुड़ा है। दोबारा भुगतान न करें। सबमिशन में समस्या: ${detail} इसी फॉर्म में फिर कोशिश करें या सहायता से संपर्क करें।`
+          : `A payment order is already linked to this application. Do not pay again. Submission issue: ${detail} Retry this form or contact support.`);
+      } else {
+        setError(detail);
+      }
     } finally { setSubmitting(false); }
   };
 
