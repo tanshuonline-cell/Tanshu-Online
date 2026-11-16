@@ -256,7 +256,45 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   const [sheetGap, setSheetGap] = useState(2);
   const [sheetGapY, setSheetGapY] = useState(2);
   const [sheetSlots, setSheetSlots] = useState<SheetSlot[]>([]);
+  const [sheetWatermarkUrl, setSheetWatermarkUrl] = useState('');
+  useEffect(() => {
+    let active = true;
+    const image = new Image();
+    image.onload = () => {
+      if (!active) return;
+      const watermarkCanvas = document.createElement('canvas');
+      watermarkCanvas.width = 160;
+      watermarkCanvas.height = 160;
+      const watermarkContext = watermarkCanvas.getContext('2d');
+      if (!watermarkContext) return;
+      const side = Math.min(image.naturalWidth, image.naturalHeight);
+      const sourceX = (image.naturalWidth - side) / 2;
+      const sourceY = (image.naturalHeight - side) / 2;
+      watermarkContext.drawImage(image, sourceX, sourceY, side, side, 0, 0, 160, 160);
+      setSheetWatermarkUrl(watermarkCanvas.toDataURL('image/jpeg', 0.38));
+    };
+    image.onerror = () => { if (active) setSheetWatermarkUrl(''); };
+    image.src = '/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg';
+    return () => { active = false; image.onload = null; image.onerror = null; };
+  }, []);
   const [quickPrintLayout, setQuickPrintLayout] = useState(false);
+  const drawStudioSheetWatermark = async (context: CanvasRenderingContext2D, width: number, height: number) => {
+    if (!sheetWatermarkUrl) return;
+    const watermark = new Image();
+    watermark.src = sheetWatermarkUrl;
+    await new Promise<void>((resolve, reject) => {
+      watermark.onload = () => resolve();
+      watermark.onerror = () => reject(new Error('Studio watermark could not be loaded.'));
+    });
+    const size = Math.min(width, height) * 0.28;
+    context.save();
+    context.globalAlpha = 0.18;
+    context.beginPath();
+    context.arc(width / 2, height / 2, size / 2, 0, Math.PI * 2);
+    context.clip();
+    context.drawImage(watermark, (width - size) / 2, (height - size) / 2, size, size);
+    context.restore();
+  };
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [isVerifiedStudioAdmin, setIsVerifiedStudioAdmin] = useState(false);
@@ -904,6 +942,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       if(signaturePhoto&&signaturePlacement&&sourcePhotos.find(photo=>photo.id===slot.photoId)?.kind!=='signature'){const sig=images[sourcePhotos.findIndex(photo=>photo.id===signaturePhoto.id)];if(sig){const sigW=signaturePlacement.width*destW,sigH=sigW*sig.naturalHeight/sig.naturalWidth;ctx.drawImage(sig,destX+signaturePlacement.x*destW,destY+signaturePlacement.y*destH,sigW,sigH);}} if (borderEnabled && borderWidthMm > 0) { ctx.save(); ctx.strokeStyle=borderColor; ctx.lineWidth=borderWidthMm*300/25.4; ctx.strokeRect(destX+ctx.lineWidth/2,destY+ctx.lineWidth/2,Math.max(0,destW-ctx.lineWidth),Math.max(0,destH-ctx.lineWidth)); ctx.restore(); }
     }
 
+    await drawStudioSheetWatermark(ctx, canvas.width, canvas.height);
     const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + `-${sheetMode}-print`;
     if (format === 'pdf') { const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[sheetDimensions.widthMm, sheetDimensions.heightMm] as any}); doc.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,sheetDimensions.widthMm,sheetDimensions.heightMm); doc.save(baseName+'.pdf'); return; }
     const mime = format === 'png' ? 'image/png' : 'image/jpeg'; const blob = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Sheet export failed.')),mime,0.96)); const url=URL.createObjectURL(blob), anchor=document.createElement('a'); anchor.href=url; anchor.download=baseName+(format==='png'?'.png':'.jpg'); anchor.click(); window.setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -937,6 +976,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
       const pageW=sheetDimensions.widthMm;
       const pageH=sheetDimensions.heightMm;
       const pageSize=`${pageW}mm ${pageH}mm`;
+      await drawStudioSheetWatermark(ctx, canvas.width, canvas.height);
       const dataUrl=canvas.toDataURL('image/png');
       printWindow.document.open();
       printWindow.document.write(`<!doctype html><html><head><title>TANSHU STUDIO · Actual Size Print</title><style>@page{size:${pageSize};margin:0}html,body{width:${pageW}mm;height:${pageH}mm;margin:0;padding:0;overflow:hidden}img{display:block;width:${pageW}mm;height:${pageH}mm;object-fit:fill}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body><img src="${dataUrl}" alt="Actual size print sheet" onload="window.focus();window.print()"></body></html>`);
@@ -966,6 +1006,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
     if (selected.kind === 'signature') { const fit=Math.min(output.width/image.naturalWidth,output.height/image.naturalHeight); const fitW=image.naturalWidth*fit,fitH=image.naturalHeight*fit; context.drawImage(image,(output.width-fitW)/2,(output.height-fitH)/2,fitW,fitH); } else { context.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,0,0,output.width,output.height); }
     if(signaturePhoto&&signaturePlacement){const sig=new Image();sig.src=signaturePhoto.url;await new Promise<void>((resolve,reject)=>{sig.onload=()=>resolve();sig.onerror=()=>reject(new Error('Signature could not be loaded for export.'));});const dw=signaturePlacement.width*output.width,dh=dw*sig.naturalHeight/sig.naturalWidth;context.drawImage(sig,signaturePlacement.x*output.width,signaturePlacement.y*output.height,dw,dh);}
     if (borderEnabled && borderWidthMm > 0) { context.save(); context.strokeStyle = borderColor; context.lineWidth = borderWidthMm * 300 / 25.4; context.strokeRect(context.lineWidth / 2, context.lineWidth / 2, Math.max(0, output.width - context.lineWidth), Math.max(0, output.height - context.lineWidth)); context.restore(); }
+    await drawStudioSheetWatermark(context, output.width, output.height);
     const baseName = selected.file.name.replace(/\\.[^.]+$/, '') + '-tanshu-studio';
     if (format === 'pdf') {
       const doc = new jsPDF({orientation:documentSize.widthMm>documentSize.heightMm?'landscape':'portrait',unit:'mm',format:[documentSize.widthMm,documentSize.heightMm]});
@@ -1302,7 +1343,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                       {isChosen&&deleteModeEnabled&&<button type="button" aria-label={selectAllMode?'Delete all photos from sheet':'Delete photo '+(i+1)+' from sheet'} title={selectAllMode?'Delete all photos from sheet':'Delete this photo'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();const ids=selectAllMode?sheetSlots.map(item=>item.id):[slot.id];const removedCount=sheetSlots.filter(item=>ids.includes(item.id)).length;setSheetSlots(current=>current.filter(item=>!ids.includes(item.id)));if(removedCount)setSheetCopies(count=>Math.max(0,count-removedCount));setSelectedSlotIds([]);setSelectedSlotId(null);setSelectAllMode(false);}} style={{transform:`scale(${100/zoom})`,transformOrigin:'top right'}} className="group absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-lg transition hover:scale-110 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"><span className="studio-trash-lid pointer-events-none absolute -top-[4px] left-[7px] h-[4px] w-[13px] rounded-t-sm bg-white shadow-sm transition-transform duration-300"/><Trash2 size={15} className="pointer-events-none"/></button>}
                       {(isChosen)&&(['nw','ne','sw','se'] as const).map(corner=><button key={corner} type="button" aria-label={`Resize photo ${i+1} ${corner} corner`} title="Drag to resize while keeping photo proportions" onClick={event=>event.stopPropagation()} onPointerDown={event=>{event.preventDefault();event.stopPropagation();if(!isStudioMember){showUpgradePrompt();return;}const parent=event.currentTarget.parentElement as HTMLDivElement;parent.setPointerCapture(event.pointerId);setSelectedSlotId(slot.id);setSelectedSlotIds([slot.id]);setSlotResize({id:slot.id,corner,px:event.clientX,py:event.clientY,x:slot.x,y:slot.y,width:slot.width,height:slot.height});}} className={`studio-photo-resize-handle absolute z-30 h-4 w-4 rounded-sm border-0 bg-transparent shadow-none focus:outline-none focus-visible:outline-none ${corner==='nw'?'left-[-6px] top-[-6px]':corner==='ne'?'right-[-6px] top-[-6px]':corner==='sw'?'bottom-[-6px] left-[-6px]':'bottom-[-6px] right-[-6px]'}`}/>)}<span className="pointer-events-none absolute bottom-0 left-0 bg-black/65 px-1 text-[8px] text-white">{i+1}</span>
                     </div>})}
-
+                    {sheetWatermarkUrl && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center overflow-hidden"><img src={sheetWatermarkUrl} alt="" draggable={false} className="aspect-square w-[28%] max-w-[180px] rounded-full object-cover opacity-[0.18] grayscale" /></div>}
                   </div>
                 </div>
               ) : selected ? (
@@ -1333,7 +1374,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
                   }}
                   onPointerCancel={() => { cropDragRef.current = null; }}
                 >
-                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className={'pointer-events-none block h-full w-full select-none '+(selected.kind==='signature'?'object-contain':'object-cover')} style={{ objectPosition: `${activePositionX}% ${activePositionY}%`, transform: selected.kind==='signature'?'none':`scale(${activeCropZoom / 100})` }}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] overflow-hidden select-none">{!isStudioMember && isAdminAuthChecked && <><span className="absolute left-0.5 top-0.5 max-w-[48%] -translate-x-[2%] -translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span><span className="absolute bottom-0.5 right-0.5 max-w-[48%] translate-x-[2%] translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span></>}</div><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/documentSize.widthMm*previewPageWidth)}px solid ${borderColor}`:'none'}}/>{renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm)}
+                  <img src={selected.url} alt={selected.file.name} draggable={false} onLoad={event => updateDimensions(selected.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} className={'pointer-events-none block h-full w-full select-none '+(selected.kind==='signature'?'object-contain':'object-cover')} style={{ objectPosition: `${activePositionX}% ${activePositionY}%`, transform: selected.kind==='signature'?'none':`scale(${activeCropZoom / 100})` }}/><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] overflow-hidden select-none">{!isStudioMember && isAdminAuthChecked && <><span className="absolute left-0.5 top-0.5 max-w-[48%] -translate-x-[2%] -translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span><span className="absolute bottom-0.5 right-0.5 max-w-[48%] translate-x-[2%] translate-y-[2%] rotate-[-27deg] whitespace-nowrap rounded-sm bg-white/25 px-1 py-0.5 text-[clamp(5px,0.65vw,8px)] font-black tracking-[.08em] text-slate-950/45" style={{WebkitTextStroke:'0.25px rgba(255,255,255,.7)'}}>TANSHU ONLINE</span></>}</div><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" style={{border:borderEnabled?`${Math.max(0.1,borderWidthMm/documentSize.widthMm*previewPageWidth)}px solid ${borderColor}`:'none'}}/>{renderSignatureOverlay(documentSize.widthMm,documentSize.heightMm)}{sheetWatermarkUrl && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center overflow-hidden"><img src={sheetWatermarkUrl} alt="" draggable={false} className="aspect-square w-[28%] max-w-[180px] rounded-full object-cover opacity-[0.18] grayscale" /></div>}
                 </div>
               ) : (
                 <button type="button" onClick={openUploadPicker} className="group m-auto flex h-[420px] w-[336px] flex-col items-center justify-center gap-4 rounded-[2px] border border-dashed border-[#59616A] bg-[#1B1F23]/70 text-center transition hover:border-[#8A949E] hover:bg-[#20252A]">
