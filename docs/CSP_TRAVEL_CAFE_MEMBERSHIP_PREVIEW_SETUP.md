@@ -14,7 +14,6 @@ This feature is isolated on branch `csp-travel-cafe-membership-preview` and a dr
 - Cumulative paid access: BASIC = Passport Photo Studio; PROFESSIONAL = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = PROFESSIONAL + WhatsApp Selfie to Passport Photo.
 - Manual membership activation only after payment is independently verified. No payment gateway, auto-debit or auto-renewal is added.
 - Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
-- Separate scheduled Worker source for 7/3/1-day expiry reminder emails.
 
 ## Zero-cost Gmail email setup (recommended)
 
@@ -42,15 +41,11 @@ Apply `migrations/0012_csp_customer_memberships.sql` to the same existing D1 dat
 
 If you already own and control a custom domain, you may instead set `BREVO_API_KEY` and `CSP_SENDER_EMAIL` in Cloudflare Preview and authenticate that domain in Brevo. Brevo's free tier has a daily sending quota, but a free Gmail sender address cannot be authenticated under current sender requirements. No Brevo account or paid plan is required when using the Google Apps Script route.
 
-## Expiry reminders
-
-The reminder Worker is separate so the Pages app remains unchanged. Before deploying `wrangler.csp-reminders.toml`, replace the D1 database name and ID with the same D1 database identifiers and set `CSP_MAILER_URL`. Add `CSP_MAILER_SECRET` as a Worker secret, then deploy the Worker. Its cron runs daily at 10:00 AM IST. Do not deploy this Worker until the Preview D1 environment and Gmail relay have been confirmed.
-
 ## Important implementation notes
 
 - The app returns a clear setup error instead of pretending to send OTP when the mail relay/D1 secrets are missing.
 - Customer-facing prices are read from D1; admin price changes affect new activations. Existing memberships keep their recorded amount and expiry.
 - The membership UI gates export actions in the browser. Because the photo tools perform image processing locally, this preview does not turn those tools into server-hosted protected downloads; do not treat a client-side gate as DRM or as a guarantee against a technically skilled user bypassing browser code.
-- A visible low-opacity TANSHU ONLINE DP overlay is applied to unpaid previews to discourage casual reuse. No website can reliably prevent screenshots or guarantee that a watermark cannot be cropped or edited out.
+- The existing per-tool DP watermark behavior is preserved; this integration does not add a screen-wide overlay. No website can reliably prevent screenshots or guarantee that a watermark cannot be cropped or edited out.
 - Expiry reminder automation is not part of this Preview-only integration.
 - Existing video admin, Digital Seva, other tools, homepage layout and language controls are intentionally left outside this feature branch's scope.
