@@ -127,9 +127,45 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       replayedAnchors.add(anchor);
       originalAnchorClick.call(anchor);
     };
-    const guardedPrint = () => {
-      void requestExport().then(ok => { if (ok) originalPrint.call(window); });
+    const authorizePrint = () => {
+      void requestExport().then(ok => {
+        if (!ok) return;
+        document.documentElement.dataset.cspPrintAuthorized = 'true';
+        originalPrint.call(window);
+      });
     };
+    const onAfterPrint = () => { delete document.documentElement.dataset.cspPrintAuthorized; };
+    const guardedPrint = authorizePrint;
+    const onSaveAndPrintShortcuts = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+      if (key === 's') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (key === 'p') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        authorizePrint();
+      }
+    };
+    const onProtectedContextMenu = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('img, canvas, video')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const onProtectedDragStart = (event: DragEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('img, canvas')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const printGuardStyle = document.createElement('style');
+    printGuardStyle.dataset.cspPrintGuard = 'true';
+    printGuardStyle.textContent = '@media print { html:not([data-csp-print-authorized="true"]) body { display: none !important; } }';
+    document.head.appendChild(printGuardStyle);
     const guardedAnchorClick = function (this: HTMLAnchorElement) {
       if (!this.hasAttribute('download')) return originalAnchorClick.call(this);
       const anchor = this;
@@ -151,12 +187,20 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       void requestExport().then(ok => { if (ok) originalPrint.call(window); });
     };
     document.addEventListener('click', onDownloadClick, true);
-    document.addEventListener('keydown', onPrintShortcut, true);
+    document.addEventListener('keydown', onSaveAndPrintShortcuts, true);
+    document.addEventListener('contextmenu', onProtectedContextMenu, true);
+    document.addEventListener('dragstart', onProtectedDragStart, true);
+    window.addEventListener('afterprint', onAfterPrint);
     window.print = guardedPrint;
     HTMLAnchorElement.prototype.click = guardedAnchorClick;
     return () => {
       document.removeEventListener('click', onDownloadClick, true);
-      document.removeEventListener('keydown', onPrintShortcut, true);
+      document.removeEventListener('keydown', onSaveAndPrintShortcuts, true);
+      document.removeEventListener('contextmenu', onProtectedContextMenu, true);
+      document.removeEventListener('dragstart', onProtectedDragStart, true);
+      window.removeEventListener('afterprint', onAfterPrint);
+      printGuardStyle.remove();
+      delete document.documentElement.dataset.cspPrintAuthorized;
       if (window.print === guardedPrint) window.print = originalPrint;
       if (HTMLAnchorElement.prototype.click === guardedAnchorClick) HTMLAnchorElement.prototype.click = originalAnchorClick;
     };
