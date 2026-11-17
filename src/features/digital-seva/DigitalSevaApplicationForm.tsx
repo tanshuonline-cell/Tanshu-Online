@@ -89,9 +89,12 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     setDraftRestored(false);
     loadDigitalSevaDraft(service.id).then((saved) => {
       if (!active) return;
+      const savedData = saved?.data as any;
+      const savedOrderId = String(savedData?.pendingCheckoutOrderId || '');
+      const incomingOrderId = String(prepaidPayment?.orderId || '');
       const restoredData = recoveredDraft
-        ? { ...(saved?.data || {}), ...recoveredDraft, documentFiles: (saved?.data as any)?.documentFiles || {} }
-        : saved?.data || null;
+        ? { ...(savedData || {}), ...recoveredDraft, documentFiles: savedData?.documentFiles || {} }
+        : savedData && (!incomingOrderId || savedOrderId === incomingOrderId) ? savedData : null;
       if (restoredData) {
         const d = restoredData as any;
         setStep(Number.isInteger(d.step) ? d.step : 0);
