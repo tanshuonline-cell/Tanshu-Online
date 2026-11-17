@@ -18,11 +18,11 @@ async function fetchOrderPayments(orderId: string, env: CspEnv & { CASHFREE_APP_
 export async function activateVerifiedOrder(orderId: string, payment: CashfreePayment, env: CspEnv): Promise<{ activated: boolean; alreadyProcessed: boolean }> {
   if (!env.DB) throw new Error('Database unavailable.');
   const row = await env.DB.prepare(
-    "SELECT p.id, p.customer_id, p.amount_inr, p.status, p.gateway_payment_id, p.reference, c.status AS customer_status, s.amount_inr AS current_amount, s.duration_days FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id JOIN csp_plan_prices s ON s.plan_code = substr(p.reference, length('Cashfree membership: ') + 1) WHERE p.gateway_order_id = ? AND p.payment_method = 'cashfree'"
+    "SELECT p.id, p.customer_id, p.amount_inr, p.status, p.gateway_payment_id, p.reference, p.plan_duration_days, c.status AS customer_status FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id WHERE p.gateway_order_id = ? AND p.payment_method = 'cashfree'"
   ).bind(orderId).first();
   if (!row || row.customer_status !== 'active') throw new Error('Cashfree order does not match an active membership customer.');
   const planCode = String(row.reference).replace('Cashfree membership: ', '');
-  if (!['basic', 'advanced', 'premium'].includes(planCode) || Number(row.amount_inr) !== Number(row.current_amount) || Number(payment.payment_amount) !== Number(row.amount_inr) || (payment.payment_currency && payment.payment_currency !== 'INR')) {
+  if (!['basic', 'advanced', 'premium'].includes(planCode) || Number(payment.payment_amount) !== Number(row.amount_inr) || (payment.payment_currency && payment.payment_currency !== 'INR')) {
     throw new Error('Cashfree payment amount or plan does not match the membership order.');
   }
   if (row.status === 'verified') return { activated: false, alreadyProcessed: true };
@@ -30,7 +30,7 @@ export async function activateVerifiedOrder(orderId: string, payment: CashfreePa
   const subscriptionId = crypto.randomUUID();
   const auditId = crypto.randomUUID();
   const now = new Date();
-  const durationDays = Math.min(3650, Math.max(1, Math.floor(Number(row.duration_days) || 30)));
+  const durationDays = Math.min(3650, Math.max(1, Math.floor(Number(row.plan_duration_days) || 30)));
   const expiresAt = new Date(now.getTime());
   expiresAt.setUTCDate(expiresAt.getUTCDate() + durationDays);
   const paymentId = String(payment.cf_payment_id || '');
