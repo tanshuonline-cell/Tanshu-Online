@@ -1,5 +1,9 @@
 <!doctype html>
 <html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TANSHU ONLINE · INSTANT PVC CARD MAKER</title>
+<script>
+  // Direct visits are routed through the React membership gate; embedded preview remains open.
+  if (window.parent === window) window.location.replace('/csp-pvc-studio');
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{font-family:Inter,system-ui,Arial;color:#17233d;background:#eef1f6}*{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden}
@@ -460,4 +464,44 @@ document.addEventListener('fullscreenchange',render);document.addEventListener('
 new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});render();
 })();
 </script>
+
+<script>
+(()=> {
+  if (window.parent === window) return;
+  let bypass = false;
+  let pendingButton = null;
+  let pendingPrint = false;
+  const exportWords = /\b(print|download|export|save\s+pdf|save\s+image|save\s+file)\b/i;
+  const askParent = () => window.parent.postMessage({ type: 'CSP_PREMIUM_EXPORT_REQUEST' }, window.location.origin);
+  document.addEventListener('click', event => {
+    if (bypass) { bypass = false; return; }
+    const button = event.target && event.target.closest ? event.target.closest('button,[role="button"],input[type="button"],input[type="submit"]') : null;
+    if (!button) return;
+    const label = ((button.innerText || button.value || button.getAttribute('aria-label') || button.id || '') + ' ' + (button.title || '')).trim();
+    if (!exportWords.test(label)) return;
+    event.preventDefault(); event.stopImmediatePropagation(); pendingButton = button; askParent();
+  }, true);
+  const nativePrint = window.print.bind(window);
+  window.print = () => { pendingPrint = true; askParent(); };
+  const nativeAnchorClick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    if (!this.hasAttribute('download')) return nativeAnchorClick.call(this);
+    const anchor = this;
+    askParent();
+    const onAllowed = event => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_ALLOWED') return;
+      window.removeEventListener('message', onAllowed);
+      nativeAnchorClick.call(anchor);
+    };
+    window.addEventListener('message', onAllowed);
+  };
+  window.addEventListener('message', event => {
+    if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_ALLOWED') return;
+    if (pendingPrint) { pendingPrint = false; nativePrint(); return; }
+    if (!pendingButton) return;
+    const button = pendingButton; pendingButton = null; bypass = true; button.click();
+  });
+})();
+</script>
+
 </body></html>
