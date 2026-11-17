@@ -1,6 +1,6 @@
 # CSP & Travel Cafe membership preview setup
 
-This feature is isolated on branch `csp-travel-cafe-membership-preview` and a draft pull request. It does not replace the existing admin login or video-management endpoints.
+This feature is isolated on branch `feature/four-tool-membership-safe-integration-preview-2026-11-17`. It is Preview-only and has not been merged or deployed to Production. It does not replace the existing admin login or video-management endpoints.
 
 ## Included in this preview
 
@@ -8,13 +8,11 @@ This feature is isolated on branch `csp-travel-cafe-membership-preview` and a dr
 - Preview-first access: all seven workspaces open before sign-up or payment; customers can upload and edit before export.
 - Server-generated six-digit OTP, ten-minute expiry, maximum five verification attempts, three OTP requests per 15 minutes per Gmail address and ten per 15 minutes per IP (stored as a keyed hash).
 - HttpOnly customer session cookie (30 days).
-- The three free tools require free Gmail OTP only when the customer downloads or prints; no paid plan is required.
 - The four paid tools ask for Gmail OTP and a membership only when the customer tries to download or print. Plan requests are recorded as pending manual payments for the existing admin dashboard.
-- Monthly plans: BASIC ₹99, ADVANCED ₹199, PREMIUM ₹299; pricing is editable in the existing Admin Dashboard.
-- Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = ADVANCED + WhatsApp Selfie to Passport Photo.
+- BASIC, ADVANCED and PREMIUM are the current draft plan names. Prices and durations start inactive and must be configured by the site owner in the Preview Admin Dashboard before customers can request a plan. No unapproved price is shown.
+- Draft access mapping in code: BASIC = Passport Photo Studio; ADVANCED = Passport Photo Studio + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = all four tools including WhatsApp Selfie to Passport Photo. Confirm this mapping before activating any plan.
 - Manual membership activation only after payment is independently verified. No payment gateway, auto-debit or auto-renewal is added.
 - Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
-- Separate scheduled Worker source for 7/3/1-day expiry reminder emails.
 
 ## Zero-cost Gmail email setup (recommended)
 
@@ -36,21 +34,21 @@ Google's current quota reference: https://developers.google.com/apps-script/guid
 
 ## D1 migration (required)
 
-Apply `migrations/0012_csp_customer_memberships.sql` to the same existing D1 database bound as `DB` for the current `/api/admin/videos` and `/api/admin/purchases` functions. Do not apply it to the separate Digital Seva preview database. This migration is not applied automatically.
+Apply `migrations/0012_csp_customer_memberships.sql` only to the dedicated Preview D1 database bound as `DB` for this Pages Preview, after independently confirming the Preview database ID. Do not apply it to Production D1 or the separate Digital Seva Preview database. This migration is not applied automatically and has not been run.
 
 ## Optional Brevo alternative
 
 If you already own and control a custom domain, you may instead set `BREVO_API_KEY` and `CSP_SENDER_EMAIL` in Cloudflare Preview and authenticate that domain in Brevo. Brevo's free tier has a daily sending quota, but a free Gmail sender address cannot be authenticated under current sender requirements. No Brevo account or paid plan is required when using the Google Apps Script route.
 
-## Expiry reminders
+## Not included in this Preview
 
-The reminder Worker is separate so the Pages app remains unchanged. Before deploying `wrangler.csp-reminders.toml`, replace the D1 database name and ID with the same D1 database identifiers and set `CSP_MAILER_URL`. Add `CSP_MAILER_SECRET` as a Worker secret, then deploy the Worker. Its cron runs daily at 10:00 AM IST. Do not deploy this Worker until the Preview D1 environment and Gmail relay have been confirmed.
+- No Cashfree checkout, payment webhook, automatic activation, auto-renewal, refunds or scheduled expiry-reminder Worker.
+- No Preview D1 migration has been applied yet. Do not activate customer plans until the Preview database, Gmail relay and approved plan settings are verified.
 
 ## Important implementation notes
 
 - The app returns a clear setup error instead of pretending to send OTP when the mail relay/D1 secrets are missing.
 - Customer-facing prices are read from D1; admin price changes affect new activations. Existing memberships keep their recorded amount and expiry.
 - The membership UI gates export actions in the browser. Because the photo tools perform image processing locally, this preview does not turn those tools into server-hosted protected downloads; do not treat a client-side gate as DRM or as a guarantee against a technically skilled user bypassing browser code.
-- A visible low-opacity TANSHU ONLINE DP overlay is applied to unpaid previews to discourage casual reuse. No website can reliably prevent screenshots or guarantee that a watermark cannot be cropped or edited out.
-- The 7/3/1 reminder Worker is a separate deployment and will not send emails until it is configured with the correct D1 database and Gmail relay.
+- Existing tool-specific DP watermark code is preserved; the membership wrapper does not add another watermark layer or alter the four tools' watermark implementations.
 - Existing video admin, Digital Seva, other tools, homepage layout and language controls are intentionally left outside this feature branch's scope.
