@@ -93,25 +93,26 @@ export function validationKindForField(key: string): ValidationKind {
 export function getRequiredServiceFieldKeys(serviceId: string, options: Record<string, unknown> = {}): string[] {
   const required: Record<string, string[]> = {
     'pan-new': ['panApplicantName', 'panFatherName', 'panDob', 'panParentPrint'],
-    'pan-correction': [],
-    'pan-photo-signature': [],
-    'aadhaar-mobile': ['newMobile'],
-    'aadhaar-email': ['newEmail'],
+    'pan-correction': ['applicantName'],
+    'pan-photo-signature': ['applicantName'],
+    'aadhaar-mobile': ['applicantName', 'newMobile'],
+    'aadhaar-email': ['applicantName', 'newEmail'],
     'aadhaar-download': [],
     'aadhaar-pvc-assistance': [],
-    'certificate-income': ['incomeFatherName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
-    'certificate-caste': ['casteFatherName', 'casteCategory', 'casteName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
-    'certificate-residence': ['certificatePurpose', 'residenceVillageWard', 'residencePostOffice', 'residencePin', 'level', 'residenceType'],
-    'voter-new': ['voterDob', 'voterAddress', 'aadhaarPostOffice', 'aadhaarPin'],
-    'ration-new': ['familyMemberCount', 'rationVillageWard', 'rationPostOffice', 'rationPin'],
+    'certificate-income': ['applicantName', 'incomeFatherName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
+    'certificate-caste': ['applicantName', 'casteFatherName', 'casteCategory', 'casteName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
+    'certificate-residence': ['applicantName', 'certificatePurpose', 'residenceVillageWard', 'residencePostOffice', 'residencePin', 'level', 'residenceType'],
+    'voter-new': ['applicantName', 'voterDob', 'voterAddress', 'aadhaarPostOffice', 'aadhaarPin'],
+    'ration-new': ['applicantName', 'familyMemberCount', 'rationVillageWard', 'rationPostOffice', 'rationPin'],
     'aadhaar-address-doc': ['aadhaarApplicantName', 'aadhaarFatherNameCurrent', 'aadhaarFatherNameCorrect', 'aadhaarVillage', 'aadhaarPostOffice', 'aadhaarPin'],
     'aadhaar-address-hof': ['aadhaarNumber', 'hofAadhaarNumber', 'hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarStreet', 'aadhaarArea', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarPoliceStation', 'aadhaarState', 'aadhaarPin'],
-    'aadhaar-co': ['coRelation', 'requestedCo'],
-    'certificate-correction': [],
+    'aadhaar-co': ['applicantName', 'coRelation', 'requestedCo'],
+    'certificate-correction': ['applicantName'],
+    'voter-correction': ['applicantName'],
     'scheme-check': ['schemeName'],
     'online-form': ['formName'],
     'website-services': ['websiteScope'],
-    'ration-update': []
+    'ration-update': ['applicantName']
   };
   const fields = [...(required[serviceId] || [])];
   if (serviceId === 'aadhaar-address-doc') fields.push('addressChoice');
