@@ -55,7 +55,7 @@ export async function activateVerifiedOrder(orderId: string, payment: CashfreePa
       "INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) SELECT ?, 'cashfree', 'cashfree_membership_activation', ?, ? WHERE EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND status = 'verified' AND subscription_id = ?)"
     ).bind(auditId, row.customer_id, JSON.stringify({ orderId, paymentId, planCode, amount: Number(row.amount_inr) }), orderId, subscriptionId)
   ]);
-  if (Number(results?.[0]?.meta?.changes) === 1 && Number(results?.[2]?.meta?.changes) === 1) return { activated: true, alreadyProcessed: false };
+  if (Number(results?.[0]?.meta?.changes) === 1 && Number(results?.[1]?.meta?.changes) === 1) return { activated: true, alreadyProcessed: false };
   const current = await env.DB.prepare("SELECT status FROM csp_payments WHERE gateway_order_id = ?").bind(orderId).first();
   if (current?.status === 'verified') return { activated: false, alreadyProcessed: true };
   throw new Error('Cashfree payment was not activated. No success response was recorded.');
