@@ -383,14 +383,15 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         filesToUpload.some(([, file]) => file.type && !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type))) {
       setError(hi ? 'PDF, JPG या PNG चुनें। हर फ़ाइल 5 MB और कुल अपलोड 20 MB तक होना चाहिए।' : 'Use PDF, JPG or PNG. Each file must be up to 5 MB and total uploads up to 20 MB.'); return;
     }
+    const selectedTaskLabels = quickSelectedTasks.map((id) => id === 'address-doc' ? 'Aadhaar Address Update – Document Based' : id === 'address-no-father-change' ? 'Address Update Without Father Name Removal' : id === 'address-other' ? 'Other Address-related Assistance' : id === service.id ? service.name : `Other assistance under ${service.name}`);
     setSubmitting(true); setError('');
     try {
       const payload = {
         quickRequest: true, serviceId: service.id, requesterType: 'DIRECT_CUSTOMER', applicationFor: 'SELF',
         applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''),
         paymentContactPhone: prepaidPayment.customerPhone, customerEmail: applicant.email.trim(),
-        corrections: [], fieldValues: {}, serviceOptions: { quickSelectedTasks },
-        selectedDocuments, otherDocumentName: '', taskDetails: quickSelectedTasks.join('; '),
+        corrections: [], fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
+        selectedDocuments, otherDocumentName: '', taskDetails: selectedTaskLabels.join('; '),
         consent: true, termsAccepted: prepaidPayment.termsAccepted, termsAcceptedAt: prepaidPayment.termsAcceptedAt,
         termsPolicyVersion: prepaidPayment.termsPolicyVersion,
         refundPolicyAccepted: prepaidPayment.refundPolicyAccepted, refundAcceptedAt: prepaidPayment.refundAcceptedAt,
@@ -411,9 +412,9 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       onSubmitted(String(data.bookingReference), {
         paymentMode: 'AUTO_PAY', paymentOrderId: prepaidPayment.orderId,
         customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''),
-        customerEmail: applicant.email.trim(), fieldValues: {}, serviceOptions: { quickSelectedTasks },
+        customerEmail: applicant.email.trim(), fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
         corrections: [], selectedDocuments: [...selectedDocuments], otherDocumentName: '',
-        taskDetails: quickSelectedTasks.join('; '), submittedAt: new Date().toISOString(),
+        taskDetails: selectedTaskLabels.join('; '), submittedAt: new Date().toISOString(),
         termsAccepted: true, termsAcceptedAt: prepaidPayment.termsAcceptedAt,
         termsPolicyVersion: prepaidPayment.termsPolicyVersion, refundAccepted: true,
         refundAcceptedAt: prepaidPayment.refundAcceptedAt, refundPolicyVersion: prepaidPayment.refundPolicyVersion
