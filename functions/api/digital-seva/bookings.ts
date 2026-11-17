@@ -119,7 +119,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
-  if (serviceId === 'aadhaar-address-doc' && uploadInputs.length === 0) return json({ success: false, error: 'Please upload one UIDAI-accepted Proof of Address document.' }, 400);
+  const requiredDocumentIds: Record<string, string[]> = {
+    'aadhaar-address-doc': ['address-proof'],
+    'pan-correction': ['existing-pan', 'aadhaar'],
+    'voter-correction': ['epic', 'correction-proof'],
+    'certificate-correction': ['existing-certificate', 'correct-proof'],
+    'ration-update': ['existing-ration']
+  };
+  for (const documentId of requiredDocumentIds[serviceId] || []) {
+    if (!uploadInputs.some((item) => item.documentType === documentId)) {
+      return json({ success: false, error: `Please upload the required supporting document: ${documentId}.` }, 400);
+    }
+  }
   if (uploadInputs.length > 8) return json({ success: false, error: 'You can upload up to 8 documents in one request.' }, 400);
   const selectedSet = new Set(selectedDocuments);
   const seenDocumentTypes = new Set<string>();
@@ -156,7 +167,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(serviceId) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return json({ success: false, error: 'Please remove instructional or placeholder text and enter only the actual Aadhaar address details.' }, 400);
   if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
   const requiredCorrectionFields = getRequiredCorrectionFieldKeys(
-    corrections.filter((id: string) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(serviceId) && id === 'address'))
+    corrections.filter((id: string) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(serviceId) && id === 'address')),
+    serviceId
   );
   for (const field of requiredCorrectionFields) {
     if (!String(fieldValues[field] || '').trim()) return json({ success: false, error: `Required correction detail is missing: ${field}.` }, 400);
