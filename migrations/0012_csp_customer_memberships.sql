@@ -77,17 +77,6 @@ CREATE TABLE IF NOT EXISTS csp_plan_prices (
 INSERT OR IGNORE INTO csp_plan_prices (plan_code, amount_inr, duration_days) VALUES
   ('basic', 49, 1), ('advanced', 199, 30), ('premium', 599, 90);
 
-CREATE TABLE IF NOT EXISTS csp_reminder_log (
-  id TEXT PRIMARY KEY,
-  subscription_id TEXT NOT NULL,
-  customer_id TEXT NOT NULL,
-  reminder_days INTEGER NOT NULL CHECK (reminder_days IN (7,3,1)),
-  sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(subscription_id, reminder_days),
-  FOREIGN KEY (subscription_id) REFERENCES csp_subscriptions(id),
-  FOREIGN KEY (customer_id) REFERENCES csp_customers(id)
-);
-
 CREATE TABLE IF NOT EXISTS csp_tool_settings (
   tool_id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
