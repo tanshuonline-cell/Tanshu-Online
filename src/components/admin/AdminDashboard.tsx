@@ -135,8 +135,31 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   };
 
   const manageCspCustomer = async (customerId: string, action: string, planCode?: string) => {
-    if (action === 'activate' && !window.confirm('Only continue after independently checking that the full payment has actually been received. A membership request or OTP verification is NOT payment. Continue?')) return;
-    const reference = action === 'activate' ? (window.prompt('Enter the verified UTR, transaction ID, or cash receipt reference (required):') || '').trim() : '';
+    let paymentId = '';
+    if (action === 'activate') {
+      const matching = cspPayments.filter(payment =>
+        payment.customer_id === customerId &&
+        payment.status === 'pending' &&
+        payment.reference === 'Membership request: ' + planCode
+      );
+      if (!matching.length) {
+        showNotification('error', 'No pending payment request exists for this customer and selected plan.');
+        return;
+      }
+      const choices = matching.map((payment, index) =>
+        (index + 1) + '. ₹' + payment.amount_inr + ' · ' + new Date(payment.created_at).toLocaleString() + ' · ID ' + payment.id
+      ).join('\\n');
+      const selection = matching.length === 1 ? '1' : window.prompt('Select the exact pending payment entry to verify:\\n' + choices, '1');
+      if (selection === null) return;
+      const selectedIndex = Number(selection) - 1;
+      if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= matching.length) {
+        showNotification('error', 'Invalid payment entry selection. No changes were made.');
+        return;
+      }
+      paymentId = matching[selectedIndex].id;
+      if (!window.confirm('Only continue after independently checking that the full ₹' + matching[selectedIndex].amount_inr + ' payment has actually been received for this exact request. A membership request or OTP verification is NOT payment. Continue?')) return;
+    }
+    const reference = action === 'activate' ? (window.prompt('Enter the independently verified UTR, transaction ID, or cash receipt reference (required):') || '').trim() : '';
     if (action === 'activate' && !reference) {
       showNotification('error', 'Activation cancelled. A verified payment reference is required.');
       return;
@@ -144,7 +167,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     try {
       const response = await fetch('/api/admin/csp-customers', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId, action, planCode, reference })
+        body: JSON.stringify({ customerId, action, planCode, paymentId, reference })
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Update failed.');
