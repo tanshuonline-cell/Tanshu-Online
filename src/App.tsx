@@ -427,7 +427,7 @@ export default function App() {
   }
 
   // Dedicated Instant Multi Customer Photo Maker.
-  if (window.location.pathname === '/instant-multi-customer-photo-maker') {
+  if (window.location.pathname === '/csp-multi-customer-photo-maker') {
     return <CspToolAccess toolId="instant-multi-customer-photo-maker"><InstantMultiCustomerPhotoMaker /></CspToolAccess>;
   }
 
