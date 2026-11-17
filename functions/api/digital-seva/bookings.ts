@@ -100,6 +100,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
   if (!body || typeof body !== 'object' || body.consent !== true) return json({ success: false, error: 'Please confirm the contact consent to continue.' }, 400);
   const serviceId = String(body.serviceId || '');
+  const quickRequest = body.quickRequest === true;
   const name = String(body.customerName || '').trim().replace(/\s+/g, ' ');
   const phone = normalizePhone(body.customerPhone);
   const email = body.customerEmail == null ? '' : String(body.customerEmail).trim();
@@ -157,7 +158,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const requiredCorrectionFields = getRequiredCorrectionFieldKeys(
     corrections.filter((id: string) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(serviceId) && id === 'address'))
   );
-  for (const field of requiredCorrectionFields) {
+  for (const field of (quickRequest ? [] : requiredCorrectionFields)) {
     if (!String(fieldValues[field] || '').trim()) return json({ success: false, error: `Required correction detail is missing: ${field}.` }, 400);
   }
   if (!['DIRECT_CUSTOMER', 'CYBER_CAFE', 'CSC_CENTER', 'INDEPENDENT_AGENT'].includes(requesterType)) return json({ success: false, error: 'Please select a valid submitting-party type.' }, 400);
@@ -175,16 +176,16 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ success: false, error: 'Direct customer requests must not include an operator profile.' }, 400);
   }
   if (taskDetails.length > 4000 || !isMeaningfulDescription(taskDetails) || applicationDetails.length > 16000 || otherDocumentName.length > 160) return json({ success: false, error: 'Please provide a clear description of the requested service and valid document selections.' }, 400);
-  const requiredServiceFields = getRequiredServiceFieldKeys(serviceId, serviceOptions);
+  const requiredServiceFields = quickRequest ? [] : getRequiredServiceFieldKeys(serviceId, serviceOptions);
   for (const field of requiredServiceFields) {
     const value = fieldValues[field] ?? serviceOptions[field];
     if (value == null || !String(value).trim()) return json({ success: false, error: `Required service field is missing: ${field}.` }, 400);
   }
-  for (const [field, value] of Object.entries(fieldValues)) {
+  for (const [field, value] of (quickRequest ? [] : Object.entries(fieldValues))) {
     const issue = validateFieldByKey(field, value);
     if (issue) return json({ success: false, error: `Invalid service field: ${field}. ${issue}` }, 400);
   }
-  for (const [field, value] of Object.entries(serviceOptions)) {
+  for (const [field, value] of (quickRequest ? [] : Object.entries(serviceOptions))) {
     const issue = validateFieldByKey(field, value);
     if (issue) return json({ success: false, error: `Invalid service option: ${field}. ${issue}` }, 400);
   }
