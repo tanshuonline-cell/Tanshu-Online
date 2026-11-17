@@ -104,7 +104,7 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'certificate-residence': ['certificatePurpose', 'residenceDistrict', 'residenceSubdivision', 'residenceBlock', 'residenceVillageWard', 'residencePin', 'level', 'residenceType'],
     'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
     'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
-    'aadhaar-address-doc': ['aadhaarNumber', 'docRelationName', 'aadhaarHouse', 'aadhaarStreet', 'aadhaarArea', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarPoliceStation', 'aadhaarState', 'aadhaarPin'],
+    'aadhaar-address-doc': ['aadhaarApplicantName', 'aadhaarFatherNameCurrent', 'aadhaarFatherNameCorrect', 'aadhaarVillage', 'aadhaarPostOffice', 'aadhaarPin'],
     'aadhaar-address-hof': ['aadhaarNumber', 'hofAadhaarNumber', 'hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarStreet', 'aadhaarArea', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarPoliceStation', 'aadhaarState', 'aadhaarPin'],
     'aadhaar-co': ['aadhaarNumber', 'coRelation', 'requestedCo'],
     'certificate-correction': ['certificateNumber', 'issuingOffice', 'issueDate'],
