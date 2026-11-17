@@ -411,6 +411,11 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
+  // Dedicated Multi Customer Photo Maker workspace (separate from its SEO landing page).
+  if (window.location.pathname === '/instant-multi-customer-photo-maker-studio') {
+    return <CspToolAccess toolId="instant-multi-customer-photo-maker"><InstantMultiCustomerPhotoMaker /></CspToolAccess>;
+  }
+
   // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.
   const cscToolkitSlug = window.location.pathname.replace(/^\//, '');
   if (
