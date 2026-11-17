@@ -23,6 +23,9 @@ export interface DigitalSevaReceiptView {
 
 const ENGLISH_LABELS: Record<string, string> = {
   docRelationName: "Father's name", aadhaarNumber: 'Aadhaar number', hofAadhaarNumber: 'Head of Family Aadhaar number',
+  'name-current': 'Applicant old name', 'name-correct': 'Applicant new name',
+  'father-name-current': "Father's old name", 'father-name-correct': "Father's new name",
+  'relation-name-current': "Relative's old name", 'relation-name-correct': "Relative's new name",
   aadhaarApplicantName: 'Applicant name', aadhaarFatherNameCurrent: "Father's old name", aadhaarFatherNameCorrect: "Father's new name",
   existingPanNumber: 'Existing PAN number', panApplicantName: 'Applicant name', panFatherName: "Father's name",
   panMotherName: "Mother's name", panDob: 'Date of birth', panParentPrint: 'Parent name to print',
@@ -40,6 +43,9 @@ const ENGLISH_LABELS: Record<string, string> = {
 
 const HINDI_LABELS: Record<string, string> = {
   docRelationName: 'पिता का नाम', aadhaarNumber: 'आधार नंबर', hofAadhaarNumber: 'मुखिया का आधार नंबर',
+  'name-current': 'आवेदक का पुराना नाम', 'name-correct': 'आवेदक का नया नाम',
+  'father-name-current': 'पिता का पुराना नाम', 'father-name-correct': 'पिता का नया नाम',
+  'relation-name-current': 'रिश्तेदार का पुराना नाम', 'relation-name-correct': 'रिश्तेदार का नया नाम',
   aadhaarApplicantName: 'आवेदक का नाम', aadhaarFatherNameCurrent: 'पिता का पुराना नाम', aadhaarFatherNameCorrect: 'पिता का नया नाम',
   existingPanNumber: 'मौजूदा PAN नंबर', panApplicantName: 'आवेदक का नाम', panFatherName: 'पिता का नाम',
   panMotherName: 'माता का नाम', panDob: 'जन्म तिथि', panParentPrint: 'प्रिंट होने वाला अभिभावक का नाम',
