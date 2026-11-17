@@ -65,8 +65,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
   try {
     const owned = await env.DB.prepare("SELECT id FROM csp_payments WHERE gateway_order_id = ? AND customer_id = ? AND payment_method = 'cashfree'").bind(orderId, session.id).first();
     if (!owned) return json({ success: false, error: 'This payment order does not belong to the signed-in customer.' }, 404);
-    const payment = await fetchSuccessfulPayment(orderId, env);
-    if (!payment) return json({ success: true, paid: false, status: 'PENDING', message: 'Cashfree has not confirmed a successful payment yet. Do not retry payment until the status is checked.' });
+    const payments = await fetchOrderPayments(orderId, env);
+    const payment = payments.find(item => item.payment_status === 'SUCCESS');
+    if (!payment) {
+      const latestStatus = String(payments[0]?.payment_status || 'PENDING').toUpperCase();
+      await env.DB.prepare("UPDATE csp_payments SET gateway_payment_status = ? WHERE gateway_order_id = ? AND status = 'pending'").bind(latestStatus, orderId).run();
+      return json({ success: true, paid: false, status: latestStatus, message: latestStatus === 'FAILED' || latestStatus === 'USER_DROPPED' || latestStatus === 'CANCELLED' ? 'Cashfree reports that this payment attempt did not complete. You may retry checkout; membership remains locked.' : 'Cashfree has not confirmed a successful payment yet. If money was deducted, do not pay again until the order is checked.' });
+    }
     const result = await activateVerifiedOrder(orderId, payment, env);
     return json({ success: true, paid: true, activated: result.activated, alreadyProcessed: result.alreadyProcessed, message: 'Payment verified by Cashfree. Membership is active.' });
   } catch (error) {
