@@ -138,8 +138,9 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     const guardedPrint = authorizePrint;
     const onSaveAndPrintShortcuts = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey)) return;
-      const key = event.key.toLowerCase();
-      if (key === 's') {
+      const key = (event.key || '').toLowerCase();
+      const code = event.code || '';
+      if (key === 's' || code === 'KeyS') {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -189,6 +190,9 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       void requestExport().then(ok => { if (ok) replayDownload(anchor); });
     };
     document.addEventListener('click', onDownloadClick, true);
+    // Capture at window before document-level tool handlers so browser Save/Print
+    // accelerators are cancelled before they can trigger page-level actions.
+    window.addEventListener('keydown', onSaveAndPrintShortcuts, true);
     document.addEventListener('keydown', onSaveAndPrintShortcuts, true);
     document.addEventListener('contextmenu', onProtectedContextMenu, true);
     document.addEventListener('dragstart', onProtectedDragStart, true);
@@ -197,6 +201,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     HTMLAnchorElement.prototype.click = guardedAnchorClick;
     return () => {
       document.removeEventListener('click', onDownloadClick, true);
+      window.removeEventListener('keydown', onSaveAndPrintShortcuts, true);
       document.removeEventListener('keydown', onSaveAndPrintShortcuts, true);
       document.removeEventListener('contextmenu', onProtectedContextMenu, true);
       document.removeEventListener('dragstart', onProtectedDragStart, true);
