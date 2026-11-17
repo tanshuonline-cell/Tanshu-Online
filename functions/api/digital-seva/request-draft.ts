@@ -95,6 +95,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!rateLimit(request, action)) return json({ success: false, error: 'Too many recovery attempts. Please wait a few minutes.' }, 429);
 
   try {
+    if (action === 'status') {
+      const orderId = String(body.orderId || '');
+      if (!/^ds_[0-9a-f]{32}$/i.test(orderId)) return json({ success: false, error: 'Invalid payment reference.' }, 400);
+      const local = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT order_id, service_id, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+      if (!local) return json({ success: true, state: 'CLOSED' });
+      if (String(local.status) === 'CLAIMED' || local.booking_id) {
+        return json({ success: true, state: 'SUBMITTED' });
+      }
+      if (!['PENDING', 'PAID'].includes(String(local.status))) {
+        return json({ success: true, state: 'CLOSED' });
+      }
+      const verified = await verifiedPaidOrder(env, orderId, String(local.service_id || ''));
+      if (verified) return json({ success: true, state: 'PAID' });
+      return json({ success: true, state: String(local.status) === 'PAID' ? 'VERIFYING' : 'PENDING' });
+    }
+
     if (action === 'save') {
       const orderId = String(body.orderId || '');
       const draft = body.draft;
