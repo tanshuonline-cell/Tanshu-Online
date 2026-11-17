@@ -5,8 +5,8 @@ const API_VERSION = '2025-01-01';
 const cashfreeBase = (environment: string) => environment === 'SANDBOX' ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
 
 async function fetchSuccessfulPayment(orderId: string, env: CspEnv & { CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string }): Promise<CashfreePayment | null> {
-  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || env.CASHFREE_ENVIRONMENT !== 'SANDBOX') throw new Error('Cashfree Sandbox credentials are unavailable.');
-  const response = await fetch(cashfreeBase(env.CASHFREE_ENVIRONMENT) + '/orders/' + encodeURIComponent(orderId) + '/payments', {
+  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || String(env.CASHFREE_ENVIRONMENT || '').toUpperCase() !== 'SANDBOX') throw new Error('Cashfree Sandbox credentials are unavailable.');
+  const response = await fetch(cashfreeBase(String(env.CASHFREE_ENVIRONMENT || '').toUpperCase()) + '/orders/' + encodeURIComponent(orderId) + '/payments', {
     headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': API_VERSION }
   });
   if (!response.ok) throw new Error('Cashfree payment status could not be verified.');
