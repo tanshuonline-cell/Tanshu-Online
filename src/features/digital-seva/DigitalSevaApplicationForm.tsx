@@ -341,14 +341,14 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (!isValidEmail(applicant.email)) return reject('applicant.email', 'आवेदक की सही ईमेल आईडी लिखें।');
     }
     if (step === 2) {
-      if (correctionsForService.length && corrections.length === 0 && service.id !== 'aadhaar-address-doc') return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
+      if (correctionsForService.length && corrections.length === 0 && !['aadhaar-address-doc', 'aadhaar-co'].includes(service.id)) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
       if (service.id === 'voter-correction' && corrections.length > 4) return reject('corrections', 'Form 8 में अधिकतम चार सुधार चुनें।');
       if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(service.id) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return reject('taskDetails', 'यह निर्देशात्मक वाक्य एड्रेस या आवेदन विवरण में स्वीकार नहीं है। कृपया केवल वास्तविक और सही जानकारी लिखें।');
       const correctionKeys = getRequiredCorrectionFieldKeys(corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')), service.id);
       for (const key of correctionKeys) {
         if (!String(fieldValues[key] || '').trim()) return reject(key, key.endsWith('-current') ? 'मौजूदा विवरण भरें।' : 'सही नया विवरण भरें।');
       }
-      if (service.id !== 'aadhaar-address-doc' && !isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
+      if (!COMPACT_REQUEST_SERVICE_IDS.has(service.id) && !isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
       const attachedFiles = Object.values(documentFiles);
       const requiredDocumentIds: Record<string, string[]> = {
@@ -581,7 +581,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         {textInput('rationPin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'aadhaar-lost' && textInput('aadhaarRecordedName', 'Name as recorded in Aadhaar (no Aadhaar number)', 'आधार में दर्ज नाम (आधार नंबर नहीं)')}
-      {correctionsForService.length > 0 && <div className="ds-application-field-grid">
+      {correctionsForService.length > 0 && !['aadhaar-address-doc', 'aadhaar-co'].includes(service.id) && <div className="ds-application-field-grid">
         {corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address') &&
           (!['pan-correction', 'voter-correction', 'certificate-correction', 'ration-update'].includes(service.id) || ['name', 'father-name', 'relation-name'].includes(id))).map((id) => {
           const item = correctionsForService.find((x) => x.id === id);
