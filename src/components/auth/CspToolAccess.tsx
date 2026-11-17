@@ -26,6 +26,7 @@ const ringStyle: Record<string, string> = {
 };
 
 export const CspMembershipPlans: React.FC = () => {
+  const { isHindi } = useLanguage();
   const [plans, setPlans] = useState(defaultPaidPlans);
   const [selectedPlan, setSelectedPlan] = useState('basic');
   useEffect(() => {
