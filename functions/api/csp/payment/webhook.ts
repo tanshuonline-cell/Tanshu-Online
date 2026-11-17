@@ -15,7 +15,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
   const rawBody = await request.text();
   const signature = request.headers.get('x-webhook-signature') || '';
   const timestamp = request.headers.get('x-webhook-timestamp') || '';
-  // Cashfree PG webhook signatures are generated with the App Secret Key.\n  const webhookSecret = env.CASHFREE_SECRET_KEY;
+  // Cashfree PG webhook signatures are generated with the App Secret Key.
+  const webhookSecret = env.CASHFREE_SECRET_KEY;
   if (!signature || !timestamp || !webhookSecret) return json({ success: false, error: 'Missing webhook signature.' }, 401);
   const expected = await hmac(timestamp + rawBody, webhookSecret);
   const expectedBytes = expected.match(/.{2}/g)?.map(value => parseInt(value, 16)) || [];
