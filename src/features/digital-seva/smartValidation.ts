@@ -90,7 +90,7 @@ export function validationKindForField(key: string): ValidationKind {
   return 'text';
 }
 
-export function getRequiredServiceFieldKeys(serviceId: string, options: Record<string, unknown> = {}): string[] {
+export function getRequiredServiceFieldKeys(serviceId: string, _options: Record<string, unknown> = {}): string[] {
   const required: Record<string, string[]> = {
     'pan-new': ['panApplicantName', 'panFatherName', 'panDob', 'panParentPrint'],
     'pan-correction': ['applicantName'],
