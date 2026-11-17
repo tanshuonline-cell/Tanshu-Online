@@ -57,9 +57,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       // A membership request is not a payment. Require an existing pending request
       // for this exact plan and an admin-entered receipt/UTR reference before activation.
       const pendingPayment = await env.DB.prepare(
-        "SELECT id FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 1"
+        "SELECT id, amount_inr FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 1"
       ).bind(customerId, 'Membership request: ' + planCode).first();
       if (!pendingPayment?.id) return json({ success: false, error: 'No pending request exists for this customer and plan. Ask the customer to submit the correct plan request first.' }, 409);
+      if (Number(pendingPayment.amount_inr) !== amount) return json({ success: false, error: 'The pending request amount differs from the current plan price. Do not activate it; ask the customer to submit a fresh request.' }, 409);
 
       const paymentReference = String(body.reference || '').trim().slice(0, 180);
       if (!paymentReference) return json({ success: false, error: 'Enter the verified UTR, transaction ID, or cash receipt reference before activation.' }, 400);
