@@ -1,6 +1,6 @@
 # CSP & Travel Cafe membership preview setup
 
-This feature is isolated on branch `feature/four-tool-membership-safe-preview-clean-2026-11-17` and a draft pull request. It does not replace the existing admin login or video-management endpoints.
+This feature is isolated on branch `feature/csp-cashfree-sandbox-checkout-2026-11-18` and a draft pull request. It does not replace the existing admin login or video-management endpoints.
 
 ## Included in this preview
 
@@ -9,11 +9,11 @@ This feature is isolated on branch `feature/four-tool-membership-safe-preview-cl
 - Server-generated six-digit OTP, ten-minute expiry, maximum five verification attempts, three OTP requests per 15 minutes per Gmail address and ten per 15 minutes per IP (stored as a keyed hash).
 - HttpOnly customer session cookie (30 days).
 - Only the four named photo tools are included in this paid-membership gate. Other tools are left unchanged.
-- The four paid tools ask for Gmail OTP and a membership only when the customer tries to download or print. Plan requests are recorded as pending manual payments for the existing admin dashboard.
+- The four paid tools ask for Gmail OTP and a mobile number only when the customer tries to download or print. After sign-in, the customer can launch Cashfree Hosted Checkout for the selected plan.
 - Plans: BASIC ₹99/month, ADVANCED ₹199/month, PREMIUM ₹299/month (30 days each); price and validity are editable in the existing Admin Dashboard.
 - Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = ADVANCED + WhatsApp Selfie to Passport Photo.
-- Manual membership activation only after payment is independently verified. Admin must select the exact pending Payment History row (payment ID) for the customer and selected plan; the API re-checks that ID, customer, pending status, plan request marker, and current plan amount. Admin must then enter the independently verified UTR, transaction ID, or cash receipt reference. Payment verification, subscription replacement, and audit insertion execute together in one D1 batch transaction. A pending request or Gmail OTP alone is never treated as payment. No payment gateway, auto-debit or auto-renewal is added.
-- Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
+- Cashfree Sandbox order creation is server-side. The browser receives only the payment session ID and opens Cashfree Hosted Checkout in sandbox mode. The server verifies payment by fetching Cashfree's order payments; a signed webhook also independently fetches the payment status. Only a matching SUCCESS payment, INR amount, customer, order and current plan price can activate a subscription. Payment verification, previous subscription expiry, new subscription insertion and audit insertion run in one D1 batch. OTP verification, redirects, query strings and pending orders never activate a plan. No auto-debit or auto-renewal is added. Legacy manual payment records still require independent admin verification.
+- Admin customer list, suspend/restore/expire actions, legacy manual activation, Cashfree order/payment IDs and gateway status in payment history, editable plan pricing, per-tool enable/disable switches and audit records.
 
 ## Zero-cost Gmail email setup (recommended)
 
@@ -37,6 +37,30 @@ Google's current quota reference: https://developers.google.com/apps-script/guid
 
 Apply `migrations/0012_csp_customer_memberships.sql` to the same existing D1 database bound as `DB` for the current `/api/admin/videos` and `/api/admin/purchases` functions. Do not apply it to the separate Digital Seva preview database. This migration is not applied automatically. Its default plan seed uses `INSERT OR IGNORE`, so re-running it will not overwrite administrator-edited plan prices or active/inactive settings.
 
+## Cashfree Sandbox checkout (Preview only)
+
+Cloudflare Pages Preview variables must include:
+- `CASHFREE_APP_ID` = Cashfree Sandbox App ID (Secret)
+- `CASHFREE_SECRET_KEY` = Cashfree Sandbox Secret Key (Secret)
+- `CASHFREE_ENVIRONMENT` = `SANDBOX` (Text)
+- `CASHFREE_WEBHOOK_SECRET` = the webhook signing secret configured for Cashfree; if Cashfree uses the App Secret for webhook signing, set this to the same Sandbox Secret Key (Secret)
+- `CSP_SESSION_SECRET` and the existing Preview D1 `DB` binding.
+
+Never paste secret values into GitHub, source code, chat, or browser variables. Keep all credentials in Cloudflare Preview Secrets only. The payment API deliberately refuses to run unless the environment is Sandbox.
+
+### Cashfree checkout flow
+
+1. Customer selects Basic ₹99, Advanced ₹199, or Premium ₹299 and enters a 10-digit mobile number.
+2. Customer completes Gmail OTP verification.
+3. The server creates an INR Cashfree order and stores the order ID and payment session against that exact customer and plan.
+4. The browser opens Cashfree Hosted Checkout in Sandbox mode.
+5. After redirect, the browser calls the membership verification endpoint. The server fetches the order's payments directly from Cashfree; it does not trust the redirect.
+6. Cashfree webhook signatures are verified using the raw request body and timestamp. The webhook also fetches payment status directly from Cashfree before processing.
+7. Only a verified SUCCESS payment with the exact expected amount and plan activates the membership. Failed, pending, cancelled, forged, mismatched, or replayed callbacks do not activate it.
+
+### Additional Preview D1 migration
+
+After deploying the code to the Preview branch, apply `migrations/0013_csp_cashfree_checkout.sql` to the same Preview D1 database that already contains migration 0012. This migration adds Cashfree order/session/payment metadata to `csp_payments`. Do not apply it to Production or the separate Digital Seva database. It is not applied automatically by Pages deployment.
 ## Optional Brevo alternative
 
 If you already own and control a custom domain, you may instead set `BREVO_API_KEY` and `CSP_SENDER_EMAIL` in Cloudflare Preview and authenticate that domain in Brevo. Brevo's free tier has a daily sending quota, but a free Gmail sender address cannot be authenticated under current sender requirements. No Brevo account or paid plan is required when using the Google Apps Script route.
