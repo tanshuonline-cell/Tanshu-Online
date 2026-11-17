@@ -504,7 +504,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
 
   const textInput = (key: string, label: string, labelHi: string) => {
-    const bilingual = BILINGUAL_FIELD_KEYS.has(key) || /^(address|father-name|mother-name|relation-name)(-current|-correct)$/i.test(key);
+    const bilingual = BILINGUAL_FIELD_KEYS.has(key) || /^(name|address|father-name|mother-name|relation-name)(-current|-correct)$/i.test(key);
     const isPin = /pin$/i.test(key);
     const isAadhaar = /aadhaarNumber/i.test(key);
     const isPan = /PanNumber/i.test(key);
