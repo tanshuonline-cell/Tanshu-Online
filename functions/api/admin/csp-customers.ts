@@ -39,7 +39,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const admin = await isAdmin(request, env);
   if (!admin) return json({ success: false, error: 'Unauthorized admin access.' }, 401);
   if (!env.DB) return json({ success: false, error: 'D1 database binding is missing.' }, 503);
-  const body = await request.json().catch(() => ({})) as { action?: string; customerId?: string; planCode?: string; reference?: string; notes?: string };
+  const body = await request.json().catch(() => ({})) as { action?: string; customerId?: string; planCode?: string; paymentId?: string; reference?: string; notes?: string };
   const customerId = String(body.customerId || '');
   if (!customerId) return json({ success: false, error: 'Customer ID is required.' }, 400);
   try {
@@ -56,10 +56,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
       // A membership request is not a payment. Require an existing pending request
       // for this exact plan and an admin-entered receipt/UTR reference before activation.
+      const paymentId = String(body.paymentId || '').trim();
+      if (!paymentId) return json({ success: false, error: 'Select the exact pending payment request from Payment History before activation.' }, 400);
       const pendingPayment = await env.DB.prepare(
-        "SELECT id, amount_inr FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 1"
-      ).bind(customerId, 'Membership request: ' + planCode).first();
-      if (!pendingPayment?.id) return json({ success: false, error: 'No pending request exists for this customer and plan. Ask the customer to submit the correct plan request first.' }, 409);
+        "SELECT id, amount_inr FROM csp_payments WHERE id = ? AND customer_id = ? AND status = 'pending' AND reference = ?"
+      ).bind(paymentId, customerId, 'Membership request: ' + planCode).first();
+      if (!pendingPayment?.id) return json({ success: false, error: 'The selected payment is not a pending request for this customer and plan. Refresh the list and select the correct entry.' }, 409);
       if (Number(pendingPayment.amount_inr) !== amount) return json({ success: false, error: 'The pending request amount differs from the current plan price. Do not activate it; ask the customer to submit a fresh request.' }, 409);
 
       const paymentReference = String(body.reference || '').trim().slice(0, 180);
