@@ -49,7 +49,7 @@ export const CspMembershipPlans: React.FC = () => {
         </span>
       </button>)}
     </div>
-    {selected && <p className="mt-3 text-center text-xs font-semibold text-slate-600">{isHindi ? (selected.code === 'basic' ? 'बेसिक चुना गया' : selected.code === 'advanced' ? 'एडवांस्ड चुना गया' : 'प्रोफेशनल चुना गया') : selected.name + ' selected'} · ₹{selected.price} / {selected.durationDays} {isHindi ? (selected.durationDays === 30 ? 'महीना' : 'दिन') : (selected.durationDays === 30 ? 'month' : 'days')}</p>}
+    {selected && <p className="mt-3 text-center text-xs font-semibold text-slate-600">{isHindi ? (selected.code === 'basic' ? 'बेसिक चुना गया' : selected.code === 'advanced' ? 'एडवांस्ड चुना गया' : 'प्रीमियम चुना गया') : selected.name + ' selected'} · ₹{selected.price} / {selected.durationDays} {isHindi ? (selected.durationDays === 30 ? 'महीना' : 'दिन') : (selected.durationDays === 30 ? 'month' : 'days')}</p>}
   </div>;
 };
 
