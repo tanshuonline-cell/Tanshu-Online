@@ -128,12 +128,14 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   useEffect(() => {
     const onFrameMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_REQUEST') return;
+      const frame = document.querySelector('iframe[src*="premium-desktop-preview.html"]') as HTMLIFrameElement | null;
+      if (!frame || event.source !== frame.contentWindow) return;
       const source = event.source as Window | null;
       void requestExport().then(ok => { if (ok) source?.postMessage({ type: 'CSP_PREMIUM_EXPORT_ALLOWED' }, window.location.origin); });
     };
     window.addEventListener('message', onFrameMessage);
     return () => window.removeEventListener('message', onFrameMessage);
-  }, [session, allowed, toolEnabled, isFreeTool]);
+  }, [session, toolEnabled, isFreeTool, toolId]);
 
   // Last-resort export guard: catch native print calls and download-anchor clicks
   // so a missed UI handler cannot silently bypass the subscription/signup gate.
