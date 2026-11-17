@@ -283,12 +283,16 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('csp_order_id');
     if (!orderId) return;
-    const cleanUrl = new URL(window.location.href);
-    cleanUrl.searchParams.delete('csp_order_id');
-    // Cashfree may append its generic order_id parameter as well; remove both
-    // so a page refresh cannot route a membership order into video verification.
-    cleanUrl.searchParams.delete('order_id');
-    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    // Keep the order reference in the URL until verification succeeds. If D1
+    // or Cashfree is temporarily unavailable, a refresh can safely retry the
+    // same order instead of losing the only recovery reference.
+    const clearCspReturnParams = () => {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('csp_order_id');
+      // Cashfree may append its generic order_id parameter as well.
+      cleanUrl.searchParams.delete('order_id');
+      window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    };
     let active = true;
     fetch('/api/csp/payment/verify', {
       method: 'POST',
@@ -301,9 +305,12 @@ export default function App() {
         if (!response.ok || !data.success) throw new Error(data.error || 'We could not verify this payment yet.');
         if (!active) return;
         if (!data.paid) {
+          const status = String(data.status || '').toUpperCase();
+          if (['FAILED', 'USER_DROPPED', 'CANCELLED'].includes(status)) clearCspReturnParams();
           setMembershipPaymentNotice({ type: 'warning', message: data.message || 'Cashfree has not confirmed payment yet. If money was deducted, do not pay again; contact support with your order reference.' });
           return;
         }
+        clearCspReturnParams();
         setMembershipPaymentNotice({ type: 'success', message: 'Payment verified successfully. Your membership is now active. You can return to your premium tool and export.' });
       })
       .catch(error => {
