@@ -605,9 +605,6 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           { value: 'GENERAL', label: 'General', hi: 'सामान्य' }, { value: 'TATKAL', label: 'Tatkal (if available)', hi: 'तत्काल (यदि उपलब्ध हो)' }
         ])}
       </div>}
-      {service.id === 'aadhaar-address-doc' && <div className="ds-application-field-grid">
-        {textInput('docRelationName', "Father's name (enter the correct name only)", 'पिता का नाम (केवल सही नाम भरें)')}
-      </div>}
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-field-grid">
         {selectInput('hofRelation', 'Eligible relation to Head of Family', 'परिवार के मुखिया से संबंध चुनें', [
           { value: 'FATHER', label: 'Father', hi: 'पिता' }, { value: 'MOTHER', label: 'Mother', hi: 'माता' },
@@ -617,7 +614,8 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         {textInput('hofName', 'Head of Family full name', 'परिवार के मुखिया का पूरा नाम')}
         {textInput('hofAadhaarNumber', 'Head of Family Aadhaar number (12 digits)', 'परिवार के मुखिया का आधार नंबर (12 अंक)')}
       </div>}
-      {service.id === 'aadhaar-address-doc' && <div className="ds-address-choice-panel">
+      {service.id === 'aadhaar-address-doc' && <>
+      <div className="ds-address-choice-panel">
         <h4>{hi ? 'सेवा का प्रकार चुनें' : 'Select service type'}</h4>
         <label className="ds-address-choice-option">
           <input type="checkbox" checked={serviceOptions.addressChoice === 'Address Update Document Based'} onChange={(event) => setOption('addressChoice', event.target.checked ? 'Address Update Document Based' : '')} />
@@ -640,6 +638,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           {textInput('aadhaarPostOffice', 'Post office', 'डाकघर')}
         </div>
       </div>
+      </>}
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-profile ds-address-profile">
         <div className="ds-address-profile-heading">
           <span className="ds-address-step">ADDRESS DETAILS</span>
