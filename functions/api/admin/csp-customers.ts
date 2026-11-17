@@ -57,7 +57,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
       await env.DB.prepare("UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active'").bind(customerId).run();
       await env.DB.prepare("INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)").bind(id, customerId, planCode, amount, startsAt, expiresAt.toISOString(), admin, body.notes || null).run();
-      await env.DB.prepare("INSERT INTO csp_payments (id, customer_id, subscription_id, amount_inr, payment_method, reference, status, verified_by, verified_at, notes) VALUES (?, ?, ?, ?, 'manual', ?, 'verified', ?, CURRENT_TIMESTAMP, ?)").bind(crypto.randomUUID(), customerId, id, amount, body.reference || null, admin, body.notes || 'Manually verified by admin').run();
+      const pendingPayment = await env.DB.prepare("SELECT id FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 1").bind(customerId, 'Membership request: ' + planCode).first();
+      if (pendingPayment?.id) {
+        await env.DB.prepare("UPDATE csp_payments SET subscription_id = ?, amount_inr = ?, reference = ?, status = 'verified', verified_by = ?, verified_at = CURRENT_TIMESTAMP, notes = ? WHERE id = ? AND status = 'pending'").bind(id, amount, body.reference || null, admin, body.notes || ('Manually verified membership plan: ' + planCode), pendingPayment.id).run();
+      } else {
+        await env.DB.prepare("INSERT INTO csp_payments (id, customer_id, subscription_id, amount_inr, payment_method, reference, status, verified_by, verified_at, notes) VALUES (?, ?, ?, ?, 'manual', ?, 'verified', ?, CURRENT_TIMESTAMP, ?)").bind(crypto.randomUUID(), customerId, id, amount, body.reference || null, admin, body.notes || ('Manually verified membership plan: ' + planCode)).run();
+      }
       await env.DB.prepare("INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) VALUES (?, ?, 'activate_membership', ?, ?)").bind(crypto.randomUUID(), admin, customerId, JSON.stringify({ planCode, durationDays, amount })).run();
       return json({ success: true, message: 'Membership activated.', subscriptionId: id, expiresAt: expiresAt.toISOString() });
     }
