@@ -362,7 +362,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const totalVerifiedPurchases = purchases.filter((p) => p.paymentStatus === 'PAID').length;
   const getCspPlanAdminLabel = (code: string) => {
     const plan = cspPlans.find(item => item.plan_code === code);
-    const name = code === 'advanced' ? 'ADVANCED' : code === 'premium' ? 'PROFESSIONAL' : 'BASIC';
+    const name = code === 'advanced' ? 'ADVANCED' : code === 'premium' ? 'PREMIUM' : 'BASIC';
     return plan ? `${name} ₹${Number(plan.amount_inr)} · ${Number(plan.duration_days)} DAYS` : name;
   };
 
@@ -1283,7 +1283,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
               <h3 className="mb-3 text-sm font-extrabold text-white">Membership Pricing Controls</h3>
               <div className="grid gap-3 md:grid-cols-3">
                 {cspPlans.map(plan => <div key={plan.plan_code} className="rounded-xl border border-slate-800 bg-slate-900 p-3">
-                  <div className="mb-2 text-xs font-black uppercase text-slate-300">{plan.plan_code === 'advanced' ? 'ADVANCED' : plan.plan_code === 'premium' ? 'PROFESSIONAL' : 'BASIC'}</div>
+                  <div className="mb-2 text-xs font-black uppercase text-slate-300">{plan.plan_code === 'advanced' ? 'ADVANCED' : plan.plan_code === 'premium' ? 'PREMIUM' : 'BASIC'}</div>
                   <label className="block text-[10px] text-slate-400">Price (INR)<input type="number" min="0" max="100000" value={plan.amount_inr} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, amount_inr: event.target.value } : item))} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
                   <label className="mt-2 block text-[10px] text-slate-400">Validity (days)<input type="number" min="1" max="3650" value={plan.duration_days} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, duration_days: event.target.value } : item))} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
                   <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" checked={Boolean(plan.is_active)} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, is_active: event.target.checked ? 1 : 0 } : item))} /> Active</label>
@@ -1308,7 +1308,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                     <tr key={customer.id}>
                       <td className="p-3 font-semibold text-white">{customer.email}</td>
                       <td className="p-3 text-slate-300">{customer.status} · Verified</td>
-                      <td className="p-3 text-slate-300">{customer.plan_code ? (customer.plan_code === 'advanced' ? 'ADVANCED' : customer.plan_code === 'premium' ? 'PROFESSIONAL' : 'BASIC') + ' · ₹' + customer.amount_inr : 'No active plan'}</td>
+                      <td className="p-3 text-slate-300">{customer.plan_code ? (customer.plan_code === 'advanced' ? 'ADVANCED' : customer.plan_code === 'premium' ? 'PREMIUM' : 'BASIC') + ' · ₹' + customer.amount_inr : 'No active plan'}</td>
                       <td className="p-3 text-slate-300">{customer.expires_at ? new Date(customer.expires_at).toLocaleDateString() : '—'}</td>
                       <td className="p-3"><div className="flex flex-wrap gap-1.5">
                         <button disabled={!cspPlans.find(plan => plan.plan_code === 'basic' && Number(plan.is_active) === 1)} onClick={() => manageCspCustomer(customer.id, 'activate', 'basic')} className="rounded bg-blue-900 px-2 py-1 text-[10px] font-bold text-blue-100 disabled:cursor-not-allowed disabled:opacity-40">{getCspPlanAdminLabel('basic')}</button>
@@ -1329,7 +1329,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 <table className="w-full min-w-[700px] text-left text-xs">
                   <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Amount</th><th className="p-3">Reference / UTR</th><th className="p-3">Status</th><th className="p-3">Verified By</th><th className="p-3">Date</th></tr></thead>
                   <tbody className="divide-y divide-slate-800">
-                    {cspPayments.length ? cspPayments.map(payment => <tr key={payment.id}><td className="p-3 text-slate-200">{payment.email}</td><td className="p-3 font-bold text-emerald-300">₹{payment.amount_inr}</td><td className="p-3 text-slate-300">{payment.reference || '—'}</td><td className="p-3 text-slate-300">{payment.status}</td><td className="p-3 text-slate-300">{payment.verified_by || '—'}</td><td className="p-3 text-slate-400">{payment.verified_at ? new Date(payment.verified_at).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</td></tr>) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">No CSP payments recorded yet.</td></tr>}
+                    {cspPayments.length ? cspPayments.map(payment => <tr key={payment.id}><td className="p-3 text-slate-200">{payment.email}</td><td className="p-3 font-bold text-emerald-300">₹{payment.amount_inr}</td><td className="p-3 text-slate-300">{payment.reference === 'Membership request: premium' ? 'Membership request: Premium' : payment.reference || '—'}</td><td className="p-3 text-slate-300">{payment.status}</td><td className="p-3 text-slate-300">{payment.verified_by || '—'}</td><td className="p-3 text-slate-400">{payment.verified_at ? new Date(payment.verified_at).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</td></tr>) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">No CSP payments recorded yet.</td></tr>}
                   </tbody>
                 </table>
               </div>
