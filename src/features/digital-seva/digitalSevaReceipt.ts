@@ -23,6 +23,7 @@ export interface DigitalSevaReceiptView {
 
 const ENGLISH_LABELS: Record<string, string> = {
   docRelationName: "Father's name", aadhaarNumber: 'Aadhaar number', hofAadhaarNumber: 'Head of Family Aadhaar number',
+  aadhaarApplicantName: 'Applicant name', aadhaarFatherNameCurrent: "Father's old name", aadhaarFatherNameCorrect: "Father's new name",
   existingPanNumber: 'Existing PAN number', panApplicantName: 'Applicant name', panFatherName: "Father's name",
   panMotherName: "Mother's name", panDob: 'Date of birth', panParentPrint: 'Parent name to print',
   aadhaarHouse: 'House / Building / Apartment', aadhaarStreet: 'Street / Road / Lane',
@@ -30,6 +31,7 @@ const ENGLISH_LABELS: Record<string, string> = {
   aadhaarBlock: 'Block', aadhaarSubdivision: 'Sub-division', aadhaarDistrict: 'District',
   aadhaarPoliceStation: 'Police Station', aadhaarPostOffice: 'Post Office', aadhaarState: 'State',
   aadhaarPin: 'PIN Code', hofName: 'Head of Family name', hofRelation: 'Relationship to Head of Family',
+  addressChoice: 'Selected service type',
   newMobile: 'New mobile number', newEmail: 'New email address', voterDob: 'Date of birth',
   voterAddress: 'Address', voterRelativeName: "Relative's name", certificateDistrict: 'District',
   certificateSubdivision: 'Sub-division', certificateBlock: 'Block', certificateVillage: 'Village / Mohalla',
@@ -38,6 +40,7 @@ const ENGLISH_LABELS: Record<string, string> = {
 
 const HINDI_LABELS: Record<string, string> = {
   docRelationName: 'पिता का नाम', aadhaarNumber: 'आधार नंबर', hofAadhaarNumber: 'मुखिया का आधार नंबर',
+  aadhaarApplicantName: 'आवेदक का नाम', aadhaarFatherNameCurrent: 'पिता का पुराना नाम', aadhaarFatherNameCorrect: 'पिता का नया नाम',
   existingPanNumber: 'मौजूदा PAN नंबर', panApplicantName: 'आवेदक का नाम', panFatherName: 'पिता का नाम',
   panMotherName: 'माता का नाम', panDob: 'जन्म तिथि', panParentPrint: 'प्रिंट होने वाला अभिभावक का नाम',
   aadhaarHouse: 'मकान / भवन / अपार्टमेंट', aadhaarStreet: 'गली / सड़क / लेन',
@@ -45,6 +48,7 @@ const HINDI_LABELS: Record<string, string> = {
   aadhaarBlock: 'प्रखंड / ब्लॉक', aadhaarSubdivision: 'अनुमंडल', aadhaarDistrict: 'जिला',
   aadhaarPoliceStation: 'थाना', aadhaarPostOffice: 'डाकघर', aadhaarState: 'राज्य',
   aadhaarPin: 'पिन कोड', hofName: 'परिवार के मुखिया का नाम', hofRelation: 'मुखिया से संबंध',
+  addressChoice: 'चुनी गई सेवा',
   newMobile: 'नया मोबाइल नंबर', newEmail: 'नया ईमेल', voterDob: 'जन्म तिथि',
   voterAddress: 'पता', voterRelativeName: 'रिश्तेदार का नाम', certificateDistrict: 'जिला',
   certificateSubdivision: 'अनुमंडल', certificateBlock: 'प्रखंड', certificateVillage: 'गाँव / मोहल्ला',
