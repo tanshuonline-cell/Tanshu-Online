@@ -35,7 +35,7 @@ const ENGLISH_LABELS: Record<string, string> = {
   newMobile: 'New mobile number', newEmail: 'New email address', voterDob: 'Date of birth',
   voterAddress: 'Address', voterRelativeName: "Relative's name", certificateDistrict: 'District',
   certificateSubdivision: 'Sub-division', certificateBlock: 'Block', certificateVillage: 'Village / Mohalla',
-  certificatePin: 'PIN Code', otherDocumentName: 'Other document name', addressChoice: 'Address choice'
+  certificatePin: 'PIN Code', otherDocumentName: 'Other document name'
 };
 
 const HINDI_LABELS: Record<string, string> = {
@@ -52,7 +52,7 @@ const HINDI_LABELS: Record<string, string> = {
   newMobile: 'नया मोबाइल नंबर', newEmail: 'नया ईमेल', voterDob: 'जन्म तिथि',
   voterAddress: 'पता', voterRelativeName: 'रिश्तेदार का नाम', certificateDistrict: 'जिला',
   certificateSubdivision: 'अनुमंडल', certificateBlock: 'प्रखंड', certificateVillage: 'गाँव / मोहल्ला',
-  certificatePin: 'पिन कोड', otherDocumentName: 'अन्य दस्तावेज़ का नाम', addressChoice: 'चुना गया पता'
+  certificatePin: 'पिन कोड', otherDocumentName: 'अन्य दस्तावेज़ का नाम'
 };
 
 const ADDRESS_ORDER = [
