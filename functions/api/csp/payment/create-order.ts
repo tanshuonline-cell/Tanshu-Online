@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
   const planCode = String(body.planCode || '').toLowerCase();
   const phone = String(body.customerPhone || '').replace(/\D/g, '');
   if (!['basic', 'advanced', 'premium'].includes(planCode)) return json({ success: false, error: 'Choose a valid membership plan.' }, 400);
-  if (!/^\\d{10}$/.test(phone)) return json({ success: false, error: 'Enter a valid 10-digit mobile number for Cashfree checkout.' }, 400);
+  if (!/^\d{10}$/.test(phone)) return json({ success: false, error: 'Enter a valid 10-digit mobile number for Cashfree checkout.' }, 400);
   try {
     const customer = await env.DB.prepare("SELECT id, email FROM csp_customers WHERE id = ? AND status = 'active'").bind(session.id).first();
     if (!customer) return json({ success: false, error: 'Customer account is unavailable.' }, 403);
