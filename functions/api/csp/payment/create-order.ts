@@ -30,16 +30,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
     const amount = Number(plan?.amount_inr);
     if (!plan || !Number.isSafeInteger(amount) || amount < 1) return json({ success: false, error: 'This membership plan is unavailable.' }, 404);
 
-    // Reuse a recent open checkout for this customer and exact plan. This prevents
-    // duplicate pending orders when the customer clicks Pay more than once.
-    const existing = await env.DB.prepare(
-      "SELECT gateway_order_id, gateway_payment_session_id, amount_inr FROM csp_payments WHERE customer_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND reference = ? AND created_at >= datetime('now', '-15 minutes') ORDER BY created_at DESC LIMIT 1"
-    ).bind(customer.id, 'Cashfree membership: ' + planCode).first();
-    if (existing?.gateway_order_id && existing?.gateway_payment_session_id && Number(existing.amount_inr) === amount) {
-      // Before reusing a pending database row, ask Cashfree whether the order
-      // already has a successful payment. A prior SUCCESS must never reopen
-      // Hosted Checkout just because local activation previously failed.
-      const existingPaymentsResponse = await fetch(cashfreeBase(String(env.CASHFREE_ENVIRONMENT || '').toUpperCase()) + '/orders/' + encodeURIComponent(String(existing.gateway_order_id)) + '/payments', {
+    // Reconcile every still-pending order for this customer and plan before
+    // creating another one. A successful older Sandbox order must never be
+    // hidden by a 15-minute cutoff or replaced with a second charge.
+    const pendingOrders = await env.DB.prepare(
+      "SELECT gateway_order_id, gateway_payment_session_id, amount_inr FROM csp_payments WHERE customer_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 20"
+    ).bind(customer.id, 'Cashfree membership: ' + planCode).all();
+
+    for (const existing of (pendingOrders.results || []) as Array<{ gateway_order_id?: string; gateway_payment_session_id?: string; amount_inr: number }>) {
+      if (!existing.gateway_order_id) {
+        return json({ success: false, error: 'A previous membership order is still unresolved. Do not pay again; support must reconcile that order first.' }, 409);
+      }
+      const existingPaymentsResponse = await fetch(cashfreeBase('SANDBOX') + '/orders/' + encodeURIComponent(String(existing.gateway_order_id)) + '/payments', {
         headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': API_VERSION }
       });
       if (!existingPaymentsResponse.ok) {
@@ -47,7 +49,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
       }
       const existingPayments = await existingPaymentsResponse.json().catch(() => null);
       if (!Array.isArray(existingPayments)) {
-        return json({ success: false, error: 'Cashfree returned an invalid status for the previous order. Do not pay again; the order must be checked first.' }, 503);
+        return json({ success: false, error: 'Cashfree returned an invalid status for a previous order. Do not pay again; the order must be checked first.' }, 503);
       }
       const successfulPayment = existingPayments.find((item: any) => String(item.payment_status || '').toUpperCase() === 'SUCCESS');
       if (successfulPayment) {
@@ -67,11 +69,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
       }
       const latestExistingStatus = String(existingPayments[0]?.payment_status || 'PENDING').toUpperCase();
       if (!['FAILED', 'USER_DROPPED', 'CANCELLED'].includes(latestExistingStatus)) {
+        if (Number(existing.amount_inr) !== amount || !existing.gateway_payment_session_id) {
+          return json({ success: false, error: 'A previous Cashfree order is still pending and cannot safely be replaced. Do not pay again until it is reconciled.' }, 409);
+        }
         return json({ success: true, orderId: existing.gateway_order_id, paymentSessionId: existing.gateway_payment_session_id, environment: 'sandbox', reused: true });
       }
-      await env.DB.prepare("UPDATE csp_payments SET gateway_payment_status = ? WHERE gateway_order_id = ? AND status = 'pending'").bind(latestExistingStatus, existing.gateway_order_id).run();
+      await env.DB.prepare("UPDATE csp_payments SET gateway_payment_status = ?, status = 'rejected', notes = 'Cashfree reported a terminal failed or abandoned payment attempt; a new order may be created.' WHERE gateway_order_id = ? AND status = 'pending'").bind(latestExistingStatus, existing.gateway_order_id).run();
     }
-
     const origin = new URL(request.url).origin;
     const orderId = 'csp_' + crypto.randomUUID().replace(/-/g, '').slice(0, 24);
     const response = await fetch(cashfreeBase(String(env.CASHFREE_ENVIRONMENT || '').toUpperCase()) + '/orders', {
