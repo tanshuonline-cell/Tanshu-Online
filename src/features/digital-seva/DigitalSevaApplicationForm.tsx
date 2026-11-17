@@ -82,6 +82,23 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const manuallyEditedHindiFieldsRef = useRef<Set<string>>(new Set());
   const autoResumeAttemptedRef = useRef(false);
   const remoteDraftQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(() => {
+    if (step !== 2 || !applicant.name.trim()) return;
+    const applicantNameKey = service.id === 'aadhaar-address-doc'
+      ? 'aadhaarApplicantName'
+      : service.id === 'pan-new' ? 'panApplicantName'
+      : COMPACT_NAME_FIELD_SERVICES.has(service.id) ? 'applicantName' : '';
+    if (!applicantNameKey) return;
+    setFieldValues((old) => {
+      const next = { ...old };
+      if (!String(next[applicantNameKey] || '').trim()) next[applicantNameKey] = applicant.name.trim();
+      const hindiKey = `${applicantNameKey}Hindi`;
+      if (!String(next[hindiKey] || '').trim() && !manuallyEditedHindiFieldsRef.current.has(applicantNameKey)) {
+        next[hindiKey] = suggestHindiTransliteration(next[applicantNameKey]);
+      }
+      return next;
+    });
+  }, [step, applicant.name, service.id]);
   useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
 
   useEffect(() => {
