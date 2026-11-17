@@ -463,7 +463,7 @@ new MutationObserver(render).observe(document.documentElement,{attributes:true,a
 
 <script>
 (()=> {
-  if (window.parent === window) return;
+  if (window.parent === window) { window.location.replace('/csp-pvc-studio'); return; }
   let bypass = false;
   let pendingButton = null;
   let pendingPrint = false;
