@@ -115,7 +115,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     };
     window.addEventListener('message', onFrameMessage);
     return () => window.removeEventListener('message', onFrameMessage);
-  }, [session, toolEnabled, toolId]);
+  }, [toolEnabled, toolId, isHindi]);
 
   // Catch both real user clicks and programmatic download links, plus Ctrl/Cmd+P.
   useEffect(() => {
@@ -159,7 +159,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       if (window.print === guardedPrint) window.print = originalPrint;
       if (HTMLAnchorElement.prototype.click === guardedAnchorClick) HTMLAnchorElement.prototype.click = originalAnchorClick;
     };
-  }, [session, toolEnabled, toolId]);
+  }, [toolEnabled, toolId, isHindi]);
   if (!toolEnabled) return <div className="min-h-screen grid place-items-center bg-slate-50 px-5 text-center"><div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"><h1 className="text-xl font-black">{isHindi ? 'यह टूल फिलहाल उपलब्ध नहीं है' : 'This tool is temporarily unavailable'}</h1><p className="mt-2 text-sm text-slate-600">{isHindi ? 'कृपया बाद में दोबारा प्रयास करें।' : 'Please check back later.'}</p><a href="/csc-cyber-cafe-toolkits" className="mt-4 inline-block font-bold text-rose-800">{isHindi ? 'सभी टूल देखें' : 'View all tools'}</a></div></div>;
   return <Gate.Provider value={{ requestExport }}>
     <div className="relative min-h-screen">
