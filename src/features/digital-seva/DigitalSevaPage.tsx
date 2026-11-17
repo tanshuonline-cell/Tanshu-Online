@@ -119,7 +119,10 @@ export default function DigitalSevaPage() {
   useEffect(() => {
     // Do not automatically reopen a saved service form on every page refresh.
     // Incomplete paid requests remain available through the explicit Recover Request flow.
-    try { window.localStorage.removeItem('tanshu-digital-seva-active-service'); } catch { /* browser storage may be disabled */ }
+    try {
+      window.localStorage.removeItem('tanshu-digital-seva-active-service');
+      window.sessionStorage.removeItem('tanshu-digital-seva-active-service');
+    } catch { /* browser storage may be disabled */ }
   }, []);
   useEffect(() => {
     let cancelled = false;
@@ -129,7 +132,22 @@ export default function DigitalSevaPage() {
         saved = window.localStorage.getItem('tanshu-ds-paid-checkout-v1') ||
           window.sessionStorage.getItem('tanshu-ds-paid-checkout-v1') || '';
       } catch { return; }
-      if (!saved) return;
+      if (!saved) {
+        const queryOrderId = new URL(window.location.href).searchParams.get('cashfree_order_id') || '';
+        if (!queryOrderId) return;
+        try {
+          const response = await fetch('/api/digital-seva/request-draft', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'status', orderId: queryOrderId })
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!cancelled && response.ok && result.success && ['SUBMITTED', 'CLOSED'].includes(result.state)) {
+            clearDigitalSevaRecoveryMarkers();
+          }
+        } catch { /* keep URL untouched if the status service is temporarily unavailable */ }
+        return;
+      }
       let parsed: { serviceId?: string; payment?: PrepaidDigitalSevaPayment };
       try { parsed = JSON.parse(saved); } catch {
         clearDigitalSevaRecoveryMarkers();
@@ -300,7 +318,10 @@ export default function DigitalSevaPage() {
 
   const closeBookingForm = () => {
     setShowBookingForm(false);
-    try { window.localStorage.removeItem('tanshu-digital-seva-active-service'); } catch { /* browser storage may be disabled */ }
+    try {
+      window.localStorage.removeItem('tanshu-digital-seva-active-service');
+      window.sessionStorage.removeItem('tanshu-digital-seva-active-service');
+    } catch { /* browser storage may be disabled */ }
   };
 
   return (
