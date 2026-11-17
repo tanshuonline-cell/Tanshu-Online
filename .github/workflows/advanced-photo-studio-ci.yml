@@ -20,9 +20,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        env:
-          ONNXRUNTIME_NODE_INSTALL: skip
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund --onnxruntime-node-install-cuda=skip
       - name: TypeScript check
         run: npm run lint
       - name: Production build
