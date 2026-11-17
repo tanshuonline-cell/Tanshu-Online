@@ -102,7 +102,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         'SELECT order_id, service_id, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
       ).bind(orderId).first();
       if (!local) return json({ success: true, state: 'CLOSED' });
-      if (String(local.status) === 'CLAIMED' || local.booking_id) {
+      const linkedBooking = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT booking_reference FROM digital_seva_bookings WHERE checkout_order_id = ? LIMIT 1'
+      ).bind(orderId).first();
+      if (String(local.status) === 'CLAIMED' || local.booking_id || linkedBooking?.booking_reference) {
         return json({ success: true, state: 'SUBMITTED' });
       }
       if (!['PENDING', 'PAID'].includes(String(local.status))) {
