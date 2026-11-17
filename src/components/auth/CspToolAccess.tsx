@@ -102,7 +102,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   };
   const requestExport = async () => {
     if (!toolEnabled) { setNotice(isHindi ? 'यह टूल अभी अस्थायी रूप से बंद है।' : 'This tool is temporarily unavailable.'); return false; }
-    const currentSession = session || await refresh();
+    const currentSession = await refresh();
     if (currentSession.allowedTools?.includes(toolId)) return true;
     setPlansOpen(true);
     return false;
