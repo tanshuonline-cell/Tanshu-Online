@@ -121,12 +121,22 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const otherDocumentName = String(body.otherDocumentName || '').trim();
   const requiredDocumentIds: Record<string, string[]> = {
     'aadhaar-address-doc': ['address-proof'],
+    'pan-new': ['aadhaar'],
     'pan-correction': ['existing-pan', 'aadhaar'],
+    'pan-photo-signature': ['existing-pan', 'aadhaar'],
+    'aadhaar-co': ['aadhaar', 'address-proof'],
+    'aadhaar-mobile': ['aadhaar'],
+    'aadhaar-email': ['aadhaar'],
+    'voter-new': ['age-proof', 'address-proof', 'photo'],
     'voter-correction': ['epic', 'correction-proof'],
     'certificate-correction': ['existing-certificate', 'correct-proof'],
+    'ration-new': ['family-details', 'identity', 'address-proof'],
     'ration-update': ['existing-ration']
   };
-  for (const documentId of requiredDocumentIds[serviceId] || []) {
+  const requiredForRequest = [...(requiredDocumentIds[serviceId] || [])];
+  if (serviceId === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
+  if (serviceId === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
+  for (const documentId of requiredForRequest) {
     if (!uploadInputs.some((item) => item.documentType === documentId)) {
       return json({ success: false, error: `Please upload the required supporting document: ${documentId}.` }, 400);
     }
