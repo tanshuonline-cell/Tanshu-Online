@@ -293,6 +293,7 @@ export default function App() {
       .then(async response => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) throw new Error(data.error || 'We could not verify this payment yet.');
+        if (!active) return;
         if (!data.paid) {
           setMembershipPaymentNotice({ type: 'warning', message: data.message || 'Cashfree has not confirmed payment yet. If money was deducted, do not pay again; contact support with your order reference.' });
           return;
