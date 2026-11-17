@@ -285,6 +285,9 @@ export default function App() {
     if (!orderId) return;
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete('csp_order_id');
+    // Cashfree may append its generic order_id parameter as well; remove both
+    // so a page refresh cannot route a membership order into video verification.
+    cleanUrl.searchParams.delete('order_id');
     window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
     let active = true;
     fetch('/api/csp/payment/verify', {
