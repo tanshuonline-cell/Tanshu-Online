@@ -31,7 +31,7 @@ export const CORRECTION_OPTIONS: Record<string, ApplicantCorrection[]> = {
     { id: "signature", label: "Signature", hindi: "हस्ताक्षर" }
   ],
   "aadhaar-address-doc": [
-    doc("address-proof", "UIDAI-accepted Proof of Address", "UIDAI-स्वीकृत पता प्रमाण", "Upload one clear document from the current UIDAI Proof of Address list. Final acceptance is checked against the official route.", "वर्तमान UIDAI पता प्रमाण सूची में से एक स्पष्ट दस्तावेज़ अपलोड करें। अंतिम स्वीकार्यता आधिकारिक माध्यम से जाँची जाएगी।", true)
+    { id: "address", label: "Address", hindi: "पता" }
   ],
   "aadhaar-address-hof": [
     { id: "address", label: "Address through Head of Family", hindi: "परिवार के मुखिया के माध्यम से पता" }
@@ -123,30 +123,7 @@ export const SERVICE_DOCUMENTS: Record<string, ServiceDocumentOption[]> = {
     doc("change-proof", "Other proof requested by PAN provider", "PAN प्रदाता द्वारा माँगा गया अन्य प्रमाण", "The provider may require supporting proof for the requested change.", "माँगे गए बदलाव के लिए प्रदाता सहायक प्रमाण माँग सकता है।")
   ],
   "aadhaar-address-doc": [
-    doc("aadhaar", "Aadhaar number / current Aadhaar", "आधार नंबर / मौजूदा आधार", "Do not type the full Aadhaar number in this Preview form.", "इस Preview फॉर्म में पूरा आधार नंबर न लिखें।", true),
-    doc("passport", "Valid Indian passport", "वैध भारतीय पासपोर्ट", "UIDAI List IV includes this as PoI and PoA.", "UIDAI List IV में पहचान और पते के प्रमाण के रूप में।"),
-    doc("voter-id", "Voter ID / e-Voter ID verifiable online", "ऑनलाइन सत्यापित वोटर आईडी / ई-वोटर आईडी", "UIDAI List IV includes it as PoI and PoA.", "UIDAI List IV में पहचान और पते के प्रमाण के रूप में।"),
-    doc("ration-card", "Ration / PDS photograph card or e-Ration card", "राशन / PDS फोटो कार्ड या ई-राशन कार्ड", "UIDAI List IV includes it as PoI and PoA.", "UIDAI List IV में पहचान और पते के प्रमाण के रूप में।"),
-    doc("domicile", "State domicile certificate", "राज्य का मूल निवास प्रमाणपत्र", "UIDAI List IV includes it as PoI and PoA.", "UIDAI List IV में पहचान और पते के प्रमाण के रूप में।"),
-    doc("electricity", "Electricity bill (not older than 3 months)", "बिजली बिल (3 महीने से पुराना नहीं)", "UIDAI List IV PoA category.", "UIDAI List IV की पता प्रमाण श्रेणी।"),
-    doc("water-bill", "Water bill (not older than 3 months)", "पानी का बिल (3 महीने से पुराना नहीं)", "UIDAI List IV PoA category.", "UIDAI List IV की पता प्रमाण श्रेणी।"),
-    doc("phone-bill", "Landline / post-paid mobile / broadband bill (not older than 3 months)", "लैंडलाइन / पोस्टपेड मोबाइल / ब्रॉडबैंड बिल (3 महीने से पुराना नहीं)", "UIDAI List IV PoA category.", "UIDAI List IV की पता प्रमाण श्रेणी।"),
-    doc("bank-statement", "Bank / post-office statement (not older than 3 months)", "बैंक / पोस्ट ऑफिस स्टेटमेंट (3 महीने से पुराना नहीं)", "Must meet the current UIDAI List IV conditions, including bank stamp/signature where specified.", "UIDAI List IV की मौजूदा शर्तें, जहाँ लागू हों बैंक की मुहर/हस्ताक्षर सहित।"),
-    doc("rent-agreement", "Registered sale / gift / rent / lease / leave-and-licence agreement", "रजिस्टर्ड बिक्री / गिफ्ट / किराया / लीज़ एग्रीमेंट", "UIDAI List IV PoA category; confirm the exact current document conditions.", "UIDAI List IV की पता प्रमाण श्रेणी; दस्तावेज़ की वर्तमान शर्तें जाँचें।"),
-    doc("property-tax", "Property tax receipt (not older than 1 year)", "प्रॉपर्टी टैक्स रसीद (1 वर्ष से पुरानी नहीं)", "UIDAI List IV PoA category.", "UIDAI List IV की पता प्रमाण श्रेणी।"),
-    doc("service-id", "Government / PSU / statutory-body service photo ID", "सरकारी / PSU / वैधानिक निकाय का सेवा फोटो पहचान पत्र", "UIDAI List IV accepts specified service photo IDs for PoI and PoA.", "UIDAI List IV में निर्दिष्ट सेवा फोटो पहचान पत्र स्वीकार हैं।"),
-    doc("pensioner-id", "Pensioner / Freedom Fighter photo ID or Pension Payment Order", "पेंशनर / स्वतंत्रता सेनानी फोटो आईडी या पेंशन भुगतान आदेश", "UIDAI List IV accepts specified cards/orders for the proof categories shown in the list.", "UIDAI List IV में सूचीबद्ध प्रमाण श्रेणियों के लिए निर्दिष्ट कार्ड/आदेश स्वीकार हैं।"),
-    doc("kisan-passbook", "Kisan photo passbook", "किसान फोटो पासबुक", "UIDAI List IV includes it for identity and address proof.", "UIDAI List IV में पहचान और पता प्रमाण के रूप में।"),
-    doc("health-card", "CGHS / ECHS / ESIC / Medi-Claim card", "CGHS / ECHS / ESIC / मेडिक्लेम कार्ड", "UIDAI List IV accepts specified government/PSU health cards for identity proof.", "UIDAI List IV में निर्दिष्ट सरकारी/PSU स्वास्थ्य कार्ड पहचान प्रमाण के रूप में।"),
-    doc("mgnrega", "MGNREGA / NREGS job card", "मनरेगा / NREGS जॉब कार्ड", "UIDAI List IV includes it for specified proof categories.", "UIDAI List IV में निर्दिष्ट प्रमाण श्रेणियों के लिए।"),
-    doc("education-record", "Recognised school / university marksheet or certificate", "मान्यता प्राप्त स्कूल / विश्वविद्यालय की मार्कशीट या प्रमाणपत्र", "UIDAI List IV includes education records for specified identity / relationship / DOB categories.", "UIDAI List IV में शिक्षा रिकॉर्ड निर्दिष्ट पहचान / संबंध / जन्मतिथि श्रेणियों के लिए।"),
-    doc("bank-passbook", "Bank / post-office passbook with required stamp and photograph", "आवश्यक मुहर और फोटो वाली बैंक / पोस्ट ऑफिस पासबुक", "Must meet the exact UIDAI List IV stamp/signature conditions.", "UIDAI List IV की मुहर/हस्ताक्षर संबंधी शर्तें पूरी होनी चाहिए।"),
-    doc("marriage-certificate", "Government-issued marriage certificate", "सरकार द्वारा जारी विवाह प्रमाणपत्र", "UIDAI List IV accepts it for specified identity, address and relationship categories.", "UIDAI List IV में निर्दिष्ट पहचान, पता और संबंध श्रेणियों के लिए।"),
-    doc("divorce-decree", "Family-court divorce decree", "परिवार न्यायालय का तलाक आदेश", "UIDAI List IV includes it for specified identity changes.", "UIDAI List IV में निर्दिष्ट पहचान बदलाव के लिए।"),
-    doc("caste-certificate", "SC / ST / OBC certificate issued by Central or State Government", "केंद्र / राज्य सरकार द्वारा जारी SC / ST / OBC प्रमाणपत्र", "UIDAI List IV accepts it for specified proof categories.", "UIDAI List IV में निर्दिष्ट प्रमाण श्रेणियों के लिए।"),
-    doc("uidai-standard-certificate", "UIDAI standard-format certificate from an authorised officer", "अधिकृत अधिकारी का UIDAI मानक प्रारूप प्रमाणपत्र", "Only the issuing authorities and conditions listed by UIDAI are accepted.", "केवल UIDAI द्वारा सूचीबद्ध जारीकर्ता और शर्तें मान्य हैं।"),
-    doc("panchayat-address-certificate", "UIDAI standard-format certificate from village panchayat authority", "ग्राम पंचायत प्राधिकारी का UIDAI मानक प्रारूप प्रमाणपत्र", "Address proof only for the authorised rural-area issuer and format.", "केवल अधिकृत ग्रामीण जारीकर्ता और प्रारूप का पता प्रमाण।"),
-    doc("other-proof", "Other UIDAI-listed Proof of Address", "UIDAI सूची का अन्य पता प्रमाण", "Enter the exact document name and verify it in the current UIDAI list.", "सही नाम लिखें और वर्तमान UIDAI सूची में सत्यापित करें।")
+    doc("address-proof", "UIDAI-accepted Proof of Address", "UIDAI-स्वीकृत पता प्रमाण", "Upload one clear document from the current UIDAI Proof of Address list. Final acceptance is checked against the official route.", "वर्तमान UIDAI पता प्रमाण सूची में से एक स्पष्ट दस्तावेज़ अपलोड करें। अंतिम स्वीकार्यता आधिकारिक माध्यम से जाँची जाएगी।", true)
   ],
   "aadhaar-address-hof": [
     doc("applicant-aadhaar", "Applicant's Aadhaar", "आवेदक का आधार", "Do not type the full Aadhaar number in this Preview form.", "इस Preview फॉर्म में पूरा आधार नंबर न लिखें।", true),
