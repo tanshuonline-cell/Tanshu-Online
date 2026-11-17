@@ -3,6 +3,7 @@ import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getR
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
+import { getServiceDocumentOptions } from '../../../src/features/digital-seva/serviceApplicationSchema';
 import { cashfreeApiBase } from './_cashfree';
 interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 
@@ -119,21 +120,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
-  const requiredDocumentIds: Record<string, string[]> = {
-    'aadhaar-address-doc': ['address-proof'],
-    'pan-new': ['aadhaar'],
-    'pan-correction': ['existing-pan', 'aadhaar'],
-    'pan-photo-signature': ['existing-pan', 'aadhaar'],
-    'aadhaar-co': ['aadhaar', 'address-proof'],
-    'aadhaar-mobile': ['aadhaar'],
-    'aadhaar-email': ['aadhaar'],
-    'voter-new': ['age-proof', 'address-proof', 'photo'],
-    'voter-correction': ['epic', 'correction-proof'],
-    'certificate-correction': ['existing-certificate', 'correct-proof'],
-    'ration-new': ['family-details', 'identity', 'address-proof'],
-    'ration-update': ['existing-ration']
-  };
-  const requiredForRequest = [...(requiredDocumentIds[serviceId] || [])];
+  const requiredForRequest = ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(serviceId)
+    ? []
+    : getServiceDocumentOptions(serviceId, corrections)
+        .filter((item) => item.required && (item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(String(serviceOptions.level || ''))))
+        .map((item) => item.id);
   if (serviceId === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
   if (serviceId === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
   for (const documentId of requiredForRequest) {
