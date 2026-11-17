@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import { Upload, Download, Printer, CreditCard, Check, Sliders } from 'lucide-react';
 
 export const PdfToPvcTool: React.FC = () => {
+  const requestExport = useCspExportGate();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [targetCard, setTargetCard] = useState<'aadhaar' | 'voter' | 'pan' | 'custom'>('aadhaar');
   const [printTrayMode, setPrintTrayMode] = useState<'epson-tray' | '4x6-sheet' | 'a4-sheet'>('epson-tray');
@@ -153,7 +155,8 @@ export const PdfToPvcTool: React.FC = () => {
     }
   }, [imageSrc, printTrayMode, zoomLevel, verticalOffset, targetCard]);
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const isLandscape = canvas.width > canvas.height;
@@ -170,7 +173,8 @@ export const PdfToPvcTool: React.FC = () => {
     doc.save(`tanshu_pvc_card_${printTrayMode}.pdf`);
   };
 
-  const handleDownloadImage = () => {
+  const handleDownloadImage = async () => {
+    if (!(await requestExport())) return;
     if (!canvasRef.current) return;
     const link = document.createElement('a');
     link.download = `tanshu_pvc_card_${printTrayMode}.jpg`;
