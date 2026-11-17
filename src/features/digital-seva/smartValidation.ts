@@ -124,7 +124,7 @@ export function validateServiceFieldValue(key: string, value: unknown): string |
 }
 
 export function getRequiredCorrectionFieldKeys(corrections: string[], serviceId = ''): string[] {
-  if (serviceId === 'aadhaar-address-doc') return [];
+  if (['aadhaar-address-doc', 'aadhaar-co', 'pan-photo-signature'].includes(serviceId)) return [];
   const textCorrections = new Set(['name', 'father-name', 'mother-name', 'date-of-birth', 'gender', 'address', 'care-of', 'relation-type', 'relation-name', 'mobile', 'category', 'other', 'add-member', 'remove-member', 'member-correction', 'head-change']);
   if (['pan-correction', 'voter-correction', 'certificate-correction', 'ration-update'].includes(serviceId)) {
     const compactTextCorrections = serviceId === 'voter-correction'
