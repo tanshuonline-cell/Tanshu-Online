@@ -119,6 +119,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
+  if (serviceId === 'aadhaar-address-doc' && uploadInputs.length === 0) return json({ success: false, error: 'Please upload one UIDAI-accepted Proof of Address document.' }, 400);
   if (uploadInputs.length > 8) return json({ success: false, error: 'You can upload up to 8 documents in one request.' }, 400);
   const selectedSet = new Set(selectedDocuments);
   const seenDocumentTypes = new Set<string>();
