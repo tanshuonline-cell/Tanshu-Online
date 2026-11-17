@@ -43,7 +43,7 @@ Cloudflare Pages Preview variables must include:
 - `CASHFREE_APP_ID` = Cashfree Sandbox App ID (Secret)
 - `CASHFREE_SECRET_KEY` = Cashfree Sandbox Secret Key (Secret)
 - `CASHFREE_ENVIRONMENT` = `SANDBOX` (Text)
-- `CASHFREE_WEBHOOK_SECRET` = the webhook signing secret configured for Cashfree; if Cashfree uses the App Secret for webhook signing, set this to the same Sandbox Secret Key (Secret)
+- Cashfree PG webhook signature verification uses `CASHFREE_SECRET_KEY` (the same Sandbox App Secret used for authenticated API calls). The separately listed `CASHFREE_WEBHOOK_SECRET` variable is not read by this implementation.
 - `CSP_SESSION_SECRET` and the existing Preview D1 `DB` binding.
 
 Never paste secret values into GitHub, source code, chat, or browser variables. Keep all credentials in Cloudflare Preview Secrets only. The payment API deliberately refuses to run unless the environment is Sandbox.
