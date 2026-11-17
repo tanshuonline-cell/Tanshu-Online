@@ -74,13 +74,10 @@ CREATE TABLE IF NOT EXISTS csp_plan_prices (
   is_active INTEGER NOT NULL DEFAULT 1,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO csp_plan_prices (plan_code, amount_inr, duration_days) VALUES
-  ('basic', 99, 30), ('advanced', 199, 30), ('premium', 299, 30)
-ON CONFLICT(plan_code) DO UPDATE SET
-  amount_inr = excluded.amount_inr,
-  duration_days = excluded.duration_days,
-  is_active = 1,
-  updated_at = CURRENT_TIMESTAMP;
+-- Seed defaults only for missing plans. Re-applying this migration must never
+-- overwrite prices or active/inactive settings changed later by the administrator.
+INSERT OR IGNORE INTO csp_plan_prices (plan_code, amount_inr, duration_days) VALUES
+  ('basic', 99, 30), ('advanced', 199, 30), ('premium', 299, 30);
 
 CREATE TABLE IF NOT EXISTS csp_tool_settings (
   tool_id TEXT PRIMARY KEY,
