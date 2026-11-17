@@ -39,7 +39,7 @@ async function loadCashfreeSdk(): Promise<void> {
   if (!window.Cashfree) throw new Error('Cashfree Checkout did not initialise. Please retry.');
 }
 
-const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
+const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","aadhaarApplicantName","aadhaarFatherNameCurrent","aadhaarFatherNameCorrect","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
 
 
 export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, recoveredDraft, onSubmitted }: Props) {
@@ -337,14 +337,14 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (!isValidEmail(applicant.email)) return reject('applicant.email', 'आवेदक की सही ईमेल आईडी लिखें।');
     }
     if (step === 2) {
-      if (correctionsForService.length && corrections.length === 0) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
+      if (correctionsForService.length && corrections.length === 0 && service.id !== 'aadhaar-address-doc') return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
       if (service.id === 'voter-correction' && corrections.length > 4) return reject('corrections', 'Form 8 में अधिकतम चार सुधार चुनें।');
       if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(service.id) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return reject('taskDetails', 'यह निर्देशात्मक वाक्य एड्रेस या आवेदन विवरण में स्वीकार नहीं है। कृपया केवल वास्तविक और सही जानकारी लिखें।');
       const correctionKeys = getRequiredCorrectionFieldKeys(corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')));
       for (const key of correctionKeys) {
         if (!String(fieldValues[key] || '').trim()) return reject(key, key.endsWith('-current') ? 'मौजूदा विवरण भरें।' : 'सही नया विवरण भरें।');
       }
-      if (!isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
+      if (service.id !== 'aadhaar-address-doc' && !isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
       const attachedFiles = Object.values(documentFiles);
       if (attachedFiles.length > 8) return reject('documentFiles', 'एक बार में अधिकतम 8 दस्तावेज़ अपलोड करें।');
@@ -398,7 +398,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         } : null,
         applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\\D/g, ''),
         customerEmail: applicant.email.trim(), corrections, fieldValues, serviceOptions,
-        selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(),
+        selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim() || (service.id === 'aadhaar-address-doc' ? 'Aadhaar address update - document based' : ''),
         consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
         refundPolicyAccepted: refundAccepted, refundAcceptedAt, refundPolicyVersion: REFUND_POLICY_VERSION,
         idempotencyKey: window.crypto.randomUUID(),
@@ -523,7 +523,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}
         {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
       </div>}
-      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
+      {['aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
       {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
@@ -618,25 +618,29 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         {textInput('hofAadhaarNumber', 'Head of Family Aadhaar number (12 digits)', 'परिवार के मुखिया का आधार नंबर (12 अंक)')}
       </div>}
       {service.id === 'aadhaar-address-doc' && <div className="ds-address-choice-panel">
-        <h4>{hi ? 'पते का विकल्प चुनें' : 'Choose address option'}</h4>
-        <div className="ds-address-choice-options" role="radiogroup" aria-label={hi ? 'पता चुनें' : 'Choose address'}>
-          <label className="ds-address-choice-option">
-            <input type="radio" name="addressChoice" value="NEW" checked={serviceOptions.addressChoice === 'NEW'} onChange={() => setOption('addressChoice', 'NEW')} />
-            <span>{hi ? 'नया पता (New Address)' : 'New Address'}</span>
-          </label>
-          <label className="ds-address-choice-option">
-            <input type="radio" name="addressChoice" value="OLD" checked={serviceOptions.addressChoice === 'OLD'} onChange={() => setOption('addressChoice', 'OLD')} />
-            <span>{hi ? 'पुराना पता (Old Address)' : 'Old Address'}</span>
-          </label>
-          <details className="ds-address-choice-info">
-            <summary aria-label={hi ? 'पते के विकल्प की जानकारी' : 'Address choice information'} title={hi ? 'जानकारी' : 'More information'}>i</summary>
-            <p>{hi
-              ? 'OLD चुनने पर अपना मौजूदा पता भरें और NEW चुनने पर नया पता भरें। दोनों ही स्थितियों में नीचे पूरा एड्रेस भरना अनिवार्य है।'
-              : 'Choose whether the details below are your existing (OLD) address or the new (NEW) address. In both cases, complete address details must be entered below.'}</p>
-          </details>
+        <h4>{hi ? 'सेवा का प्रकार चुनें' : 'Select service type'}</h4>
+        <label className="ds-address-choice-option">
+          <input type="checkbox" checked={serviceOptions.addressChoice === 'Address Update Document Based'} onChange={(event) => setOption('addressChoice', event.target.checked ? 'Address Update Document Based' : '')} />
+          <span>{hi ? 'एड्रेस अपडेट डॉक्यूमेंट बेस्ड' : 'Address Update Document Based'}</span>
+        </label>
+      </div>
+      <div className="ds-application-profile">
+        <h4>{hi ? 'आवेदक और पिता के नाम' : 'Applicant and father name details'}</h4>
+        <div className="ds-application-field-grid">
+          {textInput('aadhaarApplicantName', 'Applicant name', 'आवेदक का नाम')}
+          {textInput('aadhaarFatherNameCurrent', "Father's old name", 'पिता का पुराना नाम')}
+          {textInput('aadhaarFatherNameCorrect', "Father's new name", 'पिता का नया नाम')}
         </div>
-      </div>}
-      {(['aadhaar-address-hof', 'aadhaar-address-doc'].includes(service.id)) && <div className="ds-application-profile ds-address-profile">
+      </div>
+      <div className="ds-application-profile">
+        <h4>{hi ? 'पते का विवरण' : 'Address details'}</h4>
+        <div className="ds-application-field-grid">
+          {textInput('aadhaarPin', 'Address PIN code', 'पता पिन कोड')}
+          {textInput('aadhaarVillage', 'Village', 'गाँव')}
+          {textInput('aadhaarPostOffice', 'Post office', 'डाकघर')}
+        </div>
+      </div>
+      {service.id === 'aadhaar-address-hof' && <div className="ds-application-profile ds-address-profile">
         <div className="ds-address-profile-heading">
           <span className="ds-address-step">ADDRESS DETAILS</span>
           <h4>{hi
@@ -729,10 +733,10 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           { value: 'OTHER', label: 'Other / confirm later', hi: 'अन्य / बाद में पुष्टि' }
         ])}
       </div>}
-      <label className={`ds-application-wide ${fieldErrors.taskDetails ? 'ds-field-invalid' : ''}`}>{hi ? 'काम का पूरा विवरण / निर्देश' : 'Exact work / instructions'}
+      {service.id !== 'aadhaar-address-doc' && <label className={`ds-application-wide ${fieldErrors.taskDetails ? 'ds-field-invalid' : ''}`}>{hi ? 'काम का पूरा विवरण / निर्देश' : 'Exact work / instructions'}
         <textarea data-validation-key="taskDetails" aria-invalid={Boolean(fieldErrors.taskDetails)} value={taskDetails} onChange={(e) => { setTaskDetails(e.target.value); clearFieldError('taskDetails'); }} onBlur={(e) => setTaskDetails(formatEnglishTitleCase(e.target.value))} rows={3} required placeholder={hi ? 'क्या काम करवाना है और कौन-सा विवरण सही होना चाहिए...' : 'What work is requested and what details should be correct...'} />
         {fieldErrors.taskDetails && <small className="ds-field-error" role="alert">{fieldErrors.taskDetails}</small>}
-      </label>
+      </label>}
     </>
   );
 
@@ -798,7 +802,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
     {step === 2 && <section className="ds-application-step">
       <span className="ds-kicker">{hi ? 'चरण 3' : 'STEP 3'}</span><h3>{hi ? 'काम का विवरण और उपलब्ध दस्तावेज़' : 'Work details and available documents'}</h3>
-      {correctionsForService.length > 0 && <div className="ds-application-profile">
+      {correctionsForService.length > 0 && service.id !== 'aadhaar-address-doc' && <div className="ds-application-profile">
         <h4>{hi ? 'किस विवरण में सुधार करवाना है?' : 'Which details need correction?'}</h4>
         <p>{hi ? 'एक या एक से अधिक विकल्प चुनें। उसी के अनुसार दस्तावेज़ों की सूची बदलेगी।' : 'Select one or more options. The document checklist will update to match your selections.'}</p>
         <div className="ds-application-doc-list">
