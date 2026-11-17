@@ -437,6 +437,32 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         paymentMode
       };
 
+      // Persist the paid-order recovery snapshot before attempting booking creation.
+      // The autosave effect is intentionally debounced; Submit must not race that timer.
+      await remoteDraftQueueRef.current.catch(() => undefined);
+      try {
+        const recoverySnapshot = {
+          serviceId: service.id, step, requesterType, applicationFor, operator, centerName, centerAddress,
+          agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName,
+          taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt,
+          refundAccepted, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
+          refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId,
+          paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\\D/g, '')
+        };
+        const recoveryResponse = await fetch('/api/digital-seva/request-draft', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', orderId: pendingCheckoutOrderId, draft: recoverySnapshot })
+        });
+        if (!recoveryResponse.ok) {
+          const recoveryResult = await recoveryResponse.json().catch(() => ({}));
+          console.warn('Digital Seva recovery snapshot could not be confirmed before booking:', recoveryResult.error || recoveryResponse.status);
+        }
+      } catch (recoveryError) {
+        // Never block an already-paid customer from booking submission because autosave is offline.
+        console.warn('Digital Seva recovery snapshot sync failed before booking:', recoveryError);
+      }
+
       if (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service)) {
         const preflight = await fetch('/api/digital-seva/bookings', {
           method: 'POST', credentials: 'same-origin',
