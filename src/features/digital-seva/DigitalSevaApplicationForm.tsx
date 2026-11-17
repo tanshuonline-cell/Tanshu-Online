@@ -390,7 +390,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         quickRequest: true, serviceId: service.id, requesterType: 'DIRECT_CUSTOMER', applicationFor: 'SELF',
         applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
         paymentContactPhone: prepaidPayment.customerPhone, customerEmail: applicant.email.trim(),
-        corrections: [], fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
+        corrections: [], fieldValues: {}, serviceOptions: { quickSelectedTasks: quickSelectedTasks.join('|'), quickSelectedTaskLabels: selectedTaskLabels.join('; ') },
         selectedDocuments, otherDocumentName: '', taskDetails: selectedTaskLabels.join('; '),
         consent: true, termsAccepted: prepaidPayment.termsAccepted, termsAcceptedAt: prepaidPayment.termsAcceptedAt,
         termsPolicyVersion: prepaidPayment.termsPolicyVersion,
