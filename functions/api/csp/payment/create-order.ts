@@ -13,7 +13,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
   if (!env.DB || !env.CSP_SESSION_SECRET) return json({ success: false, error: 'Membership payment service is not configured.' }, 503);
   const session = await readCustomerSession(request, env.CSP_SESSION_SECRET);
   if (!session) return json({ success: false, error: 'Please verify your Gmail before paying.' }, 401);
-  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || env.CASHFREE_ENVIRONMENT !== 'SANDBOX') {
+  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY || String(env.CASHFREE_ENVIRONMENT || '').toUpperCase() !== 'SANDBOX') {
     return json({ success: false, error: 'Cashfree Preview Sandbox is not configured correctly. No payment was created.' }, 503);
   }
   const body = await request.json().catch(() => ({})) as { planCode?: string; customerPhone?: string };
@@ -39,7 +39,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
 
     const origin = new URL(request.url).origin;
     const orderId = 'csp_' + crypto.randomUUID().replace(/-/g, '').slice(0, 24);
-    const response = await fetch(cashfreeBase(env.CASHFREE_ENVIRONMENT) + '/orders', {
+    const response = await fetch(cashfreeBase(String(env.CASHFREE_ENVIRONMENT || '').toUpperCase()) + '/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
