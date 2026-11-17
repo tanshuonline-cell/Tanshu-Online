@@ -135,8 +135,12 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   };
 
   const manageCspCustomer = async (customerId: string, action: string, planCode?: string) => {
-    if (action === 'activate' && !window.confirm('Confirm that the customer payment has been received and verified manually?')) return;
-    const reference = action === 'activate' ? (window.prompt('Enter payment reference / UTR (optional):') || '') : '';
+    if (action === 'activate' && !window.confirm('Only continue after independently checking that the full payment has actually been received. A membership request or OTP verification is NOT payment. Continue?')) return;
+    const reference = action === 'activate' ? (window.prompt('Enter the verified UTR, transaction ID, or cash receipt reference (required):') || '').trim() : '';
+    if (action === 'activate' && !reference) {
+      showNotification('error', 'Activation cancelled. A verified payment reference is required.');
+      return;
+    }
     try {
       const response = await fetch('/api/admin/csp-customers', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
