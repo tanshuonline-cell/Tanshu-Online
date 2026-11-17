@@ -1,6 +1,6 @@
 import { CspEnv, json, readCustomerSession } from '../_auth';
 
-interface CashfreePayment { cf_payment_id?: number | string; payment_status?: string; payment_amount?: number; payment_currency?: string; }
+interface CashfreePayment { cf_payment_id?: number | string; order_id?: string; payment_status?: string; payment_amount?: number; payment_currency?: string; }
 const API_VERSION = '2025-01-01';
 const cashfreeBase = (environment: string) => environment === 'SANDBOX' ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
 
@@ -21,6 +21,8 @@ export async function activateVerifiedOrder(orderId: string, payment: CashfreePa
     "SELECT p.id, p.customer_id, p.amount_inr, p.status, p.gateway_payment_id, p.reference, p.plan_duration_days, c.status AS customer_status FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id WHERE p.gateway_order_id = ? AND p.payment_method = 'cashfree'"
   ).bind(orderId).first();
   if (!row || row.customer_status !== 'active') throw new Error('Cashfree order does not match an active membership customer.');
+  if (payment.order_id && payment.order_id !== orderId) throw new Error('Cashfree payment belongs to a different order.');
+  if (String(payment.payment_status || '').toUpperCase() !== 'SUCCESS') throw new Error('Cashfree has not confirmed a successful payment.');
   const planCode = String(row.reference).replace('Cashfree membership: ', '');
   if (!['basic', 'advanced', 'premium'].includes(planCode) || Number(payment.payment_amount) !== Number(row.amount_inr) || (payment.payment_currency && payment.payment_currency !== 'INR')) {
     throw new Error('Cashfree payment amount or plan does not match the membership order.');
