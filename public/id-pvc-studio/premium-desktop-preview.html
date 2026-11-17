@@ -476,6 +476,12 @@ new MutationObserver(render).observe(document.documentElement,{attributes:true,a
     if (!(event.ctrlKey || event.metaKey)) return;
     const key = event.key.toLowerCase();
     if (key === 's') { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    if (key === 'c') {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('input,textarea,select,[contenteditable="true"]')) {
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+    }
     if (key === 'p') { event.preventDefault(); event.stopImmediatePropagation(); pendingPrint = true; askParent(); }
   }, true);
   document.addEventListener('contextmenu', event => {
