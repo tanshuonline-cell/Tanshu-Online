@@ -525,21 +525,14 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const renderServiceFields = () => (
     <>
       {service.id === 'pan-new' && <div className="ds-application-field-grid">
-        {textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
-        {textInput('panApplicantName', 'Full name exactly as per Aadhaar', 'आधार के अनुसार पूरा नाम')}
-        {textInput('panFatherName', "Father's full name", 'पिता का पूरा नाम')}
-        {textInput('panMotherName', "Mother's full name", 'माता का पूरा नाम')}
+        {textInput('panApplicantName', 'Applicant name', 'आवेदक का नाम')}
+        {textInput('panFatherName', "Father's name", 'पिता का नाम')}
         {textInput('panDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
         {selectInput('panParentPrint', 'Parent name to print on PAN', 'PAN पर किसका नाम छपे', [
           { value: 'FATHER', label: 'Father', hi: 'पिता' }, { value: 'MOTHER', label: 'Mother', hi: 'माता' }
         ])}
-        {textInput('panAddress', 'Communication address', 'पत्राचार का पता')}
       </div>}
-      {service.id === 'pan-photo-signature' && <div className="ds-application-field-grid">
-        {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}
-        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
-      </div>}
-      {['aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
+      {service.id === 'aadhaar-address-hof' && textInput('aadhaarNumber', 'Applicant Aadhaar number (12 digits)', 'आवेदक का आधार नंबर (12 अंक)')}
       {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
@@ -573,9 +566,6 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       </div>}
       {service.id === 'ration-new' && <div className="ds-application-field-grid">
         {textInput('familyMemberCount', 'Number of family members', 'परिवार के सदस्यों की संख्या')}
-        {textInput('familyMemberNames', 'Family members names (one per line)', 'परिवार के सदस्यों के नाम (एक पंक्ति में एक)')}
-        {textInput('rationDistrict', 'District', 'जिला')}
-        {textInput('rationBlock', 'Block', 'प्रखंड')}
         {textInput('rationVillageWard', 'Village / Ward / Mohalla', 'गाँव / वार्ड / मोहल्ला')}
         {textInput('rationPostOffice', 'Post office', 'डाकघर')}
         {textInput('rationPin', 'PIN code', 'पिन कोड')}
