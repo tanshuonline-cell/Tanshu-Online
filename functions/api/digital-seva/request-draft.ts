@@ -65,6 +65,25 @@ async function identityKey(phone: string, name: string, email: string): Promise<
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)));
   return Array.from(digest).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
+async function ensurePaidDraftStorage(env: Env): Promise<void> {
+  // Idempotent Preview recovery-table setup; does not modify payment or booking data.
+  await env.DIGITAL_SEVA_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS digital_seva_paid_drafts (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL UNIQUE,
+      identity_key TEXT NOT NULL,
+      service_id TEXT NOT NULL,
+      encrypted_draft_json TEXT NOT NULL,
+      saved_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  await env.DIGITAL_SEVA_DB.prepare(
+    'CREATE INDEX IF NOT EXISTS idx_digital_seva_paid_drafts_identity ON digital_seva_paid_drafts(identity_key, saved_at DESC)'
+  ).run();
+}
+
 async function verifiedPaidOrder(env: Env, orderId: string, serviceId?: string) {
   if (!env.DIGITAL_SEVA_DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) throw new Error('Payment recovery is not configured.');
   const local = await env.DIGITAL_SEVA_DB.prepare(
@@ -95,6 +114,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!rateLimit(request, action)) return json({ success: false, error: 'Too many recovery attempts. Please wait a few minutes.' }, 429);
 
   try {
+    await ensurePaidDraftStorage(env);
     if (action === 'status') {
       const orderId = String(body.orderId || '');
       if (!/^ds_[0-9a-f]{32}$/i.test(orderId)) return json({ success: false, error: 'Invalid payment reference.' }, 400);
