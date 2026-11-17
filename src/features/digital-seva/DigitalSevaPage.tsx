@@ -229,7 +229,7 @@ export default function DigitalSevaPage() {
       refundPolicyVersion: bookingReceipt.refundPolicyVersion,
       fieldValues: bookingReceipt.fieldValues,
       serviceOptions: bookingReceipt.serviceOptions,
-      selectedWork: Array.isArray(bookingReceipt.serviceOptions.quickSelectedTaskLabels) ? bookingReceipt.serviceOptions.quickSelectedTaskLabels : bookingReceipt.corrections.map((item) => item.replace(/[-_]/g, ' ')),
+      selectedWork: typeof bookingReceipt.serviceOptions.quickSelectedTaskLabels === 'string' && bookingReceipt.serviceOptions.quickSelectedTaskLabels ? bookingReceipt.serviceOptions.quickSelectedTaskLabels.split('; ') : bookingReceipt.corrections.map((item) => item.replace(/[-_]/g, ' ')),
       documents: bookingReceipt.selectedDocuments.map((item) =>
         item === 'other' ? bookingReceipt.otherDocumentName || 'Other document' : item.replace(/[-_]/g, ' ')
       ),
