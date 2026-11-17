@@ -74,8 +74,13 @@ CREATE TABLE IF NOT EXISTS csp_plan_prices (
   is_active INTEGER NOT NULL DEFAULT 1,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-INSERT OR IGNORE INTO csp_plan_prices (plan_code, amount_inr, duration_days) VALUES
-  ('basic', 49, 1), ('advanced', 199, 30), ('premium', 599, 90);
+INSERT INTO csp_plan_prices (plan_code, amount_inr, duration_days) VALUES
+  ('basic', 99, 30), ('advanced', 199, 30), ('premium', 299, 30)
+ON CONFLICT(plan_code) DO UPDATE SET
+  amount_inr = excluded.amount_inr,
+  duration_days = excluded.duration_days,
+  is_active = 1,
+  updated_at = CURRENT_TIMESTAMP;
 
 CREATE TABLE IF NOT EXISTS csp_tool_settings (
   tool_id TEXT PRIMARY KEY,
