@@ -43,29 +43,57 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const customerId = String(body.customerId || '');
   if (!customerId) return json({ success: false, error: 'Customer ID is required.' }, 400);
   try {
-    const customer = await env.DB.prepare('SELECT id FROM csp_customers WHERE id = ?').bind(customerId).first();
+    const customer = await env.DB.prepare('SELECT id, status FROM csp_customers WHERE id = ?').bind(customerId).first();
     if (!customer) return json({ success: false, error: 'Customer not found.' }, 404);
     const now = new Date();
     if (body.action === 'activate') {
+      if (customer.status !== 'active') return json({ success: false, error: 'Restore this customer account before activating a membership.' }, 409);
       const planCode = String(body.planCode || '');
       const plan = await env.DB.prepare('SELECT amount_inr, duration_days, is_active FROM csp_plan_prices WHERE plan_code = ?').bind(planCode).first();
       const amount = Number(plan?.amount_inr);
       const durationDays = Math.min(3650, Math.max(1, Math.floor(Number(plan?.duration_days) || 1)));
       if (!plan || Number(plan.is_active) !== 1 || !Number.isFinite(amount) || amount < 0) return json({ success: false, error: 'Choose an active membership plan.' }, 400);
+
+      // A membership request is not a payment. Require an existing pending request
+      // for this exact plan and an admin-entered receipt/UTR reference before activation.
+      const pendingPayment = await env.DB.prepare(
+        "SELECT id FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 1"
+      ).bind(customerId, 'Membership request: ' + planCode).first();
+      if (!pendingPayment?.id) return json({ success: false, error: 'No pending request exists for this customer and plan. Ask the customer to submit the correct plan request first.' }, 409);
+
+      const paymentReference = String(body.reference || '').trim().slice(0, 180);
+      if (!paymentReference) return json({ success: false, error: 'Enter the verified UTR, transaction ID, or cash receipt reference before activation.' }, 400);
+
       const id = crypto.randomUUID();
+      const auditId = crypto.randomUUID();
       const startsAt = now.toISOString();
       const expiresAt = new Date(now.getTime());
       expiresAt.setUTCDate(expiresAt.getUTCDate() + durationDays);
-      await env.DB.prepare("UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active'").bind(customerId).run();
-      await env.DB.prepare("INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)").bind(id, customerId, planCode, amount, startsAt, expiresAt.toISOString(), admin, body.notes || null).run();
-      const pendingPayment = await env.DB.prepare("SELECT id FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? ORDER BY created_at DESC LIMIT 1").bind(customerId, 'Membership request: ' + planCode).first();
-      if (pendingPayment?.id) {
-        await env.DB.prepare("UPDATE csp_payments SET subscription_id = ?, amount_inr = ?, reference = ?, status = 'verified', verified_by = ?, verified_at = CURRENT_TIMESTAMP, notes = ? WHERE id = ? AND status = 'pending'").bind(id, amount, body.reference || null, admin, body.notes || 'Manually verified by admin', pendingPayment.id).run();
-      } else {
-        await env.DB.prepare("INSERT INTO csp_payments (id, customer_id, subscription_id, amount_inr, payment_method, reference, status, verified_by, verified_at, notes) VALUES (?, ?, ?, ?, 'manual', ?, 'verified', ?, CURRENT_TIMESTAMP, ?)").bind(crypto.randomUUID(), customerId, id, amount, body.reference || null, admin, body.notes || 'Manually verified by admin').run();
+
+      // D1 batch executes these dependent writes as one transaction. If any
+      // statement fails, the payment verification and subscription changes roll back.
+      const results = await env.DB.batch([
+        env.DB.prepare(
+          "UPDATE csp_payments SET subscription_id = ?, amount_inr = ?, payment_method = 'manual', reference = ?, status = 'verified', verified_by = ?, verified_at = CURRENT_TIMESTAMP, notes = ? WHERE id = ? AND customer_id = ? AND status = 'pending'"
+        ).bind(id, amount, paymentReference, admin, body.notes || 'Manually verified by admin', pendingPayment.id, customerId),
+        env.DB.prepare(
+          "UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active' AND EXISTS (SELECT 1 FROM csp_payments WHERE id = ? AND customer_id = ? AND status = 'verified' AND subscription_id = ?)"
+        ).bind(customerId, pendingPayment.id, customerId, id),
+        env.DB.prepare(
+          "INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) SELECT ?, ?, ?, ?, ?, ?, 'active', ?, ? WHERE EXISTS (SELECT 1 FROM csp_payments WHERE id = ? AND customer_id = ? AND status = 'verified' AND subscription_id = ?)"
+        ).bind(id, customerId, planCode, amount, startsAt, expiresAt.toISOString(), admin, body.notes || null, pendingPayment.id, customerId, id),
+        env.DB.prepare(
+          "INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) SELECT ?, ?, 'activate_membership', ?, ? WHERE EXISTS (SELECT 1 FROM csp_payments WHERE id = ? AND customer_id = ? AND status = 'verified' AND subscription_id = ?)"
+        ).bind(auditId, admin, customerId, JSON.stringify({ planCode, durationDays, amount, paymentReference }), pendingPayment.id, customerId, id)
+      ]);
+
+      if (!results?.[0]?.meta || Number(results[0].meta.changes) !== 1) {
+        return json({ success: false, error: 'This pending payment request was already processed. Refresh the customer list before trying again.' }, 409);
       }
-      await env.DB.prepare("INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) VALUES (?, ?, 'activate_membership', ?, ?)").bind(crypto.randomUUID(), admin, customerId, JSON.stringify({ planCode, durationDays, amount })).run();
-      return json({ success: true, message: 'Membership activated.', subscriptionId: id, expiresAt: expiresAt.toISOString() });
+      if (Number(results[2]?.meta?.changes) !== 1 || Number(results[3]?.meta?.changes) !== 1) {
+        throw new Error('Membership activation transaction did not complete all expected writes.');
+      }
+      return json({ success: true, message: 'Payment reference recorded and membership activated.', subscriptionId: id, expiresAt: expiresAt.toISOString() });
     }
     if (body.action === 'suspend') {
       await env.DB.prepare("UPDATE csp_customers SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(customerId).run();
