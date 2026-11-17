@@ -144,6 +144,14 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
         event.stopImmediatePropagation();
         return;
       }
+      if (key === 'c') {
+        const target = event.target;
+        if (!(target instanceof Element) || !target.closest('input, textarea, select, [contenteditable="true"]')) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+      }
       if (key === 'p') {
         event.preventDefault();
         event.stopImmediatePropagation();
