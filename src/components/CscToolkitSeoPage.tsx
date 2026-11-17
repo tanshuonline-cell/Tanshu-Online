@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, CheckCircle2, ShieldCheck } from 'lucide-react
 import { CONFIRMED_TOOLS } from '../data/toolsData';
 import { ToolItem } from '../types';
 import { UniversalToolModal } from './tools/UniversalToolModal';
+import { CspMembershipPlans } from './auth/CspToolAccess';
 
 type ToolkitEntry = {
   slug: string; title: string; hindi: string; summary: string; summaryHi: string;
@@ -56,6 +57,11 @@ export const CscToolkitSeoPage: React.FC<{ slug: string }> = ({ slug }) => {
             <h2 className="text-2xl font-extrabold">Explore the 7 CSC &amp; Cyber Cafe Tools</h2>
             <p className="mt-2 text-slate-600">Choose a tool to read how it works and open its actual workspace.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{CSC_TOOLKIT_ENTRIES.map(item => <a key={item.slug} href={'/'+item.slug} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-rose-300 hover:shadow-md"><h3 className="font-extrabold text-slate-900 group-hover:text-rose-800">{item.title}</h3><p className="mt-1 text-sm font-semibold text-slate-600">{item.hindi}</p><p className="mt-3 text-sm leading-6 text-slate-600">{item.summary}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-rose-800">Explore tool <ArrowUpRight className="h-4 w-4"/></span></a>)}</div>
+          </section>
+          <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-2xl font-black">Membership Plans · सदस्यता प्लान</h2>
+            <p className="mt-2 text-sm text-slate-600">Editing and previews stay open. Membership is requested only when you download or print. Manual payment verification is required.</p>
+            <CspMembershipPlans />
           </section>
         ) : entry && (
           <>
