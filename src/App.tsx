@@ -36,7 +36,7 @@ export default function App() {
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
-  const [paymentReturnNotice, setPaymentReturnNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
+  const [paymentReturnNotice, setPaymentReturnNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);\n  const [membershipPaymentNotice, setMembershipPaymentNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
 
   // Confirm the HttpOnly admin session with the server before allowing copy access.
   useEffect(() => {
@@ -270,6 +270,38 @@ export default function App() {
         }
       });
 
+    return () => { active = false; };
+  }, []);
+
+  // Verify CSP membership checkout returns only through our authenticated server endpoint.
+  // The browser query string is an order reference, never proof of payment.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('csp_order_id');
+    if (!orderId) return;
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('csp_order_id');
+    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    let active = true;
+    fetch('/api/csp/payment/verify', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'We could not verify this payment yet.');
+        if (!data.paid) {
+          setMembershipPaymentNotice({ type: 'warning', message: data.message || 'Cashfree has not confirmed payment yet. If money was deducted, do not pay again; contact support with your order reference.' });
+          return;
+        }
+        setMembershipPaymentNotice({ type: 'success', message: 'Payment verified successfully. Your membership is now active. You can return to your premium tool and export.' });
+      })
+      .catch(error => {
+        if (!active) return;
+        setMembershipPaymentNotice({ type: 'warning', message: error instanceof Error ? error.message + ' If money was deducted, do not pay again until the order is checked.' : 'Payment verification is pending. Please do not pay again yet.' });
+      });
     return () => { active = false; };
   }, []);
 
@@ -532,6 +564,8 @@ export default function App() {
         activeSection={activeSection}
         onOpenCustomerAuth={() => setCustomerAuthOpen(true)}
       />
+
+      {membershipPaymentNotice && <div role="status" className={`mx-auto mt-3 flex w-[min(94%,1100px)] items-start justify-between gap-4 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm ${membershipPaymentNotice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950'}`}><span>{membershipPaymentNotice.message}</span><button type="button" onClick={() => setMembershipPaymentNotice(null)} aria-label="Dismiss payment message" className="shrink-0 rounded-lg px-2 font-black">×</button></div>}
 
       <main className="flex-1">
         {/* 4, 5, 6: Large Hero Banner with Digital India Panorama, Central Bilingual Branding, Search & Action Buttons */}
