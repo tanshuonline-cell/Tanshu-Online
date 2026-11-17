@@ -26,6 +26,7 @@ import DigitalSevaAdminPage from './features/digital-seva/DigitalSevaAdminPage';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
+import { CspToolAccess, CspMembershipPlans } from './components/auth/CspToolAccess';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
@@ -410,19 +411,44 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
-  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Dedicated Instant Passport Photo Studio preview route.
+  // Dedicated Multi Customer Photo Maker workspace (separate from its SEO landing page).
+  if (window.location.pathname === '/instant-multi-customer-photo-maker-studio') {
+    return <CspToolAccess toolId="instant-multi-customer-photo-maker"><InstantMultiCustomerPhotoMaker /></CspToolAccess>;
+  }
+
+  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.
+  const cscToolkitSlug = window.location.pathname.replace(/^\//, '');
+  if (
+    window.location.pathname === '/csc-cyber-cafe-toolkits' ||
+    [
+      'instant-passport-photo-studio',
+      'instant-pvc-card-maker',
+      'whatsapp-selfie-to-passport-photo',
+      'instant-multi-customer-photo-maker',
+      'photo-signature-resizer',
+      'auto-document-cropper',
+      'photo-background-remover',
+    ].includes(cscToolkitSlug)
+  ) {
+    return <CscToolkitSeoPage slug={cscToolkitSlug} />;
+  }
+
+  // Paid workspaces stay editable; only download and print actions require an active plan.
+  if (window.location.pathname === '/csp-pvc-studio') {
+    return <CspToolAccess toolId="pdf-to-pvc-card-auto-cropper"><iframe title="Instant PVC Card Maker" src="/id-pvc-studio/premium-desktop-preview.html" className="h-screen w-full border-0" /></CspToolAccess>;
+  }
   if (window.location.pathname === '/advanced-photo-studio-preview') {
-    return <AdvancedPhotoStudioShell />;
+    return <CspToolAccess toolId="advanced-passport-photo-studio"><AdvancedPhotoStudioShell /></CspToolAccess>;
   }
 
   // Dedicated WhatsApp Selfie to Passport Photo Studio.
   if (window.location.pathname === '/whatsapp-selfie-passport-photo') {
-    return <WhatsAppSelfiePassportTool />;
+    return <CspToolAccess toolId="whatsapp-selfie-to-passport-photo"><WhatsAppSelfiePassportTool /></CspToolAccess>;
   }
 
   // Dedicated Instant Multi Customer Photo Maker.
   if (window.location.pathname === '/instant-multi-customer-photo-maker') {
-    return <InstantMultiCustomerPhotoMaker />;
+    return <CspToolAccess toolId="instant-multi-customer-photo-maker"><InstantMultiCustomerPhotoMaker /></CspToolAccess>;
   }
 
   // ROUTE 1: ADMIN PANEL
@@ -519,6 +545,17 @@ export default function App() {
           onSelectVideo={handleSelectVideoFromSearch}
         />
 
+        {/* Small membership entry banner; it only scrolls to the plans section. */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-3 sm:px-6 lg:px-8" aria-label="Membership plans">
+          <a href="#membership-plans" className="group flex flex-col gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-rose-50 px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-[.18em] text-rose-800">TANSHU ONLINE · MEMBERSHIP · सदस्यता</span>
+              <p className="mt-1 text-sm font-bold text-slate-900">Download &amp; print access for four premium tools · चार प्रीमियम टूल्स के डाउनलोड और प्रिंट की सुविधा</p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white">View Plans · प्लान देखें <span aria-hidden="true">→</span></span>
+          </a>
+        </section>
+
         {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
         <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
 
@@ -612,6 +649,16 @@ export default function App() {
         {/* 3. Future Tools (Featured Tools: Exactly 6 tools in one desktop row) */}
         <FeaturedTools onOpenTool={handleOpenTool} />
 
+        {/* Membership section intentionally follows Featured Tools; existing homepage tools remain unchanged. */}
+        <section id="membership-plans" className="mx-auto w-full max-w-7xl scroll-mt-28 px-4 py-8 sm:px-6 lg:px-8" aria-label="Membership plans">
+          <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-amber-50/60 to-rose-50/60 p-5 shadow-sm sm:p-8">
+            <p className="text-[10px] font-black uppercase tracking-[.2em] text-rose-800">TANSHU ONLINE · MEMBERSHIP</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Membership Plans · सदस्यता प्लान</h2>
+            <p className="mt-2 mb-5 max-w-3xl text-sm leading-6 text-slate-600">Editing and previews remain available. An active plan is required only to download or print from the four premium tools. · एडिटिंग और प्रीव्यू खुले रहेंगे; चार प्रीमियम टूल्स से डाउनलोड या प्रिंट के लिए सक्रिय प्लान जरूरी है।</p>
+            <CspMembershipPlans />
+          </div>
+        </section>
+
         {/* All Tools Directory: Searchable, Filterable 18 confirmed tools */}
         <AllToolsDirectory
           onOpenTool={handleOpenTool}
@@ -643,10 +690,9 @@ export default function App() {
 
       {/* Universal Interactive Tool Workspace Modal */}
       {activeTool && (
-        <UniversalToolModal
-          tool={activeTool}
-          onClose={handleCloseTool}
-        />
+        ['advanced-passport-photo-studio', 'pdf-to-pvc-card-auto-cropper', 'instant-multi-customer-photo-maker', 'whatsapp-selfie-to-passport-photo'].includes(activeTool.id)
+          ? <CspToolAccess toolId={activeTool.id}><UniversalToolModal tool={activeTool} onClose={handleCloseTool} /></CspToolAccess>
+          : <UniversalToolModal tool={activeTool} onClose={handleCloseTool} />
       )}
 
       {/* Customer Access / Login Modal */}

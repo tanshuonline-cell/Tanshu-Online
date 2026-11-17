@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { TANSHU_PROFILE_PHOTO } from '../Header';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import { PhotoFromPhotoTool } from './PhotoFromPhotoTool';
 import {
   ArrowLeft, Camera, Check, Crop, Download, Eraser, FileImage, FlipHorizontal,
@@ -75,6 +76,7 @@ const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;
 };
 
 export const WhatsAppSelfiePassportTool: React.FC = () => {
+  const requestExport = useCspExportGate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [processedPhotoUrl, setProcessedPhotoUrl] = useState('');
@@ -793,7 +795,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
   const saveBlob=(blob:Blob,fileName:string)=>{const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),30000);};
   const runExport=async(format:'pdf'|'jpg'|'png'|'print')=>{
-    if(!selectedFile||exportBusy)return;
+    if(!selectedFile||exportBusy || !(await requestExport()))return;
     const printWindow=format==='print'?window.open('','_blank'):null;
     setExportBusy(true);
     try{
