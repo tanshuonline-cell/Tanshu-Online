@@ -13,6 +13,7 @@ import {
   Highlighter, Eye, CircleHelp, Blend, Wand, CircleDot, Focus, ScanLine, Search
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { useCspExportGate } from '../auth/CspToolAccess';
 
 type StudioPhoto = { id: string; file: File; url: string; width: number; height: number; kind?: 'photo'|'signature'; cropZoom?: number; positionX?: number; positionY?: number };
 type StudioPreset = 'india' | 'pan' | 'stamp' | 'passport-35x35' | 'square-51' | 'oci-51' | 'pcc-35x35' | 'frro-35x35' | 'dl-35x45' | 'voter-35x45' | 'exam-35x45' | 'custom';
@@ -199,6 +200,7 @@ const dataUrlToFile = async (data: string, name: string) => {
 
 
 export const AdvancedPhotoStudioShell: React.FC = () => {
+  const requestExport = useCspExportGate();
   const studioRootRef = useRef<HTMLDivElement>(null);
   const [isStudioFullscreen, setIsStudioFullscreen] = useState(false);
   useEffect(() => {
@@ -900,6 +902,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportPrintSheet = async (format: 'jpg'|'png'|'pdf') => {
+    if (!(await requestExport())) return;
     if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const canvas = document.createElement('canvas'); canvas.width = sheetWidthPx; canvas.height = sheetHeightPx;
@@ -928,6 +931,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const printActualSize = async () => {
+    if (!(await requestExport())) return;
     if (!isStudioMember) { showUpgradePrompt(); return; }
     if(!selected)return;
     const printWindow=window.open('','_blank','width=900,height=700');
@@ -962,6 +966,7 @@ export const AdvancedPhotoStudioShell: React.FC = () => {
   };
 
   const exportSelectedPhoto = async (format: 'jpg'|'png'|'pdf') => {
+    if (!(await requestExport())) return;
     if (!isStudioMember) { showUpgradePrompt(); return; }
     if (!selected) return;
     const image = new Image();
