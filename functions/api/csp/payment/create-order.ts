@@ -5,6 +5,7 @@ interface CashfreeOrder {
   payment_session_id?: string;
   order_status?: string;
   order_amount?: number;
+  order_currency?: string;
 }
 const API_VERSION = '2025-01-01';
 const cashfreeBase = (environment: string) => environment === 'SANDBOX' ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
@@ -61,7 +62,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
       })
     });
     const cashfree = await response.json().catch(() => ({})) as CashfreeOrder & { message?: string; type?: string };
-    if (!response.ok || !cashfree.payment_session_id || cashfree.order_id !== orderId) {
+    if (!response.ok || !cashfree.payment_session_id || cashfree.order_id !== orderId || Number(cashfree.order_amount) !== amount || (cashfree.order_currency && cashfree.order_currency !== 'INR')) {
       return json({ success: false, error: cashfree.message || 'Cashfree could not create the Sandbox order. Please try again.' }, 502);
     }
     await env.DB.prepare(
