@@ -54,7 +54,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
         order_currency: 'INR',
         customer_details: { customer_id: customer.id, customer_email: customer.email, customer_phone: phone },
         order_meta: {
-          return_url: origin + '/membership/payment-return?order_id={order_id}',
+          return_url: origin + '/?csp_order_id={order_id}',
           notify_url: origin + '/api/csp/payment/webhook'
         },
         order_note: 'TANSHU ONLINE ' + planCode.toUpperCase() + ' membership'
