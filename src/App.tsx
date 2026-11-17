@@ -36,7 +36,8 @@ export default function App() {
   const [selectedDetailVideo, setSelectedDetailVideo] = useState<VideoGuide | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [adminCopyAllowed, setAdminCopyAllowed] = useState(false);
-  const [paymentReturnNotice, setPaymentReturnNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);\n  const [membershipPaymentNotice, setMembershipPaymentNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
+  const [paymentReturnNotice, setPaymentReturnNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
+  const [membershipPaymentNotice, setMembershipPaymentNotice] = useState<{ type: 'success' | 'warning'; message: string } | null>(null);
 
   // Confirm the HttpOnly admin session with the server before allowing copy access.
   useEffect(() => {
