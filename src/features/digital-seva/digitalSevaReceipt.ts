@@ -23,7 +23,7 @@ export interface DigitalSevaReceiptView {
 
 const ENGLISH_LABELS: Record<string, string> = {
   docRelationName: "Father's name", aadhaarNumber: 'Aadhaar number', hofAadhaarNumber: 'Head of Family Aadhaar number',
-  'name-current': 'Applicant old name', 'name-correct': 'Applicant new name',
+  applicantName: 'Applicant name', 'name-current': 'Applicant old name', 'name-correct': 'Applicant new name',
   'father-name-current': "Father's old name", 'father-name-correct': "Father's new name",
   'relation-name-current': "Relative's old name", 'relation-name-correct': "Relative's new name",
   aadhaarApplicantName: 'Applicant name', aadhaarFatherNameCurrent: "Father's old name", aadhaarFatherNameCorrect: "Father's new name",
@@ -43,7 +43,7 @@ const ENGLISH_LABELS: Record<string, string> = {
 
 const HINDI_LABELS: Record<string, string> = {
   docRelationName: 'पिता का नाम', aadhaarNumber: 'आधार नंबर', hofAadhaarNumber: 'मुखिया का आधार नंबर',
-  'name-current': 'आवेदक का पुराना नाम', 'name-correct': 'आवेदक का नया नाम',
+  applicantName: 'आवेदक का नाम', 'name-current': 'आवेदक का पुराना नाम', 'name-correct': 'आवेदक का नया नाम',
   'father-name-current': 'पिता का पुराना नाम', 'father-name-correct': 'पिता का नया नाम',
   'relation-name-current': 'रिश्तेदार का पुराना नाम', 'relation-name-correct': 'रिश्तेदार का नया नाम',
   aadhaarApplicantName: 'आवेदक का नाम', aadhaarFatherNameCurrent: 'पिता का पुराना नाम', aadhaarFatherNameCorrect: 'पिता का नया नाम',
