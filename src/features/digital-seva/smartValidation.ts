@@ -93,7 +93,7 @@ export function validationKindForField(key: string): ValidationKind {
 export function getRequiredServiceFieldKeys(serviceId: string, options: Record<string, unknown> = {}): string[] {
   const required: Record<string, string[]> = {
     'pan-new': ['panApplicantName', 'panDob', 'panAddress', 'aadhaarNumber'],
-    'pan-correction': ['existingPanNumber', 'aadhaarNumber'],
+    'pan-correction': [],
     'pan-photo-signature': ['existingPanNumber', 'aadhaarNumber'],
     'aadhaar-mobile': ['aadhaarNumber', 'newMobile'],
     'aadhaar-email': ['aadhaarNumber', 'newEmail'],
@@ -102,7 +102,7 @@ export function getRequiredServiceFieldKeys(serviceId: string, options: Record<s
     'certificate-income': ['incomeFatherName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
     'certificate-caste': ['casteFatherName', 'casteCategory', 'casteName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
     'certificate-residence': ['certificatePurpose', 'residenceVillageWard', 'residencePostOffice', 'residencePin', 'level', 'residenceType'],
-    'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
+    'voter-new': ['voterDob', 'voterAddress', 'aadhaarPostOffice', 'aadhaarPin'],
     'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
     'aadhaar-address-doc': ['aadhaarApplicantName', 'aadhaarFatherNameCurrent', 'aadhaarFatherNameCorrect', 'aadhaarVillage', 'aadhaarPostOffice', 'aadhaarPin'],
     'aadhaar-address-hof': ['aadhaarNumber', 'hofAadhaarNumber', 'hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarStreet', 'aadhaarArea', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarPoliceStation', 'aadhaarState', 'aadhaarPin'],
