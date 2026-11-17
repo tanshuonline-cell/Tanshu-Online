@@ -31,7 +31,7 @@ export const CORRECTION_OPTIONS: Record<string, ApplicantCorrection[]> = {
     { id: "signature", label: "Signature", hindi: "हस्ताक्षर" }
   ],
   "aadhaar-address-doc": [
-    { id: "address", label: "Address", hindi: "पता" }
+    doc("address-proof", "UIDAI-accepted Proof of Address", "UIDAI-स्वीकृत पता प्रमाण", "Upload one clear document from the current UIDAI Proof of Address list. Final acceptance is checked against the official route.", "वर्तमान UIDAI पता प्रमाण सूची में से एक स्पष्ट दस्तावेज़ अपलोड करें। अंतिम स्वीकार्यता आधिकारिक माध्यम से जाँची जाएगी।", true)
   ],
   "aadhaar-address-hof": [
     { id: "address", label: "Address through Head of Family", hindi: "परिवार के मुखिया के माध्यम से पता" }
