@@ -30,14 +30,14 @@ export const CspMembershipPlans: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState('basic');
   useEffect(() => {
     fetch('/api/csp/plans').then(r => r.json()).then(data => {
-      if (data?.success && Array.isArray(data.plans)) setPlans(current => {
-        const next = current.map(plan => {
-          const price = data.plans.find((item: any) => item.plan_code === plan.code);
-          return price ? { ...plan, price: Number(price.amount_inr), durationDays: Number(price.duration_days), active: true } : { ...plan, active: false };
+      if (data?.success && Array.isArray(data.plans)) {
+        const next = defaultPaidPlans.map(plan => {
+          const match = data.plans.find((item: any) => item.plan_code === plan.code);
+          return match ? { ...plan, price: Number(match.amount_inr), durationDays: Number(match.duration_days), active: true } : { ...plan, active: false };
         });
+        setPlans(next);
         setSelectedPlan(selected => next.some(plan => plan.code === selected && plan.active) ? selected : (next.find(plan => plan.active)?.code || 'basic'));
-        return next;
-      });
+      }
     }).catch(() => {});
   }, []);
   const selected = plans.find(plan => plan.code === selectedPlan && plan.active) || plans.find(plan => plan.active);
@@ -87,14 +87,14 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       if (item) setToolEnabled(Number(item.enabled) === 1);
     }).catch(() => {});
     fetch('/api/csp/plans').then(r => r.json()).then(data => {
-      if (data?.success && Array.isArray(data.plans)) setAvailablePlans(current => {
-        const next = current.map(plan => {
+      if (data?.success && Array.isArray(data.plans)) {
+        const next = defaultPaidPlans.map(plan => {
           const match = data.plans.find((item: any) => item.plan_code === plan.code);
           return match ? { ...plan, price: Number(match.amount_inr), durationDays: Number(match.duration_days), active: true } : { ...plan, active: false };
         });
+        setAvailablePlans(next);
         setSelectedPlan(selected => next.some(plan => plan.code === selected && plan.active) ? selected : (next.find(plan => plan.active)?.code || 'basic'));
-        return next;
-      });
+      }
     }).catch(() => {});
   }, [toolId]);
   const submitMembershipRequest = async () => {
