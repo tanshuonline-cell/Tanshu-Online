@@ -353,12 +353,22 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       const attachedFiles = Object.values(documentFiles);
       const requiredDocumentIds: Record<string, string[]> = {
         'aadhaar-address-doc': ['address-proof'],
+        'pan-new': ['aadhaar'],
         'pan-correction': ['existing-pan', 'aadhaar'],
+        'pan-photo-signature': ['existing-pan', 'aadhaar'],
+        'aadhaar-co': ['aadhaar', 'address-proof'],
+        'aadhaar-mobile': ['aadhaar'],
+        'aadhaar-email': ['aadhaar'],
+        'voter-new': ['age-proof', 'address-proof', 'photo'],
         'voter-correction': ['epic', 'correction-proof'],
         'certificate-correction': ['existing-certificate', 'correct-proof'],
+        'ration-new': ['family-details', 'identity', 'address-proof'],
         'ration-update': ['existing-ration']
       };
-      for (const documentId of requiredDocumentIds[service.id] || []) {
+      const requiredForRequest = [...(requiredDocumentIds[service.id] || [])];
+      if (service.id === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
+      if (service.id === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
+      for (const documentId of requiredForRequest) {
         if (!selectedDocuments.includes(documentId) || !documentFiles[documentId]) {
           return reject('documentFiles', 'कृपया सूची में बताए गए आवश्यक दस्तावेज़ चुनकर अपलोड करें।');
         }
