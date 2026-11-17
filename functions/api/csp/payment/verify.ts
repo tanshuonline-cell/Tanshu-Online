@@ -37,8 +37,8 @@ export async function activateVerifiedOrder(orderId: string, payment: CashfreePa
   if (!paymentId) throw new Error('Cashfree did not provide a payment transaction ID.');
   const results = await env.DB.batch([
     env.DB.prepare(
-      "UPDATE csp_payments SET subscription_id = ?, gateway_payment_id = ?, gateway_payment_status = 'SUCCESS', reference = ?, status = 'verified', verified_by = 'cashfree_webhook_or_verify', verified_at = CURRENT_TIMESTAMP, notes = 'Cashfree payment independently verified through Payments API.' WHERE gateway_order_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND amount_inr = ?"
-    ).bind(subscriptionId, paymentId, 'Cashfree payment ' + paymentId + ' (' + planCode + ')', orderId, Number(row.amount_inr)),
+      "UPDATE csp_payments SET subscription_id = ?, gateway_payment_id = ?, gateway_payment_status = 'SUCCESS', status = 'verified', verified_by = 'cashfree_webhook_or_verify', verified_at = CURRENT_TIMESTAMP, notes = 'Cashfree payment independently verified through Payments API.' WHERE gateway_order_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND amount_inr = ?"
+    ).bind(subscriptionId, paymentId, orderId, Number(row.amount_inr)),
     env.DB.prepare(
       "UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active' AND EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND status = 'verified' AND subscription_id = ?)"
     ).bind(row.customer_id, orderId, subscriptionId),
