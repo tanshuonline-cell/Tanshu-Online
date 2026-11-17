@@ -26,6 +26,7 @@ import DigitalSevaAdminPage from './features/digital-seva/DigitalSevaAdminPage';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { CustomerAuthModal } from './components/auth/CustomerAuthModal';
+import { CspToolAccess } from './components/auth/CspToolAccess';
 import { ToolItem, ToolCategory, GovernmentService, GovernmentScheme, VideoGuide, AdminUser } from './types';
 import { CONFIRMED_TOOLS } from './data/toolsData';
 import { LATEST_VIDEOS } from './data/videosData';
@@ -410,19 +411,22 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
-  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Dedicated Instant Passport Photo Studio preview route.
+  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Paid workspaces stay editable; only download and print actions require an active plan.
+  if (window.location.pathname === '/csp-pvc-studio') {
+    return <CspToolAccess toolId="pdf-to-pvc-card-auto-cropper"><iframe title="Instant PVC Card Maker" src="/id-pvc-studio/premium-desktop-preview.html" className="h-screen w-full border-0" /></CspToolAccess>;
+  }
   if (window.location.pathname === '/advanced-photo-studio-preview') {
-    return <AdvancedPhotoStudioShell />;
+    return <CspToolAccess toolId="advanced-passport-photo-studio"><AdvancedPhotoStudioShell /></CspToolAccess>;
   }
 
   // Dedicated WhatsApp Selfie to Passport Photo Studio.
   if (window.location.pathname === '/whatsapp-selfie-passport-photo') {
-    return <WhatsAppSelfiePassportTool />;
+    return <CspToolAccess toolId="whatsapp-selfie-to-passport-photo"><WhatsAppSelfiePassportTool /></CspToolAccess>;
   }
 
   // Dedicated Instant Multi Customer Photo Maker.
   if (window.location.pathname === '/instant-multi-customer-photo-maker') {
-    return <InstantMultiCustomerPhotoMaker />;
+    return <CspToolAccess toolId="instant-multi-customer-photo-maker"><InstantMultiCustomerPhotoMaker /></CspToolAccess>;
   }
 
   // ROUTE 1: ADMIN PANEL
@@ -643,10 +647,9 @@ export default function App() {
 
       {/* Universal Interactive Tool Workspace Modal */}
       {activeTool && (
-        <UniversalToolModal
-          tool={activeTool}
-          onClose={handleCloseTool}
-        />
+        ['advanced-passport-photo-studio', 'pdf-to-pvc-card-auto-cropper', 'instant-multi-customer-photo-maker', 'whatsapp-selfie-to-passport-photo'].includes(activeTool.id)
+          ? <CspToolAccess toolId={activeTool.id}><UniversalToolModal tool={activeTool} onClose={handleCloseTool} /></CspToolAccess>
+          : <UniversalToolModal tool={activeTool} onClose={handleCloseTool} />
       )}
 
       {/* Customer Access / Login Modal */}
