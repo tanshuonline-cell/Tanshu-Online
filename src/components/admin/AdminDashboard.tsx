@@ -356,6 +356,11 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const freeVideosCount = videos.filter((v) => !v.isPremium && v.accessType !== 'premium').length;
   const premiumVideosCount = videos.filter((v) => v.isPremium || v.accessType === 'premium').length;
   const totalVerifiedPurchases = purchases.filter((p) => p.paymentStatus === 'PAID').length;
+  const getCspPlanAdminLabel = (code: string) => {
+    const plan = cspPlans.find(item => item.plan_code === code);
+    const name = code === 'advanced' ? 'ADVANCED' : code === 'premium' ? 'PROFESSIONAL' : 'BASIC';
+    return plan ? `${name} ₹${Number(plan.amount_inr)} · ${Number(plan.duration_days)} DAYS` : name;
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row">
@@ -1302,9 +1307,9 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                       <td className="p-3 text-slate-300">{customer.plan_code ? (customer.plan_code === 'advanced' ? 'ADVANCED' : customer.plan_code === 'premium' ? 'PROFESSIONAL' : 'BASIC') + ' · ₹' + customer.amount_inr : 'No active plan'}</td>
                       <td className="p-3 text-slate-300">{customer.expires_at ? new Date(customer.expires_at).toLocaleDateString() : '—'}</td>
                       <td className="p-3"><div className="flex flex-wrap gap-1.5">
-                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'basic')} className="rounded bg-blue-900 px-2 py-1 text-[10px] font-bold text-blue-100">BASIC ₹99 · 30 DAYS</button>
-                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'advanced')} className="rounded bg-violet-900 px-2 py-1 text-[10px] font-bold text-violet-100">ADVANCED ₹199 · 30 DAYS</button>
-                        <button onClick={() => manageCspCustomer(customer.id, 'activate', 'premium')} className="rounded bg-amber-900 px-2 py-1 text-[10px] font-bold text-amber-100">PROFESSIONAL ₹299 · 30 DAYS</button>
+                        <button disabled={!cspPlans.find(plan => plan.plan_code === 'basic' && Number(plan.is_active) === 1)} onClick={() => manageCspCustomer(customer.id, 'activate', 'basic')} className="rounded bg-blue-900 px-2 py-1 text-[10px] font-bold text-blue-100 disabled:cursor-not-allowed disabled:opacity-40">{getCspPlanAdminLabel('basic')}</button>
+                        <button disabled={!cspPlans.find(plan => plan.plan_code === 'advanced' && Number(plan.is_active) === 1)} onClick={() => manageCspCustomer(customer.id, 'activate', 'advanced')} className="rounded bg-violet-900 px-2 py-1 text-[10px] font-bold text-violet-100 disabled:cursor-not-allowed disabled:opacity-40">{getCspPlanAdminLabel('advanced')}</button>
+                        <button disabled={!cspPlans.find(plan => plan.plan_code === 'premium' && Number(plan.is_active) === 1)} onClick={() => manageCspCustomer(customer.id, 'activate', 'premium')} className="rounded bg-amber-900 px-2 py-1 text-[10px] font-bold text-amber-100 disabled:cursor-not-allowed disabled:opacity-40">{getCspPlanAdminLabel('premium')}</button>
                         {customer.status === 'active' ? <button onClick={() => manageCspCustomer(customer.id, 'suspend')} className="rounded bg-red-950 px-2 py-1 text-[10px] font-bold text-red-200">Suspend</button> : <button onClick={() => manageCspCustomer(customer.id, 'restore')} className="rounded bg-emerald-950 px-2 py-1 text-[10px] font-bold text-emerald-200">Restore</button>}
                         <button onClick={() => manageCspCustomer(customer.id, 'expire')} className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-200">Expire</button>
                       </div></td>
@@ -1313,7 +1318,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 </tbody>
               </table>
             </div>
-            <p className="text-[11px] leading-5 text-slate-500">Membership activation is manual and must follow independent payment verification. Basic is valid for 1 day, Professional for 30 days and Premium for 90 days. No auto-renewal is configured.</p>
+            <p className="text-[11px] leading-5 text-slate-500">Membership activation is manual and must follow independent payment verification. Prices and validity shown above come from the current plan settings. No auto-renewal is configured.</p>
             <section className="space-y-3">
               <h3 className="text-base font-extrabold text-white">CSP Payment History</h3>
               <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
