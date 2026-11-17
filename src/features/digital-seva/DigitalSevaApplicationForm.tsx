@@ -645,9 +645,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-profile ds-address-profile">
         <div className="ds-address-profile-heading">
           <span className="ds-address-step">ADDRESS DETAILS</span>
-          <h4>{hi
-            ? (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'OLD' ? 'मौजूदा / पुराना पता भरें' : 'जिस पते को अपडेट करवाना है, उसकी पूरी जानकारी भरें')
-            : (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'OLD' ? 'Enter the existing / old address' : 'Enter the complete address to be used for this request')}</h4>
+          <h4>{hi ? 'परिवार के मुखिया के माध्यम से पता विवरण भरें' : 'Enter address details for the Head of Family request'}</h4>
           <p>{hi ? 'OLD या NEW—दोनों विकल्पों में पता भरना आवश्यक है। हर जानकारी सही और अलग-अलग भरें।' : 'Address details are required for both OLD and NEW selections. Enter each part accurately in its own field.'}</p>
         </div>
         <div className="ds-address-form-grid">
