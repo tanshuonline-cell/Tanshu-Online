@@ -104,7 +104,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
       return json({ success: false, error: cashfree.message || 'Cashfree could not create the Sandbox order. Please try again.' }, 502);
     }
     await env.DB.prepare(
-      "INSERT INTO csp_payments (id, customer_id, amount_inr, payment_method, reference, status, notes, gateway_order_id, gateway_payment_session_id, gateway_payment_status, customer_phone, plan_duration_days) VALUES (?, ?, ?, 'cashfree', ?, 'pending', ?, ?, ?, 'ACTIVE', ?, ?)"
+      "INSERT INTO csp_payments (id, customer_id, amount_inr, payment_method, reference, status, notes, gateway_order_id, gateway_payment_session_id, gateway_payment_status, customer_phone, plan_duration_days) VALUES (?, ?, ?, 'cashfree', ?, 'pending', ?, ?, ?, 'PENDING', ?, ?)"
     ).bind(crypto.randomUUID(), customer.id, amount, 'Cashfree membership: ' + planCode, 'Cashfree Sandbox order created; awaiting server-side payment verification.', orderId, cashfree.payment_session_id, phone, Number(plan.duration_days) || 30).run();
     return json({ success: true, orderId, paymentSessionId: cashfree.payment_session_id, environment: 'sandbox', reused: false });
   } catch {
