@@ -350,6 +350,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (service.id !== 'aadhaar-address-doc' && !isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
       const attachedFiles = Object.values(documentFiles);
+      if (service.id === 'aadhaar-address-doc' && attachedFiles.length === 0) return reject('documentFiles', 'कृपया UIDAI-स्वीकृत पता प्रमाण दस्तावेज़ अपलोड करें।');
       if (attachedFiles.length > 8) return reject('documentFiles', 'एक बार में अधिकतम 8 दस्तावेज़ अपलोड करें।');
       if (attachedFiles.some((file) => file.size > 5 * 1024 * 1024)) return reject('documentFiles', 'हर दस्तावेज़ 5 MB या उससे कम होना चाहिए।');
       if (attachedFiles.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024) return reject('documentFiles', 'सभी दस्तावेज़ों का कुल आकार 20 MB से अधिक नहीं होना चाहिए।');
@@ -826,7 +827,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
               }} />
               <span><strong>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
             </label>
-            {selectedDocuments.includes(item.id) && <label className="ds-application-file-upload">{hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)'}
+            {selectedDocuments.includes(item.id) && <label className="ds-application-file-upload">{item.required ? (hi ? 'फ़ाइल चुनें (अनिवार्य)' : 'Choose file (required)') : (hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)')}
               <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => {
                 const file = e.target.files?.[0];
                 setDocumentFiles((old) => { const next = { ...old }; if (file) next[item.id] = file; else delete next[item.id]; return next; });
