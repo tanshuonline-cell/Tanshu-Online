@@ -61,6 +61,18 @@ Never paste secret values into GitHub, source code, chat, or browser variables. 
 ### Additional Preview D1 migration
 
 After deploying the code to the Preview branch, apply `migrations/0013_csp_cashfree_checkout.sql` to the same Preview D1 database that already contains migration 0012. This migration adds Cashfree order/session/payment metadata to `csp_payments`. Do not apply it to Production or the separate Digital Seva database. It is not applied automatically by Pages deployment.
+## Preview test checklist
+
+- Confirm the Preview deployment is on the latest commit and the Preview D1 database has migrations 0012 and 0013.
+- Open one of the four gated tools, trigger Download or Print, choose Basic, enter a 10-digit test mobile number, complete Gmail OTP, and confirm the Cashfree Sandbox checkout opens.
+- Repeat checkout creation for Advanced and Premium; verify the order amounts are read from the active D1 plan prices.
+- Test Sandbox payment failure and customer cancellation; confirm the payment remains unverified and no subscription is created.
+- Test Sandbox payment success; confirm the return verification and signed webhook converge on one verified payment and exactly one subscription.
+- Refresh the customer account and Admin CSP Payment History; confirm plan, amount, Cashfree order/payment IDs, and expiry match.
+- Replay the webhook or repeat return verification; confirm no duplicate subscription is inserted.
+- Confirm the unrelated tools and Production deployment/database remain unchanged.
+
+Do not use fabricated UTR values or manually activate Cashfree Sandbox rows. Sandbox payment verification is automatic only after Cashfree reports SUCCESS through its authenticated Payments API.
 ## Optional Brevo alternative
 
 If you already own and control a custom domain, you may instead set `BREVO_API_KEY` and `CSP_SENDER_EMAIL` in Cloudflare Preview and authenticate that domain in Brevo. Brevo's free tier has a daily sending quota, but a free Gmail sender address cannot be authenticated under current sender requirements. No Brevo account or paid plan is required when using the Google Apps Script route.
