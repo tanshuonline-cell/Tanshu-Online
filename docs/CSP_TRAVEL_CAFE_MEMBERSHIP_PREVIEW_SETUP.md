@@ -12,7 +12,7 @@ This feature is isolated on branch `feature/four-tool-membership-safe-preview-cl
 - The four paid tools ask for Gmail OTP and a membership only when the customer tries to download or print. Plan requests are recorded as pending manual payments for the existing admin dashboard.
 - Plans: BASIC ₹99/month, ADVANCED ₹199/month, PREMIUM ₹299/month (30 days each); price and validity are editable in the existing Admin Dashboard.
 - Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = ADVANCED + WhatsApp Selfie to Passport Photo.
-- Manual membership activation only after payment is independently verified. Admin activation requires an existing pending request for the selected plan and a verified UTR, transaction ID, or cash receipt reference. Payment verification, subscription replacement, and audit insertion execute together in one D1 batch transaction. A pending request or Gmail OTP alone is never treated as payment. No payment gateway, auto-debit or auto-renewal is added.
+- Manual membership activation only after payment is independently verified. Admin must select the exact pending Payment History row (payment ID) for the customer and selected plan; the API re-checks that ID, customer, pending status, plan request marker, and current plan amount. Admin must then enter the independently verified UTR, transaction ID, or cash receipt reference. Payment verification, subscription replacement, and audit insertion execute together in one D1 batch transaction. A pending request or Gmail OTP alone is never treated as payment. No payment gateway, auto-debit or auto-renewal is added.
 - Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
 
 ## Zero-cost Gmail email setup (recommended)
@@ -35,7 +35,7 @@ Google's current quota reference: https://developers.google.com/apps-script/guid
 
 ## D1 migration (required)
 
-Apply `migrations/0012_csp_customer_memberships.sql` to the same existing D1 database bound as `DB` for the current `/api/admin/videos` and `/api/admin/purchases` functions. Do not apply it to the separate Digital Seva preview database. This migration is not applied automatically.
+Apply `migrations/0012_csp_customer_memberships.sql` to the same existing D1 database bound as `DB` for the current `/api/admin/videos` and `/api/admin/purchases` functions. Do not apply it to the separate Digital Seva preview database. This migration is not applied automatically. Its default plan seed uses `INSERT OR IGNORE`, so re-running it will not overwrite administrator-edited plan prices or active/inactive settings.
 
 ## Optional Brevo alternative
 
