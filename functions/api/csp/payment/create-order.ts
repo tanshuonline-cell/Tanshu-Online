@@ -1,4 +1,5 @@
 import { CspEnv, json, readCustomerSession } from '../_auth';
+import { activateVerifiedOrder } from './verify';
 
 interface CashfreeOrder {
   order_id?: string;
@@ -35,7 +36,40 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
       "SELECT gateway_order_id, gateway_payment_session_id, amount_inr FROM csp_payments WHERE customer_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND reference = ? AND created_at >= datetime('now', '-15 minutes') ORDER BY created_at DESC LIMIT 1"
     ).bind(customer.id, 'Cashfree membership: ' + planCode).first();
     if (existing?.gateway_order_id && existing?.gateway_payment_session_id && Number(existing.amount_inr) === amount) {
-      return json({ success: true, orderId: existing.gateway_order_id, paymentSessionId: existing.gateway_payment_session_id, environment: 'sandbox', reused: true });
+      // Before reusing a pending database row, ask Cashfree whether the order
+      // already has a successful payment. A prior SUCCESS must never reopen
+      // Hosted Checkout just because local activation previously failed.
+      const existingPaymentsResponse = await fetch(cashfreeBase(String(env.CASHFREE_ENVIRONMENT || '').toUpperCase()) + '/orders/' + encodeURIComponent(String(existing.gateway_order_id)) + '/payments', {
+        headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': API_VERSION }
+      });
+      if (!existingPaymentsResponse.ok) {
+        return json({ success: false, error: 'The previous Cashfree order status could not be checked. Do not pay again; the order must be checked first.' }, 503);
+      }
+      const existingPayments = await existingPaymentsResponse.json().catch(() => null);
+      if (!Array.isArray(existingPayments)) {
+        return json({ success: false, error: 'Cashfree returned an invalid status for the previous order. Do not pay again; the order must be checked first.' }, 503);
+      }
+      const successfulPayment = existingPayments.find((item: any) => String(item.payment_status || '').toUpperCase() === 'SUCCESS');
+      if (successfulPayment) {
+        try {
+          const activation = await activateVerifiedOrder(String(existing.gateway_order_id), successfulPayment, env);
+          return json({
+            success: true, paid: true, alreadyPaid: true,
+            activated: activation.activated, alreadyProcessed: activation.alreadyProcessed,
+            message: 'Cashfree already confirms this order as paid. No new checkout was opened.'
+          });
+        } catch {
+          return json({
+            success: false, paid: true, activationPending: true,
+            error: 'Cashfree already confirms SUCCESS for this order, but membership activation failed in Preview. Do not pay again; this existing order needs database reconciliation.'
+          }, 409);
+        }
+      }
+      const latestExistingStatus = String(existingPayments[0]?.payment_status || 'PENDING').toUpperCase();
+      if (!['FAILED', 'USER_DROPPED', 'CANCELLED'].includes(latestExistingStatus)) {
+        return json({ success: true, orderId: existing.gateway_order_id, paymentSessionId: existing.gateway_payment_session_id, environment: 'sandbox', reused: true });
+      }
+      await env.DB.prepare("UPDATE csp_payments SET gateway_payment_status = ? WHERE gateway_order_id = ? AND status = 'pending'").bind(latestExistingStatus, existing.gateway_order_id).run();
     }
 
     const origin = new URL(request.url).origin;
