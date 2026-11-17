@@ -64,7 +64,8 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [plansOpen, setPlansOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('basic');
-  const [requestBusy, setRequestBusy] = useState(false);\n  const [customerPhone, setCustomerPhone] = useState('');
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState('');
   const [availablePlans, setAvailablePlans] = useState(defaultPaidPlans);
   const [toolEnabled, setToolEnabled] = useState(true);
   const refresh = async (): Promise<Session> => {
