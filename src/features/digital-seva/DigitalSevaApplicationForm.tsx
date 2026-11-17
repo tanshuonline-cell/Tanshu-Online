@@ -40,7 +40,7 @@ async function loadCashfreeSdk(): Promise<void> {
 }
 
 const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","aadhaarApplicantName","aadhaarFatherNameCurrent","aadhaarFatherNameCorrect","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
-const COMPACT_REQUEST_SERVICE_IDS = new Set(['aadhaar-address-doc', 'pan-correction', 'voter-correction', 'certificate-correction', 'ration-update', 'certificate-income', 'certificate-caste', 'certificate-residence']);
+const COMPACT_REQUEST_SERVICE_IDS = new Set(['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance', 'pan-new', 'pan-correction', 'pan-photo-signature', 'voter-new', 'voter-correction', 'certificate-correction', 'certificate-income', 'certificate-caste', 'certificate-residence', 'ration-new', 'ration-update']);
 
 
 export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, recoveredDraft, onSubmitted }: Props) {
