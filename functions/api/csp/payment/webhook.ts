@@ -35,7 +35,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
     const payments = await response.json().catch(() => []);
     if (!Array.isArray(payments)) return json({ success: false }, 502);
     const payment = payments.find((item: any) => item.payment_status === 'SUCCESS');
-    if (!payment) return json({ success: true, paid: false });
+    if (!payment) {
+      const latestStatus = String(payments[0]?.payment_status || 'PENDING').toUpperCase();
+      await env.DB.prepare("UPDATE csp_payments SET gateway_payment_status = ? WHERE gateway_order_id = ? AND status = 'pending'").bind(latestStatus, orderId).run();
+      return json({ success: true, paid: false, status: latestStatus });
+    }
     const result = await activateVerifiedOrder(orderId, payment, env);
     return json({ success: true, activated: result.activated, alreadyProcessed: result.alreadyProcessed });
   } catch {
