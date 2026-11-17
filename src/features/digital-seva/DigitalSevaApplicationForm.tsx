@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { containsForbiddenAadhaarAddressInstruction, formatEnglishTitleCase, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, suggestHindiTransliteration, validateFieldByKey } from './smartValidation';
-import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, X } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
 import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } from './BookingPolicyConsent';
@@ -73,6 +73,8 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [quickSelectedTasks, setQuickSelectedTasks] = useState<string[]>([]);
+  const [documentPickerOpen, setDocumentPickerOpen] = useState(false);
+  const [documentSearch, setDocumentSearch] = useState('');
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const draftStateRef = useRef<Record<string, unknown>>({});
@@ -822,22 +824,69 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       </div>
       <div className="ds-application-profile">
         <h4>{hi ? 'दस्तावेज़ अपलोड करें (वैकल्पिक)' : 'Upload documents (optional)'}</h4>
-        <p>{hi ? 'चाहें तो अभी दस्तावेज़ भेजें। नहीं तो खाली छोड़कर सबमिट कर सकते हैं।' : 'Upload now if you wish, or leave this blank and submit.'}</p>
-        <div className="ds-application-doc-list">
-          {documents.map((item) => <div key={item.id} className="ds-application-doc-row">
-            <label className="ds-application-doc-option">
-              <input type="checkbox" checked={selectedDocuments.includes(item.id)} onChange={(event) => {
-                const checked=event.target.checked;
-                setSelectedDocuments((old)=>checked?[...old,item.id]:old.filter((x)=>x!==item.id));
-                if(!checked) setDocumentFiles((old)=>{const next={...old};delete next[item.id];return next;});
-              }}/>
-              <span><strong>{hi ? item.hindi : item.label}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
-            </label>
-            {selectedDocuments.includes(item.id) && <label className="ds-application-file-upload">{hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)'}
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(event)=>{const file=event.target.files?.[0];setDocumentFiles((old)=>{const next={...old};if(file)next[item.id]=file;else delete next[item.id];return next;});}}/>
-              {documentFiles[item.id] && <small>{documentFiles[item.id].name} · {(documentFiles[item.id].size/1024/1024).toFixed(2)} MB</small>}
-            </label>}
-          </div>)}
+        <p>{hi ? 'सर्च करके या नीचे एरो खोलकर सूची में से दस्तावेज़ चुनें। फ़ाइल अपलोड करना जरूरी नहीं है।' : 'Search or open the arrow to choose from the available document list. Uploading a file is optional.'}</p>
+        <div className="ds-quick-document-picker" style={{display:'grid',gap:12}}>
+          {selectedDocuments.length > 0 && <div className="ds-quick-document-selected" style={{display:'flex',flexWrap:'wrap',gap:8}}>
+            {selectedDocuments.map((id) => {
+              const item = documents.find((doc) => doc.id === id);
+              if (!item) return null;
+              return <span key={id} style={{display:'inline-flex',alignItems:'center',gap:7,padding:'7px 10px',borderRadius:999,border:'1px solid var(--ds-border, #cbd5e1)',background:'var(--ds-surface-soft, #f1f5f9)',fontSize:13}}>
+                {hi ? item.hindi : item.label}
+                <button type="button" aria-label={hi ? item.hindi + ' हटाएँ' : 'Remove ' + item.label} onClick={() => {
+                  setSelectedDocuments((old) => old.filter((value) => value !== id));
+                  setDocumentFiles((old) => { const next = { ...old }; delete next[id]; return next; });
+                }} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',border:0,background:'transparent',padding:0,cursor:'pointer'}}><X size={14}/></button>
+              </span>;
+            })}
+          </div>}
+          <div style={{position:'relative',display:'flex',alignItems:'center',gap:8}}>
+            <div style={{position:'relative',flex:1,minWidth:0}}>
+              <Search size={17} aria-hidden="true" style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',opacity:.65,pointerEvents:'none'}}/>
+              <input type="search" value={documentSearch} onChange={(event) => { setDocumentSearch(event.target.value); setDocumentPickerOpen(true); }} onFocus={() => setDocumentPickerOpen(true)} placeholder={hi ? 'दस्तावेज़ खोजें…' : 'Search available documents…'} aria-label={hi ? 'दस्तावेज़ खोजें' : 'Search available documents'} aria-expanded={documentPickerOpen} aria-controls="ds-quick-document-options" style={{width:'100%',boxSizing:'border-box',padding:'12px 14px 12px 40px',borderRadius:12,border:'1px solid var(--ds-border, #cbd5e1)',background:'var(--ds-input-bg, #fff)',fontSize:14}}/>
+            </div>
+            <button type="button" onClick={() => setDocumentPickerOpen((open) => !open)} aria-label={hi ? 'दस्तावेज़ सूची खोलें या बंद करें' : 'Open or close document list'} aria-expanded={documentPickerOpen} style={{flex:'0 0 44px',height:44,display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:12,border:'1px solid var(--ds-border, #cbd5e1)',background:'var(--ds-surface-soft, #f1f5f9)',cursor:'pointer'}}>
+              <ChevronDown size={18} style={{transform:documentPickerOpen ? 'rotate(180deg)' : 'none',transition:'transform .18s ease'}}/>
+            </button>
+          </div>
+          {documentPickerOpen && <div id="ds-quick-document-options" role="listbox" aria-multiselectable="true" style={{maxHeight:230,overflowY:'auto',border:'1px solid var(--ds-border, #cbd5e1)',borderRadius:12,background:'var(--ds-card-bg, #fff)',padding:6,boxShadow:'0 10px 24px rgba(15,23,42,.10)'}}>
+            {documents.filter((item) => {
+              const query = documentSearch.trim().toLocaleLowerCase();
+              return !query || item.label.toLocaleLowerCase().includes(query) || item.hindi.toLocaleLowerCase().includes(query);
+            }).map((item) => {
+              const chosen = selectedDocuments.includes(item.id);
+              return <button type="button" role="option" aria-selected={chosen} key={item.id} onClick={() => {
+                setSelectedDocuments((old) => chosen ? old.filter((value) => value !== item.id) : [...old, item.id]);
+                if (chosen) setDocumentFiles((old) => { const next = { ...old }; delete next[item.id]; return next; });
+                setDocumentSearch('');
+                setDocumentPickerOpen(false);
+              }} style={{width:'100%',display:'flex',alignItems:'center',gap:10,textAlign:'left',padding:'10px 11px',border:0,borderRadius:9,background:chosen ? 'var(--ds-selected-bg, #e0f2fe)' : 'transparent',cursor:'pointer',fontSize:14}}>
+                <span aria-hidden="true" style={{width:18,height:18,flex:'0 0 18px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:5,border:'1px solid var(--ds-border, #94a3b8)',background:chosen ? 'var(--ds-accent, #2563eb)' : 'transparent',color:'#fff',fontSize:12}}>{chosen ? '✓' : ''}</span>
+                <span style={{display:'grid',gap:2,minWidth:0}}><strong style={{fontWeight:600}}>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small style={{opacity:.72}}>{hi ? item.purposeHindi : item.purpose}</small></span>
+              </button>;
+            })}
+            {documents.filter((item) => {
+              const query = documentSearch.trim().toLocaleLowerCase();
+              return !query || item.label.toLocaleLowerCase().includes(query) || item.hindi.toLocaleLowerCase().includes(query);
+            }).length === 0 && <p role="status" style={{margin:0,padding:14,fontSize:13,opacity:.7}}>{hi ? 'इस नाम से कोई दस्तावेज़ सूची में नहीं है।' : 'No matching document in the available list.'}</p>}
+          </div>}
+          {selectedDocuments.length > 0 && <div style={{display:'grid',gap:10}}>
+            {selectedDocuments.map((id) => {
+              const item = documents.find((doc) => doc.id === id);
+              if (!item) return null;
+              return <div key={id} className="ds-application-doc-row">
+                <div className="ds-application-doc-option">
+                  <span><strong>{hi ? item.hindi : item.label}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
+                </div>
+                <label className="ds-application-file-upload">{hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)'}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(event) => {
+                    const selectedFile = event.target.files?.[0];
+                    setDocumentFiles((old) => { const next = { ...old }; if (selectedFile) next[id] = selectedFile; else delete next[id]; return next; });
+                  }}/>
+                  {documentFiles[id] && <small>{documentFiles[id].name} · {(documentFiles[id].size/1024/1024).toFixed(2)} MB</small>}
+                </label>
+              </div>;
+            })}
+          </div>}
         </div>
       </div>
       <div className="ds-booking-privacy"><ShieldCheck size={18}/><span>{hi ? 'Terms & Conditions और Refund Policy पेमेंट से पहले स्वीकार किए जा चुके हैं। पेमेंट सत्यापन सर्वर पर दोबारा होगा।' : 'Terms & Conditions and Refund Policy were accepted before payment. The server verifies the payment again on submission.'}</span></div>
