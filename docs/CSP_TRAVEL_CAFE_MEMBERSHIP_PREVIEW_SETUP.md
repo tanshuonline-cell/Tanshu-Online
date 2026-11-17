@@ -1,6 +1,6 @@
 # CSP & Travel Cafe membership preview setup
 
-This feature is isolated on branch `csp-travel-cafe-membership-preview` and a draft pull request. It does not replace the existing admin login or video-management endpoints.
+This feature is isolated on branch `feature/four-tool-membership-safe-preview-clean-2026-11-17` and a draft pull request. It does not replace the existing admin login or video-management endpoints.
 
 ## Included in this preview
 
@@ -12,7 +12,7 @@ This feature is isolated on branch `csp-travel-cafe-membership-preview` and a dr
 - The four paid tools ask for Gmail OTP and a membership only when the customer tries to download or print. Plan requests are recorded as pending manual payments for the existing admin dashboard.
 - Plans: BASIC ₹99/month, ADVANCED ₹199/month, PROFESSIONAL ₹299/month (30 days each); price and validity are editable in the existing Admin Dashboard.
 - Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PROFESSIONAL = ADVANCED + WhatsApp Selfie to Passport Photo.
-- Manual membership activation only after payment is independently verified. No payment gateway, auto-debit or auto-renewal is added.
+- Manual membership activation only after payment is independently verified. Admin activation requires an existing pending request for the selected plan and a verified UTR, transaction ID, or cash receipt reference. Payment verification, subscription replacement, and audit insertion execute together in one D1 batch transaction. A pending request or Gmail OTP alone is never treated as payment. No payment gateway, auto-debit or auto-renewal is added.
 - Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
 
 ## Zero-cost Gmail email setup (recommended)
