@@ -583,7 +583,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       {service.id === 'aadhaar-lost' && textInput('aadhaarRecordedName', 'Name as recorded in Aadhaar (no Aadhaar number)', 'आधार में दर्ज नाम (आधार नंबर नहीं)')}
       {correctionsForService.length > 0 && !['aadhaar-address-doc', 'aadhaar-co'].includes(service.id) && <div className="ds-application-field-grid">
         {corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address') &&
-          (!['pan-correction', 'voter-correction', 'certificate-correction', 'ration-update'].includes(service.id) || ['name', 'father-name', 'relation-name'].includes(id))).map((id) => {
+          (!['pan-correction', 'pan-photo-signature', 'voter-correction', 'certificate-correction', 'ration-update'].includes(service.id) || ['name', 'father-name', 'relation-name'].includes(id))).map((id) => {
           const item = correctionsForService.find((x) => x.id === id);
           if (!item) return null;
           return <div className="ds-application-correction-fields" key={id}>
