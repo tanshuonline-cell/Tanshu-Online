@@ -148,8 +148,8 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
       }
       const choices = matching.map((payment, index) =>
         (index + 1) + '. ₹' + payment.amount_inr + ' · ' + new Date(payment.created_at).toLocaleString() + ' · ID ' + payment.id
-      ).join('\\n');
-      const selection = matching.length === 1 ? '1' : window.prompt('Select the exact pending payment entry to verify:\\n' + choices, '1');
+      ).join('\n');
+      const selection = matching.length === 1 ? '1' : window.prompt('Select the exact pending payment entry to verify:\n' + choices, '1');
       if (selection === null) return;
       const selectedIndex = Number(selection) - 1;
       if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= matching.length) {
