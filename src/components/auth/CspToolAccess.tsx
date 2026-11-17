@@ -118,7 +118,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     return () => window.removeEventListener('message', onFrameMessage);
   }, [toolEnabled, toolId, isHindi]);
 
-  // Catch both real user clicks and programmatic download links, plus Ctrl/Cmd+P.
+  // Gate real/programmatic downloads, block browser Save shortcuts, and authorize printing.
   useEffect(() => {
     const originalPrint = window.print;
     const originalAnchorClick = HTMLAnchorElement.prototype.click;
@@ -179,12 +179,6 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
       event.preventDefault();
       event.stopImmediatePropagation();
       void requestExport().then(ok => { if (ok) replayDownload(anchor); });
-    };
-    const onPrintShortcut = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'p') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      void requestExport().then(ok => { if (ok) originalPrint.call(window); });
     };
     document.addEventListener('click', onDownloadClick, true);
     document.addEventListener('keydown', onSaveAndPrintShortcuts, true);
