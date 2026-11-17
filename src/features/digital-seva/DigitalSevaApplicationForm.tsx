@@ -369,21 +369,9 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (!COMPACT_REQUEST_SERVICE_IDS.has(service.id) && !isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
       const attachedFiles = Object.values(documentFiles);
-      const requiredDocumentIds: Record<string, string[]> = {
-        'aadhaar-address-doc': ['address-proof'],
-        'pan-new': ['aadhaar'],
-        'pan-correction': ['existing-pan', 'aadhaar'],
-        'pan-photo-signature': ['existing-pan', 'aadhaar'],
-        'aadhaar-co': ['aadhaar', 'address-proof'],
-        'aadhaar-mobile': ['aadhaar'],
-        'aadhaar-email': ['aadhaar'],
-        'voter-new': ['age-proof', 'address-proof', 'photo'],
-        'voter-correction': ['epic', 'correction-proof'],
-        'certificate-correction': ['existing-certificate', 'correct-proof'],
-        'ration-new': ['family-details', 'identity', 'address-proof'],
-        'ration-update': ['existing-ration']
-      };
-      const requiredForRequest = [...(requiredDocumentIds[service.id] || [])];
+      const requiredForRequest = ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id)
+        ? []
+        : documents.filter((item) => item.required).map((item) => item.id);
       if (service.id === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
       if (service.id === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
       for (const documentId of requiredForRequest) {
