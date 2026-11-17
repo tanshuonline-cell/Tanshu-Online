@@ -411,7 +411,13 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
-  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Membership checks are applied only to the four selected paid workspaces.
+  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.
+  const cscToolkitSlug = window.location.pathname.replace(/^\//, '');
+  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {
+    return <CscToolkitSeoPage slug={cscToolkitSlug} />;
+  }
+
+  // Membership checks are applied only to the four selected paid workspaces.
   if (window.location.pathname === '/csp-pvc-studio') {
     return <CspToolAccess toolId="pdf-to-pvc-card-auto-cropper"><iframe title="Instant PVC Card Maker" src="/id-pvc-studio/premium-desktop-preview.html" className="h-screen w-full border-0" /></CspToolAccess>;
   }
