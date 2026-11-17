@@ -36,15 +36,21 @@ export async function activateVerifiedOrder(orderId: string, payment: CashfreePa
   const paymentId = String(payment.cf_payment_id || '');
   if (!paymentId) throw new Error('Cashfree did not provide a payment transaction ID.');
   const results = await env.DB.batch([
+    // Insert the subscription first: csp_payments.subscription_id has a
+    // foreign key to csp_subscriptions(id). The INSERT is conditional on the
+    // exact pending order, so a concurrent/replayed verifier cannot create a
+    // second subscription after the first transaction wins.
     env.DB.prepare(
-      "UPDATE csp_payments SET subscription_id = ?, gateway_payment_id = ?, gateway_payment_status = 'SUCCESS', status = 'verified', verified_by = 'cashfree_webhook_or_verify', verified_at = CURRENT_TIMESTAMP, notes = 'Cashfree payment independently verified through Payments API.' WHERE gateway_order_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND amount_inr = ?"
-    ).bind(subscriptionId, paymentId, orderId, Number(row.amount_inr)),
+      "INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) SELECT ?, ?, ?, ?, ?, ?, 'active', 'cashfree', 'Activated after Cashfree server-side SUCCESS verification.' WHERE EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND customer_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND amount_inr = ?)"
+    ).bind(subscriptionId, row.customer_id, planCode, Number(row.amount_inr), now.toISOString(), expiresAt.toISOString(), orderId, row.customer_id, Number(row.amount_inr)),
+    // Link and verify only when this transaction inserted the matching
+    // subscription and the payment is still pending.
     env.DB.prepare(
-      "UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active' AND EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND status = 'verified' AND subscription_id = ?)"
-    ).bind(row.customer_id, orderId, subscriptionId),
+      "UPDATE csp_payments SET subscription_id = ?, gateway_payment_id = ?, gateway_payment_status = 'SUCCESS', status = 'verified', verified_by = 'cashfree_webhook_or_verify', verified_at = CURRENT_TIMESTAMP, notes = 'Cashfree payment independently verified through Payments API.' WHERE gateway_order_id = ? AND customer_id = ? AND payment_method = 'cashfree' AND status = 'pending' AND amount_inr = ? AND EXISTS (SELECT 1 FROM csp_subscriptions WHERE id = ? AND customer_id = csp_payments.customer_id)"
+    ).bind(subscriptionId, paymentId, orderId, row.customer_id, Number(row.amount_inr), subscriptionId),
     env.DB.prepare(
-      "INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) SELECT ?, ?, ?, ?, ?, ?, 'active', 'cashfree', 'Activated after Cashfree server-side SUCCESS verification.' WHERE EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND status = 'verified' AND subscription_id = ?)"
-    ).bind(subscriptionId, row.customer_id, planCode, Number(row.amount_inr), now.toISOString(), expiresAt.toISOString(), orderId, subscriptionId),
+      "UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active' AND id <> ? AND EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND status = 'verified' AND subscription_id = ?)"
+    ).bind(row.customer_id, subscriptionId, orderId, subscriptionId),
     env.DB.prepare(
       "INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) SELECT ?, 'cashfree', 'cashfree_membership_activation', ?, ? WHERE EXISTS (SELECT 1 FROM csp_payments WHERE gateway_order_id = ? AND status = 'verified' AND subscription_id = ?)"
     ).bind(auditId, row.customer_id, JSON.stringify({ orderId, paymentId, planCode, amount: Number(row.amount_inr) }), orderId, subscriptionId)
