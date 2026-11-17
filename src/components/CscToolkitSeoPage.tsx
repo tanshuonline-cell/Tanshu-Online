@@ -53,6 +53,7 @@ export const CscToolkitSeoPage: React.FC<{ slug: string }> = ({ slug }) => {
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600"><span className="inline-flex items-center gap-1"><ShieldCheck className="h-4 w-4 text-emerald-700"/> Browser-based workspace</span><span>·</span><span>Hindi + English guidance</span><span>·</span><span>CSC &amp; Cyber Cafe workflow</span></div>
         </section>
         {isHub ? (
+          <>
           <section className="mt-10">
             <h2 className="text-2xl font-extrabold">Explore the 7 CSC &amp; Cyber Cafe Tools</h2>
             <p className="mt-2 text-slate-600">Choose a tool to read how it works and open its actual workspace.</p>
@@ -63,6 +64,7 @@ export const CscToolkitSeoPage: React.FC<{ slug: string }> = ({ slug }) => {
             <p className="mt-2 text-sm text-slate-600">Editing and previews stay open. Membership is requested only when you download or print. Manual payment verification is required.</p>
             <CspMembershipPlans />
           </section>
+          </>
         ) : entry && (
           <>
             <section className="mt-9 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
