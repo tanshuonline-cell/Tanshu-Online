@@ -90,7 +90,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     try {
       body = JSON.parse(String(rawPayload || ''));
       const documentTypes = JSON.parse(String(rawTypes || '[]'));
-      const files = form.getAll('documentFile').filter((item): item is File => typeof File !== 'undefined' && item instanceof File && item.size > 0);
+      // Cloudflare multipart parsing can return File-like objects across runtime boundaries.
+      // Do not discard a valid upload solely because instanceof File fails in that isolate.
+      const files = form.getAll('documentFile').filter((item): item is File =>
+        Boolean(item) && typeof item === 'object' &&
+        typeof (item as File).arrayBuffer === 'function' &&
+        typeof (item as File).size === 'number' && (item as File).size > 0 &&
+        typeof (item as File).name === 'string'
+      );
       if (!Array.isArray(documentTypes) || documentTypes.length !== files.length) throw new Error('Invalid document list.');
       uploadInputs = files.map((file, index) => ({ documentType: String(documentTypes[index] || ''), file }));
     } catch {
