@@ -10,8 +10,8 @@ This feature is isolated on branch `csp-travel-cafe-membership-preview` and a dr
 - HttpOnly customer session cookie (30 days).
 - Only the four named photo tools are included in this paid-membership gate. Other tools are left unchanged.
 - The four paid tools ask for Gmail OTP and a membership only when the customer tries to download or print. Plan requests are recorded as pending manual payments for the existing admin dashboard.
-- Plans: BASIC ₹49 for 1 day, PROFESSIONAL ₹199 for 30 days, PREMIUM ₹599 for 90 days; price and validity are editable in the existing Admin Dashboard.
-- Cumulative paid access: BASIC = Passport Photo Studio; PROFESSIONAL = BASIC + PVC Card Maker + Multi Customer Photo Maker; PREMIUM = PROFESSIONAL + WhatsApp Selfie to Passport Photo.
+- Plans: BASIC ₹99/month, ADVANCED ₹199/month, PROFESSIONAL ₹299/month (30 days each); price and validity are editable in the existing Admin Dashboard.
+- Cumulative paid access: BASIC = Passport Photo Studio; ADVANCED = BASIC + PVC Card Maker + Multi Customer Photo Maker; PROFESSIONAL = ADVANCED + WhatsApp Selfie to Passport Photo.
 - Manual membership activation only after payment is independently verified. No payment gateway, auto-debit or auto-renewal is added.
 - Admin customer list, suspend/restore/expire actions, manual activation, payment audit history, editable plan pricing, per-tool enable/disable switches and audit records.
 
