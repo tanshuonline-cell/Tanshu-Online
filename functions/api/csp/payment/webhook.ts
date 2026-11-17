@@ -11,7 +11,7 @@ const API_VERSION = '2025-01-01';
 const cashfreeBase = (environment: string) => environment === 'SANDBOX' ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
 
 export async function onRequestPost({ request, env }: { request: Request; env: CashfreeWebhookEnv }): Promise<Response> {
-  if (!env.DB || env.CASHFREE_ENVIRONMENT !== 'SANDBOX' || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false }, 503);
+  if (!env.DB || String(env.CASHFREE_ENVIRONMENT || '').toUpperCase() !== 'SANDBOX' || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) return json({ success: false }, 503);
   const rawBody = await request.text();
   const signature = request.headers.get('x-webhook-signature') || '';
   const timestamp = request.headers.get('x-webhook-timestamp') || '';
@@ -28,7 +28,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
     if (!/^csp_[a-f0-9]{24}$/.test(orderId)) return json({ success: true, ignored: true });
     // Never trust webhook status/amount alone. Fetch the order's payments from
     // Cashfree over the authenticated server API and activate only a SUCCESS row.
-    const response = await fetch(cashfreeBase(env.CASHFREE_ENVIRONMENT) + '/orders/' + encodeURIComponent(orderId) + '/payments', {
+    const response = await fetch(cashfreeBase(String(env.CASHFREE_ENVIRONMENT || '').toUpperCase()) + '/orders/' + encodeURIComponent(orderId) + '/payments', {
       headers: { 'x-client-id': env.CASHFREE_APP_ID, 'x-client-secret': env.CASHFREE_SECRET_KEY, 'x-api-version': API_VERSION }
     });
     if (!response.ok) return json({ success: false, error: 'Could not verify payment with Cashfree.' }, 502);
