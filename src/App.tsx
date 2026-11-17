@@ -203,6 +203,9 @@ export default function App() {
   // Never trust query-string payment status, customer phone, or video ID as proof of payment.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    // Cashfree appends order_id to its return URL. CSP membership returns also
+    // carry csp_order_id, so never send those orders through the legacy video verifier.
+    if (params.has('csp_order_id')) return;
     const orderId = params.get('order_id');
     if (!orderId) return;
 
