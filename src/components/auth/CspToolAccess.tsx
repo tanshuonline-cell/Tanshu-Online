@@ -117,6 +117,13 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
         body: JSON.stringify({ planCode: selectedPlan, customerPhone: phone })
       });
       const data = await response.json();
+      if (data.activationPending) throw new Error(data.error || 'Cashfree already confirms payment. Do not pay again; membership activation needs checking.');
+      if (data.alreadyPaid && data.paid) {
+        setPlansOpen(false);
+        setNotice(data.message || 'This order is already paid. No new checkout was opened.');
+        await refresh();
+        return;
+      }
       if (!response.ok || !data.success || !data.paymentSessionId) throw new Error(data.error || 'Could not create Cashfree Sandbox order.');
       const loadCashfreeSdk = () => new Promise<void>((resolve, reject) => {
         const win = window as any;
