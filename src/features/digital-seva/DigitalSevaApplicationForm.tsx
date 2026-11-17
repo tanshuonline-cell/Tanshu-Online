@@ -39,8 +39,9 @@ async function loadCashfreeSdk(): Promise<void> {
   if (!window.Cashfree) throw new Error('Cashfree Checkout did not initialise. Please retry.');
 }
 
-const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","aadhaarApplicantName","aadhaarFatherNameCurrent","aadhaarFatherNameCorrect","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
-const COMPACT_REQUEST_SERVICE_IDS = new Set(['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance', 'pan-new', 'pan-correction', 'pan-photo-signature', 'voter-new', 'voter-correction', 'certificate-correction', 'certificate-income', 'certificate-caste', 'certificate-residence', 'ration-new', 'ration-update']);
+const BILINGUAL_FIELD_KEYS = new Set(["applicantName","docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","aadhaarApplicantName","aadhaarFatherNameCurrent","aadhaarFatherNameCorrect","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
+const COMPACT_REQUEST_SERVICE_IDS = new Set(['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'pan-new', 'pan-correction', 'pan-photo-signature', 'voter-new', 'voter-correction', 'certificate-correction', 'certificate-income', 'certificate-caste', 'certificate-residence', 'ration-new', 'ration-update']);
+const COMPACT_NAME_FIELD_SERVICES = new Set(['aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'pan-correction', 'pan-photo-signature', 'voter-new', 'voter-correction', 'certificate-correction', 'certificate-income', 'certificate-caste', 'certificate-residence', 'ration-new', 'ration-update']);
 
 
 export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, recoveredDraft, onSubmitted }: Props) {
@@ -518,7 +519,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     const isPin = /pin$/i.test(key);
     const isAadhaar = /aadhaarNumber/i.test(key);
     const isPan = /PanNumber/i.test(key);
-    const englishValue = fieldValues[key] || '';
+    const englishValue = Object.prototype.hasOwnProperty.call(fieldValues, key) ? (fieldValues[key] || '') : (key === 'applicantName' ? applicant.name : '');
     const englishControl = key === 'familyMemberNames'
       ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={englishValue} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={3} />
       : <input className={isPin ? 'ds-pin-input' : undefined} data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={isPin || isAadhaar ? 'numeric' : undefined} maxLength={isPin ? 6 : isAadhaar ? 12 : isPan ? 10 : undefined} value={englishValue} onChange={(e) => setField(key, isPin || isAadhaar ? e.target.value.replace(/\D/g, '').slice(0, isPin ? 6 : 12) : isPan ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) : e.target.value)} onBlur={(e) => bilingual ? setBilingualEnglish(key, formatFieldOnBlur(key, e.target.value)) : setField(key, formatFieldOnBlur(key, e.target.value))} />;
@@ -534,6 +535,9 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
   const renderServiceFields = () => (
     <>
+      {COMPACT_NAME_FIELD_SERVICES.has(service.id) && <div className="ds-application-field-grid">
+        {textInput('applicantName', 'Applicant name', 'आवेदक का नाम')}
+      </div>}
       {service.id === 'pan-new' && <div className="ds-application-field-grid">
         {textInput('panApplicantName', 'Applicant name', 'आवेदक का नाम')}
         {textInput('panFatherName', "Father's name", 'पिता का नाम')}
