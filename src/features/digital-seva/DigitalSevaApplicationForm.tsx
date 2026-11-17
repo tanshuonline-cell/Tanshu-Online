@@ -388,7 +388,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     try {
       const payload = {
         quickRequest: true, serviceId: service.id, requesterType: 'DIRECT_CUSTOMER', applicationFor: 'SELF',
-        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''),
+        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
         paymentContactPhone: prepaidPayment.customerPhone, customerEmail: applicant.email.trim(),
         corrections: [], fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
         selectedDocuments, otherDocumentName: '', taskDetails: selectedTaskLabels.join('; '),
@@ -411,7 +411,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       await deleteDigitalSevaDraft(service.id);
       onSubmitted(String(data.bookingReference), {
         paymentMode: 'AUTO_PAY', paymentOrderId: prepaidPayment.orderId,
-        customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''),
+        customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
         customerEmail: applicant.email.trim(), fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
         corrections: [], selectedDocuments: [...selectedDocuments], otherDocumentName: '',
         taskDetails: selectedTaskLabels.join('; '), submittedAt: new Date().toISOString(),
