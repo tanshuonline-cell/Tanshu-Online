@@ -72,7 +72,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
           {/* Independent Citizen / Unity identity remains on this same row, in a compact premium style. */}
           <div className="ml-auto flex min-w-0 items-center gap-1.5 text-[8px] font-semibold text-slate-300 sm:gap-2 sm:text-[11px]" title="Independent Citizen · Unity · Cyber Cafe Toolkit · Not affiliated with UIDAI, ECI, or any government department.">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-            <span className="truncate">Independent Citizen <span className="text-emerald-300">• Unity</span> <span className="hidden sm:inline">• Cyber Cafe Toolkit</span></span>
+            <span className="truncate whitespace-nowrap">Independent Citizen <span className="text-emerald-300">• Unity</span> <span>• Cyber Cafe Toolkit</span></span>
           </div>
         </div>
       </div>
