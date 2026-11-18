@@ -1,49 +1,23 @@
 export async function onRequestGet(): Promise<Response> {
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://tanshu-online.pages.dev/</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/videos</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/digital-seva</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/advanced-photo-studio-preview</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/whatsapp-selfie-passport-photo</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/instant-multi-customer-photo-maker</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/privacy-policy</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/terms-and-conditions</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/disclaimer</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/refund-policy</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/copyright</loc>
-  </url>
-  <url>
-    <loc>https://tanshu-online.pages.dev/contact</loc>
-  </url>
+  <url><loc>https://tanshu-online.pages.dev/</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/digital-seva</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/csc-cyber-cafe-toolkits</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/instant-passport-photo-studio</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/instant-pvc-card-maker</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/whatsapp-selfie-to-passport-photo</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/instant-multi-customer-photo-maker</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/photo-signature-resizer</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/auto-document-cropper</loc></url>
+  <url><loc>https://tanshu-online.pages.dev/photo-background-remover</loc></url>
 </urlset>`;
 
   return new Response(sitemapXml, {
     status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'public, max-age=300',
     },
   });
 }
