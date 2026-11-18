@@ -82,6 +82,9 @@ export default function DigitalSevaPage() {
   const [showSubmissionSuccess, setShowSubmissionSuccess] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showPayNowCenter, setShowPayNowCenter] = useState(false);
+  const [quickPayFlow, setQuickPayFlow] = useState(false);
+  const [quickReceiptError, setQuickReceiptError] = useState('');
+  const [quickReceiptMode, setQuickReceiptMode] = useState(false);
   const [payNowInitialServiceId, setPayNowInitialServiceId] = useState<string | undefined>(undefined);
   const [paidCheckout, setPaidCheckout] = useState<PrepaidDigitalSevaPayment | null>(null);
   const [bookingReference, setBookingReference] = useState('');
@@ -187,6 +190,59 @@ export default function DigitalSevaPage() {
   }, []);
   const openPayNowCenter = (serviceId?: string) => { setPayNowInitialServiceId(serviceId); setShowPayNowCenter(true); };
 
+  const submitQuickPaidRequest = async (service: SevaService, payment: PrepaidDigitalSevaPayment) => {
+    setSelected(service);
+    setPaidCheckout(payment);
+    setQuickReceiptError('');
+    setShowPayNowCenter(false);
+    const submittedAt = new Date().toISOString();
+    const taskDetails = `Customer requested ${service.name} / ${service.hindi} through the quick Aadhaar and PAN service.`;
+    const selectedWork = `${service.name} / ${service.hindi}`;
+    try {
+      const response = await fetch('/api/digital-seva/bookings', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceId: service.id, quickRequest: true,
+          customerName: payment.customerName, customerPhone: payment.customerPhone, customerEmail: payment.customerEmail,
+          requesterType: 'DIRECT_CUSTOMER', applicationFor: 'SELF',
+          consent: payment.consent, termsAccepted: payment.termsAccepted, termsAcceptedAt: payment.termsAcceptedAt,
+          termsPolicyVersion: payment.termsPolicyVersion, refundPolicyAccepted: payment.refundPolicyAccepted,
+          refundAcceptedAt: payment.refundAcceptedAt, refundPolicyVersion: payment.refundPolicyVersion,
+          idempotencyKey: window.crypto.randomUUID(), paymentMode: 'AUTO_PAY',
+          paymentOrderId: payment.orderId, paymentContactPhone: payment.customerPhone,
+          corrections: [], selectedDocuments: [], fieldValues: {},
+          serviceOptions: { quickSelectedTaskLabels: selectedWork }, taskDetails
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.bookingReference) {
+        throw new Error(data.error || 'Payment is verified, but the service receipt could not be saved yet. Do not pay again; retry the secure receipt save.');
+      }
+      const receipt: DigitalSevaReceiptData = {
+        paymentMode: 'AUTO_PAY', paymentOrderId: payment.orderId,
+        customerName: payment.customerName, customerPhone: payment.customerPhone, customerEmail: payment.customerEmail,
+        fieldValues: {}, serviceOptions: { quickSelectedTaskLabels: selectedWork },
+        corrections: [], selectedDocuments: [], otherDocumentName: '', taskDetails, submittedAt,
+        termsAccepted: true, termsAcceptedAt: payment.termsAcceptedAt, termsPolicyVersion: payment.termsPolicyVersion,
+        refundAccepted: true, refundAcceptedAt: payment.refundAcceptedAt, refundPolicyVersion: payment.refundPolicyVersion
+      };
+      clearDigitalSevaRecoveryMarkers();
+      setPaidCheckout(null);
+      setBookingReference(String(data.bookingReference));
+      setBookingReceipt(receipt);
+      setQuickReceiptMode(true);
+      setQuickPayFlow(false);
+      setShowPaymentSuccess(false);
+      setShowBookingForm(false);
+      setShowSubmissionSuccess(true);
+    } catch (error: any) {
+      setQuickReceiptError(error?.message || 'Payment is verified, but the service receipt could not be saved. Do not pay again; retry the secure receipt save.');
+      setQuickPayFlow(true);
+      setShowPaymentSuccess(true);
+    }
+  };
+
   // Deep links from the homepage quick-service selector open the matching
   // existing service detail, preserving its current fee and policy content.
   useEffect(() => {
@@ -195,7 +251,9 @@ export default function DigitalSevaPage() {
     if (!quickServiceId) return;
     const service = SEVA_SERVICES.find((item) => item.id === quickServiceId);
     if (service && ['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-lost', 'aadhaar-download', 'pan-correction', 'pan-photo-signature'].includes(service.id)) {
-      setSelected(service);
+      setQuickPayFlow(true);
+      setPayNowInitialServiceId(service.id);
+      setShowPayNowCenter(true);
     }
     url.searchParams.delete('quickService');
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
@@ -422,7 +480,7 @@ export default function DigitalSevaPage() {
 
       <footer className="ds-footer"><a href="/" className="ds-brand"><img className="ds-brand-photo" src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" /><span><strong>TANSHU ONLINE</strong><small>Digital Seva Center</small></span></a><p>{hindi ? 'स्वतंत्र डिजिटल सहायता प्लेटफ़ॉर्म। यह सरकारी वेबसाइट या सरकारी विभाग नहीं है।' : 'Independent digital assistance platform. Not a government website or government department.'}</p><span>© {new Date().getFullYear()} TANSHU ONLINE</span></footer>
 
-      {showPayNowCenter && <DigitalSevaPayNow language={language} initialServiceId={payNowInitialServiceId} onClose={() => setShowPayNowCenter(false)} onPaid={(service, payment) => { setSelected(service); setPaidCheckout(payment); setRecoveredDraft(null); setBookingReference(''); setBookingReceipt(null); setShowPayNowCenter(false); setShowPaymentSuccess(true); setShowBookingForm(false); }} />}
+      {showPayNowCenter && <DigitalSevaPayNow language={language} initialServiceId={payNowInitialServiceId} serviceScope={quickPayFlow ? 'aadhaar-pan' : undefined} quickRequest={quickPayFlow} onClose={() => { setShowPayNowCenter(false); setQuickPayFlow(false); }} onPaid={(service, payment) => { if (quickPayFlow) { void submitQuickPaidRequest(service, payment); return; } setSelected(service); setPaidCheckout(payment); setRecoveredDraft(null); setBookingReference(''); setBookingReceipt(null); setShowPayNowCenter(false); setShowPaymentSuccess(true); setShowBookingForm(false); }} />}
       {showSubmissionSuccess && bookingReference && selected && <div className="ds-modal-backdrop" role="presentation"><section className="ds-detail-modal ds-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ds-submission-success-title"><div style={{ textAlign: 'center', padding: '18px 8px 8px' }}><CheckCircle2 size={54} color="#16834a" strokeWidth={1.8} /><span className="ds-kicker" style={{ display: 'block', marginTop: 14 }}>{hindi ? 'आवेदन सफलतापूर्वक जमा हुआ' : 'APPLICATION SUBMITTED'}</span><h2 id="ds-submission-success-title">{hindi ? 'आपका आवेदन जमा हो गया है' : 'Your application has been submitted'}</h2><p>{hindi ? 'आपका अनुरोध सुरक्षित रूप से प्राप्त हो गया है। बहुत जल्द हमारी टीम आपको अपडेट देगी।' : 'We have safely received your request. Our team will share an update with you very soon.'}</p><div className="ds-booking-reference"><small>{hindi ? 'आपका सेवा रेफरेंस नंबर' : 'YOUR SERVICE REFERENCE'}</small><strong>{bookingReference}</strong></div><button type="button" className="ds-modal-book" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={openCustomerReceipt} disabled={!bookingReceipt}>{hindi ? 'सर्विस स्लिप डाउनलोड / प्रिंट करें' : 'Download / Print Service Slip'} <FileText size={16} /></button><button type="button" className="ds-modal-done" style={{ width: '100%', marginTop: 10 }} onClick={() => { clearDigitalSevaRecoveryMarkers(); setShowSubmissionSuccess(false); setSelected(null); setBookingReference(''); setBookingReceipt(null); }}>{hindi ? 'ठीक है' : 'Done'}</button></div></section></div>}
       {showPaymentSuccess && paidCheckout && selected && <div className="ds-modal-backdrop" role="presentation"><section className="ds-detail-modal ds-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ds-payment-success-title"><div style={{ textAlign: 'center', padding: '18px 8px 8px' }}><CheckCircle2 size={54} color="#16834a" strokeWidth={1.8} /><span className="ds-kicker" style={{ display: 'block', marginTop: 14 }}>{hindi ? 'भुगतान सफल' : 'PAYMENT CONFIRMED'}</span><h2 id="ds-payment-success-title">{hindi ? 'पेमेंट सफल हुआ!' : 'Payment Successful!'}</h2><p style={{ fontSize: 18, fontWeight: 700 }}>{hindi ? 'आपने भुगतान किया:' : 'Amount received:'} ₹{(getAutoPaymentQuote(selected)?.totalAmount || 0).toLocaleString('en-IN')}</p><p>{hindi ? 'आपका भुगतान सुरक्षित रूप से दर्ज हो गया है। अब अपना आवेदन पूरा करें।' : 'Your payment has been recorded. Continue to complete your service application.'}</p><p><strong>{hindi ? 'सेवा:' : 'Service:'}</strong> {hindi ? selected.hindi : selected.name}</p><button type="button" className="ds-modal-book" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={() => { setShowPaymentSuccess(false); openBookingForm(); }}>{hindi ? 'आवेदन भरना जारी रखें' : 'Continue to Application'} <ArrowRight size={16} /></button><small style={{ display: 'block', marginTop: 12 }}>{hindi ? 'अभी आपका आवेदन जमा नहीं हुआ है। आवेदन भरकर Submit करना बाकी है।' : 'Your application has not been submitted yet. Complete and submit the form to receive your service receipt.'}</small></div></section></div>}
       {showWebsiteShowcase && selected?.id === 'website-services' && <WebsiteServicesShowcase language={language} onClose={() => { setShowWebsiteShowcase(false); setSelected(null); }} onRequestQuote={() => { setShowWebsiteShowcase(false); openBookingForm(); }} />}
