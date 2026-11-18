@@ -28,11 +28,11 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       "SELECT c.id, c.email, c.status, c.email_verified_at, c.created_at, s.plan_code, s.amount_inr, s.starts_at, s.expires_at, s.status AS subscription_status, (SELECT COUNT(*) FROM csp_payments p WHERE p.customer_id = c.id) AS payment_count FROM csp_customers c LEFT JOIN csp_subscriptions s ON s.id = (SELECT s2.id FROM csp_subscriptions s2 WHERE s2.customer_id = c.id AND s2.status = 'active' AND datetime(s2.expires_at) > CURRENT_TIMESTAMP ORDER BY s2.created_at DESC LIMIT 1) ORDER BY c.created_at DESC"
     ).all();
     const payments = await env.DB.prepare(
-      "SELECT p.id, p.customer_id, c.email, p.amount_inr, p.payment_method, p.reference, p.status, p.verified_by, p.verified_at, p.created_at FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id ORDER BY p.created_at DESC LIMIT 200"
+      "SELECT p.id, p.customer_id, c.email, p.amount_inr, p.payment_method, p.reference, p.status, p.verified_by, p.verified_at, p.created_at, co.order_id AS cashfree_order_id, co.cf_payment_id AS cashfree_payment_id, co.plan_code AS cashfree_plan_code, co.status AS cashfree_order_status FROM csp_payments p JOIN csp_customers c ON c.id = p.customer_id LEFT JOIN csp_cashfree_orders co ON co.payment_id = p.id ORDER BY p.created_at DESC LIMIT 200"
     ).all();
     const plans = await env.DB.prepare('SELECT plan_code, amount_inr, duration_days, is_active FROM csp_plan_prices ORDER BY amount_inr ASC').all();
     return json({ success: true, customers: results || [], payments: payments.results || [], plans: plans.results || [] });
-  } catch { return json({ success: false, error: 'CSP membership tables are not installed. Apply migration 0012 first.' }, 503); }
+  } catch { return json({ success: false, error: 'CSP membership tables are not installed. Apply migrations 0012 and 0013 to the Preview D1 database first.' }, 503); }
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
