@@ -410,7 +410,18 @@ export default function App() {
     return <DigitalSevaPage />;
   }
 
-  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.\n  const cscToolkitSlug = window.location.pathname.replace(/^\\//, '');\n  if (window.location.pathname === '/csc-cyber-cafe-toolkits' || ['instant-passport-photo-studio','instant-pvc-card-maker','whatsapp-selfie-to-passport-photo','instant-multi-customer-photo-maker','photo-signature-resizer','auto-document-cropper','photo-background-remover'].includes(cscToolkitSlug)) {\n    return <CscToolkitSeoPage slug={cscToolkitSlug} />;\n  }\n\n  // Dedicated Instant Passport Photo Studio preview route.
+  // Dedicated bilingual SEO landing pages for the seven active CSC & Cyber Cafe tools.
+  const cscToolkitSlug = window.location.pathname.startsWith('/')
+    ? window.location.pathname.slice(1)
+    : window.location.pathname;
+  if (
+    window.location.pathname === '/csc-cyber-cafe-toolkits' ||
+    ['instant-passport-photo-studio', 'instant-pvc-card-maker', 'whatsapp-selfie-to-passport-photo', 'instant-multi-customer-photo-maker', 'photo-signature-resizer', 'auto-document-cropper', 'photo-background-remover'].includes(cscToolkitSlug)
+  ) {
+    return <CscToolkitSeoPage slug={cscToolkitSlug} />;
+  }
+
+  // Dedicated Instant Passport Photo Studio preview route.
   if (window.location.pathname === '/advanced-photo-studio-preview') {
     return <AdvancedPhotoStudioShell />;
   }
