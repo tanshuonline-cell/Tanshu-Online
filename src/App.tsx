@@ -8,6 +8,7 @@ import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
 import { ReadyToUseTools } from './components/ReadyToUseTools';
+import { MembershipPlansSection } from './components/MembershipPlansSection';
 import { AllToolsDirectory } from './components/AllToolsDirectory';
 import { GovernmentServices } from './components/GovernmentServices';
 import { GovernmentSchemes } from './components/GovernmentSchemes';
@@ -602,6 +603,9 @@ export default function App() {
 
         {/* Ready-to-use studios and active tools appear immediately after the hero. */}
         <ReadyToUseTools onOpenTool={handleOpenTool} />
+
+        {/* Membership follows the complete dynamic CSC & Cyber Cafe Toolkit. */}
+        <MembershipPlansSection />
 
 
 
