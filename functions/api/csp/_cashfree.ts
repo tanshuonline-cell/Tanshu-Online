@@ -45,7 +45,7 @@ export async function verifyCashfreeWebhook(rawBody: string, signature: string, 
   // independently checks the live order status if a delayed webhook is rejected.
   const timestampMs = Number(timestamp);
   const MAX_WEBHOOK_SKEW_MS = 5 * 60 * 1000;
-  if (!rawBody || !signature || !/^\\d{13}$/.test(timestamp)
+  if (!rawBody || !signature || !/^\d{13}$/.test(timestamp)
       || !Number.isSafeInteger(timestampMs)
       || Math.abs(Date.now() - timestampMs) > MAX_WEBHOOK_SKEW_MS) return false;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
