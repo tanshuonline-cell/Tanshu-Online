@@ -90,14 +90,14 @@ export default function App() {
         ? 'Video Learning Center | TANSHU ONLINE'
         : video
         ? `${video.title} | TANSHU ONLINE`
-        : 'TANSHU ONLINE | Digital Seva, Photo Studio & CSC Tools';
+        : cscToolkitTitles[pathname] || 'TANSHU ONLINE | CSC & Cyber Cafe Tools, Digital Seva & Photo Studio';
     const description = isDigitalSeva
       ? 'TANSHU ONLINE Digital Seva Center: explore government service assistance, document services and PDF tools.'
       : isVideoCatalog
         ? 'TANSHU ONLINE के वीडियो लर्निंग सेंटर में ऑनलाइन सेवाओं, दस्तावेज़ों, डिजिटल टूल्स और उपयोगी प्रक्रियाओं की वीडियो गाइड देखें।'
         : video
         ? (video.description || video.title).slice(0, 300)
-        : 'TANSHU ONLINE पर Digital Seva, Photo Studio, Instant Passport Photo Maker, CSC Tools, Cyber Cafe Tools और उपयोगी Online Tools एक ही जगह मिलते हैं।';
+        : cscToolkitDescriptions[pathname] || 'TANSHU ONLINE पर CSC और Cyber Cafe Tools, Digital Seva Utilities, Passport Photo Maker, Photo Studio, PVC Card Print, PDF और Document Tools एक ही जगह पाएँ।';
     const canonicalUrl = `${siteUrl}${pathname === '/' ? '/' : pathname}`;
 
     document.title = title;
