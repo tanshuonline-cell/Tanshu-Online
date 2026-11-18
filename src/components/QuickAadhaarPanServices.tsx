@@ -95,7 +95,7 @@ export default function QuickAadhaarPanServices() {
           <div className="flex flex-wrap items-center gap-2">
             {selected?.paymentEnabled === false ? <span aria-disabled="true" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800">{isHindi ? 'भुगतान पुष्टि बाकी' : 'Payment confirmation pending'}</span> : <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.serviceId)}${selected.taskKey ? `&quickTask=${encodeURIComponent(selected.taskKey)}&quickTaskLabel=${encodeURIComponent(`${selected.title} / ${selected.hindi}`)}` : ''}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
               {isHindi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={15} />
-            </a>
+            </a>}
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 p-2">
               <img src={qrImageUrl} alt="TANSHU ONLINE quick Aadhaar and PAN service QR code" width="64" height="64" loading="lazy" referrerPolicy="no-referrer" className="h-16 w-16 rounded-md" />
               <div className="max-w-[130px]">
