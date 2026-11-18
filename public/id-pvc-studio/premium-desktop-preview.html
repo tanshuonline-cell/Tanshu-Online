@@ -460,4 +460,78 @@ document.addEventListener('fullscreenchange',render);document.addEventListener('
 new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});render();
 })();
 </script>
+
+<script>
+(()=> {
+  if (window.parent === window) { window.location.replace('/csp-pvc-studio'); return; }
+  let bypass = false;
+  let pendingButton = null;
+  let pendingPrint = false;
+  const exportWords = /\b(print|download|export|save\s+pdf|save\s+image|save\s+file)\b/i;
+  const askParent = () => window.parent.postMessage({ type: 'CSP_PREMIUM_EXPORT_REQUEST' }, window.location.origin);
+  const printGuardStyle = document.createElement('style');
+  printGuardStyle.textContent = '@media print { html:not([data-csp-print-authorized="true"]) body { display: none !important; } }';
+  document.head.appendChild(printGuardStyle);
+  document.addEventListener('keydown', event => {
+    if (!(event.ctrlKey || event.metaKey)) return;
+    const key = event.key.toLowerCase();
+    if (key === 's') { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    if (key === 'c') {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('input,textarea,select,[contenteditable="true"]')) {
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+    }
+    if (key === 'p') { event.preventDefault(); event.stopImmediatePropagation(); pendingPrint = true; askParent(); }
+  }, true);
+  document.addEventListener('contextmenu', event => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('img,canvas,video')) {
+      event.preventDefault(); event.stopImmediatePropagation();
+    }
+  }, true);
+  document.addEventListener('dragstart', event => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('img,canvas')) {
+      event.preventDefault(); event.stopImmediatePropagation();
+    }
+  }, true);
+  window.addEventListener('afterprint', () => { delete document.documentElement.dataset.cspPrintAuthorized; });
+  document.addEventListener('click', event => {
+    if (bypass) { bypass = false; return; }
+    const button = event.target && event.target.closest ? event.target.closest('button,[role="button"],input[type="button"],input[type="submit"]') : null;
+    if (!button) return;
+    const label = ((button.innerText || button.value || button.getAttribute('aria-label') || button.id || '') + ' ' + (button.title || '')).trim();
+    if (!exportWords.test(label)) return;
+    event.preventDefault(); event.stopImmediatePropagation(); pendingButton = button; askParent();
+  }, true);
+  const nativePrint = window.print.bind(window);
+  window.print = () => { pendingPrint = true; askParent(); };
+  const nativeAnchorClick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    if (!this.hasAttribute('download')) return nativeAnchorClick.call(this);
+    const anchor = this;
+    pendingButton = null;
+    pendingPrint = false;
+    askParent();
+    const onAllowed = event => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_ALLOWED') return;
+      window.removeEventListener('message', onAllowed);
+      nativeAnchorClick.call(anchor);
+    };
+    window.addEventListener('message', onAllowed);
+  };
+  window.addEventListener('message', event => {
+    if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_ALLOWED') return;
+    if (pendingPrint) {
+      pendingPrint = false;
+      document.documentElement.dataset.cspPrintAuthorized = 'true';
+      nativePrint();
+      return;
+    }
+    if (!pendingButton) return;
+    const button = pendingButton; pendingButton = null; bypass = true; button.click();
+  });
+})();
+</script>
 </body></html>
