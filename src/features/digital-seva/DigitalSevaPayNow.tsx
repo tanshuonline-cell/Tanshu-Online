@@ -52,10 +52,12 @@ interface Props {
   initialServiceId?: string;
   serviceScope?: 'aadhaar-pan';
   quickRequest?: boolean;
+  quickTaskKey?: string;
+  quickTaskLabel?: string;
   onPaid: (service: SevaService, payment: PrepaidDigitalSevaPayment) => void;
 }
 
-export default function DigitalSevaPayNow({ language, onClose, initialServiceId, serviceScope, quickRequest = false, onPaid }: Props) {
+export default function DigitalSevaPayNow({ language, onClose, initialServiceId, serviceScope, quickRequest = false, quickTaskKey, quickTaskLabel, onPaid }: Props) {
   const hi = language === 'hi';
   const [selectedId, setSelectedId] = useState(initialServiceId || (serviceScope === 'aadhaar-pan' ? 'aadhaar-address-doc' : 'pan-new'));
   const [name, setName] = useState('');
