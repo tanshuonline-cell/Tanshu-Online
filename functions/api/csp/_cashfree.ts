@@ -9,7 +9,7 @@ export interface CashfreeEnv extends CspEnv {
 }
 
 export function cashfreeConfigured(env: CashfreeEnv): boolean {
-  return Boolean(env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY && env.CASHFREE_WEBHOOK_SECRET)
+  return Boolean(env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY)
     && String(env.CF_PAGES_BRANCH || '').toLowerCase() !== 'main'
     && String(env.CASHFREE_ENVIRONMENT || 'SANDBOX').toUpperCase() !== 'PRODUCTION';
 }
