@@ -1,4 +1,4 @@
-import { CspEnv, hmac, safeEqual } from './_auth';
+import { CspEnv, safeEqual } from './_auth';
 
 export interface CashfreeEnv extends CspEnv {
   CASHFREE_APP_ID?: string;
@@ -89,12 +89,14 @@ export async function verifyAndActivateCashfreeOrder(env: CashfreeEnv, orderId: 
   const auditId = crypto.randomUUID();
   const startsAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const subscriptionNote = 'Cashfree order ' + orderId;
+  const auditDetails = JSON.stringify({ orderId, cfPaymentId: paymentRef, planCode: local.plan_code, amount: local.amount_inr });
   const results = await env.DB.batch([
     env.DB.prepare("UPDATE csp_payments SET status = 'verified', payment_method = 'cashfree', reference = ?, verified_by = 'Cashfree', verified_at = CURRENT_TIMESTAMP, notes = 'Server-side Cashfree payment verification successful.' WHERE id = ? AND status = 'pending'").bind(paymentRef || orderId, local.payment_id),
     env.DB.prepare("UPDATE csp_cashfree_orders SET status = 'PAID', cf_payment_id = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'PENDING'").bind(paymentRef || null, orderId),
-    env.DB.prepare("UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active' AND EXISTS (SELECT 1 FROM csp_payments WHERE id = ? AND status = 'verified')").bind(local.customer_id, local.payment_id),
-    env.DB.prepare("INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) SELECT ?, ?, ?, ?, ?, ?, 'active', 'cashfree', 'Activated after Cashfree server-side verification' WHERE EXISTS (SELECT 1 FROM csp_payments WHERE id = ? AND status = 'verified') AND EXISTS (SELECT 1 FROM csp_cashfree_orders WHERE order_id = ? AND status = 'PAID') AND NOT EXISTS (SELECT 1 FROM csp_subscriptions WHERE notes = ?)").bind(subscriptionId, local.customer_id, local.plan_code, local.amount_inr, startsAt, expiresAt, local.payment_id, orderId, 'Cashfree order ' + orderId),
-    env.DB.prepare("INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) VALUES (?, 'cashfree', 'cashfree_membership_activated', ?, ?)").bind(auditId, local.customer_id, JSON.stringify({ orderId, cfPaymentId: paymentRef, planCode: local.plan_code, amount: local.amount_inr }))
+    env.DB.prepare("INSERT INTO csp_subscriptions (id, customer_id, plan_code, amount_inr, starts_at, expires_at, status, activated_by, notes) SELECT ?, ?, ?, ?, ?, ?, 'active', 'cashfree', ? WHERE EXISTS (SELECT 1 FROM csp_payments WHERE id = ? AND status = 'verified') AND EXISTS (SELECT 1 FROM csp_cashfree_orders WHERE order_id = ? AND status = 'PAID') AND NOT EXISTS (SELECT 1 FROM csp_subscriptions WHERE notes = ?)").bind(subscriptionId, local.customer_id, local.plan_code, local.amount_inr, startsAt, expiresAt, subscriptionNote, local.payment_id, orderId, subscriptionNote),
+    env.DB.prepare("UPDATE csp_subscriptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND status = 'active' AND id <> ? AND EXISTS (SELECT 1 FROM csp_subscriptions WHERE id = ?)").bind(local.customer_id, subscriptionId, subscriptionId),
+    env.DB.prepare("INSERT INTO csp_admin_audit (id, admin_username, action, customer_id, details_json) SELECT ?, 'cashfree', 'cashfree_membership_activated', ?, ? WHERE EXISTS (SELECT 1 FROM csp_subscriptions WHERE id = ?) AND NOT EXISTS (SELECT 1 FROM csp_admin_audit WHERE action = 'cashfree_membership_activated' AND details_json = ?)").bind(auditId, local.customer_id, auditDetails, subscriptionId, auditDetails)
   ]);
   if (Number(results?.[0]?.meta?.changes || 0) !== 1) {
     const check = await env.DB.prepare("SELECT status FROM csp_payments WHERE id = ?").bind(local.payment_id).first();
