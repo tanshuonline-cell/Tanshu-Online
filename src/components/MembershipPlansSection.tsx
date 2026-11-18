@@ -201,7 +201,7 @@ export const MembershipPlansSection: React.FC = () => {
           ))}
         </div>
         <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-relaxed text-slate-400">
-          Plan display preview only. Payment, account activation and membership access are not connected in this homepage-only change.
+          Editing and previews remain available. An active membership is required only when downloading or printing from the four protected studio tools.
         </p>
       </div>
 
