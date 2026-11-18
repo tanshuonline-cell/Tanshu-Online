@@ -155,7 +155,7 @@ export default function DigitalSevaPage() {
         } catch { /* keep URL untouched if the status service is temporarily unavailable */ }
         return;
       }
-      let parsed: { serviceId?: string; payment?: PrepaidDigitalSevaPayment };
+      let parsed: { serviceId?: string; payment?: PrepaidDigitalSevaPayment; quickRequest?: boolean };
       try { parsed = JSON.parse(saved); } catch {
         clearDigitalSevaRecoveryMarkers();
         return;
@@ -179,9 +179,16 @@ export default function DigitalSevaPage() {
           return;
         }
         if (result.state === 'PAID') {
-          setSelected(service);
-          setPaidCheckout(parsed.payment!);
-          setShowPaymentSuccess(true);
+          if (parsed.quickRequest || parsed.payment?.quickRequest) {
+            setQuickPayFlow(true);
+            setQuickTaskKey(parsed.payment?.quickTaskKey || '');
+            setQuickTaskLabel(parsed.payment?.quickTaskLabel || '');
+            void submitQuickPaidRequest(service, parsed.payment!);
+          } else {
+            setSelected(service);
+            setPaidCheckout(parsed.payment!);
+            setShowPaymentSuccess(true);
+          }
         }
         // PENDING / VERIFYING is deliberately not auto-opened. The customer can
         // use Pay Now or Recover Request without being shown a stale submit form.
@@ -201,7 +208,8 @@ export default function DigitalSevaPage() {
     setShowPayNowCenter(false);
     const submittedAt = new Date().toISOString();
     const taskDetails = `Customer requested ${service.name} / ${service.hindi} through the quick Aadhaar and PAN service.`;
-    const selectedWork = quickTaskLabel || `${service.name} / ${service.hindi}`;
+    const selectedTaskKey = payment.quickTaskKey || quickTaskKey;
+    const selectedWork = payment.quickTaskLabel || quickTaskLabel || `${service.name} / ${service.hindi}`;
     try {
       const response = await fetch('/api/digital-seva/bookings', {
         method: 'POST', credentials: 'same-origin',
@@ -215,7 +223,7 @@ export default function DigitalSevaPage() {
           refundAcceptedAt: payment.refundAcceptedAt, refundPolicyVersion: payment.refundPolicyVersion,
           idempotencyKey: window.crypto.randomUUID(), paymentMode: 'AUTO_PAY',
           paymentOrderId: payment.orderId, paymentContactPhone: payment.customerPhone,
-          corrections: quickTaskKey ? [quickTaskKey] : [], selectedDocuments: [], fieldValues: { customerNameHindi: payment.customerNameHindi || '' },
+          corrections: selectedTaskKey ? [selectedTaskKey] : [], selectedDocuments: [], fieldValues: { customerNameHindi: payment.customerNameHindi || '' },
           serviceOptions: { quickSelectedTaskLabels: selectedWork }, taskDetails
         })
       });
@@ -227,7 +235,7 @@ export default function DigitalSevaPage() {
         paymentMode: 'AUTO_PAY', paymentOrderId: payment.orderId,
         customerName: payment.customerName, customerPhone: payment.customerPhone, customerEmail: payment.customerEmail,
         fieldValues: { customerNameHindi: payment.customerNameHindi || '' }, serviceOptions: { quickSelectedTaskLabels: selectedWork },
-        corrections: quickTaskKey ? [quickTaskKey] : [], selectedDocuments: [], otherDocumentName: '', taskDetails, submittedAt,
+        corrections: selectedTaskKey ? [selectedTaskKey] : [], selectedDocuments: [], otherDocumentName: '', taskDetails, submittedAt,
         termsAccepted: true, termsAcceptedAt: payment.termsAcceptedAt, termsPolicyVersion: payment.termsPolicyVersion,
         refundAccepted: true, refundAcceptedAt: payment.refundAcceptedAt, refundPolicyVersion: payment.refundPolicyVersion
       };
@@ -493,7 +501,7 @@ export default function DigitalSevaPage() {
 
       <footer className="ds-footer"><a href="/" className="ds-brand"><img className="ds-brand-photo" src={TANSHU_PROFILE_PHOTO} alt="TANSHU ONLINE" /><span><strong>TANSHU ONLINE</strong><small>Digital Seva Center</small></span></a><p>{hindi ? 'स्वतंत्र डिजिटल सहायता प्लेटफ़ॉर्म। यह सरकारी वेबसाइट या सरकारी विभाग नहीं है।' : 'Independent digital assistance platform. Not a government website or government department.'}</p><span>© {new Date().getFullYear()} TANSHU ONLINE</span></footer>
 
-      {showPayNowCenter && <DigitalSevaPayNow language={language} initialServiceId={payNowInitialServiceId} serviceScope={quickPayFlow ? 'aadhaar-pan' : undefined} quickRequest={quickPayFlow} onClose={() => { setShowPayNowCenter(false); setQuickPayFlow(false); setQuickTaskKey(''); setQuickTaskLabel(''); }} onPaid={(service, payment) => { if (quickPayFlow) { void submitQuickPaidRequest(service, payment); return; } setSelected(service); setPaidCheckout(payment); setRecoveredDraft(null); setBookingReference(''); setBookingReceipt(null); setShowPayNowCenter(false); setShowPaymentSuccess(true); setShowBookingForm(false); }} />}
+      {showPayNowCenter && <DigitalSevaPayNow language={language} initialServiceId={payNowInitialServiceId} serviceScope={quickPayFlow ? 'aadhaar-pan' : undefined} quickRequest={quickPayFlow} quickTaskKey={quickTaskKey} quickTaskLabel={quickTaskLabel} onClose={() => { setShowPayNowCenter(false); setQuickPayFlow(false); setQuickTaskKey(''); setQuickTaskLabel(''); }} onPaid={(service, payment) => { if (quickPayFlow) { void submitQuickPaidRequest(service, payment); return; } setSelected(service); setPaidCheckout(payment); setRecoveredDraft(null); setBookingReference(''); setBookingReceipt(null); setShowPayNowCenter(false); setShowPaymentSuccess(true); setShowBookingForm(false); }} />}
       {showSubmissionSuccess && bookingReference && selected && <div className="ds-modal-backdrop" role="presentation"><section className="ds-detail-modal ds-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ds-submission-success-title"><div style={{ textAlign: 'center', padding: '18px 8px 8px' }}><CheckCircle2 size={54} color="#16834a" strokeWidth={1.8} /><span className="ds-kicker" style={{ display: 'block', marginTop: 14 }}>{quickReceiptMode ? (hindi ? 'सेवा अनुरोध दर्ज हुआ' : 'SERVICE REQUEST RECEIVED') : (hindi ? 'आवेदन सफलतापूर्वक जमा हुआ' : 'APPLICATION SUBMITTED')}</span><h2 id="ds-submission-success-title">{quickReceiptMode ? (hindi ? 'आपका सेवा अनुरोध दर्ज हो गया है' : 'Your service request has been recorded') : (hindi ? 'आपका आवेदन जमा हो गया है' : 'Your application has been submitted')}</h2><p>{quickReceiptMode ? (hindi ? 'आपका भुगतान सत्यापित है और सेवा अनुरोध सुरक्षित रूप से दर्ज हो गया है। हमारी टीम आगे की प्रक्रिया के लिए आपसे संपर्क करेगी।' : 'Your payment is verified and your service request is securely recorded. Our team will contact you about the next steps.') : (hindi ? 'आपका अनुरोध सुरक्षित रूप से प्राप्त हो गया है। बहुत जल्द हमारी टीम आपको अपडेट देगी।' : 'We have safely received your request. Our team will share an update with you very soon.')}</p><div className="ds-booking-reference"><small>{hindi ? 'आपका सेवा रेफरेंस नंबर' : 'YOUR SERVICE REFERENCE'}</small><strong>{bookingReference}</strong></div><button type="button" className="ds-modal-book" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={openCustomerReceipt} disabled={!bookingReceipt}>{hindi ? 'सर्विस स्लिप डाउनलोड / प्रिंट करें' : 'Download / Print Service Slip'} <FileText size={16} /></button><button type="button" className="ds-modal-done" style={{ width: '100%', marginTop: 10 }} onClick={() => { clearDigitalSevaRecoveryMarkers(); setShowSubmissionSuccess(false); setSelected(null); setBookingReference(''); setBookingReceipt(null); setQuickReceiptMode(false); }}>{hindi ? 'ठीक है' : 'Done'}</button></div></section></div>}
       {showPaymentSuccess && paidCheckout && selected && <div className="ds-modal-backdrop" role="presentation"><section className="ds-detail-modal ds-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ds-payment-success-title"><div style={{ textAlign: 'center', padding: '18px 8px 8px' }}><CheckCircle2 size={54} color="#16834a" strokeWidth={1.8} /><span className="ds-kicker" style={{ display: 'block', marginTop: 14 }}>{hindi ? 'भुगतान सफल' : 'PAYMENT CONFIRMED'}</span><h2 id="ds-payment-success-title">{hindi ? 'पेमेंट सफल हुआ!' : 'Payment Successful!'}</h2><p style={{ fontSize: 18, fontWeight: 700 }}>{hindi ? 'आपने भुगतान किया:' : 'Amount received:'} ₹{(getAutoPaymentQuote(selected)?.totalAmount || 0).toLocaleString('en-IN')}</p><p>{quickPayFlow && quickReceiptError ? quickReceiptError : (hindi ? 'आपका भुगतान सुरक्षित रूप से दर्ज हो गया है। अब अपना आवेदन पूरा करें।' : 'Your payment has been recorded. Continue to complete your service application.')}</p><p><strong>{hindi ? 'सेवा:' : 'Service:'}</strong> {hindi ? selected.hindi : selected.name}</p><button type="button" className="ds-modal-book" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={() => { if (quickPayFlow && paidCheckout) { void submitQuickPaidRequest(selected, paidCheckout); return; } setShowPaymentSuccess(false); openBookingForm(); }}>{quickPayFlow && quickReceiptError ? (hindi ? 'रसीद सुरक्षित रूप से दोबारा सेव करें' : 'Retry secure receipt save') : (hindi ? 'आवेदन भरना जारी रखें' : 'Continue to Application')} <ArrowRight size={16} /></button><small style={{ display: 'block', marginTop: 12 }}>{quickPayFlow && quickReceiptError ? (hindi ? 'दोबारा पेमेंट न करें। भुगतान पहले ही सत्यापित है। केवल रसीद सेव करने का प्रयास दोहराएँ।' : 'Do not pay again. Your payment is already verified. This only retries saving your service receipt.') : (hindi ? 'अभी आपका आवेदन जमा नहीं हुआ है। आवेदन भरकर Submit करना बाकी है।' : 'Your application has not been submitted yet. Complete and submit the form to receive your service receipt.')}</small></div></section></div>}
       {showWebsiteShowcase && selected?.id === 'website-services' && <WebsiteServicesShowcase language={language} onClose={() => { setShowWebsiteShowcase(false); setSelected(null); }} onRequestQuote={() => { setShowWebsiteShowcase(false); openBookingForm(); }} />}
