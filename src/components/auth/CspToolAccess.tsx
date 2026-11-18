@@ -114,7 +114,7 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
           script.onload = () => resolve(); script.onerror = () => reject(new Error('Cashfree Checkout could not load.')); document.head.appendChild(script);
         });
       }
-      const cashfree = (window as any).Cashfree({ mode: 'sandbox' });
+      const cashfree = (window as any).Cashfree({ mode: data.environment === 'production' ? 'production' : 'sandbox' });
       await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: '_self' });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not start Cashfree payment.');
