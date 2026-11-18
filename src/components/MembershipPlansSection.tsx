@@ -51,11 +51,54 @@ export const MembershipPlansSection: React.FC = () => {
           0% { transform: scale(.15); opacity: .48; }
           100% { transform: scale(2.8); opacity: 0; }
         }
+        @keyframes membership-card-waves {
+          0% { transform: scale(.35); opacity: .42; }
+          100% { transform: scale(1.9); opacity: 0; }
+        }
+        @keyframes membership-section-glow {
+          0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+          50% { background-position: 100% 50%; filter: hue-rotate(12deg); }
+          100% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+        }
+        .membership-section {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+        }
+        .membership-section::before {
+          content: "";
+          position: absolute;
+          inset: -35%;
+          z-index: -1;
+          opacity: .18;
+          pointer-events: none;
+          background: radial-gradient(ellipse at 18% 28%, rgba(56,189,248,.48), transparent 34%), radial-gradient(ellipse at 78% 72%, rgba(168,85,247,.42), transparent 38%), radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.12), transparent 55%);
+          background-size: 180% 180%;
+          transition: opacity .45s ease;
+        }
+        .membership-section:has(.membership-card:hover)::before {
+          opacity: .62;
+          animation: membership-section-glow 5s ease-in-out infinite;
+        }
         .membership-card {
           position: relative;
           isolation: isolate;
           overflow: hidden;
           transition: transform .32s cubic-bezier(.2,.8,.2,1), box-shadow .32s ease, border-color .32s ease;
+        }
+        .membership-card::before {
+          content: "";
+          position: absolute;
+          inset: 12% 18%;
+          z-index: -1;
+          border-radius: 9999px;
+          border: 2px solid rgba(255,255,255,.72);
+          opacity: 0;
+          transform: scale(.35);
+          pointer-events: none;
+        }
+        .membership-card:hover::before {
+          animation: membership-card-waves 1.7s ease-out infinite;
         }
         .membership-card::after {
           content: "";
@@ -115,6 +158,8 @@ export const MembershipPlansSection: React.FC = () => {
         }
         @media (prefers-reduced-motion: reduce) {
           .membership-card, .membership-cta { transition: none; }
+          .membership-section:has(.membership-card:hover)::before { animation: none; }
+          .membership-card:hover::before { animation: none; }
           .membership-card:hover, .membership-cta:hover { transform: none; }
           .membership-cta:hover::before, .membership-cta:hover::after { animation: none; }
         }
@@ -130,8 +175,8 @@ export const MembershipPlansSection: React.FC = () => {
 
         <div className="grid gap-4 lg:grid-cols-3">
           {plans.map((plan) => (
-            <article key={plan.code} className={`membership-card relative flex flex-col rounded-2xl border p-5 text-slate-900 shadow-lg sm:p-6 ${plan.theme}`}>
-              {plan.popular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-sky-700 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white shadow">Popular plan</span>}
+            <article key={plan.code} className={`membership-card relative flex flex-col rounded-2xl border p-5 text-slate-900 shadow-lg sm:p-6 ${plan.popular ? 'pt-12 sm:pt-12' : ''} ${plan.theme}`}>
+              {plan.popular && <span className="absolute left-1/2 top-3 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-sky-800 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white shadow-lg ring-2 ring-sky-300/60">Popular plan</span>}
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xl font-black tracking-wide">{plan.name}</h3>
                 {plan.code === 'premium' && <Crown className="h-5 w-5 text-violet-700" />}
