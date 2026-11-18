@@ -6,6 +6,7 @@ type QuickService = {
   id: string;
   serviceId: string;
   taskKey?: string;
+  paymentEnabled?: boolean;
   group: 'aadhaar' | 'pan';
   title: string;
   hindi: string;
@@ -15,12 +16,12 @@ type QuickService = {
 
 const QUICK_SERVICES: QuickService[] = [
   { id: 'aadhaar-address-doc', serviceId: 'aadhaar-address-doc', group: 'aadhaar', title: 'Aadhaar Address Update (Document Based)', hindi: 'आधार एड्रेस अपडेट (डॉक्यूमेंट बेस्ड)', keywords: ['address', 'change address', 'पता', 'एड्रेस'] },
-  { id: 'aadhaar-co', serviceId: 'aadhaar-co', group: 'aadhaar', title: 'Aadhaar C/O / Father Name in Address', hindi: 'आधार में C/O / पिता का नाम (एड्रेस)', keywords: ['father', 'father name', 'c/o', 'care of', 'पिता', 'पिताजी'] },
-  { id: 'aadhaar-lost', serviceId: 'aadhaar-lost', group: 'aadhaar', title: 'Find / Retrieve Aadhaar Number', hindi: 'आधार नंबर फाइंड / वापस पाना', keywords: ['find aadhaar', 'lost aadhaar', 'retrieve', 'आधार नंबर खोजें', 'खोया आधार'] },
+  { id: 'aadhaar-co', serviceId: 'aadhaar-co', paymentEnabled: false, group: 'aadhaar', title: 'Aadhaar C/O / Father Name in Address', hindi: 'आधार में C/O / पिता का नाम (एड्रेस)', keywords: ['father', 'father name', 'c/o', 'care of', 'पिता', 'पिताजी'] },
+  { id: 'aadhaar-lost', serviceId: 'aadhaar-lost', paymentEnabled: false, group: 'aadhaar', title: 'Find / Retrieve Aadhaar Number', hindi: 'आधार नंबर फाइंड / वापस पाना', keywords: ['find aadhaar', 'lost aadhaar', 'retrieve', 'आधार नंबर खोजें', 'खोया आधार'] },
   { id: 'aadhaar-download', serviceId: 'aadhaar-download', group: 'aadhaar', title: 'Download e-Aadhaar', hindi: 'ई-आधार डाउनलोड', keywords: ['download', 'pdf', 'ई आधार', 'डाउनलोड'] },
   { id: 'pan-name', serviceId: 'pan-correction', taskKey: 'name', group: 'pan', title: 'PAN Applicant Name Correction', hindi: 'पैन कार्ड में अपना नाम सुधार', keywords: ['pan name', 'applicant name', 'नाम सुधार', 'अपना नाम'] },
   { id: 'pan-father-name', serviceId: 'pan-correction', taskKey: 'father-name', group: 'pan', title: 'PAN Father Name Correction', hindi: 'पैन कार्ड में पिता का नाम सुधार', keywords: ['father name', 'पिता का नाम', 'पिताजी'] },
-  { id: 'pan-dob', serviceId: 'pan-correction', taskKey: 'date-of-birth', group: 'pan', title: 'PAN Date of Birth Correction', hindi: 'पैन कार्ड में जन्मतिथि सुधार', keywords: ['dob', 'date of birth', 'जन्मतिथि', 'जन्म दिनांक'] },
+  { id: 'pan-dob', serviceId: 'pan-correction', taskKey: 'date-of-birth', paymentEnabled: false, group: 'pan', title: 'PAN Date of Birth Correction', hindi: 'पैन कार्ड में जन्मतिथि सुधार', keywords: ['dob', 'date of birth', 'जन्मतिथि', 'जन्म दिनांक'] },
   { id: 'pan-mobile', serviceId: 'pan-correction', taskKey: 'mobile', group: 'pan', title: 'PAN Mobile Number Update', hindi: 'पैन कार्ड में मोबाइल नंबर अपडेट', keywords: ['mobile', 'phone', 'मोबाइल', 'फोन नंबर'] },
   { id: 'pan-photo-signature', serviceId: 'pan-photo-signature', group: 'pan', title: 'PAN Photo / Signature Update', hindi: 'पैन फोटो / सिग्नेचर अपडेट', keywords: ['photo', 'signature', 'फोटो', 'हस्ताक्षर', 'सिग्नेचर'] },
 ];
@@ -79,7 +80,7 @@ export default function QuickAadhaarPanServices() {
                 <div className="absolute left-0 right-0 top-[calc(100%+7px)] z-50 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-2xl">
                   {results.length ? results.map((item) => (
                     <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setSearch(isHindi ? item.hindi : item.title); setShowResults(false); }} className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-amber-50 focus:bg-amber-50 focus:outline-none">
-                      <span className="min-w-0"><strong className="block text-sm font-bold text-slate-800">{isHindi ? item.hindi : item.title}</strong><span className="mt-0.5 block text-[11px] text-slate-500">{item.group === 'aadhaar' ? 'Aadhaar' : 'PAN'} · {isHindi ? 'सेवा चुनें' : 'Select service'}</span></span>
+                      <span className="min-w-0"><strong className="block text-sm font-bold text-slate-800">{isHindi ? item.hindi : item.title}</strong><span className="mt-0.5 block text-[11px] text-slate-500">{item.group === 'aadhaar' ? 'Aadhaar' : 'PAN'} · {item.paymentEnabled === false ? (isHindi ? 'ऑनलाइन शुल्क पुष्टि बाकी' : 'Online fee confirmation pending') : (isHindi ? 'सेवा चुनें' : 'Select service')}</span></span>
                       <ArrowRight size={16} className="mt-1 shrink-0 text-amber-700" />
                     </button>
                   )) : <p className="px-3 py-4 text-center text-xs text-slate-500">{isHindi ? 'कोई मिलती-जुलती सेवा नहीं मिली।' : 'No matching service found.'}</p>}
@@ -89,9 +90,9 @@ export default function QuickAadhaarPanServices() {
           </div>
         </div>
         <div className="mt-3 flex flex-col gap-3 border-t border-amber-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[11px] leading-5 text-slate-500">{selected ? (isHindi ? `चुनी गई सेवा: ${selected.hindi}` : `Selected: ${selected.title}`) : (isHindi ? 'आधार और PAN की उपलब्ध सेवाएँ खोजकर चुनें।' : 'Choose from the available Aadhaar and PAN services.')}</p>
+          <p className="text-[11px] leading-5 text-slate-500">{selected ? (selected.paymentEnabled === false ? (isHindi ? `${selected.hindi} — ऑनलाइन भुगतान अभी उपलब्ध नहीं; आधिकारिक शुल्क मार्ग की पुष्टि बाकी है।` : `${selected.title} — online payment is not enabled until its official fee route is confirmed.`) : (isHindi ? `चुनी गई सेवा: ${selected.hindi}` : `Selected: ${selected.title}`)) : (isHindi ? 'आधार और PAN की उपलब्ध सेवाएँ खोजकर चुनें।' : 'Choose from the available Aadhaar and PAN services.')}</p>
           <div className="flex flex-wrap items-center gap-2">
-            <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.serviceId)}${selected.taskKey ? `&quickTask=${encodeURIComponent(selected.taskKey)}&quickTaskLabel=${encodeURIComponent(`${selected.title} / ${selected.hindi}`)}` : ''}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
+            {selected?.paymentEnabled === false ? <span aria-disabled="true" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800">{isHindi ? 'भुगतान पुष्टि बाकी' : 'Payment confirmation pending'}</span> : <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.serviceId)}${selected.taskKey ? `&quickTask=${encodeURIComponent(selected.taskKey)}&quickTaskLabel=${encodeURIComponent(`${selected.title} / ${selected.hindi}`)}` : ''}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
               {isHindi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={15} />
             </a>
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 p-2">
