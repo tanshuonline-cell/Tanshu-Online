@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { TANSHU_PROFILE_PHOTO } from '../Header';
+import { useCspExportGate } from '../auth/CspToolAccess';
 import { PhotoFromPhotoTool } from './PhotoFromPhotoTool';
 import {
   ArrowLeft, Camera, Check, Crop, Download, Eraser, FileImage, FlipHorizontal,
@@ -75,6 +76,7 @@ const NumericStepper: React.FC<{label:string;value:number;min:number;max:number;
 };
 
 export const WhatsAppSelfiePassportTool: React.FC = () => {
+  const requestExport = useCspExportGate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [processedPhotoUrl, setProcessedPhotoUrl] = useState('');
@@ -793,7 +795,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
   };
   const saveBlob=(blob:Blob,fileName:string)=>{const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),30000);};
   const runExport=async(format:'pdf'|'jpg'|'png'|'print')=>{
-    if(!selectedFile||exportBusy)return;
+    if(!selectedFile||exportBusy || !(await requestExport()))return;
     const printWindow=format==='print'?window.open('','_blank'):null;
     setExportBusy(true);
     try{
@@ -957,7 +959,7 @@ export const WhatsAppSelfiePassportTool: React.FC = () => {
                     <PhotoFromPhotoTool onApply={(file)=>{handleFileChange({target:{files:[file],value:''}} as unknown as React.ChangeEvent<HTMLInputElement>);setInputMode('existing');setActiveTool('crop');setIsCropping(false);}} />
                   ) : activeTool === 'print' ? (
                     <div className="flex min-h-full min-w-full w-max items-start justify-start p-5">
-                      <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative mx-0 my-0 shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}>
+                      <div onWheel={(event)=>{event.preventDefault();event.stopPropagation();const delta=event.deltaY<0?5:-5;setSheetZoom(value=>Math.max(50,Math.min(250,value+delta)));}} className="relative mx-0 my-0 shrink-0 overflow-hidden rounded-sm bg-white shadow-2xl" style={{width:Math.round(sheetWidthMm*sheetPreviewScale*sheetZoom/100)+'px',height:Math.round(sheetHeightMm*sheetPreviewScale*sheetZoom/100)+'px'}}><div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center overflow-hidden"><img src="/assets/aistudio/WhatsApp_Image_2026-10-31_at_4.17.05_PM_d70d41a1.jpeg" alt="" draggable={false} className="aspect-square w-[32%] max-w-[180px] rounded-full object-cover opacity-[0.16] grayscale blur-[0.35px]" /></div>
                         {Array.from({length:visiblePhotoCount},(_,index)=>{
                           const position=getSheetPhotoPosition(index),itemScale=photoScales[index]??1,previewUnit=sheetPreviewScale*sheetZoom/100;
                           const dimensions=getSheetPhotoDimensions(index),isSelected=selectedSheetPhotos.includes(index);
