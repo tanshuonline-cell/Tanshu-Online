@@ -131,7 +131,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       setError(hi ? 'इस सेवा का निश्चित ऑनलाइन शुल्क अभी सक्रिय नहीं है।' : 'A fixed online price is not enabled for this service yet.');
       return;
     }
-    if (!name.trim() || !/^\d{10}$/.test(phone.replace(/\D/g, '')) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!name.trim() || (quickRequest && nameHindi.trim().length < 2) || !/^\d{10}$/.test(phone.replace(/\D/g, '')) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError(hi ? 'कृपया सही नाम, 10 अंकों का मोबाइल और ईमेल भरें।' : 'Enter your name, a valid 10-digit mobile number and email.');
       return;
     }
