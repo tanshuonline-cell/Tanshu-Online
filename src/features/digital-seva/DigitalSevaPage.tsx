@@ -172,9 +172,11 @@ export default function DigitalSevaPage() {
           return;
         }
         if (result.state === 'PAID') {
+          // Restore the paid order quietly. Do not block a fresh page visit
+          // with a payment-success modal; the customer can explicitly continue
+          // from the header action or use Recover Request.
           setSelected(service);
           setPaidCheckout(parsed.payment!);
-          setShowPaymentSuccess(true);
         }
         // PENDING / VERIFYING is deliberately not auto-opened. The customer can
         // use Pay Now or Recover Request without being shown a stale submit form.
