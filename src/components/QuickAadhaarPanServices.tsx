@@ -23,6 +23,7 @@ const QUICK_SERVICES: QuickService[] = [
   { id: 'pan-father-name', serviceId: 'pan-correction', taskKey: 'father-name', group: 'pan', title: 'PAN Father Name Correction', hindi: 'पैन कार्ड में पिता का नाम सुधार', keywords: ['father name', 'पिता का नाम', 'पिताजी'] },
   { id: 'pan-dob', serviceId: 'pan-correction', taskKey: 'date-of-birth', paymentEnabled: false, group: 'pan', title: 'PAN Date of Birth Correction', hindi: 'पैन कार्ड में जन्मतिथि सुधार', keywords: ['dob', 'date of birth', 'जन्मतिथि', 'जन्म दिनांक'] },
   { id: 'pan-mobile', serviceId: 'pan-correction', taskKey: 'mobile', group: 'pan', title: 'PAN Mobile Number Update', hindi: 'पैन कार्ड में मोबाइल नंबर अपडेट', keywords: ['mobile', 'phone', 'मोबाइल', 'फोन नंबर'] },
+  { id: 'pan-email', serviceId: 'pan-correction', paymentEnabled: false, group: 'pan', title: 'PAN Email ID Update (setup pending)', hindi: 'पैन कार्ड में ईमेल आईडी अपडेट (सेटअप बाकी)', keywords: ['email', 'email id', 'ईमेल', 'ईमेल आईडी'] },
   { id: 'pan-photo-signature', serviceId: 'pan-photo-signature', group: 'pan', title: 'PAN Photo / Signature Update', hindi: 'पैन फोटो / सिग्नेचर अपडेट', keywords: ['photo', 'signature', 'फोटो', 'हस्ताक्षर', 'सिग्नेचर'] },
 ];
 
