@@ -186,6 +186,20 @@ export default function DigitalSevaPage() {
     return () => { cancelled = true; };
   }, []);
   const openPayNowCenter = (serviceId?: string) => { setPayNowInitialServiceId(serviceId); setShowPayNowCenter(true); };
+
+  // Deep links from the homepage quick-service selector open the matching
+  // existing service detail, preserving its current fee and policy content.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const quickServiceId = url.searchParams.get('quickService');
+    if (!quickServiceId) return;
+    const service = SEVA_SERVICES.find((item) => item.id === quickServiceId);
+    if (service && ['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-lost', 'aadhaar-download', 'pan-correction', 'pan-photo-signature'].includes(service.id)) {
+      setSelected(service);
+    }
+    url.searchParams.delete('quickService');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }, []);
   const selectedState = states.find((item) => String(item.code) === selectedStateCode);
   const selectedDistrict = districts.find((item) => String(item.code) === selectedDistrictCode);
   const results = useMemo(() => {
