@@ -8,22 +8,40 @@ export interface CashfreeEnv extends CspEnv {
   CF_PAGES_BRANCH?: string;
 }
 
-export function cashfreeConfigured(env: CashfreeEnv): boolean {
-  return Boolean(env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY)
-    && String(env.CF_PAGES_BRANCH || '').toLowerCase() !== 'main'
-    && String(env.CASHFREE_ENVIRONMENT || 'SANDBOX').toUpperCase() !== 'PRODUCTION';
-}
-export const CASHFREE_API = 'https://sandbox.cashfree.com/pg';
 const API_VERSION = '2022-09-01';
+const CASHFREE_SANDBOX_API = 'https://sandbox.cashfree.com/pg';
+const CASHFREE_PRODUCTION_API = 'https://api.cashfree.com/pg';
+
+export function cashfreeEnvironment(env: CashfreeEnv): 'SANDBOX' | 'PRODUCTION' | null {
+  const configured = String(env.CASHFREE_ENVIRONMENT || '').trim().toUpperCase();
+  const branch = String(env.CF_PAGES_BRANCH || '').trim().toLowerCase();
+
+  // Fail closed: Production must explicitly use Live credentials on main.
+  // Every non-main Pages branch must explicitly use Sandbox credentials.
+  if (branch === 'main') return configured === 'PRODUCTION' ? 'PRODUCTION' : null;
+  return configured === 'SANDBOX' ? 'SANDBOX' : null;
+}
+
+export function cashfreeConfigured(env: CashfreeEnv): boolean {
+  return Boolean(String(env.CASHFREE_APP_ID || '').trim() && String(env.CASHFREE_SECRET_KEY || '').trim())
+    && cashfreeEnvironment(env) !== null;
+}
+
+function cashfreeApiBase(env: CashfreeEnv): string {
+  const environment = cashfreeEnvironment(env);
+  if (environment === 'PRODUCTION') return CASHFREE_PRODUCTION_API;
+  if (environment === 'SANDBOX') return CASHFREE_SANDBOX_API;
+  throw new Error('Cashfree environment does not match this Cloudflare Pages branch.');
+}
 
 export async function cashfreeFetch(env: CashfreeEnv, path: string, init: RequestInit = {}): Promise<any> {
-  if (!env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) throw new Error('Cashfree Preview credentials are not configured.');
-  const response = await fetch(CASHFREE_API + path, {
+  if (!cashfreeConfigured(env)) throw new Error('Cashfree credentials or environment are not configured for this deployment.');
+  const response = await fetch(cashfreeApiBase(env) + path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'x-client-id': env.CASHFREE_APP_ID,
-      'x-client-secret': env.CASHFREE_SECRET_KEY,
+      'x-client-id': String(env.CASHFREE_APP_ID).trim(),
+      'x-client-secret': String(env.CASHFREE_SECRET_KEY).trim(),
       'x-api-version': API_VERSION,
       ...(init.headers || {})
     }
@@ -50,7 +68,7 @@ export async function verifyCashfreeWebhook(rawBody: string, signature: string, 
 }
 
 export async function verifyAndActivateCashfreeOrder(env: CashfreeEnv, orderId: string): Promise<{ paid: boolean; status: string }> {
-  if (!env.DB) throw new Error('Preview database is not configured.');
+  if (!env.DB) throw new Error('Membership database is not configured.');
   const local = await env.DB.prepare(
     `SELECT o.*, p.status AS payment_status, c.email
      FROM csp_cashfree_orders o
