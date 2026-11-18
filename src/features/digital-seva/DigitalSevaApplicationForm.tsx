@@ -414,7 +414,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       onSubmitted(String(data.bookingReference), {
         paymentMode: 'AUTO_PAY', paymentOrderId: prepaidPayment.orderId,
         customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
-        customerEmail: applicant.email.trim(), fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
+        customerEmail: applicant.email.trim(), fieldValues: {}, serviceOptions: { quickSelectedTasks: quickSelectedTasks.join('|'), quickSelectedTaskLabels: selectedTaskLabels.join('; ') },
         corrections: [], selectedDocuments: [...selectedDocuments], otherDocumentName: '',
         taskDetails: selectedTaskLabels.join('; '), submittedAt: new Date().toISOString(),
         termsAccepted: true, termsAcceptedAt: prepaidPayment.termsAcceptedAt,
