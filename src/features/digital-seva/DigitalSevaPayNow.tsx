@@ -202,8 +202,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             <label>{hi ? 'मोबाइल नंबर' : 'Mobile number'}<input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="numeric" maxLength={10} autoComplete="tel" required /></label>
             <label>{hi ? 'ईमेल' : 'Email address'}<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
           </div>
-          <label className="ds-paynow-contact-consent"><input type="checkbox" checked={contactConsent} onChange={(event) => setContactConsent(event.target.checked)} /> <span>{hi ? 'मैं इस अनुरोध के संबंध में TANSHU ONLINE से संपर्क प्राप्त करने की अनुमति देता/देती हूँ।' : 'TANSHU ONLINE may contact me about this service request.'}</span></label>
-          <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); if (value) setTermsAcceptedAt(new Date().toISOString()); }} onRefundChange={(value) => { setRefundAccepted(value); if (value) setRefundAcceptedAt(new Date().toISOString()); }} />
+          <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); setContactConsent(value); if (value) setTermsAcceptedAt(new Date().toISOString()); }} onRefundChange={(value) => { setRefundAccepted(value); if (value) setRefundAcceptedAt(new Date().toISOString()); }} />
           {error && <p className="ds-booking-error" role="alert">{error}</p>}
           {pendingOrderId && <p className="ds-booking-help">{hi ? 'यदि भुगतान हो चुका है तो “भुगतान जाँचें” दबाएँ। दोबारा भुगतान न करें।' : 'If you already completed payment, check it before attempting another payment.'}</p>}
           <div className="ds-modal-actions">

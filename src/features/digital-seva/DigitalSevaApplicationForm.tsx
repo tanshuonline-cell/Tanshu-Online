@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { containsForbiddenAadhaarAddressInstruction, formatEnglishTitleCase, getRequiredCorrectionFieldKeys, getRequiredServiceFieldKeys, isMeaningfulDescription, isValidAddress, isValidEmail, isValidMobile, isValidName, suggestHindiTransliteration, validateFieldByKey } from './smartValidation';
-import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, X } from 'lucide-react';
 import type { SevaService } from './serviceCatalog';
 import { CORRECTION_OPTIONS, getServiceDocumentOptions } from './serviceApplicationSchema';
 import BookingPolicyConsent, { TERMS_POLICY_VERSION, REFUND_POLICY_VERSION } from './BookingPolicyConsent';
@@ -72,6 +72,9 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const [pendingCashfreeMode, setPendingCashfreeMode] = useState<'sandbox' | 'production'>('sandbox');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [quickSelectedTasks, setQuickSelectedTasks] = useState<string[]>([]);
+  const [documentPickerOpen, setDocumentPickerOpen] = useState(false);
+  const [documentSearch, setDocumentSearch] = useState('');
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const draftStateRef = useRef<Record<string, unknown>>({});
@@ -369,6 +372,62 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     setError('');
     setStep((n) => Math.min(3, n + 1));
   };
+  const submitQuickRequest = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!prepaidPayment?.orderId || !applicant.name.trim() || !phoneValid(applicant.phone) || !emailValid(applicant.email)) {
+      setError(hi ? 'ग्राहक की सही जानकारी और सफल भुगतान जरूरी है।' : 'Valid customer details and a confirmed payment are required.');
+      return;
+    }
+    if (!quickSelectedTasks.length) { setError(hi ? 'कृपया टिक करके अपना काम चुनें।' : 'Please tick the work you need.'); return; }
+    const filesToUpload = Object.entries(documentFiles).filter(([id, file]) => selectedDocuments.includes(id) && file);
+    if (filesToUpload.length > 8 || filesToUpload.some(([, file]) => file.size > 5 * 1024 * 1024) ||
+        filesToUpload.reduce((sum, [, file]) => sum + file.size, 0) > 20 * 1024 * 1024 ||
+        filesToUpload.some(([, file]) => file.type && !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type))) {
+      setError(hi ? 'PDF, JPG या PNG चुनें। हर फ़ाइल 5 MB और कुल अपलोड 20 MB तक होना चाहिए।' : 'Use PDF, JPG or PNG. Each file must be up to 5 MB and total uploads up to 20 MB.'); return;
+    }
+    const selectedTaskLabels = quickSelectedTasks.map((id) => id === 'address-doc' ? 'Aadhaar Address Update – Document Based' : id === 'address-no-father-change' ? 'Address Update Without Father Name Removal' : id === 'address-other' ? 'Other Address-related Assistance' : id === service.id ? service.name : `Other assistance under ${service.name}`);
+    setSubmitting(true); setError('');
+    try {
+      const payload = {
+        quickRequest: true, serviceId: service.id, requesterType: 'DIRECT_CUSTOMER', applicationFor: 'SELF',
+        applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
+        paymentContactPhone: prepaidPayment.customerPhone, customerEmail: applicant.email.trim(),
+        corrections: [], fieldValues: {}, serviceOptions: { quickSelectedTasks: quickSelectedTasks.join('|'), quickSelectedTaskLabels: selectedTaskLabels.join('; ') },
+        selectedDocuments, otherDocumentName: '', taskDetails: selectedTaskLabels.join('; '),
+        consent: true, termsAccepted: prepaidPayment.termsAccepted, termsAcceptedAt: prepaidPayment.termsAcceptedAt,
+        termsPolicyVersion: prepaidPayment.termsPolicyVersion,
+        refundPolicyAccepted: prepaidPayment.refundPolicyAccepted, refundAcceptedAt: prepaidPayment.refundAcceptedAt,
+        refundPolicyVersion: prepaidPayment.refundPolicyVersion, idempotencyKey: window.crypto.randomUUID(),
+        paymentMode: 'AUTO_PAY', paymentOrderId: prepaidPayment.orderId
+      };
+      const formData = new FormData();
+      formData.append('payload', JSON.stringify(payload));
+      formData.append('documentTypes', JSON.stringify(filesToUpload.map(([id]) => id)));
+      filesToUpload.forEach(([id, file]) => formData.append('documentFile', file as File, (file as File).name));
+      const response = await fetch('/api/digital-seva/bookings', { method: 'POST', credentials: 'same-origin', body: formData });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.bookingReference) {
+        const failure: any = new Error(data.error || 'Booking could not be saved.'); failure.status = response.status; throw failure;
+      }
+      completedRef.current = true;
+      await deleteDigitalSevaDraft(service.id);
+      onSubmitted(String(data.bookingReference), {
+        paymentMode: 'AUTO_PAY', paymentOrderId: prepaidPayment.orderId,
+        customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\D/g, ''),
+        customerEmail: applicant.email.trim(), fieldValues: {}, serviceOptions: { quickSelectedTasks, quickSelectedTaskLabels: selectedTaskLabels },
+        corrections: [], selectedDocuments: [...selectedDocuments], otherDocumentName: '',
+        taskDetails: selectedTaskLabels.join('; '), submittedAt: new Date().toISOString(),
+        termsAccepted: true, termsAcceptedAt: prepaidPayment.termsAcceptedAt,
+        termsPolicyVersion: prepaidPayment.termsPolicyVersion, refundAccepted: true,
+        refundAcceptedAt: prepaidPayment.refundAcceptedAt, refundPolicyVersion: prepaidPayment.refundPolicyVersion
+      });
+    } catch (cause: any) {
+      setError(cause?.status === 402
+        ? (hi ? 'पेमेंट की पुष्टि अभी नहीं हुई है। दोबारा भुगतान न करें; थोड़ी देर बाद भुगतान जाँचें।' : 'Payment is not confirmed yet. Do not pay again; check payment status shortly.')
+        : (cause?.message || (hi ? 'अनुरोध जमा नहीं हो सका। दोबारा कोशिश करें।' : 'Could not submit the request. Please retry.')));
+    } finally { setSubmitting(false); }
+  };
+
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const message = validateStep();
@@ -737,6 +796,106 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   );
 
   if (!draftReady) return <div className="ds-application-upload-notice" role="status">{hi ? 'आपका सुरक्षित किया गया फॉर्म खोला जा रहा है…' : 'Restoring your saved application…'}</div>;
+
+  if (prepaidPayment) return <form className="ds-booking-form ds-application-form ds-quick-payment-request" onSubmit={submitQuickRequest} noValidate>
+    <div className="ds-application-step">
+      <span className="ds-kicker">{hi ? 'भुगतान सफल' : 'PAYMENT CONFIRMED'}</span>
+      <h3>{hi ? 'अब बस अपना काम टिक करके चुनें' : 'Just tick the work you need'}</h3>
+      <p>{hi ? 'आपकी पहचान और संपर्क जानकारी भुगतान के समय मिल गई है। यहाँ कुछ लिखने की जरूरत नहीं है।' : 'Your contact details were captured during payment. No long application form is needed.'}</p>
+      <div className="ds-application-review">
+        <div><small>{hi ? 'ग्राहक का नाम' : 'Customer name'}</small><strong>{prepaidPayment.customerName}</strong></div>
+        <div><small>{hi ? 'मोबाइल' : 'Mobile'}</small><strong>{prepaidPayment.customerPhone}</strong></div>
+        <div><small>{hi ? 'ईमेल' : 'Email'}</small><strong>{prepaidPayment.customerEmail}</strong></div>
+        <div><small>{hi ? 'भुगतान की गई सेवा' : 'Paid service'}</small><strong>{hi ? service.hindi : service.name}</strong></div>
+      </div>
+      <div className="ds-application-profile">
+        <h4>{hi ? 'आपको कौन-सा काम करवाना है? *' : 'Which work do you need? *'}</h4>
+        <div className="ds-application-doc-list">
+          {(service.id === 'aadhaar-address-doc'
+            ? [{id:'address-doc',label:'Aadhaar address update – document based',hindi:'आधार एड्रेस अपडेट – डॉक्यूमेंट बेस्ड'},
+               {id:'address-no-father-change',label:'Address update without father-name removal',hindi:'पिता का नाम हटाए बिना एड्रेस अपडेट'},
+               {id:'address-other',label:'Other address-related assistance',hindi:'एड्रेस से जुड़ी अन्य सहायता'}]
+            : [{id:service.id,label:service.name,hindi:service.hindi},{id:'other-assistance',label:'Other assistance under this service',hindi:'इस सेवा से जुड़ा अन्य काम'}]
+          ).map((item) => <label key={item.id} className="ds-application-doc-option">
+            <input type="checkbox" checked={quickSelectedTasks.includes(item.id)} onChange={(event) => setQuickSelectedTasks((old) => event.target.checked ? [...old,item.id] : old.filter((value) => value !== item.id))}/>
+            <span><strong>{hi ? item.hindi : item.label}</strong></span>
+          </label>)}
+        </div>
+      </div>
+      <div className="ds-application-profile">
+        <h4>{hi ? 'दस्तावेज़ अपलोड करें (वैकल्पिक)' : 'Upload documents (optional)'}</h4>
+        <p>{hi ? 'सर्च करके या नीचे एरो खोलकर सूची में से दस्तावेज़ चुनें। फ़ाइल अपलोड करना जरूरी नहीं है।' : 'Search or open the arrow to choose from the available document list. Uploading a file is optional.'}</p>
+        <div className="ds-quick-document-picker" style={{display:'grid',gap:12}}>
+          {selectedDocuments.length > 0 && <div className="ds-quick-document-selected" style={{display:'flex',flexWrap:'wrap',gap:8}}>
+            {selectedDocuments.map((id) => {
+              const item = documents.find((doc) => doc.id === id);
+              if (!item) return null;
+              return <span key={id} style={{display:'inline-flex',alignItems:'center',gap:7,padding:'7px 10px',borderRadius:999,border:'1px solid var(--ds-border, #cbd5e1)',background:'var(--ds-surface-soft, #f1f5f9)',fontSize:13}}>
+                {hi ? item.hindi : item.label}
+                <button type="button" aria-label={hi ? item.hindi + ' हटाएँ' : 'Remove ' + item.label} onClick={() => {
+                  setSelectedDocuments((old) => old.filter((value) => value !== id));
+                  setDocumentFiles((old) => { const next = { ...old }; delete next[id]; return next; });
+                }} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',border:0,background:'transparent',padding:0,cursor:'pointer'}}><X size={14}/></button>
+              </span>;
+            })}
+          </div>}
+          <div style={{position:'relative',display:'flex',alignItems:'center',gap:8}}>
+            <div style={{position:'relative',flex:1,minWidth:0}}>
+              <Search size={17} aria-hidden="true" style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',opacity:.65,pointerEvents:'none'}}/>
+              <input type="search" value={documentSearch} onChange={(event) => { setDocumentSearch(event.target.value); setDocumentPickerOpen(true); }} onFocus={() => setDocumentPickerOpen(true)} placeholder={hi ? 'दस्तावेज़ खोजें…' : 'Search available documents…'} aria-label={hi ? 'दस्तावेज़ खोजें' : 'Search available documents'} aria-expanded={documentPickerOpen} aria-controls="ds-quick-document-options" style={{width:'100%',boxSizing:'border-box',padding:'12px 14px 12px 40px',borderRadius:12,border:'1px solid var(--ds-border, #cbd5e1)',background:'var(--ds-input-bg, #fff)',fontSize:14}}/>
+            </div>
+            <button type="button" onClick={() => setDocumentPickerOpen((open) => !open)} aria-label={hi ? 'दस्तावेज़ सूची खोलें या बंद करें' : 'Open or close document list'} aria-expanded={documentPickerOpen} style={{flex:'0 0 44px',height:44,display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:12,border:'1px solid var(--ds-border, #cbd5e1)',background:'var(--ds-surface-soft, #f1f5f9)',cursor:'pointer'}}>
+              <ChevronDown size={18} style={{transform:documentPickerOpen ? 'rotate(180deg)' : 'none',transition:'transform .18s ease'}}/>
+            </button>
+          </div>
+          {documentPickerOpen && <div id="ds-quick-document-options" role="listbox" aria-multiselectable="true" style={{maxHeight:230,overflowY:'auto',border:'1px solid var(--ds-border, #cbd5e1)',borderRadius:12,background:'var(--ds-card-bg, #fff)',padding:6,boxShadow:'0 10px 24px rgba(15,23,42,.10)'}}>
+            {documents.filter((item) => {
+              const query = documentSearch.trim().toLocaleLowerCase();
+              return !query || item.label.toLocaleLowerCase().includes(query) || item.hindi.toLocaleLowerCase().includes(query);
+            }).map((item) => {
+              const chosen = selectedDocuments.includes(item.id);
+              return <button type="button" role="option" aria-selected={chosen} key={item.id} onClick={() => {
+                setSelectedDocuments((old) => chosen ? old.filter((value) => value !== item.id) : [...old, item.id]);
+                if (chosen) setDocumentFiles((old) => { const next = { ...old }; delete next[item.id]; return next; });
+                setDocumentSearch('');
+                setDocumentPickerOpen(false);
+              }} style={{width:'100%',display:'flex',alignItems:'center',gap:10,textAlign:'left',padding:'10px 11px',border:0,borderRadius:9,background:chosen ? 'var(--ds-selected-bg, #e0f2fe)' : 'transparent',cursor:'pointer',fontSize:14}}>
+                <span aria-hidden="true" style={{width:18,height:18,flex:'0 0 18px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:5,border:'1px solid var(--ds-border, #94a3b8)',background:chosen ? 'var(--ds-accent, #2563eb)' : 'transparent',color:'#fff',fontSize:12}}>{chosen ? '✓' : ''}</span>
+                <span style={{display:'grid',gap:2,minWidth:0}}><strong style={{fontWeight:600}}>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small style={{opacity:.72}}>{hi ? item.purposeHindi : item.purpose}</small></span>
+              </button>;
+            })}
+            {documents.filter((item) => {
+              const query = documentSearch.trim().toLocaleLowerCase();
+              return !query || item.label.toLocaleLowerCase().includes(query) || item.hindi.toLocaleLowerCase().includes(query);
+            }).length === 0 && <p role="status" style={{margin:0,padding:14,fontSize:13,opacity:.7}}>{hi ? 'इस नाम से कोई दस्तावेज़ सूची में नहीं है।' : 'No matching document in the available list.'}</p>}
+          </div>}
+          {selectedDocuments.length > 0 && <div style={{display:'grid',gap:10}}>
+            {selectedDocuments.map((id) => {
+              const item = documents.find((doc) => doc.id === id);
+              if (!item) return null;
+              return <div key={id} className="ds-application-doc-row">
+                <div className="ds-application-doc-option">
+                  <span><strong>{hi ? item.hindi : item.label}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
+                </div>
+                <label className="ds-application-file-upload">{hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)'}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(event) => {
+                    const selectedFile = event.target.files?.[0];
+                    setDocumentFiles((old) => { const next = { ...old }; if (selectedFile) next[id] = selectedFile; else delete next[id]; return next; });
+                  }}/>
+                  {documentFiles[id] && <small>{documentFiles[id].name} · {(documentFiles[id].size/1024/1024).toFixed(2)} MB</small>}
+                </label>
+              </div>;
+            })}
+          </div>}
+        </div>
+      </div>
+      <div className="ds-booking-privacy"><ShieldCheck size={18}/><span>{hi ? 'Terms & Conditions और Refund Policy पेमेंट से पहले स्वीकार किए जा चुके हैं। पेमेंट सत्यापन सर्वर पर दोबारा होगा।' : 'Terms & Conditions and Refund Policy were accepted before payment. The server verifies the payment again on submission.'}</span></div>
+    </div>
+    {error && <p className="ds-booking-error" role="alert">{error}</p>}
+    <div className="ds-application-nav"><span>{hi ? 'अंतिम चरण' : 'Final step'}</span>
+      <button className="ds-modal-book" type="submit" disabled={submitting || !quickSelectedTasks.length}>{submitting ? (hi ? 'जमा हो रहा है…' : 'Submitting…') : (hi ? 'फॉर्म सबमिट करें' : 'Submit Request')} <ArrowRight size={16}/></button>
+    </div>
+  </form>;
 
   return <form ref={formRef} className="ds-booking-form ds-application-form" onSubmit={submit} noValidate>
     {draftRestored && <div className="ds-application-upload-notice" role="status">
