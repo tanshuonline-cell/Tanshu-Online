@@ -31,6 +31,7 @@ async function loadCashfreeSdk(): Promise<void> {
 export interface PrepaidDigitalSevaPayment {
   orderId: string;
   customerName: string;
+  customerNameHindi?: string;
   customerPhone: string;
   customerEmail: string;
   consent: true;
@@ -55,6 +56,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const hi = language === 'hi';
   const [selectedId, setSelectedId] = useState(initialServiceId || (serviceScope === 'aadhaar-pan' ? 'aadhaar-address-doc' : 'pan-new'));
   const [name, setName] = useState('');
+  const [nameHindi, setNameHindi] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [contactConsent, setContactConsent] = useState(false);
@@ -77,10 +79,11 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
     try {
       const saved = window.localStorage.getItem('tanshu-ds-pending-checkout-v1') || window.sessionStorage.getItem('tanshu-ds-pending-checkout-v1');
       if (!saved) return;
-      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; termsPolicyVersion?: string; refundPolicyVersion?: string };
+      const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; nameHindi?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; termsPolicyVersion?: string; refundPolicyVersion?: string };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
       setSelectedId(data.serviceId);
       setName(data.name || '');
+      setNameHindi(data.nameHindi || '');
       setPhone(data.phone || '');
       setEmail(data.email || '');
       setPendingOrderId(data.orderId);
@@ -106,6 +109,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
     const payment: PrepaidDigitalSevaPayment = {
       orderId,
       customerName: name.trim(),
+      customerNameHindi: nameHindi.trim(),
       customerPhone: phone.replace(/\D/g, ''),
       customerEmail: email.trim(),
       consent: true,
@@ -156,7 +160,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         setPendingOrderId(orderId);
         checkoutMode = data.cashfreeMode === 'production' ? 'production' : 'sandbox';
         setCashfreeMode(checkoutMode);
-        try { window.localStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION })); } catch { /* session storage is optional */ }
+        try { window.localStorage.setItem('tanshu-ds-pending-checkout-v1', JSON.stringify({ orderId, serviceId: selected.id, name: name.trim(), nameHindi: nameHindi.trim(), phone, email: email.trim(), termsAcceptedAt, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION, refundPolicyVersion: REFUND_POLICY_VERSION })); } catch { /* session storage is optional */ }
       }
       await loadCashfreeSdk();
       const sessionResponse = await fetch('/api/digital-seva/checkout', {
@@ -201,7 +205,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             {quote && <p className="ds-important-note">{hi ? 'Cashfree में ऊपर दिखाई गई पूरी रकम ली जाएगी: सरकारी/प्रदाता शुल्क और TANSHU ONLINE सेवा शुल्क। TANSHU ONLINE सरकारी शुल्क वाला हिस्सा संबंधित विभाग/प्रदाता में जमा करेगा और सेवा शुल्क अलग रहेगा। पूरी रकम की पुष्टि के बाद ही आवेदन फॉर्म खुलेगा।' : 'Cashfree collects the full amount shown above: the official government/provider fee plus the TANSHU ONLINE service fee. TANSHU ONLINE will deposit the official-fee portion with the relevant department/provider and retain its clearly listed service-fee portion. The application form opens only after the full payment is verified.'}</p>}
           </div>}
           <div className="ds-paynow-contact">
-            <label>{hi ? 'आपका नाम' : 'Your name'}<input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required /></label>
+            <label>{hi ? 'आपका नाम (English)' : 'Your name (English)'}<input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required /></label>
+            {quickRequest && <label>{hi ? 'आपका नाम (हिंदी)' : 'Your name (Hindi)'}<input value={nameHindi} onChange={(event) => setNameHindi(event.target.value)} autoComplete="off" required /></label>}
             <label>{hi ? 'मोबाइल नंबर' : 'Mobile number'}<input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="numeric" maxLength={10} autoComplete="tel" required /></label>
             <label>{hi ? 'ईमेल' : 'Email address'}<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
           </div>
