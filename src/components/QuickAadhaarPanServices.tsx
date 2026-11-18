@@ -4,6 +4,8 @@ import { useLanguage } from '../context/LanguageContext';
 
 type QuickService = {
   id: string;
+  serviceId: string;
+  taskKey?: string;
   group: 'aadhaar' | 'pan';
   title: string;
   hindi: string;
@@ -12,12 +14,15 @@ type QuickService = {
 };
 
 const QUICK_SERVICES: QuickService[] = [
-  { id: 'aadhaar-address-doc', group: 'aadhaar', title: 'Aadhaar Address Update (Document Based)', hindi: 'आधार एड्रेस अपडेट (डॉक्यूमेंट बेस्ड)', keywords: ['address', 'change address', 'पता', 'एड्रेस'] },
-  { id: 'aadhaar-co', group: 'aadhaar', title: 'Aadhaar C/O / Father Name in Address', hindi: 'आधार में C/O / पिता का नाम (एड्रेस)', keywords: ['father', 'father name', 'c/o', 'care of', 'पिता', 'पिताजी'] },
-  { id: 'aadhaar-lost', group: 'aadhaar', title: 'Find / Retrieve Aadhaar Number', hindi: 'आधार नंबर फाइंड / वापस पाना', keywords: ['find aadhaar', 'lost aadhaar', 'retrieve', 'आधार नंबर खोजें', 'खोया आधार'] },
-  { id: 'aadhaar-download', group: 'aadhaar', title: 'Download e-Aadhaar', hindi: 'ई-आधार डाउनलोड', keywords: ['download', 'pdf', 'ई आधार', 'डाउनलोड'] },
-  { id: 'pan-correction', group: 'pan', title: 'PAN Correction (Name, Father Name, DOB, Mobile)', hindi: 'पैन करेक्शन (नाम, पिता का नाम, जन्मतिथि, मोबाइल)', keywords: ['pan name', 'father name', 'dob', 'date of birth', 'mobile', 'पिता', 'जन्मतिथि', 'मोबाइल'] },
-  { id: 'pan-photo-signature', group: 'pan', title: 'PAN Photo / Signature Update', hindi: 'पैन फोटो / सिग्नेचर अपडेट', keywords: ['photo', 'signature', 'फोटो', 'हस्ताक्षर', 'सिग्नेचर'] },
+  { id: 'aadhaar-address-doc', serviceId: 'aadhaar-address-doc', group: 'aadhaar', title: 'Aadhaar Address Update (Document Based)', hindi: 'आधार एड्रेस अपडेट (डॉक्यूमेंट बेस्ड)', keywords: ['address', 'change address', 'पता', 'एड्रेस'] },
+  { id: 'aadhaar-co', serviceId: 'aadhaar-co', group: 'aadhaar', title: 'Aadhaar C/O / Father Name in Address', hindi: 'आधार में C/O / पिता का नाम (एड्रेस)', keywords: ['father', 'father name', 'c/o', 'care of', 'पिता', 'पिताजी'] },
+  { id: 'aadhaar-lost', serviceId: 'aadhaar-lost', group: 'aadhaar', title: 'Find / Retrieve Aadhaar Number', hindi: 'आधार नंबर फाइंड / वापस पाना', keywords: ['find aadhaar', 'lost aadhaar', 'retrieve', 'आधार नंबर खोजें', 'खोया आधार'] },
+  { id: 'aadhaar-download', serviceId: 'aadhaar-download', group: 'aadhaar', title: 'Download e-Aadhaar', hindi: 'ई-आधार डाउनलोड', keywords: ['download', 'pdf', 'ई आधार', 'डाउनलोड'] },
+  { id: 'pan-name', serviceId: 'pan-correction', taskKey: 'name', group: 'pan', title: 'PAN Applicant Name Correction', hindi: 'पैन कार्ड में अपना नाम सुधार', keywords: ['pan name', 'applicant name', 'नाम सुधार', 'अपना नाम'] },
+  { id: 'pan-father-name', serviceId: 'pan-correction', taskKey: 'father-name', group: 'pan', title: 'PAN Father Name Correction', hindi: 'पैन कार्ड में पिता का नाम सुधार', keywords: ['father name', 'पिता का नाम', 'पिताजी'] },
+  { id: 'pan-dob', serviceId: 'pan-correction', taskKey: 'date-of-birth', group: 'pan', title: 'PAN Date of Birth Correction', hindi: 'पैन कार्ड में जन्मतिथि सुधार', keywords: ['dob', 'date of birth', 'जन्मतिथि', 'जन्म दिनांक'] },
+  { id: 'pan-mobile', serviceId: 'pan-correction', taskKey: 'mobile', group: 'pan', title: 'PAN Mobile Number Update', hindi: 'पैन कार्ड में मोबाइल नंबर अपडेट', keywords: ['mobile', 'phone', 'मोबाइल', 'फोन नंबर'] },
+  { id: 'pan-photo-signature', serviceId: 'pan-photo-signature', group: 'pan', title: 'PAN Photo / Signature Update', hindi: 'पैन फोटो / सिग्नेचर अपडेट', keywords: ['photo', 'signature', 'फोटो', 'हस्ताक्षर', 'सिग्नेचर'] },
 ];
 
 export default function QuickAadhaarPanServices() {
@@ -82,7 +87,7 @@ export default function QuickAadhaarPanServices() {
         </div>
         <div className="mt-3 flex flex-col gap-2 border-t border-amber-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] leading-5 text-slate-500">{selected ? (isHindi ? `चुनी गई सेवा: ${selected.hindi}` : `Selected: ${selected.title}`) : (isHindi ? 'आधार और PAN की उपलब्ध सेवाएँ खोजकर चुनें।' : 'Choose from the available Aadhaar and PAN services.')}</p>
-          <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.id)}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
+          <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.serviceId)}${selected.taskKey ? `&quickTask=${encodeURIComponent(selected.taskKey)}&quickTaskLabel=${encodeURIComponent(selected.title)}` : ''}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
             {isHindi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={15} />
           </a>
         </div>
