@@ -211,7 +211,7 @@ export default function DigitalSevaPage() {
           refundAcceptedAt: payment.refundAcceptedAt, refundPolicyVersion: payment.refundPolicyVersion,
           idempotencyKey: window.crypto.randomUUID(), paymentMode: 'AUTO_PAY',
           paymentOrderId: payment.orderId, paymentContactPhone: payment.customerPhone,
-          corrections: [], selectedDocuments: [], fieldValues: {},
+          corrections: [], selectedDocuments: [], fieldValues: { customerNameHindi: payment.customerNameHindi || '' },
           serviceOptions: { quickSelectedTaskLabels: selectedWork }, taskDetails
         })
       });
@@ -222,7 +222,7 @@ export default function DigitalSevaPage() {
       const receipt: DigitalSevaReceiptData = {
         paymentMode: 'AUTO_PAY', paymentOrderId: payment.orderId,
         customerName: payment.customerName, customerPhone: payment.customerPhone, customerEmail: payment.customerEmail,
-        fieldValues: {}, serviceOptions: { quickSelectedTaskLabels: selectedWork },
+        fieldValues: { customerNameHindi: payment.customerNameHindi || '' }, serviceOptions: { quickSelectedTaskLabels: selectedWork },
         corrections: [], selectedDocuments: [], otherDocumentName: '', taskDetails, submittedAt,
         termsAccepted: true, termsAcceptedAt: payment.termsAcceptedAt, termsPolicyVersion: payment.termsPolicyVersion,
         refundAccepted: true, refundAcceptedAt: payment.refundAcceptedAt, refundPolicyVersion: payment.refundPolicyVersion
