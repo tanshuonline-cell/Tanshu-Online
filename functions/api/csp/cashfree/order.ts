@@ -1,5 +1,5 @@
 import { CspEnv, json, readCustomerSession } from '../_auth';
-import { cashfreeConfigured, cashfreeFetch } from '../_cashfree';
+import { cashfreeConfigured, cashfreeEnvironment, cashfreeFetch } from '../_cashfree';
 
 interface Env extends CspEnv {
   CASHFREE_APP_ID?: string;
@@ -11,7 +11,7 @@ interface Env extends CspEnv {
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!env.DB || !env.CSP_SESSION_SECRET) return json({ success: false, error: 'Membership payment is not configured.' }, 503);
-  if (!cashfreeConfigured(env)) return json({ success: false, error: 'Cashfree Sandbox is not configured for this Preview deployment.' }, 503);
+  if (!cashfreeConfigured(env)) return json({ success: false, error: 'Cashfree credentials or environment are not configured for this deployment.' }, 503);
   const session = await readCustomerSession(request, env.CSP_SESSION_SECRET);
   if (!session) return json({ success: false, error: 'Please verify your Gmail first.' }, 401);
   const body = await request.json().catch(() => ({})) as { planCode?: string; phone?: string; returnPath?: string };
@@ -31,6 +31,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const safePath = returnPath.startsWith('/') && !returnPath.startsWith('//') ? returnPath.split('#')[0].split('?')[0] : '/';
     const orderId = 'csp_' + Date.now().toString(36) + '_' + crypto.randomUUID().replace(/-/g,'').slice(0,12);
     const returnUrl = url.origin + safePath + '?csp_payment_order_id={order_id}';
+    const environment = cashfreeEnvironment(env);
+    if (!environment) return json({ success: false, error: 'Cashfree environment does not match this Cloudflare Pages branch.' }, 503);
+
     const payment = await cashfreeFetch(env, '/orders', {
       method: 'POST',
       headers: { 'x-idempotency-key': crypto.randomUUID() },
@@ -47,10 +50,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const paymentId = crypto.randomUUID();
     const orderRowId = crypto.randomUUID();
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO csp_payments (id, customer_id, amount_inr, payment_method, reference, status, notes) VALUES (?, ?, ?, 'cashfree', ?, 'pending', ?)").bind(paymentId, customer.id, amount, orderId, 'Cashfree Sandbox checkout created; awaiting verified payment.'),
+      env.DB.prepare("INSERT INTO csp_payments (id, customer_id, amount_inr, payment_method, reference, status, notes) VALUES (?, ?, ?, 'cashfree', ?, 'pending', ?)").bind(paymentId, customer.id, amount, orderId, 'Cashfree ' + environment + ' checkout created; awaiting verified payment.'),
       env.DB.prepare("INSERT INTO csp_cashfree_orders (id, order_id, payment_id, customer_id, plan_code, amount_inr, customer_phone, payment_session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(orderRowId, orderId, paymentId, customer.id, planCode, amount, phone, payment.payment_session_id)
     ]);
-    return json({ success: true, orderId, paymentSessionId: payment.payment_session_id, environment: 'sandbox', amount, planCode });
+    return json({ success: true, orderId, paymentSessionId: payment.payment_session_id, environment: environment.toLowerCase(), amount, planCode });
   } catch (error) {
     return json({ success: false, error: error instanceof Error ? error.message : 'Could not create Cashfree payment.' }, 502);
   }
