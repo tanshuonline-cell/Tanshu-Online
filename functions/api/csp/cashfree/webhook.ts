@@ -1,6 +1,6 @@
-import { CspEnv, json } from '../_auth';
+import { json } from '../_auth';
 import { CashfreeEnv, cashfreeConfigured, verifyCashfreeWebhook, verifyAndActivateCashfreeOrder } from '../_cashfree';
-interface Env extends CspEnv, CashfreeEnv {}
+type Env = CashfreeEnv;
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!env.DB || !cashfreeConfigured(env) || !env.CASHFREE_WEBHOOK_SECRET) return json({ success: false }, 503);
   const signature = request.headers.get('x-webhook-signature') || '';
