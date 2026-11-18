@@ -32,7 +32,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     ).all();
     const plans = await env.DB.prepare('SELECT plan_code, amount_inr, duration_days, is_active FROM csp_plan_prices ORDER BY amount_inr ASC').all();
     return json({ success: true, customers: results || [], payments: payments.results || [], plans: plans.results || [] });
-  } catch { return json({ success: false, error: 'CSP membership tables are not installed. Apply migrations 0012 and 0013 to the Preview D1 database first.' }, 503); }
+  } catch { return json({ success: false, error: 'CSP membership tables are not installed. Apply migrations 0012 and 0014 to the Preview D1 database first.' }, 503); }
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
