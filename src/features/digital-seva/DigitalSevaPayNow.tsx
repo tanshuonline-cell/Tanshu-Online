@@ -81,6 +81,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       if (!saved) return;
       const data = JSON.parse(saved) as { orderId?: string; serviceId?: string; name?: string; nameHindi?: string; phone?: string; email?: string; termsAcceptedAt?: string; refundAcceptedAt?: string; termsPolicyVersion?: string; refundPolicyVersion?: string };
       if (!data.orderId || !data.serviceId || !SEVA_SERVICES.some((service) => service.id === data.serviceId)) return;
+      if (quickRequest && data.serviceId !== initialServiceId) return;
       setSelectedId(data.serviceId);
       setName(data.name || '');
       setNameHindi(data.nameHindi || '');
