@@ -258,7 +258,8 @@ export default function DigitalSevaPage() {
     const taskLabel = url.searchParams.get('quickTaskLabel') || '';
     if (!quickServiceId) return;
     const service = SEVA_SERVICES.find((item) => item.id === quickServiceId);
-    if (service && ['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-lost', 'aadhaar-download', 'pan-correction', 'pan-photo-signature'].includes(service.id)) {
+    const quickTaskAllowed = service?.id !== 'pan-correction' || ['name', 'father-name', 'mobile'].includes(taskKey);
+    if (service && quickTaskAllowed && ['aadhaar-address-doc', 'aadhaar-download', 'pan-correction', 'pan-photo-signature'].includes(service.id)) {
       setQuickPayFlow(true);
       setQuickTaskKey(taskKey);
       setQuickTaskLabel(taskLabel);
