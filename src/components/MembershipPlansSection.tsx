@@ -39,7 +39,7 @@ export const MembershipPlansSection: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<(typeof plans)[number] | null>(null);
 
   return (
-    <section id="membership" className="scroll-mt-24 border-y border-slate-200 bg-slate-950 px-4 py-12 text-white sm:px-6 sm:py-14 lg:px-8" aria-labelledby="membership-title">
+    <section id="membership" className="membership-section scroll-mt-24 border-y border-slate-200 bg-slate-950 px-4 py-12 text-white sm:px-6 sm:py-14 lg:px-8" aria-labelledby="membership-title">
       <style>{`
         @keyframes membership-water-shimmer {
           0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
