@@ -46,12 +46,14 @@ interface Props {
   language: 'en' | 'hi';
   onClose: () => void;
   initialServiceId?: string;
+  serviceScope?: 'aadhaar-pan';
+  quickRequest?: boolean;
   onPaid: (service: SevaService, payment: PrepaidDigitalSevaPayment) => void;
 }
 
-export default function DigitalSevaPayNow({ language, onClose, initialServiceId, onPaid }: Props) {
+export default function DigitalSevaPayNow({ language, onClose, initialServiceId, serviceScope, quickRequest = false, onPaid }: Props) {
   const hi = language === 'hi';
-  const [selectedId, setSelectedId] = useState(initialServiceId || 'pan-new');
+  const [selectedId, setSelectedId] = useState(initialServiceId || (serviceScope === 'aadhaar-pan' ? 'aadhaar-address-doc' : 'pan-new'));
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -68,7 +70,8 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
   const selected = useMemo(() => SEVA_SERVICES.find((service) => service.id === selectedId) || null, [selectedId]);
   const quote = selected ? getAutoPaymentQuote(selected) : null;
   const disclosure = selected ? getServiceFeeDisclosure(selected) : null;
-  const enabledServices = SEVA_SERVICES;
+  const QUICK_AADHAAR_PAN_IDS = ['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-lost', 'aadhaar-download', 'pan-correction', 'pan-photo-signature'];
+  const enabledServices = serviceScope === 'aadhaar-pan' ? SEVA_SERVICES.filter((service) => QUICK_AADHAAR_PAN_IDS.includes(service.id)) : SEVA_SERVICES;
 
   useEffect(() => {
     try {
@@ -182,7 +185,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         <button className="ds-modal-close" type="button" onClick={onClose} aria-label="Close">×</button>
         <span className="ds-kicker">{hi ? 'एक सुरक्षित भुगतान केंद्र' : 'ONE SECURE PAYMENT CENTER'}</span>
         <h2>{hi ? 'अपनी सर्विस चुनें और भुगतान करें' : 'Choose your service and pay'}</h2>
-        <p>{hi ? 'एक बार में एक सर्विस चुनें। भुगतान सफल होने पर उसी सर्विस का आवेदन फॉर्म खुलेगा।' : 'Choose one service per payment. Its application form opens after Cashfree confirms payment.'}</p>
+        <p>{quickRequest ? (hi ? 'एक सर्विस चुनें, अपना नाम और संपर्क विवरण भरें, फिर दोनों नीतियाँ स्वीकार करके भुगतान करें। सफल भुगतान के बाद सेवा अनुरोध रसीद अपने-आप बनेगी।' : 'Choose one service, enter your name and contact details, accept both policies, and pay. A service-request receipt is created automatically after verified payment.') : (hi ? 'एक बार में एक सर्विस चुनें। भुगतान सफल होने पर उसी सर्विस का आवेदन फॉर्म खुलेगा।' : 'Choose one service per payment. Its application form opens after Cashfree confirms payment.')}</p>
         <form onSubmit={(event) => void pay(event)}>
           <label className="ds-paynow-field">{hi ? 'अपनी सर्विस चुनें' : 'Select your service'}
             <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); setError(''); }}>
