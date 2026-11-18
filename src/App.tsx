@@ -3,6 +3,7 @@ import { AdvancedPhotoStudioShell } from './components/tools/AdvancedPhotoStudio
 import { Header, TANSHU_PROFILE_PHOTO } from './components/Header';
 import { CscToolkitSeoPage } from './components/CscToolkitSeoPage';
 import { Hero } from './components/Hero';
+import QuickAadhaarPanServices from './components/QuickAadhaarPanServices';
 import { QuickCategoryStrip } from './components/QuickCategoryStrip';
 import { SocialStrip } from './components/SocialStrip';
 import { FeaturedTools } from './components/FeaturedTools';
@@ -529,6 +530,9 @@ export default function App() {
           onSelectScheme={handleSelectSchemeFromSearch}
           onSelectVideo={handleSelectVideoFromSearch}
         />
+
+        {/* Compact Aadhaar and PAN quick-service search; existing Hero search remains unchanged. */}
+        <QuickAadhaarPanServices />
 
         {/* 7: Quick Category Strip (8 Items with English & Hindi labels and colorful rounded icons) */}
         <QuickCategoryStrip onSelectCategory={handleCategoryShortcut} />
