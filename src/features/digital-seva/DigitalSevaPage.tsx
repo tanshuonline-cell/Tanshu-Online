@@ -132,6 +132,8 @@ export default function DigitalSevaPage() {
   useEffect(() => {
     let cancelled = false;
     const restoreVerifiedPayment = async () => {
+      // A QR entry is a fresh quick request; do not overlay an unrelated old paid-order modal.
+      if (new URL(window.location.href).searchParams.has('quickService')) return;
       let saved = '';
       try {
         saved = window.localStorage.getItem('tanshu-ds-paid-checkout-v1') ||
