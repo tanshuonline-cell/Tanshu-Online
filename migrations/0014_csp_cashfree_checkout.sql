@@ -1,4 +1,6 @@
--- CSP Cashfree hosted checkout for Preview D1 only. Never apply to Production without explicit approval.
+-- CSP Cashfree hosted checkout schema.
+-- Apply once to the CSP D1 database in each environment (Preview and Production),
+-- only after confirming migration 0012 is present. Never apply to Digital Seva D1.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS csp_cashfree_orders (
