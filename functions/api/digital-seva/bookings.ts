@@ -3,6 +3,7 @@ import { containsForbiddenAadhaarAddressInstruction, normalizeIndianMobile, getR
 // Stores booking metadata in the dedicated Preview D1 and file bytes in private Supabase Storage.
 import { deletePrivateDocument, uploadPrivateDocument } from './_storage';
 import { getAutoPaymentQuote } from '../../../src/features/digital-seva/autoPaymentPricing';
+import { getServiceDocumentOptions } from '../../../src/features/digital-seva/serviceApplicationSchema';
 import { cashfreeApiBase } from './_cashfree';
 interface Env { DIGITAL_SEVA_DB?: any; SUPABASE_URL?: string; SUPABASE_SECRET_KEY?: string; DIGITAL_SEVA_PII_SECRET?: string; ADMIN_SECRET_TOKEN?: string; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 
@@ -89,7 +90,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     try {
       body = JSON.parse(String(rawPayload || ''));
       const documentTypes = JSON.parse(String(rawTypes || '[]'));
-      const files = form.getAll('documentFile').filter((item): item is File => typeof File !== 'undefined' && item instanceof File && item.size > 0);
+      // Cloudflare multipart parsing can return File-like objects across runtime boundaries.
+      // Do not discard a valid upload solely because instanceof File fails in that isolate.
+      const files = form.getAll('documentFile').filter((item): item is File =>
+        Boolean(item) && typeof item === 'object' &&
+        typeof (item as File).arrayBuffer === 'function' &&
+        typeof (item as File).size === 'number' && (item as File).size > 0 &&
+        typeof (item as File).name === 'string'
+      );
       if (!Array.isArray(documentTypes) || documentTypes.length !== files.length) throw new Error('Invalid document list.');
       uploadInputs = files.map((file, index) => ({ documentType: String(documentTypes[index] || ''), file }));
     } catch {
@@ -120,6 +128,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
+  const requiredForRequest = ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(serviceId)
+    ? []
+    : getServiceDocumentOptions(serviceId, corrections)
+        .filter((item) => item.required && (item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(String(serviceOptions.level || ''))))
+        .map((item) => item.id);
+  if (serviceId === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
+  if (serviceId === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
+  for (const documentId of requiredForRequest) {
+    if (!uploadInputs.some((item) => item.documentType === documentId)) {
+      return json({ success: false, error: `Please upload the required supporting document: ${documentId}.` }, 400);
+    }
+  }
   if (uploadInputs.length > 8) return json({ success: false, error: 'You can upload up to 8 documents in one request.' }, 400);
   const selectedSet = new Set(selectedDocuments);
   const seenDocumentTypes = new Set<string>();
@@ -156,7 +176,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(serviceId) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return json({ success: false, error: 'Please remove instructional or placeholder text and enter only the actual Aadhaar address details.' }, 400);
   if (serviceId === 'voter-correction' && corrections.length > 4) return json({ success: false, error: 'Form 8 allows a maximum of four correction entries.' }, 400);
   const requiredCorrectionFields = getRequiredCorrectionFieldKeys(
-    corrections.filter((id: string) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(serviceId) && id === 'address'))
+    corrections.filter((id: string) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(serviceId) && id === 'address')),
+    serviceId
   );
   for (const field of (quickRequest ? [] : requiredCorrectionFields)) {
     if (!String(fieldValues[field] || '').trim()) return json({ success: false, error: `Required correction detail is missing: ${field}.` }, 400);

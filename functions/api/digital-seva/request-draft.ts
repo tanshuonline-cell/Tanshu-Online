@@ -26,7 +26,7 @@ function rateLimit(request: Request, action: string): boolean {
   const now = Date.now();
   const current = attempts.get(key);
   if (attempts.size > 1000) for (const [entry, value] of attempts) if (value.resetAt <= now) attempts.delete(entry);
-  const limit = action === 'save' ? 180 : 8;
+  const limit = action === 'save' ? 180 : action === 'status' ? 60 : 8;
   if (current && current.resetAt > now && current.count >= limit) return false;
   if (!current || current.resetAt <= now) attempts.set(key, { count: 1, resetAt: now + 10 * 60 * 1000 });
   else attempts.set(key, { count: current.count + 1, resetAt: current.resetAt });
@@ -65,6 +65,25 @@ async function identityKey(phone: string, name: string, email: string): Promise<
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)));
   return Array.from(digest).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
+async function ensurePaidDraftStorage(env: Env): Promise<void> {
+  // Idempotent Preview recovery-table setup; does not modify payment or booking data.
+  await env.DIGITAL_SEVA_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS digital_seva_paid_drafts (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL UNIQUE,
+      identity_key TEXT NOT NULL,
+      service_id TEXT NOT NULL,
+      encrypted_draft_json TEXT NOT NULL,
+      saved_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  await env.DIGITAL_SEVA_DB.prepare(
+    'CREATE INDEX IF NOT EXISTS idx_digital_seva_paid_drafts_identity ON digital_seva_paid_drafts(identity_key, saved_at DESC)'
+  ).run();
+}
+
 async function verifiedPaidOrder(env: Env, orderId: string, serviceId?: string) {
   if (!env.DIGITAL_SEVA_DB || !env.CASHFREE_APP_ID || !env.CASHFREE_SECRET_KEY) throw new Error('Payment recovery is not configured.');
   const local = await env.DIGITAL_SEVA_DB.prepare(
@@ -95,6 +114,28 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!rateLimit(request, action)) return json({ success: false, error: 'Too many recovery attempts. Please wait a few minutes.' }, 429);
 
   try {
+    await ensurePaidDraftStorage(env);
+    if (action === 'status') {
+      const orderId = String(body.orderId || '');
+      if (!/^ds_[0-9a-f]{32}$/i.test(orderId)) return json({ success: false, error: 'Invalid payment reference.' }, 400);
+      const local = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT order_id, service_id, status, booking_id FROM digital_seva_checkout_orders WHERE order_id = ?'
+      ).bind(orderId).first();
+      if (!local) return json({ success: true, state: 'CLOSED' });
+      const linkedBooking = await env.DIGITAL_SEVA_DB.prepare(
+        'SELECT booking_reference FROM digital_seva_bookings WHERE checkout_order_id = ? LIMIT 1'
+      ).bind(orderId).first();
+      if (String(local.status) === 'CLAIMED' || local.booking_id || linkedBooking?.booking_reference) {
+        return json({ success: true, state: 'SUBMITTED' });
+      }
+      if (!['PENDING', 'PAID'].includes(String(local.status))) {
+        return json({ success: true, state: 'CLOSED' });
+      }
+      const verified = await verifiedPaidOrder(env, orderId, String(local.service_id || ''));
+      if (verified) return json({ success: true, state: 'PAID' });
+      return json({ success: true, state: String(local.status) === 'PAID' ? 'VERIFYING' : 'PENDING' });
+    }
+
     if (action === 'save') {
       const orderId = String(body.orderId || '');
       const draft = body.draft;

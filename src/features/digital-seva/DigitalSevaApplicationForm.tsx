@@ -39,7 +39,9 @@ async function loadCashfreeSdk(): Promise<void> {
   if (!window.Cashfree) throw new Error('Cashfree Checkout did not initialise. Please retry.');
 }
 
-const BILINGUAL_FIELD_KEYS = new Set(["docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
+const BILINGUAL_FIELD_KEYS = new Set(["applicantName","docRelationName","hofName","panApplicantName","panFatherName","panMotherName","incomeFatherName","incomeMotherName","casteFatherName","casteMotherName","ancestorName","aadhaarRecordedName","aadhaarApplicantName","aadhaarFatherNameCurrent","aadhaarFatherNameCorrect","requestedCo","voterRelativeName","aadhaarHouse","aadhaarStreet","aadhaarArea","aadhaarLandmark","aadhaarVillage","aadhaarBlock","aadhaarSubdivision","aadhaarDistrict","aadhaarPoliceStation","aadhaarPostOffice","aadhaarState","panAddress","voterAddress","certificateDistrict","certificateSubdivision","certificateBlock","certificateLocalBody","certificateVillage","certificatePostOffice","certificatePoliceStation","residenceDistrict","residenceSubdivision","residenceBlock","residenceVillageWard","residencePostOffice","residencePoliceStation","rationDistrict","rationBlock","rationVillageWard","rationPostOffice"]);
+const COMPACT_REQUEST_SERVICE_IDS = new Set(['aadhaar-address-doc', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'pan-new', 'pan-correction', 'pan-photo-signature', 'voter-new', 'voter-correction', 'certificate-correction', 'certificate-income', 'certificate-caste', 'certificate-residence', 'ration-new', 'ration-update']);
+const COMPACT_NAME_FIELD_SERVICES = new Set(['aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'pan-correction', 'pan-photo-signature', 'voter-new', 'voter-correction', 'certificate-correction', 'certificate-income', 'certificate-caste', 'certificate-residence', 'ration-new', 'ration-update']);
 
 
 export default function DigitalSevaApplicationForm({ service, language, prepaidPayment, recoveredDraft, onSubmitted }: Props) {
@@ -83,6 +85,23 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
   const manuallyEditedHindiFieldsRef = useRef<Set<string>>(new Set());
   const autoResumeAttemptedRef = useRef(false);
   const remoteDraftQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(() => {
+    if (step !== 2 || !applicant.name.trim()) return;
+    const applicantNameKey = service.id === 'aadhaar-address-doc'
+      ? 'aadhaarApplicantName'
+      : service.id === 'pan-new' ? 'panApplicantName'
+      : COMPACT_NAME_FIELD_SERVICES.has(service.id) ? 'applicantName' : '';
+    if (!applicantNameKey) return;
+    setFieldValues((old) => {
+      const next = { ...old };
+      if (!String(next[applicantNameKey] || '').trim()) next[applicantNameKey] = applicant.name.trim();
+      const hindiKey = `${applicantNameKey}Hindi`;
+      if (!String(next[hindiKey] || '').trim() && !manuallyEditedHindiFieldsRef.current.has(applicantNameKey)) {
+        next[hindiKey] = suggestHindiTransliteration(next[applicantNameKey]);
+      }
+      return next;
+    });
+  }, [step, applicant.name, service.id]);
   useEffect(() => { const key = Object.keys(fieldErrors)[0]; if (!key) return; const target = formRef.current?.querySelector<HTMLElement>(`[data-validation-key="${key}"]`); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); } }, [fieldErrors]);
 
   useEffect(() => {
@@ -92,9 +111,12 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
     setDraftRestored(false);
     loadDigitalSevaDraft(service.id).then((saved) => {
       if (!active) return;
+      const savedData = saved?.data as any;
+      const savedOrderId = String(savedData?.pendingCheckoutOrderId || '');
+      const incomingOrderId = String(prepaidPayment?.orderId || '');
       const restoredData = recoveredDraft
-        ? { ...(saved?.data || {}), ...recoveredDraft, documentFiles: (saved?.data as any)?.documentFiles || {} }
-        : saved?.data || null;
+        ? { ...(savedData || {}), ...recoveredDraft, documentFiles: savedData?.documentFiles || {} }
+        : savedData && (!incomingOrderId || savedOrderId === incomingOrderId) ? savedData : null;
       if (restoredData) {
         const d = restoredData as any;
         setStep(Number.isInteger(d.step) ? d.step : 0);
@@ -340,16 +362,26 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
       if (!isValidEmail(applicant.email)) return reject('applicant.email', 'आवेदक की सही ईमेल आईडी लिखें।');
     }
     if (step === 2) {
-      if (correctionsForService.length && corrections.length === 0) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
+      if (correctionsForService.length && corrections.length === 0 && !['aadhaar-address-doc', 'aadhaar-co'].includes(service.id)) return reject('corrections', 'कृपया बताएं कि किस विवरण में सुधार चाहिए।');
       if (service.id === 'voter-correction' && corrections.length > 4) return reject('corrections', 'Form 8 में अधिकतम चार सुधार चुनें।');
       if (['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co'].includes(service.id) && (containsForbiddenAadhaarAddressInstruction(taskDetails) || Object.values(fieldValues).some(containsForbiddenAadhaarAddressInstruction) || Object.values(serviceOptions).some(containsForbiddenAadhaarAddressInstruction))) return reject('taskDetails', 'यह निर्देशात्मक वाक्य एड्रेस या आवेदन विवरण में स्वीकार नहीं है। कृपया केवल वास्तविक और सही जानकारी लिखें।');
-      const correctionKeys = getRequiredCorrectionFieldKeys(corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')));
+      const correctionKeys = getRequiredCorrectionFieldKeys(corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')), service.id);
       for (const key of correctionKeys) {
         if (!String(fieldValues[key] || '').trim()) return reject(key, key.endsWith('-current') ? 'मौजूदा विवरण भरें।' : 'सही नया विवरण भरें।');
       }
-      if (!isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
+      if (!COMPACT_REQUEST_SERVICE_IDS.has(service.id) && !isMeaningfulDescription(taskDetails)) return reject('taskDetails', 'काम का स्पष्ट विवरण कम-से-कम 10 अक्षरों में, जैसे “PAN correction” या “नाम में सुधार”, लिखें।');
       if (selectedDocuments.includes('other') && otherDocumentName.trim().length < 2) return reject('otherDocumentName', 'अन्य दस्तावेज़ का नाम लिखें।');
       const attachedFiles = Object.values(documentFiles);
+      const requiredForRequest = ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id)
+        ? []
+        : documents.filter((item) => item.required).map((item) => item.id);
+      if (service.id === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
+      if (service.id === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
+      for (const documentId of requiredForRequest) {
+        if (!selectedDocuments.includes(documentId) || !documentFiles[documentId]) {
+          return reject('documentFiles', 'कृपया सूची में बताए गए आवश्यक दस्तावेज़ चुनकर अपलोड करें।');
+        }
+      }
       if (attachedFiles.length > 8) return reject('documentFiles', 'एक बार में अधिकतम 8 दस्तावेज़ अपलोड करें।');
       if (attachedFiles.some((file) => file.size > 5 * 1024 * 1024)) return reject('documentFiles', 'हर दस्तावेज़ 5 MB या उससे कम होना चाहिए।');
       if (attachedFiles.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024) return reject('documentFiles', 'सभी दस्तावेज़ों का कुल आकार 20 MB से अधिक नहीं होना चाहिए।');
@@ -457,12 +489,38 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         } : null,
         applicant, customerName: applicant.name.trim(), customerPhone: applicant.phone.replace(/\\D/g, ''), paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\\D/g, ''),
         customerEmail: applicant.email.trim(), corrections, fieldValues, serviceOptions,
-        selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim(),
+        selectedDocuments, otherDocumentName: otherDocumentName.trim(), taskDetails: taskDetails.trim() || (COMPACT_REQUEST_SERVICE_IDS.has(service.id) ? `${service.name} request: ${corrections.join(', ') || 'supporting documents attached'}` : ''),
         consent: bookingConsent, termsAccepted, termsAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
         refundPolicyAccepted: refundAccepted, refundAcceptedAt, refundPolicyVersion: REFUND_POLICY_VERSION,
         idempotencyKey: window.crypto.randomUUID(),
         paymentMode
       };
+
+      // Persist the paid-order recovery snapshot before attempting booking creation.
+      // The autosave effect is intentionally debounced; Submit must not race that timer.
+      await remoteDraftQueueRef.current.catch(() => undefined);
+      try {
+        const recoverySnapshot = {
+          serviceId: service.id, step, requesterType, applicationFor, operator, centerName, centerAddress,
+          agencyName, agencyAddress, applicant, corrections, selectedDocuments, otherDocumentName,
+          taskDetails, fieldValues, serviceOptions, bookingConsent, termsAccepted, termsAcceptedAt,
+          refundAccepted, refundAcceptedAt, termsPolicyVersion: TERMS_POLICY_VERSION,
+          refundPolicyVersion: REFUND_POLICY_VERSION, pendingCheckoutOrderId,
+          paymentContactPhone: prepaidPayment?.customerPhone || applicant.phone.replace(/\\D/g, '')
+        };
+        const recoveryResponse = await fetch('/api/digital-seva/request-draft', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', orderId: pendingCheckoutOrderId, draft: recoverySnapshot })
+        });
+        if (!recoveryResponse.ok) {
+          const recoveryResult = await recoveryResponse.json().catch(() => ({}));
+          console.warn('Digital Seva recovery snapshot could not be confirmed before booking:', recoveryResult.error || recoveryResponse.status);
+        }
+      } catch (recoveryError) {
+        // Never block an already-paid customer from booking submission because autosave is offline.
+        console.warn('Digital Seva recovery snapshot sync failed before booking:', recoveryError);
+      }
 
       if (paymentMode === 'AUTO_PAY' && getAutoPaymentQuote(service)) {
         const preflight = await fetch('/api/digital-seva/bookings', {
@@ -547,11 +605,11 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
 
   const textInput = (key: string, label: string, labelHi: string) => {
-    const bilingual = BILINGUAL_FIELD_KEYS.has(key) || /^(address|father-name|mother-name|relation-name)(-current|-correct)$/i.test(key);
+    const bilingual = BILINGUAL_FIELD_KEYS.has(key) || /^(name|address|father-name|mother-name|relation-name)(-current|-correct)$/i.test(key);
     const isPin = /pin$/i.test(key);
     const isAadhaar = /aadhaarNumber/i.test(key);
     const isPan = /PanNumber/i.test(key);
-    const englishValue = fieldValues[key] || '';
+    const englishValue = Object.prototype.hasOwnProperty.call(fieldValues, key) ? (fieldValues[key] || '') : (key === 'applicantName' ? applicant.name : '');
     const englishControl = key === 'familyMemberNames'
       ? <textarea data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} value={englishValue} onChange={(e) => setField(key, e.target.value)} onBlur={(e) => setField(key, formatFieldOnBlur(key, e.target.value))} rows={3} />
       : <input className={isPin ? 'ds-pin-input' : undefined} data-validation-key={key} aria-invalid={Boolean(fieldErrors[key])} inputMode={isPin || isAadhaar ? 'numeric' : undefined} maxLength={isPin ? 6 : isAadhaar ? 12 : isPan ? 10 : undefined} value={englishValue} onChange={(e) => setField(key, isPin || isAadhaar ? e.target.value.replace(/\D/g, '').slice(0, isPin ? 6 : 12) : isPan ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) : e.target.value)} onBlur={(e) => bilingual ? setBilingualEnglish(key, formatFieldOnBlur(key, e.target.value)) : setField(key, formatFieldOnBlur(key, e.target.value))} />;
@@ -567,52 +625,32 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
   const renderServiceFields = () => (
     <>
+      {COMPACT_NAME_FIELD_SERVICES.has(service.id) && <div className="ds-application-field-grid">
+        {textInput('applicantName', 'Applicant name', 'आवेदक का नाम')}
+      </div>}
       {service.id === 'pan-new' && <div className="ds-application-field-grid">
-        {textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
-        {textInput('panApplicantName', 'Full name exactly as per Aadhaar', 'आधार के अनुसार पूरा नाम')}
-        {textInput('panFatherName', "Father's full name", 'पिता का पूरा नाम')}
-        {textInput('panMotherName', "Mother's full name", 'माता का पूरा नाम')}
+        {textInput('panApplicantName', 'Applicant name', 'आवेदक का नाम')}
+        {textInput('panFatherName', "Father's name", 'पिता का नाम')}
         {textInput('panDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
         {selectInput('panParentPrint', 'Parent name to print on PAN', 'PAN पर किसका नाम छपे', [
           { value: 'FATHER', label: 'Father', hi: 'पिता' }, { value: 'MOTHER', label: 'Mother', hi: 'माता' }
         ])}
-        {textInput('panAddress', 'Communication address', 'पत्राचार का पता')}
       </div>}
-      {['pan-correction', 'pan-photo-signature'].includes(service.id) && <div className="ds-application-field-grid">
-        {textInput('existingPanNumber', 'Existing PAN number', 'मौजूदा PAN नंबर')}
-        {textInput('aadhaarNumber', 'Aadhaar number (if applicable)', 'आधार नंबर (यदि लागू हो)')}
-      </div>}
-      {['aadhaar-address-doc', 'aadhaar-address-hof', 'aadhaar-co', 'aadhaar-mobile', 'aadhaar-email', 'aadhaar-download', 'aadhaar-pvc-assistance'].includes(service.id) && textInput('aadhaarNumber', 'Aadhaar number (12 digits)', 'आधार नंबर (12 अंक)')}
+      {service.id === 'aadhaar-address-hof' && textInput('aadhaarNumber', 'Applicant Aadhaar number (12 digits)', 'आवेदक का आधार नंबर (12 अंक)')}
       {service.id === 'aadhaar-mobile' && textInput('newMobile', 'New mobile number (do not enter OTP)', 'नया मोबाइल नंबर (OTP न लिखें)')}
       {service.id === 'aadhaar-email' && textInput('newEmail', 'New email address', 'नई ईमेल आईडी')}
       {service.id === 'certificate-income' && <div className="ds-application-field-grid">
-        {textInput('incomeFatherName', "Father's full name", 'पिता का पूरा नाम')}
-        {textInput('incomeMotherName', "Mother's full name", 'माता का पूरा नाम')}
-        {textInput('incomeApplicantOccupation', 'Applicant occupation / income source', 'आवेदक का पेशा / आय का स्रोत')}
-        {textInput('incomeGovernment', 'Income from government service', 'सरकारी सेवा से आय')}
-        {textInput('incomeAgriculture', 'Income from agriculture', 'कृषि से आय')}
-        {textInput('incomeBusiness', 'Income from business', 'व्यवसाय से आय')}
-        {textInput('incomeOther', 'Income from other sources', 'अन्य स्रोतों से आय')}
-        {textInput('incomeAmount', 'Total annual income', 'कुल वार्षिक आय')}
-        {textInput('incomePurpose', 'Purpose of certificate', 'प्रमाणपत्र का उद्देश्य')}
+        {textInput('incomeFatherName', "Father's name", 'पिता का नाम')}
+        {textInput('certificateVillage', 'Village', 'गाँव')}
+        {textInput('certificatePostOffice', 'Post office', 'डाकघर')}
+        {textInput('certificatePin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'certificate-caste' && <div className="ds-application-field-grid">
-        {textInput('casteFatherName', "Father's full name", 'पिता का पूरा नाम')}
-        {textInput('casteMotherName', "Mother's full name", 'माता का पूरा नाम')}
-        {textInput('casteProfession', 'Applicant profession', 'आवेदक का पेशा')}
-        {textInput('casteCategory', 'Category / caste', 'श्रेणी / जाति')}
+        {textInput('casteFatherName', "Father's name", 'पिता का नाम')}
+        {textInput('casteCategory', 'Category', 'श्रेणी')}
         {textInput('casteName', 'Caste name', 'जाति का नाम')}
-        {textInput('casteSubcategory', 'Sub-caste (if applicable)', 'उपजाति (यदि लागू हो)')}
-        {textInput('ancestorName', "Father's / ancestor's name in revenue record", 'राजस्व रिकॉर्ड में पिता / पूर्वज का नाम')}
-      </div>}
-      {['certificate-income', 'certificate-caste'].includes(service.id) && <div className="ds-application-field-grid">
-        {textInput('certificateDistrict', 'District', 'जिला')}
-        {textInput('certificateSubdivision', 'Sub-division', 'अनुमंडल')}
-        {textInput('certificateBlock', 'Block', 'प्रखंड')}
-        {textInput('certificateLocalBody', 'Panchayat / Municipality / Ward', 'पंचायत / नगर निकाय / वार्ड')}
-        {textInput('certificateVillage', 'Village / Mohalla', 'गाँव / मोहल्ला')}
+        {textInput('certificateVillage', 'Village', 'गाँव')}
         {textInput('certificatePostOffice', 'Post office', 'डाकघर')}
-        {textInput('certificatePoliceStation', 'Police station', 'थाना')}
         {textInput('certificatePin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'certificate-residence' && <div className="ds-application-field-grid">
@@ -620,32 +658,26 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           { value: 'PERMANENT', label: 'Permanent', hi: 'स्थायी' }, { value: 'TEMPORARY', label: 'Temporary', hi: 'अस्थायी' }
         ])}
         {textInput('certificatePurpose', 'Purpose of certificate', 'प्रमाणपत्र का उद्देश्य')}
-        {textInput('residenceDistrict', 'District', 'जिला')}
-        {textInput('residenceSubdivision', 'Sub-division', 'अनुमंडल')}
-        {textInput('residenceBlock', 'Block', 'प्रखंड')}
-        {textInput('residenceVillageWard', 'Village / Mohalla / Ward', 'गाँव / मोहल्ला / वार्ड')}
+        {textInput('residenceVillageWard', 'Village / Mohalla', 'गाँव / मोहल्ला')}
         {textInput('residencePostOffice', 'Post office', 'डाकघर')}
-        {textInput('residencePoliceStation', 'Police station', 'थाना')}
         {textInput('residencePin', 'PIN code', 'पिन कोड')}
       </div>}
-      {service.id === 'voter-correction' && textInput('epicNumber', 'Existing EPIC number (if available)', 'मौजूदा EPIC नंबर (यदि उपलब्ध हो)')}
+      {service.id === 'voter-new' && textInput('voterDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
       {service.id === 'voter-new' && <div className="ds-application-field-grid">
-        {textInput('voterDob', 'Date of birth (DD/MM/YYYY)', 'जन्मतिथि (DD/MM/YYYY)')}
-        {textInput('voterAddress', 'Ordinary residence address', 'सामान्य निवास का पता')}
-        {textInput('voterRelativeName', "Father's / mother's / spouse's name", 'पिता / माता / पति-पत्नी का नाम')}
+        {textInput('voterAddress', 'Village / locality', 'गाँव / मोहल्ला')}
+        {textInput('aadhaarPostOffice', 'Post office', 'डाकघर')}
+        {textInput('aadhaarPin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'ration-new' && <div className="ds-application-field-grid">
         {textInput('familyMemberCount', 'Number of family members', 'परिवार के सदस्यों की संख्या')}
-        {textInput('familyMemberNames', 'Family members names (one per line)', 'परिवार के सदस्यों के नाम (एक पंक्ति में एक)')}
-        {textInput('rationDistrict', 'District', 'जिला')}
-        {textInput('rationBlock', 'Block', 'प्रखंड')}
         {textInput('rationVillageWard', 'Village / Ward / Mohalla', 'गाँव / वार्ड / मोहल्ला')}
         {textInput('rationPostOffice', 'Post office', 'डाकघर')}
         {textInput('rationPin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'aadhaar-lost' && textInput('aadhaarRecordedName', 'Name as recorded in Aadhaar (no Aadhaar number)', 'आधार में दर्ज नाम (आधार नंबर नहीं)')}
-      {correctionsForService.length > 0 && <div className="ds-application-field-grid">
-        {corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address')).map((id) => {
+      {correctionsForService.length > 0 && !['aadhaar-address-doc', 'aadhaar-co'].includes(service.id) && <div className="ds-application-field-grid">
+        {corrections.filter((id) => !(['aadhaar-address-doc', 'aadhaar-address-hof'].includes(service.id) && id === 'address') &&
+          (!['pan-correction', 'pan-photo-signature', 'voter-correction', 'certificate-correction', 'ration-update'].includes(service.id) || ['name', 'father-name', 'relation-name'].includes(id))).map((id) => {
           const item = correctionsForService.find((x) => x.id === id);
           if (!item) return null;
           return <div className="ds-application-correction-fields" key={id}>
@@ -660,12 +692,6 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           { value: 'CO', label: 'CO / Revenue Officer', hi: 'CO / राजस्व अधिकारी' },
           { value: 'SDO', label: 'SDO', hi: 'SDO' }, { value: 'DM', label: 'DM', hi: 'DM' }
         ])}
-        {selectInput('applicationType', 'Application type', 'आवेदन का प्रकार', [
-          { value: 'GENERAL', label: 'General', hi: 'सामान्य' }, { value: 'TATKAL', label: 'Tatkal (if available)', hi: 'तत्काल (यदि उपलब्ध हो)' }
-        ])}
-      </div>}
-      {service.id === 'aadhaar-address-doc' && <div className="ds-application-field-grid">
-        {textInput('docRelationName', "Father's name (enter the correct name only)", 'पिता का नाम (केवल सही नाम भरें)')}
       </div>}
       {service.id === 'aadhaar-address-hof' && <div className="ds-application-field-grid">
         {selectInput('hofRelation', 'Eligible relation to Head of Family', 'परिवार के मुखिया से संबंध चुनें', [
@@ -676,31 +702,35 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         {textInput('hofName', 'Head of Family full name', 'परिवार के मुखिया का पूरा नाम')}
         {textInput('hofAadhaarNumber', 'Head of Family Aadhaar number (12 digits)', 'परिवार के मुखिया का आधार नंबर (12 अंक)')}
       </div>}
-      {service.id === 'aadhaar-address-doc' && <div className="ds-address-choice-panel">
-        <h4>{hi ? 'पते का विकल्प चुनें' : 'Choose address option'}</h4>
-        <div className="ds-address-choice-options" role="radiogroup" aria-label={hi ? 'पता चुनें' : 'Choose address'}>
-          <label className="ds-address-choice-option">
-            <input type="radio" name="addressChoice" value="NEW" checked={serviceOptions.addressChoice === 'NEW'} onChange={() => setOption('addressChoice', 'NEW')} />
-            <span>{hi ? 'नया पता (New Address)' : 'New Address'}</span>
-          </label>
-          <label className="ds-address-choice-option">
-            <input type="radio" name="addressChoice" value="OLD" checked={serviceOptions.addressChoice === 'OLD'} onChange={() => setOption('addressChoice', 'OLD')} />
-            <span>{hi ? 'पुराना पता (Old Address)' : 'Old Address'}</span>
-          </label>
-          <details className="ds-address-choice-info">
-            <summary aria-label={hi ? 'पते के विकल्प की जानकारी' : 'Address choice information'} title={hi ? 'जानकारी' : 'More information'}>i</summary>
-            <p>{hi
-              ? 'OLD चुनने पर अपना मौजूदा पता भरें और NEW चुनने पर नया पता भरें। दोनों ही स्थितियों में नीचे पूरा एड्रेस भरना अनिवार्य है।'
-              : 'Choose whether the details below are your existing (OLD) address or the new (NEW) address. In both cases, complete address details must be entered below.'}</p>
-          </details>
+      {service.id === 'aadhaar-address-doc' && <>
+      <div className="ds-address-choice-panel">
+        <h4>{hi ? 'सेवा का प्रकार चुनें' : 'Select service type'}</h4>
+        <label className="ds-address-choice-option">
+          <input type="checkbox" checked={serviceOptions.addressChoice === 'Address Update Document Based'} onChange={(event) => setOption('addressChoice', event.target.checked ? 'Address Update Document Based' : '')} />
+          <span>{hi ? 'एड्रेस अपडेट डॉक्यूमेंट बेस्ड' : 'Address Update Document Based'}</span>
+        </label>
+      </div>
+      <div className="ds-application-profile">
+        <h4>{hi ? 'आवेदक और पिता के नाम' : 'Applicant and father name details'}</h4>
+        <div className="ds-application-field-grid">
+          {textInput('aadhaarApplicantName', 'Applicant name', 'आवेदक का नाम')}
+          {textInput('aadhaarFatherNameCurrent', "Father's old name", 'पिता का पुराना नाम')}
+          {textInput('aadhaarFatherNameCorrect', "Father's new name", 'पिता का नया नाम')}
         </div>
-      </div>}
-      {(['aadhaar-address-hof', 'aadhaar-address-doc'].includes(service.id)) && <div className="ds-application-profile ds-address-profile">
+      </div>
+      <div className="ds-application-profile">
+        <h4>{hi ? 'पते का विवरण' : 'Address details'}</h4>
+        <div className="ds-application-field-grid">
+          {textInput('aadhaarPin', 'Address PIN code', 'पता पिन कोड')}
+          {textInput('aadhaarVillage', 'Village', 'गाँव')}
+          {textInput('aadhaarPostOffice', 'Post office', 'डाकघर')}
+        </div>
+      </div>
+      </>}
+      {service.id === 'aadhaar-address-hof' && <div className="ds-application-profile ds-address-profile">
         <div className="ds-address-profile-heading">
           <span className="ds-address-step">ADDRESS DETAILS</span>
-          <h4>{hi
-            ? (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'OLD' ? 'मौजूदा / पुराना पता भरें' : 'जिस पते को अपडेट करवाना है, उसकी पूरी जानकारी भरें')
-            : (service.id === 'aadhaar-address-doc' && serviceOptions.addressChoice === 'OLD' ? 'Enter the existing / old address' : 'Enter the complete address to be used for this request')}</h4>
+          <h4>{hi ? 'परिवार के मुखिया के माध्यम से पता विवरण भरें' : 'Enter address details for the Head of Family request'}</h4>
           <p>{hi ? 'OLD या NEW—दोनों विकल्पों में पता भरना आवश्यक है। हर जानकारी सही और अलग-अलग भरें।' : 'Address details are required for both OLD and NEW selections. Enter each part accurately in its own field.'}</p>
         </div>
         <div className="ds-address-form-grid">
@@ -734,14 +764,9 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
         <small>{hi ? 'UIDAI के वर्तमान प्रारूप में C/O वैकल्पिक है; अन्य पुराने prefix विकल्प यहाँ नहीं दिखाए जाएँगे।' : 'C/O is optional in the current UIDAI format; legacy prefix options are not shown here.'}</small>
       </div>}
       {service.id === 'ration-update' && <div className="ds-application-field-grid">
-        {selectInput('rationAction', 'What needs to change?', 'क्या बदलाव करवाना है?', [
-          { value: 'ADD_MEMBER', label: 'Add member', hi: 'सदस्य जोड़ना' }, { value: 'REMOVE_MEMBER', label: 'Remove member', hi: 'सदस्य हटाना' },
-          { value: 'CORRECT_MEMBER', label: 'Correct member details', hi: 'सदस्य का विवरण सुधारना' },
-          { value: 'ADDRESS', label: 'Address change', hi: 'पता बदलना' }, { value: 'OTHER', label: 'Other', hi: 'अन्य' }
-        ])}
-        {textInput('memberName', 'Affected member name', 'प्रभावित सदस्य का नाम')}
-        {textInput('memberRelation', 'Relationship to family head', 'परिवार के मुखिया से संबंध')}
-        {textInput('memberDob', 'Member date of birth (if relevant)', 'सदस्य की जन्मतिथि (यदि लागू हो)')}
+        {textInput('rationVillageWard', 'Village / Ward / Mohalla', 'गाँव / वार्ड / मोहल्ला')}
+        {textInput('rationPostOffice', 'Post office', 'डाकघर')}
+        {textInput('rationPin', 'PIN code', 'पिन कोड')}
       </div>}
       {service.id === 'certificate-correction' && <div className="ds-application-field-grid">
         {textInput('certificateNumber', 'Existing certificate number', 'मौजूदा प्रमाणपत्र संख्या')}
@@ -788,10 +813,10 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
           { value: 'OTHER', label: 'Other / confirm later', hi: 'अन्य / बाद में पुष्टि' }
         ])}
       </div>}
-      <label className={`ds-application-wide ${fieldErrors.taskDetails ? 'ds-field-invalid' : ''}`}>{hi ? 'काम का पूरा विवरण / निर्देश' : 'Exact work / instructions'}
+      {!COMPACT_REQUEST_SERVICE_IDS.has(service.id) && <label className={`ds-application-wide ${fieldErrors.taskDetails ? 'ds-field-invalid' : ''}`}>{hi ? 'काम का पूरा विवरण / निर्देश' : 'Exact work / instructions'}
         <textarea data-validation-key="taskDetails" aria-invalid={Boolean(fieldErrors.taskDetails)} value={taskDetails} onChange={(e) => { setTaskDetails(e.target.value); clearFieldError('taskDetails'); }} onBlur={(e) => setTaskDetails(formatEnglishTitleCase(e.target.value))} rows={3} required placeholder={hi ? 'क्या काम करवाना है और कौन-सा विवरण सही होना चाहिए...' : 'What work is requested and what details should be correct...'} />
         {fieldErrors.taskDetails && <small className="ds-field-error" role="alert">{fieldErrors.taskDetails}</small>}
-      </label>
+      </label>}
     </>
   );
 
@@ -957,7 +982,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
 
     {step === 2 && <section className="ds-application-step">
       <span className="ds-kicker">{hi ? 'चरण 3' : 'STEP 3'}</span><h3>{hi ? 'काम का विवरण और उपलब्ध दस्तावेज़' : 'Work details and available documents'}</h3>
-      {correctionsForService.length > 0 && <div className="ds-application-profile">
+      {correctionsForService.length > 0 && service.id !== 'aadhaar-address-doc' && <div className="ds-application-profile">
         <h4>{hi ? 'किस विवरण में सुधार करवाना है?' : 'Which details need correction?'}</h4>
         <p>{hi ? 'एक या एक से अधिक विकल्प चुनें। उसी के अनुसार दस्तावेज़ों की सूची बदलेगी।' : 'Select one or more options. The document checklist will update to match your selections.'}</p>
         <div className="ds-application-doc-list">
@@ -981,7 +1006,7 @@ export default function DigitalSevaApplicationForm({ service, language, prepaidP
               }} />
               <span><strong>{hi ? item.hindi : item.label}{item.required ? ' *' : ''}</strong><small>{hi ? item.purposeHindi : item.purpose}</small></span>
             </label>
-            {selectedDocuments.includes(item.id) && <label className="ds-application-file-upload">{hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)'}
+            {selectedDocuments.includes(item.id) && <label className="ds-application-file-upload">{item.required ? (hi ? 'फ़ाइल चुनें (अनिवार्य)' : 'Choose file (required)') : (hi ? 'फ़ाइल चुनें (वैकल्पिक)' : 'Choose file (optional)')}
               <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => {
                 const file = e.target.files?.[0];
                 setDocumentFiles((old) => { const next = { ...old }; if (file) next[item.id] = file; else delete next[item.id]; return next; });

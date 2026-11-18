@@ -90,33 +90,33 @@ export function validationKindForField(key: string): ValidationKind {
   return 'text';
 }
 
-export function getRequiredServiceFieldKeys(serviceId: string, options: Record<string, unknown> = {}): string[] {
+export function getRequiredServiceFieldKeys(serviceId: string, _options: Record<string, unknown> = {}): string[] {
   const required: Record<string, string[]> = {
-    'pan-new': ['panApplicantName', 'panDob', 'panAddress', 'aadhaarNumber'],
-    'pan-correction': ['existingPanNumber', 'aadhaarNumber'],
-    'pan-photo-signature': ['existingPanNumber', 'aadhaarNumber'],
-    'aadhaar-mobile': ['aadhaarNumber', 'newMobile'],
-    'aadhaar-email': ['aadhaarNumber', 'newEmail'],
-    'aadhaar-download': ['aadhaarNumber'],
-    'aadhaar-pvc-assistance': ['aadhaarNumber'],
-    'certificate-income': ['incomeFatherName', 'certificateDistrict', 'certificateSubdivision', 'certificateBlock', 'certificateVillage', 'certificatePin', 'level'],
-    'certificate-caste': ['casteFatherName', 'casteCategory', 'casteName', 'certificateDistrict', 'certificateSubdivision', 'certificateBlock', 'certificateVillage', 'certificatePin', 'level'],
-    'certificate-residence': ['certificatePurpose', 'residenceDistrict', 'residenceSubdivision', 'residenceBlock', 'residenceVillageWard', 'residencePin', 'level', 'residenceType'],
-    'voter-new': ['voterDob', 'voterAddress', 'voterRelativeName'],
-    'ration-new': ['familyMemberCount', 'familyMemberNames', 'rationDistrict', 'rationBlock', 'rationVillageWard', 'rationPin'],
-    'aadhaar-address-doc': ['aadhaarNumber', 'docRelationName', 'aadhaarHouse', 'aadhaarStreet', 'aadhaarArea', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarPoliceStation', 'aadhaarState', 'aadhaarPin'],
+    'pan-new': ['panApplicantName', 'panFatherName', 'panDob', 'panParentPrint'],
+    'pan-correction': ['applicantName'],
+    'pan-photo-signature': ['applicantName'],
+    'aadhaar-mobile': ['applicantName', 'newMobile'],
+    'aadhaar-email': ['applicantName', 'newEmail'],
+    'aadhaar-download': [],
+    'aadhaar-pvc-assistance': [],
+    'certificate-income': ['applicantName', 'incomeFatherName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
+    'certificate-caste': ['applicantName', 'casteFatherName', 'casteCategory', 'casteName', 'certificateVillage', 'certificatePostOffice', 'certificatePin', 'level'],
+    'certificate-residence': ['applicantName', 'certificatePurpose', 'residenceVillageWard', 'residencePostOffice', 'residencePin', 'level', 'residenceType'],
+    'voter-new': ['applicantName', 'voterDob', 'voterAddress', 'aadhaarPostOffice', 'aadhaarPin'],
+    'ration-new': ['applicantName', 'familyMemberCount', 'rationVillageWard', 'rationPostOffice', 'rationPin'],
+    'aadhaar-address-doc': ['aadhaarApplicantName', 'aadhaarFatherNameCurrent', 'aadhaarFatherNameCorrect', 'aadhaarVillage', 'aadhaarPostOffice', 'aadhaarPin'],
     'aadhaar-address-hof': ['aadhaarNumber', 'hofAadhaarNumber', 'hofRelation', 'hofName', 'aadhaarHouse', 'aadhaarStreet', 'aadhaarArea', 'aadhaarVillage', 'aadhaarDistrict', 'aadhaarPoliceStation', 'aadhaarState', 'aadhaarPin'],
-    'aadhaar-co': ['aadhaarNumber', 'coRelation', 'requestedCo'],
-    'certificate-correction': ['certificateNumber', 'issuingOffice', 'issueDate'],
+    'aadhaar-co': ['applicantName', 'coRelation', 'requestedCo'],
+    'certificate-correction': ['applicantName'],
+    'voter-correction': ['applicantName'],
     'scheme-check': ['schemeName'],
     'online-form': ['formName'],
     'website-services': ['websiteScope'],
-    'ration-update': ['rationAction']
+    'ration-update': ['applicantName']
   };
   const fields = [...(required[serviceId] || [])];
   if (serviceId === 'aadhaar-address-doc') fields.push('addressChoice');
-  if (serviceId === 'ration-update' && ['ADD_MEMBER', 'REMOVE_MEMBER', 'CORRECT_MEMBER', 'ADDRESS'].includes(String(options.rationAction))) fields.push('memberName');
-  if (serviceId === 'ration-update' && options.rationAction === 'ADD_MEMBER') fields.push('memberRelation');
+  // Ration updates are selected through the compact correction checklist; uploaded proof carries the detail.
   return fields;
 }
 
@@ -124,8 +124,15 @@ export function validateServiceFieldValue(key: string, value: unknown): string |
   return validateByKind(validationKindForField(key), value);
 }
 
-export function getRequiredCorrectionFieldKeys(corrections: string[]): string[] {
+export function getRequiredCorrectionFieldKeys(corrections: string[], serviceId = ''): string[] {
+  if (['aadhaar-address-doc', 'aadhaar-co', 'pan-photo-signature'].includes(serviceId)) return [];
   const textCorrections = new Set(['name', 'father-name', 'mother-name', 'date-of-birth', 'gender', 'address', 'care-of', 'relation-type', 'relation-name', 'mobile', 'category', 'other', 'add-member', 'remove-member', 'member-correction', 'head-change']);
+  if (['pan-correction', 'voter-correction', 'certificate-correction', 'ration-update'].includes(serviceId)) {
+    const compactTextCorrections = serviceId === 'voter-correction'
+      ? new Set(['name', 'relation-name'])
+      : new Set(['name', 'father-name']);
+    return corrections.filter((id) => compactTextCorrections.has(id)).flatMap((id) => [`${id}-current`, `${id}-correct`]);
+  }
   return corrections.filter((id) => textCorrections.has(id)).flatMap((id) => [`${id}-current`, `${id}-correct`]);
 }
 
