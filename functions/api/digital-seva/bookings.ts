@@ -128,11 +128,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
-  const requiredForRequest = ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(serviceId)
+  const requiredForRequest = quickRequest
     ? []
-    : getServiceDocumentOptions(serviceId, corrections)
-        .filter((item) => item.required && (item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(String(serviceOptions.level || ''))))
-        .map((item) => item.id);
+    : ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(serviceId)
+      ? []
+      : getServiceDocumentOptions(serviceId, corrections)
+          .filter((item) => item.required && (item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(String(serviceOptions.level || ''))))
+          .map((item) => item.id);
   if (serviceId === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
   if (serviceId === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
   for (const documentId of requiredForRequest) {
