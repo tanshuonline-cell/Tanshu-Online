@@ -32,6 +32,9 @@ export interface PrepaidDigitalSevaPayment {
   orderId: string;
   customerName: string;
   customerNameHindi?: string;
+  quickRequest?: boolean;
+  quickTaskKey?: string;
+  quickTaskLabel?: string;
   customerPhone: string;
   customerEmail: string;
   consent: true;
@@ -111,6 +114,9 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       orderId,
       customerName: name.trim(),
       customerNameHindi: nameHindi.trim(),
+      quickRequest,
+      quickTaskKey: quickRequest ? quickTaskKey : undefined,
+      quickTaskLabel: quickRequest ? quickTaskLabel : undefined,
       customerPhone: phone.replace(/\D/g, ''),
       customerEmail: email.trim(),
       consent: true,
@@ -121,7 +127,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
       termsPolicyVersion: TERMS_POLICY_VERSION,
       refundPolicyVersion: REFUND_POLICY_VERSION
     };
-    try { window.localStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment })); window.localStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
+    try { window.localStorage.setItem('tanshu-ds-paid-checkout-v1', JSON.stringify({ serviceId: selected.id, payment, quickRequest })); window.localStorage.removeItem('tanshu-ds-pending-checkout-v1'); } catch { /* session storage is optional */ }
     onPaid(selected, payment);
   };
 
