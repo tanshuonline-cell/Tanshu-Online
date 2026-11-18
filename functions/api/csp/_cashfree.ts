@@ -40,7 +40,14 @@ export function cashfreeBase64(bytes: Uint8Array): string {
 }
 
 export async function verifyCashfreeWebhook(rawBody: string, signature: string, timestamp: string, secret: string): Promise<boolean> {
-  if (!rawBody || !signature || !timestamp || timestamp.length > 40) return false;
+  // Cashfree timestamps are Unix milliseconds. Reject stale/future signed payloads
+  // so a captured webhook cannot be replayed later. Customer return verification
+  // independently checks the live order status if a delayed webhook is rejected.
+  const timestampMs = Number(timestamp);
+  const MAX_WEBHOOK_SKEW_MS = 5 * 60 * 1000;
+  if (!rawBody || !signature || !/^\\d{13}$/.test(timestamp)
+      || !Number.isSafeInteger(timestampMs)
+      || Math.abs(Date.now() - timestampMs) > MAX_WEBHOOK_SKEW_MS) return false;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const signed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(timestamp + rawBody));
   return safeEqual(signature, cashfreeBase64(new Uint8Array(signed)));
