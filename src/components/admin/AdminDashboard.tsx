@@ -1299,7 +1299,7 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
         {activeTab === 'csp-customers' && (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div><h2 className="text-xl font-extrabold text-white">CSP &amp; Travel Cafe Customers</h2><p className="mt-1 text-xs text-slate-400">Gmail-verified accounts, manual memberships and expiry controls.</p></div>
+              <div><h2 className="text-xl font-extrabold text-white">CSP &amp; Travel Cafe Customers</h2><p className="mt-1 text-xs text-slate-400">Gmail-verified accounts, Cashfree payments, memberships and expiry controls.</p></div>
               <button onClick={fetchCspCustomers} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white">Refresh</button>
             </div>
             <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
@@ -1345,14 +1345,14 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
                 </tbody>
               </table>
             </div>
-            <p className="text-[11px] leading-5 text-slate-500">Membership activation is manual and must follow independent payment verification. Prices and validity shown above come from the current plan settings. No auto-renewal is configured.</p>
+            <p className="text-[11px] leading-5 text-slate-500">Cashfree memberships activate automatically only after server-side order and payment verification. Legacy manual requests still require independent receipt/UTR verification. Prices and validity shown above come from current plan settings. No auto-renewal is configured.</p>
             <section className="space-y-3">
               <h3 className="text-base font-extrabold text-white">CSP Payment History</h3>
               <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
-                <table className="w-full min-w-[700px] text-left text-xs">
-                  <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Amount</th><th className="p-3">Reference / UTR</th><th className="p-3">Status</th><th className="p-3">Verified By</th><th className="p-3">Date</th></tr></thead>
+                <table className="w-full min-w-[1050px] text-left text-xs">
+                  <thead className="bg-slate-900 text-[10px] uppercase text-slate-400"><tr><th className="p-3">Gmail ID</th><th className="p-3">Amount</th><th className="p-3">Method</th><th className="p-3">Reference</th><th className="p-3">Cashfree Order ID</th><th className="p-3">Cashfree Payment ID</th><th className="p-3">Status</th><th className="p-3">Verified By</th><th className="p-3">Date</th></tr></thead>
                   <tbody className="divide-y divide-slate-800">
-                    {cspPayments.length ? cspPayments.map(payment => <tr key={payment.id}><td className="p-3 text-slate-200">{payment.email}</td><td className="p-3 font-bold text-emerald-300">₹{payment.amount_inr}</td><td className="p-3 text-slate-300">{payment.reference === 'Membership request: premium' ? 'Membership request: Premium' : payment.reference || '—'}</td><td className="p-3 text-slate-300">{payment.status}</td><td className="p-3 text-slate-300">{payment.verified_by || '—'}</td><td className="p-3 text-slate-400">{payment.verified_at ? new Date(payment.verified_at).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</td></tr>) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">No CSP payments recorded yet.</td></tr>}
+                    {cspPayments.length ? cspPayments.map(payment => <tr key={payment.id}><td className="p-3 text-slate-200">{payment.email}</td><td className="p-3 font-bold text-emerald-300">₹{payment.amount_inr}</td><td className="p-3 text-slate-300">{payment.payment_method || '—'}</td><td className="p-3 text-slate-300">{payment.reference === 'Membership request: premium' ? 'Membership request: Premium' : payment.reference || '—'}</td><td className="p-3 font-mono text-slate-300">{payment.cashfree_order_id || '—'}</td><td className="p-3 font-mono text-slate-300">{payment.cashfree_payment_id || '—'}</td><td className="p-3 text-slate-300">{payment.cashfree_order_status || payment.status}</td><td className="p-3 text-slate-300">{payment.verified_by || '—'}</td><td className="p-3 text-slate-400">{payment.verified_at ? new Date(payment.verified_at).toLocaleDateString() : new Date(payment.created_at).toLocaleDateString()}</td></tr>) : <tr><td colSpan={9} className="p-6 text-center text-slate-500">No CSP payments recorded yet.</td></tr>}
                   </tbody>
                 </table>
               </div>

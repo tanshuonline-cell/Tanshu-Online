@@ -12,10 +12,13 @@ export async function onRequestGet({ request, env }: { request: Request; env: Cs
   const latestPayment = await env.DB.prepare(
     'SELECT amount_inr, status, notes, reference, created_at FROM csp_payments WHERE customer_id = ? ORDER BY created_at DESC LIMIT 1'
   ).bind(customer.id).first();
+  // Each membership tier grants only its explicitly assigned tools.
+  // Basic: Passport Studio; Advanced: WhatsApp Selfie + PVC Card Maker;
+  // Premium: Instant Multi Customer Photo Maker (future premium tools can be added here).
   const paidTools = subscription?.plan_code === 'premium'
-    ? ['advanced-passport-photo-studio', 'pdf-to-pvc-card-auto-cropper', 'instant-multi-customer-photo-maker', 'whatsapp-selfie-to-passport-photo']
+    ? ['instant-multi-customer-photo-maker']
     : subscription?.plan_code === 'advanced'
-      ? ['advanced-passport-photo-studio', 'pdf-to-pvc-card-auto-cropper', 'instant-multi-customer-photo-maker']
+      ? ['whatsapp-selfie-to-passport-photo', 'pdf-to-pvc-card-auto-cropper']
       : subscription?.plan_code === 'basic' ? ['advanced-passport-photo-studio'] : [];
   const settings = await env.DB.prepare('SELECT tool_id FROM csp_tool_settings WHERE enabled = 1').all();
   const enabledToolIds = new Set((settings.results || []).map((row: { tool_id: string }) => row.tool_id));

@@ -11,8 +11,8 @@ export const useCspExportGate = () => {
 
 const defaultPaidPlans = [
   { code: 'basic', price: 99, durationDays: 30, name: 'BASIC', tools: 'Instant Passport Photo Studio', active: true },
-  { code: 'advanced', price: 199, durationDays: 30, name: 'ADVANCED', tools: 'Passport Studio + PVC Card + Multi Customer', active: true },
-  { code: 'premium', price: 299, durationDays: 30, name: 'PREMIUM', tools: 'All four premium photo tools', active: true },
+  { code: 'advanced', price: 199, durationDays: 30, name: 'ADVANCED', tools: 'WhatsApp Selfie + PVC Card Maker', active: true },
+  { code: 'premium', price: 299, durationDays: 30, name: 'PREMIUM', tools: 'Instant Multi Customer Photo Maker', active: true },
 ];
 const planStyle: Record<string, string> = {
   basic: 'border-amber-300 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 text-amber-950',
@@ -48,7 +48,7 @@ export const CspMembershipPlans: React.FC = () => {
         <span className={`relative z-10 block h-full rounded-[14px] border p-5 ${planStyle[plan.code]}`}>
           <span className="flex items-center justify-between gap-2"><span className="text-xs font-black tracking-[.2em]">{isHindi ? (plan.code === 'basic' ? 'बेसिक' : plan.code === 'advanced' ? 'एडवांस्ड' : 'प्रीमियम') : plan.name}</span><span className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-[9px] font-extrabold uppercase">{isHindi ? (plan.code === 'basic' ? 'शुरुआती' : plan.code === 'advanced' ? 'एडवांस्ड' : 'प्रीमियम') : (plan.code === 'basic' ? 'STARTER' : plan.code === 'advanced' ? 'ADVANCED' : 'PREMIUM')}</span></span>
           <span className="mt-3 block text-3xl font-black">₹{plan.price}<small className="text-xs font-semibold opacity-65"> / {plan.durationDays} {isHindi ? (plan.durationDays === 30 ? 'महीना' : 'दिन') : (plan.durationDays === 30 ? 'month' : plan.durationDays === 1 ? 'day' : 'days')}</small></span>
-          <span className="mt-2 block min-h-10 text-sm font-semibold leading-5">{isHindi ? (plan.code === 'basic' ? 'केवल इंस्टेंट पासपोर्ट फोटो स्टूडियो' : plan.code === 'advanced' ? 'पासपोर्ट स्टूडियो + PVC कार्ड मेकर + मल्टी कस्टमर फोटो मेकर' : 'चारों प्रीमियम फोटो टूल्स') : plan.tools}</span>
+          <span className="mt-2 block min-h-10 text-sm font-semibold leading-5">{isHindi ? (plan.code === 'basic' ? 'केवल इंस्टेंट पासपोर्ट फोटो स्टूडियो' : plan.code === 'advanced' ? 'WhatsApp सेल्फी से पासपोर्ट फोटो + इंस्टेंट PVC कार्ड मेकर' : 'इंस्टेंट मल्टी कस्टमर फोटो मेकर') : plan.tools}</span>
           <span className="mt-4 block h-1.5 overflow-hidden rounded-full bg-white/70"><span className={`block h-full w-full rounded-full ${plan.code === 'basic' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : plan.code === 'advanced' ? 'bg-gradient-to-r from-sky-400 to-indigo-500' : 'bg-gradient-to-r from-fuchsia-500 to-rose-500'}`} /></span>
         </span>
       </button>)}
@@ -65,6 +65,8 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const [notice, setNotice] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('basic');
   const [requestBusy, setRequestBusy] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [paymentPhone, setPaymentPhone] = useState('');
   const [availablePlans, setAvailablePlans] = useState(defaultPaidPlans);
   const [toolEnabled, setToolEnabled] = useState(true);
   const refresh = async (): Promise<Session> => {
@@ -99,14 +101,24 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
   const submitMembershipRequest = async () => {
     setRequestBusy(true);
     try {
-      const response = await fetch('/api/csp/membership/request', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: selectedPlan }) });
+      const response = await fetch('/api/csp/cashfree/order', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: selectedPlan, phone: paymentPhone, returnPath: window.location.pathname }) });
       const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Could not submit membership request.');
-      setPlansOpen(false);
-      setNotice(data.message || 'Membership request submitted.');
+      if (!response.ok || !data.success || !data.paymentSessionId) throw new Error(data.error || 'Could not create Cashfree payment.');
+      setPhoneOpen(false); setPlansOpen(false);
+      const w = window as any;
+      if (!w.Cashfree) {
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector('script[data-cashfree-sdk]') as HTMLScriptElement | null;
+          if (existing) { existing.addEventListener('load', () => resolve(), { once: true }); existing.addEventListener('error', () => reject(new Error('Cashfree Checkout could not load.')), { once: true }); return; }
+          const script = document.createElement('script'); script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'; script.async = true; script.dataset.cashfreeSdk = 'true';
+          script.onload = () => resolve(); script.onerror = () => reject(new Error('Cashfree Checkout could not load.')); document.head.appendChild(script);
+        });
+      }
+      const cashfree = (window as any).Cashfree({ mode: 'sandbox' });
+      await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: '_self' });
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not submit membership request.');
-      setPlansOpen(false);
+      setNotice(error instanceof Error ? error.message : 'Could not start Cashfree payment.');
+      setPhoneOpen(true);
     } finally { setRequestBusy(false); }
   };
   const requestExport = async () => {
@@ -116,6 +128,23 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     setPlansOpen(true);
     return false;
   };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const returnedOrder = params.get('csp_payment_order_id');
+    if (!returnedOrder) return;
+    params.delete('csp_payment_order_id');
+    const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+    void (async () => {
+      try {
+        const response = await fetch('/api/csp/cashfree/verify', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: returnedOrder }) });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Payment verification is pending.');
+        if (data.paid) { await refresh(); setNotice(isHindi ? 'भुगतान सत्यापित! आपकी सदस्यता 30 दिनों के लिए सक्रिय हो गई है।' : 'Payment verified! Your membership is active for 30 days.'); }
+        else setNotice(isHindi ? 'भुगतान अभी Cashfree से पुष्टि नहीं हुआ है। कुछ देर बाद Refresh करें।' : 'Cashfree has not confirmed the payment yet. Please check again shortly.');
+      } catch (error) { setNotice(error instanceof Error ? error.message : 'Payment verification is pending.'); }
+    })();
+  }, []);
   useEffect(() => {
     const onFrameMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.data?.type !== 'CSP_PREMIUM_EXPORT_REQUEST') return;
@@ -225,12 +254,13 @@ export const CspToolAccess: React.FC<{ toolId: string; children: React.ReactNode
     <div className="relative min-h-screen">
       {children}
     </div>
-    {authOpen && <CspGmailOtpModal onClose={() => setAuthOpen(false)} onVerified={async () => { setAuthOpen(false); const verified = await refresh(); if (!verified.allowedTools?.includes(toolId)) await submitMembershipRequest(); }} />}
+    {authOpen && <CspGmailOtpModal onClose={() => setAuthOpen(false)} onVerified={async () => { setAuthOpen(false); const verified = await refresh(); if (!verified.allowedTools?.includes(toolId)) setPhoneOpen(true); }} />}
+    {phoneOpen && <div className="fixed inset-0 z-[135] grid place-items-center bg-slate-950/75 p-4"><section role="dialog" aria-modal="true" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-center justify-between"><h2 className="text-lg font-black text-slate-950">{isHindi ? 'Cashfree भुगतान के लिए मोबाइल नंबर' : 'Mobile number for Cashfree payment'}</h2><button type="button" onClick={() => setPhoneOpen(false)} className="rounded-lg px-3 py-2 text-slate-500">✕</button></div><p className="mt-2 text-sm leading-6 text-slate-600">{isHindi ? 'यह नंबर केवल भुगतान Checkout के लिए है। Gmail OTP लॉगिन में मोबाइल नंबर की जरूरत नहीं है।' : 'This number is collected only for payment checkout. Gmail OTP login does not require a mobile number.'}</p><label className="mt-4 block text-xs font-bold text-slate-700">{isHindi ? '10 अंकों का मोबाइल नंबर' : '10-digit mobile number'}<input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} value={paymentPhone} onChange={e => setPaymentPhone(e.target.value.replace(/\D/g,'').slice(0,10))} placeholder="9876543210" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm" /></label><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setPhoneOpen(false)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold">{isHindi ? 'रद्द करें' : 'Cancel'}</button><button type="button" disabled={requestBusy || !/^[6-9]\d{9}$/.test(paymentPhone)} onClick={() => void submitMembershipRequest()} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{requestBusy ? (isHindi ? 'कृपया प्रतीक्षा करें…' : 'Please wait…') : (isHindi ? 'Cashfree से भुगतान करें' : 'Pay with Cashfree')}</button></div></section></div>}
     {plansOpen && <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-slate-950/75 p-4"><section role="dialog" aria-modal="true" className="my-auto w-full max-w-4xl rounded-3xl bg-white p-5 shadow-2xl sm:p-8">
       <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-rose-800">TANSHU ONLINE · PREMIUM PRINT</p><h2 className="mt-2 text-2xl font-black text-slate-950">{isHindi ? 'अपना Premium प्लान चुनें' : 'Choose your Premium plan'}</h2><p className="mt-2 text-sm text-slate-600">{isHindi ? 'आपका काम और प्रीव्यू सुरक्षित है। Premium डाउनलोड के लिए प्लान चुनें।' : 'Your work and preview remain available. Choose a plan to unlock premium downloads.'}</p></div><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-200 px-3 py-2">✕</button></div>
-      <div className="mt-5 grid gap-3 md:grid-cols-3">{availablePlans.filter(plan => plan.active).map(plan => <button type="button" key={plan.code} onClick={() => setSelectedPlan(plan.code)} className={`group relative isolate overflow-hidden rounded-2xl p-[2px] text-left transition-all duration-300 before:absolute before:inset-[-150%] before:animate-[spin_4s_linear_infinite] before:content-[''] hover:-translate-y-2 hover:scale-[1.025] hover:shadow-xl ${ringStyle[plan.code]} ${selectedPlan === plan.code ? 'ring-4 ring-offset-2 ring-slate-300 -translate-y-1 shadow-xl' : ''}`}><span className={`relative z-10 block h-full rounded-[14px] border p-4 ${planStyle[plan.code]}`}><span className="flex items-center justify-between gap-2"><span className="text-xs font-black tracking-widest">{isHindi ? (plan.code === 'basic' ? 'बेसिक' : plan.code === 'advanced' ? 'एडवांस्ड' : 'प्रीमियम') : plan.name}</span><span className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-[9px] font-extrabold uppercase">{isHindi ? (plan.code === 'basic' ? 'शुरुआती' : plan.code === 'advanced' ? 'एडवांस्ड' : 'प्रीमियम') : (plan.code === 'basic' ? 'STARTER' : plan.code === 'advanced' ? 'ADVANCED' : 'PREMIUM')}</span></span><span className="mt-2 block text-2xl font-black">₹{plan.price}<small className="text-xs"> / {plan.durationDays} {isHindi ? (plan.durationDays === 30 ? 'महीना' : 'दिन') : (plan.durationDays === 30 ? 'month' : plan.durationDays === 1 ? 'day' : 'days')}</small></span><span className="mt-2 block text-xs font-semibold">{isHindi ? (plan.code === 'basic' ? 'केवल इंस्टेंट पासपोर्ट फोटो स्टूडियो' : plan.code === 'advanced' ? 'पासपोर्ट स्टूडियो + PVC कार्ड मेकर + मल्टी कस्टमर फोटो मेकर' : 'चारों प्रीमियम फोटो टूल्स') : plan.tools}</span></span></button>)}</div>
-      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>{isHindi ? 'भुगतान का तरीका:' : 'Payment method:'}</strong> {isHindi ? 'सदस्यता मैन्युअल भुगतान सत्यापन के बाद सक्रिय होगी। कोई ऑटो-डेबिट नहीं है। भुगतान विवरण Admin से प्राप्त करें।' : 'Membership activates only after manual payment verification. No auto-debit. Obtain payment instructions from the site administrator.'}</div>
-      <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold">{isHindi ? 'बाद में' : 'Not now'}</button><button type="button" disabled={requestBusy || !availablePlans.some(plan => plan.active)} onClick={() => { setPlansOpen(false); if (!session?.authenticated) setAuthOpen(true); else void submitMembershipRequest(); }} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{requestBusy ? (isHindi ? 'भेज रहे हैं…' : 'Please wait…') : !availablePlans.some(plan => plan.active) ? (isHindi ? 'अभी कोई प्लान उपलब्ध नहीं है' : 'No plans currently available') : (!session?.authenticated ? (isHindi ? 'Gmail से जारी रखें' : 'Continue with Gmail') : (isHindi ? 'भुगतान के लिए आगे बढ़ें' : 'Continue to payment'))}</button></div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">{availablePlans.filter(plan => plan.active).map(plan => <button type="button" key={plan.code} onClick={() => setSelectedPlan(plan.code)} className={`group relative isolate overflow-hidden rounded-2xl p-[2px] text-left transition-all duration-300 before:absolute before:inset-[-150%] before:animate-[spin_4s_linear_infinite] before:content-[''] hover:-translate-y-2 hover:scale-[1.025] hover:shadow-xl ${ringStyle[plan.code]} ${selectedPlan === plan.code ? 'ring-4 ring-offset-2 ring-slate-300 -translate-y-1 shadow-xl' : ''}`}><span className={`relative z-10 block h-full rounded-[14px] border p-4 ${planStyle[plan.code]}`}><span className="flex items-center justify-between gap-2"><span className="text-xs font-black tracking-widest">{isHindi ? (plan.code === 'basic' ? 'बेसिक' : plan.code === 'advanced' ? 'एडवांस्ड' : 'प्रीमियम') : plan.name}</span><span className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-[9px] font-extrabold uppercase">{isHindi ? (plan.code === 'basic' ? 'शुरुआती' : plan.code === 'advanced' ? 'एडवांस्ड' : 'प्रीमियम') : (plan.code === 'basic' ? 'STARTER' : plan.code === 'advanced' ? 'ADVANCED' : 'PREMIUM')}</span></span><span className="mt-2 block text-2xl font-black">₹{plan.price}<small className="text-xs"> / {plan.durationDays} {isHindi ? (plan.durationDays === 30 ? 'महीना' : 'दिन') : (plan.durationDays === 30 ? 'month' : plan.durationDays === 1 ? 'day' : 'days')}</small></span><span className="mt-2 block text-xs font-semibold">{isHindi ? (plan.code === 'basic' ? 'केवल इंस्टेंट पासपोर्ट फोटो स्टूडियो' : plan.code === 'advanced' ? 'WhatsApp Selfie to Passport Photo + Instant PVC Card Maker' : 'Instant Multi Customer Photo Maker') : plan.tools}</span></span></button>)}</div>
+      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>{isHindi ? 'भुगतान का तरीका:' : 'Payment method:'}</strong> {isHindi ? 'Cashfree Checkout पर UPI, कार्ड या नेट बैंकिंग से भुगतान करें। भुगतान की पुष्टि होने पर सदस्यता अपने-आप सक्रिय होगी। कोई ऑटो-डेबिट नहीं है।' : 'Pay through Cashfree Checkout using supported payment methods. Membership activates automatically only after server-side payment verification. No auto-debit.'}</div>
+      <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setPlansOpen(false)} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold">{isHindi ? 'बाद में' : 'Not now'}</button><button type="button" disabled={requestBusy || !availablePlans.some(plan => plan.active)} onClick={() => { if (!session?.authenticated) { setPlansOpen(false); setAuthOpen(true); } else { setPlansOpen(false); setPhoneOpen(true); } }} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{requestBusy ? (isHindi ? 'भेज रहे हैं…' : 'Please wait…') : !availablePlans.some(plan => plan.active) ? (isHindi ? 'अभी कोई प्लान उपलब्ध नहीं है' : 'No plans currently available') : (!session?.authenticated ? (isHindi ? 'Gmail से जारी रखें' : 'Continue with Gmail') : (isHindi ? 'भुगतान के लिए आगे बढ़ें' : 'Continue to payment'))}</button></div>
     </section></div>}
     {notice && !authOpen && !plansOpen && <div role="status" className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,560px)] -translate-x-1/2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl">{notice}<button type="button" onClick={() => setNotice('')} className="ml-3 font-black text-rose-800">×</button></div>}
   </Gate.Provider>;
