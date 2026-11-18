@@ -32,7 +32,7 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
     <div className="sticky top-0 z-40 w-full shadow-xs">
       {/* 1. UPPER DARK HEADER AREA: Main Branding + Profile Photo + Citizen Disclaimer */}
       <div className="bg-[#0A1324] text-white border-b border-slate-800/90 px-3 sm:px-6 lg:px-8 py-2">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3">
           {/* Left: Original Profile Photo + Branding: "TANSHU ONLINE" */}
           <div
             onClick={() => handleLinkClick('home')}
@@ -60,21 +60,19 @@ export const Header: React.FC<Props> = ({ onNavigate, activeSection, onOpenCusto
             </div>
           </div>
 
-          {/* Right: Preserved Independent Citizen Disclaimer & Toolkit Tagline */}
-          <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-300 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            <span className="truncate max-w-xl">
-              {t(
-                'announcement',
-                'Independent Citizen Utility & Cyber Cafe Toolkit · Not affiliated with UIDAI, ECI, or any government department.'
-              )}
-            </span>
-          </div>
+          {/* Membership shortcut stays on the same dark branding row. */}
+          <a
+            href="#membership-plans"
+            onClick={() => setMobileMenuOpen(false)}
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300/80 bg-gradient-to-r from-amber-300 to-yellow-200 px-2 py-1.5 text-[9px] font-black text-slate-950 shadow-sm transition hover:-translate-y-px hover:shadow-md sm:px-3 sm:text-[11px]"
+          >
+            Membership <span className="ml-1">सदस्यता</span>
+          </a>
 
-          {/* Mobile Right: Compact Citizen Badge */}
-          <div className="flex md:hidden items-center gap-1 text-[10px] text-emerald-400 font-semibold bg-emerald-950/70 border border-emerald-800/80 px-2 py-0.5 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            <span>Citizen Toolkit</span>
+          {/* Independent Citizen / Unity identity remains on this same row, in a compact premium style. */}
+          <div className="ml-auto flex min-w-0 items-center gap-1.5 text-[8px] font-semibold text-slate-300 sm:gap-2 sm:text-[11px]" title="Independent Citizen · Unity · Cyber Cafe Toolkit · Not affiliated with UIDAI, ECI, or any government department.">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+            <span className="truncate">Independent Citizen <span className="text-emerald-300">• Unity</span> <span className="hidden sm:inline">• Cyber Cafe Toolkit</span></span>
           </div>
         </div>
       </div>
