@@ -175,8 +175,8 @@ export const MembershipPlansSection: React.FC = () => {
 
         <div className="grid gap-4 lg:grid-cols-3">
           {plans.map((plan) => (
-            <article key={plan.code} className={`membership-card relative flex flex-col rounded-2xl border p-5 text-slate-900 shadow-lg sm:p-6 ${plan.popular ? 'pt-12 sm:pt-12' : ''} ${plan.theme}`}>
-              {plan.popular && <span className="absolute left-1/2 top-3 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-sky-800 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white shadow-lg ring-2 ring-sky-300/60">Popular plan</span>}
+            <article key={plan.code} className={`membership-card relative flex flex-col rounded-2xl border p-5 pt-12 text-slate-900 shadow-lg sm:p-6 sm:pt-12 ${plan.theme}`}>
+              {plan.popular && <span className="absolute left-1/2 top-2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/80 bg-sky-800 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white shadow-lg ring-1 ring-sky-300/70">Popular plan</span>}
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xl font-black tracking-wide">{plan.name}</h3>
                 {plan.code === 'premium' && <Crown className="h-5 w-5 text-violet-700" />}
