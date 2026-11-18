@@ -7,8 +7,9 @@ This is a separate, production-only setup for `digital_seva_production_db`. Do n
 1. Confirm the Pages **Production** binding `DIGITAL_SEVA_DB` points to `digital_seva_production_db`.
 2. Take a D1 backup/export before making schema changes.
 3. Execute the single SQL file `migrations/production/0001_digital_seva_production_baseline.sql` against **digital_seva_production_db only**.
-4. Verify that these tables exist: `digital_seva_bookings`, `digital_seva_booking_events`, `digital_seva_documents`, `digital_seva_payments`, `digital_seva_checkout_orders`.
-5. Verify `digital_seva_documents.document_type` exists. Do not run the Preview migration files 0002–0010 against Production.
+4. Verify the core tables exist: `digital_seva_bookings`, `digital_seva_booking_events`, `digital_seva_documents`, `digital_seva_payments`, and `digital_seva_checkout_orders`.
+5. For the current Digital Seva release, also verify `digital_seva_checkout_payment_events`, `digital_seva_refunds`, `digital_seva_government_deposit_evidence`, and `digital_seva_paid_drafts`, plus the government-fee tracking columns on `digital_seva_bookings`.
+6. Verify `digital_seva_documents.document_type` exists. Do not run Preview migrations against Production. Production-only release migrations must be reviewed, backed up, and applied only when explicitly approved.
 
 The baseline is idempotent for a fresh database. It does not migrate existing customer data and must not be pointed at another database.
 
@@ -29,8 +30,7 @@ Do not enable live payments until Cashfree has issued Production credentials and
 
 - `CASHFREE_ENVIRONMENT`: `PRODUCTION`
 - `CASHFREE_APP_ID`: Production App ID (encrypted secret)
-- `CASHFREE_SECRET_KEY`: Production Secret Key (encrypted secret)
-- `CASHFREE_WEBHOOK_SECRET`: the dedicated webhook signing secret from Cashfree (encrypted secret)
+- `CASHFREE_SECRET_KEY`: Production Secret Key (encrypted secret). The current application uses this same Cashfree PG Secret Key for API authentication and HMAC webhook-signature verification; it does not read a separate `CASHFREE_WEBHOOK_SECRET` variable.
 
 Configure both Cashfree webhook URLs to the production domain:
 - `/api/digital-seva/cashfree-webhook`
@@ -47,7 +47,7 @@ Confirm the Production environment has its own strong values for `ADMIN_SECRET_T
 1. Finish the Preview checks on the current PR.
 2. Create the private Production bucket and configure Production-only variables/secrets.
 3. Back up `digital_seva_production_db`, then run the production baseline SQL against that database only.
-4. Verify the five tables and `document_type` column.
+4. Verify the current core and release tables, required government-fee columns, and `document_type` column.
 5. Only then approve and merge the release PR. Recheck the Production binding after merge.
 6. Keep live payments disabled until Cashfree Production credentials and webhooks are independently verified.
 

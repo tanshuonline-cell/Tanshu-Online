@@ -1,7 +1,7 @@
 import { cashfreeApiBase, cashfreeWebhookSecret } from './_cashfree';
 // Cloudflare Pages Function: POST /api/digital-seva/cashfree-order-webhook
 // Cashfree order/payment webhook. Verify signature, then independently fetch the order before marking it paid.
-interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; CASHFREE_WEBHOOK_SECRET?: string; }
+interface Env { DIGITAL_SEVA_DB?: any; CASHFREE_APP_ID?: string; CASHFREE_SECRET_KEY?: string; CASHFREE_ENVIRONMENT?: string; }
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }

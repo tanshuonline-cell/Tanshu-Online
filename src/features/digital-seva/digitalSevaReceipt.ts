@@ -22,6 +22,7 @@ export interface DigitalSevaReceiptView {
 }
 
 const ENGLISH_LABELS: Record<string, string> = {
+  customerName: 'Customer name',
   docRelationName: "Father's name", aadhaarNumber: 'Aadhaar number', hofAadhaarNumber: 'Head of Family Aadhaar number',
   applicantName: 'Applicant name', 'name-current': 'Applicant old name', 'name-correct': 'Applicant new name',
   'father-name-current': "Father's old name", 'father-name-correct': "Father's new name",
@@ -42,6 +43,7 @@ const ENGLISH_LABELS: Record<string, string> = {
 };
 
 const HINDI_LABELS: Record<string, string> = {
+  customerName: 'ग्राहक का नाम',
   docRelationName: 'पिता का नाम', aadhaarNumber: 'आधार नंबर', hofAadhaarNumber: 'मुखिया का आधार नंबर',
   applicantName: 'आवेदक का नाम', 'name-current': 'आवेदक का पुराना नाम', 'name-correct': 'आवेदक का नया नाम',
   'father-name-current': 'पिता का पुराना नाम', 'father-name-correct': 'पिता का नया नाम',

@@ -124,15 +124,27 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const agencyAddress = operator ? String(operator.agencyAddress || '').trim() : '';
   const taskDetails = String(body.taskDetails || '').trim();
   const corrections = Array.isArray(body.corrections) ? body.corrections.filter((x: unknown) => typeof x === 'string').slice(0, 20) : [];
+  if (quickRequest) {
+    const quickPayEnabled = new Set(['aadhaar-address-doc', 'aadhaar-download', 'pan-correction', 'pan-photo-signature']);
+    if (!quickPayEnabled.has(serviceId)) return json({ success: false, error: 'This service is not enabled for quick online payment yet. Please contact the service team before paying.' }, 400);
+    if (serviceId === 'pan-correction' && (corrections.length !== 1 || !['name', 'father-name', 'mobile'].includes(corrections[0]))) {
+      return json({ success: false, error: 'This PAN correction type is not enabled for quick online payment yet.' }, 400);
+    }
+    if (serviceId !== 'pan-correction' && corrections.length) {
+      return json({ success: false, error: 'The selected quick service details are not valid.' }, 400);
+    }
+  }
   const selectedDocuments = Array.isArray(body.selectedDocuments) ? body.selectedDocuments.filter((x: unknown) => typeof x === 'string').slice(0, 40) : [];
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
   const otherDocumentName = String(body.otherDocumentName || '').trim();
-  const requiredForRequest = ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(serviceId)
+  const requiredForRequest = quickRequest
     ? []
-    : getServiceDocumentOptions(serviceId, corrections)
-        .filter((item) => item.required && (item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(String(serviceOptions.level || ''))))
-        .map((item) => item.id);
+    : ['aadhaar-download', 'aadhaar-pvc-assistance'].includes(serviceId)
+      ? []
+      : getServiceDocumentOptions(serviceId, corrections)
+          .filter((item) => item.required && (item.id !== 'previous-certificate' || ['SDO', 'DM'].includes(String(serviceOptions.level || ''))))
+          .map((item) => item.id);
   if (serviceId === 'pan-photo-signature' && corrections.includes('photo')) requiredForRequest.push('photo');
   if (serviceId === 'pan-photo-signature' && corrections.includes('signature')) requiredForRequest.push('signature');
   for (const documentId of requiredForRequest) {
