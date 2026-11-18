@@ -109,16 +109,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!body || typeof body !== 'object' || body.consent !== true) return json({ success: false, error: 'Please confirm the contact consent to continue.' }, 400);
   const serviceId = String(body.serviceId || '');
   const quickRequest = body.quickRequest === true;
-  if (quickRequest) {
-    const quickPayEnabled = new Set(['aadhaar-address-doc', 'aadhaar-download', 'pan-correction', 'pan-photo-signature']);
-    if (!quickPayEnabled.has(serviceId)) return json({ success: false, error: 'This service is not enabled for quick online payment yet. Please contact the service team before paying.' }, 400);
-    if (serviceId === 'pan-correction' && (corrections.length !== 1 || !['name', 'father-name', 'mobile'].includes(corrections[0]))) {
-      return json({ success: false, error: 'This PAN correction type is not enabled for quick online payment yet.' }, 400);
-    }
-    if (serviceId !== 'pan-correction' && corrections.length) {
-      return json({ success: false, error: 'The selected quick service details are not valid.' }, 400);
-    }
-  }
   const name = String(body.customerName || '').trim().replace(/\s+/g, ' ');
   const phone = normalizePhone(body.customerPhone);
   const email = body.customerEmail == null ? '' : String(body.customerEmail).trim();
@@ -134,6 +124,16 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const agencyAddress = operator ? String(operator.agencyAddress || '').trim() : '';
   const taskDetails = String(body.taskDetails || '').trim();
   const corrections = Array.isArray(body.corrections) ? body.corrections.filter((x: unknown) => typeof x === 'string').slice(0, 20) : [];
+  if (quickRequest) {
+    const quickPayEnabled = new Set(['aadhaar-address-doc', 'aadhaar-download', 'pan-correction', 'pan-photo-signature']);
+    if (!quickPayEnabled.has(serviceId)) return json({ success: false, error: 'This service is not enabled for quick online payment yet. Please contact the service team before paying.' }, 400);
+    if (serviceId === 'pan-correction' && (corrections.length !== 1 || !['name', 'father-name', 'mobile'].includes(corrections[0]))) {
+      return json({ success: false, error: 'This PAN correction type is not enabled for quick online payment yet.' }, 400);
+    }
+    if (serviceId !== 'pan-correction' && corrections.length) {
+      return json({ success: false, error: 'The selected quick service details are not valid.' }, 400);
+    }
+  }
   const selectedDocuments = Array.isArray(body.selectedDocuments) ? body.selectedDocuments.filter((x: unknown) => typeof x === 'string').slice(0, 40) : [];
   const fieldValues = body.fieldValues && typeof body.fieldValues === 'object' && !Array.isArray(body.fieldValues) ? body.fieldValues : {};
   const serviceOptions = body.serviceOptions && typeof body.serviceOptions === 'object' && !Array.isArray(body.serviceOptions) ? body.serviceOptions : {};
