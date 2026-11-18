@@ -212,10 +212,11 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
             <label>{hi ? 'ईमेल' : 'Email address'}<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
           </div>
           <BookingPolicyConsent language={language} termsAccepted={termsAccepted} refundAccepted={refundAccepted} onTermsChange={(value) => { setTermsAccepted(value); setContactConsent(value); if (value) setTermsAcceptedAt(new Date().toISOString()); }} onRefundChange={(value) => { setRefundAccepted(value); if (value) setRefundAcceptedAt(new Date().toISOString()); }} />
+          {quickRequest && <p className="ds-booking-help">{hi ? 'दोनों नीतियों को पढ़कर स्वीकार करने के बाद ही भुगतान / UPI QR का विकल्प खुलेगा।' : 'The payment / UPI QR option unlocks only after both policies are read and accepted.'}</p>}
           {error && <p className="ds-booking-error" role="alert">{error}</p>}
           {pendingOrderId && <p className="ds-booking-help">{hi ? 'यदि भुगतान हो चुका है तो “भुगतान जाँचें” दबाएँ। दोबारा भुगतान न करें।' : 'If you already completed payment, check it before attempting another payment.'}</p>}
           <div className="ds-modal-actions">
-            <button className="ds-modal-book" type="submit" disabled={busy || !quote}>{busy ? (hi ? 'कृपया प्रतीक्षा करें…' : 'Please wait…') : <>{hi ? 'Pay Now' : 'Pay Now'} <CreditCard size={16} /></>}</button>
+            <button className="ds-modal-book" type="submit" disabled={busy || !quote || (quickRequest && (!contactConsent || !termsAccepted || !refundAccepted))}>{busy ? (hi ? 'कृपया प्रतीक्षा करें…' : 'Please wait…') : <>{hi ? 'Pay Now' : 'Pay Now'} <CreditCard size={16} /></>}</button>
             {pendingOrderId && <button className="ds-modal-done" type="button" disabled={busy} onClick={() => void verifyAndContinue(pendingOrderId)}><CheckCircle2 size={15} /> {hi ? 'भुगतान जाँचें' : 'Check payment'}</button>}
             <button className="ds-modal-done" type="button" onClick={onClose}>{hi ? 'बंद करें' : 'Close'}</button>
           </div>
