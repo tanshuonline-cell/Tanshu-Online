@@ -192,7 +192,7 @@ export default function DigitalSevaPayNow({ language, onClose, initialServiceId,
         <p>{quickRequest ? (hi ? 'एक सर्विस चुनें, अपना नाम और संपर्क विवरण भरें, फिर दोनों नीतियाँ स्वीकार करके भुगतान करें। सफल भुगतान के बाद सेवा अनुरोध रसीद अपने-आप बनेगी।' : 'Choose one service, enter your name and contact details, accept both policies, and pay. A service-request receipt is created automatically after verified payment.') : (hi ? 'एक बार में एक सर्विस चुनें। भुगतान सफल होने पर उसी सर्विस का आवेदन फॉर्म खुलेगा।' : 'Choose one service per payment. Its application form opens after Cashfree confirms payment.')}</p>
         <form onSubmit={(event) => void pay(event)}>
           <label className="ds-paynow-field">{hi ? 'अपनी सर्विस चुनें' : 'Select your service'}
-            <select value={selectedId} disabled={Boolean(pendingOrderId)} onChange={(event) => { setSelectedId(event.target.value); setError(''); }}>
+            <select value={selectedId} disabled={Boolean(pendingOrderId) || quickRequest} onChange={(event) => { setSelectedId(event.target.value); setError(''); }}>
               {enabledServices.map((service) => <option key={service.id} value={service.id}>{hi ? service.hindi : service.name}{getAutoPaymentQuote(service) ? '' : (hi ? ' — शुल्क पुष्टि बाकी' : ' — quote required')}</option>)}
             </select>
           </label>
