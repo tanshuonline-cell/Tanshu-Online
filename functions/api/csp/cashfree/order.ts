@@ -39,7 +39,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         order_amount: amount,
         order_currency: 'INR',
         customer_details: { customer_id: String(customer.id).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,50), customer_email: customer.email, customer_phone: phone },
-        order_meta: { return_url: returnUrl },
+        order_meta: { return_url: returnUrl, notify_url: url.origin + '/api/csp/cashfree/webhook' },
         order_note: 'TANSHU ONLINE ' + planCode.toUpperCase() + ' membership - 30 days'
       })
     });
