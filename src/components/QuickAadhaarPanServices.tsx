@@ -31,6 +31,9 @@ export default function QuickAadhaarPanServices() {
   const [activeGroup, setActiveGroup] = useState<'all' | 'aadhaar' | 'pan'>('all');
   const [selectedId, setSelectedId] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
+  const quickEntryUrl = typeof window !== 'undefined' ? `${window.location.origin}/#quick-aadhaar-pan` : 'https://tanshu-online.pages.dev/#quick-aadhaar-pan';
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(quickEntryUrl)}`;
 
   const results = useMemo(() => {
     const q = search.trim().toLocaleLowerCase();
@@ -85,11 +88,21 @@ export default function QuickAadhaarPanServices() {
             </div>
           </div>
         </div>
-        <div className="mt-3 flex flex-col gap-2 border-t border-amber-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-3 flex flex-col gap-3 border-t border-amber-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] leading-5 text-slate-500">{selected ? (isHindi ? `चुनी गई सेवा: ${selected.hindi}` : `Selected: ${selected.title}`) : (isHindi ? 'आधार और PAN की उपलब्ध सेवाएँ खोजकर चुनें।' : 'Choose from the available Aadhaar and PAN services.')}</p>
-          <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.serviceId)}${selected.taskKey ? `&quickTask=${encodeURIComponent(selected.taskKey)}&quickTaskLabel=${encodeURIComponent(selected.title)}` : ''}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
-            {isHindi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={15} />
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={selected ? `/digital-seva?quickService=${encodeURIComponent(selected.serviceId)}${selected.taskKey ? `&quickTask=${encodeURIComponent(selected.taskKey)}&quickTaskLabel=${encodeURIComponent(selected.title)}` : ''}` : '/digital-seva'} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition ${selected ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md hover:from-amber-700 hover:to-amber-800' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800'}`}>
+              {isHindi ? 'आगे बढ़ें' : 'Continue'} <ArrowRight size={15} />
+            </a>
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 p-2">
+              <img src={qrImageUrl} alt="TANSHU ONLINE quick Aadhaar and PAN service QR code" width="64" height="64" loading="lazy" referrerPolicy="no-referrer" className="h-16 w-16 rounded-md" />
+              <div className="max-w-[130px]">
+                <strong className="block text-[10px] leading-4 text-slate-700">{isHindi ? 'ग्राहक के लिए QR' : 'Customer QR'}</strong>
+                <a href={qrImageUrl} target="_blank" rel="noreferrer" className="mt-1 block text-[10px] font-bold text-blue-700 underline">{isHindi ? 'QR खोलें / सेव करें' : 'Open / save QR'}</a>
+                <button type="button" onClick={() => { void navigator.clipboard.writeText(quickEntryUrl).then(() => setCopyStatus(isHindi ? 'लिंक कॉपी हुआ' : 'Link copied')).catch(() => setCopyStatus(isHindi ? 'कॉपी नहीं हुआ' : 'Copy unavailable')); }} className="mt-1 text-[10px] font-bold text-slate-600 underline">{copyStatus || (isHindi ? 'लिंक कॉपी करें' : 'Copy link')}</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
