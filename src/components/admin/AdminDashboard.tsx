@@ -178,14 +178,14 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
     }
   };
 
-  const saveCspPlanPrice = async (plan: any) => {
+  const saveCspPlanStatus = async (plan: any) => {
     try {
-      const response = await fetch('/api/admin/csp-plans', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: plan.plan_code, amountInr: Number(plan.amount_inr), durationDays: Number(plan.duration_days), isActive: Boolean(plan.is_active) }) });
+      const response = await fetch('/api/admin/csp-plans', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planCode: plan.plan_code, isActive: Boolean(plan.is_active) }) });
       const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Could not save plan price.');
-      showNotification('success', data.message || 'Plan price saved.');
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not update plan availability.');
+      showNotification('success', data.message || 'Plan availability updated.');
       await fetchCspCustomers();
-    } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not save plan price.'); }
+    } catch (error) { showNotification('error', error instanceof Error ? error.message : 'Could not update plan availability.'); }
   };
 
   const saveCspToolEnabled = async (toolId: string, enabled: boolean) => {
@@ -1303,14 +1303,13 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
               <button onClick={fetchCspCustomers} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white">Refresh</button>
             </div>
             <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
-              <h3 className="mb-3 text-sm font-extrabold text-white">Membership Pricing Controls</h3>
+              <h3 className="mb-1 text-sm font-extrabold text-white">Membership Plan Availability</h3>
+              <p className="mb-3 text-[10px] leading-5 text-slate-500">Plan prices and 30-day validity are fixed to match Cashfree checkout. You can temporarily enable or disable each plan here.</p>
               <div className="grid gap-3 md:grid-cols-3">
                 {cspPlans.map(plan => <div key={plan.plan_code} className="rounded-xl border border-slate-800 bg-slate-900 p-3">
                   <div className="mb-2 text-xs font-black uppercase text-slate-300">{plan.plan_code === 'advanced' ? 'ADVANCED' : plan.plan_code === 'premium' ? 'PREMIUM' : 'BASIC'}</div>
-                  <label className="block text-[10px] text-slate-400">Price (INR)<input type="number" min="0" max="100000" value={plan.amount_inr} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, amount_inr: event.target.value } : item))} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
-                  <label className="mt-2 block text-[10px] text-slate-400">Validity (days)<input type="number" min="1" max="3650" value={plan.duration_days} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, duration_days: event.target.value } : item))} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
-                  <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" checked={Boolean(plan.is_active)} onChange={event => setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, is_active: event.target.checked ? 1 : 0 } : item))} /> Active</label>
-                  <button onClick={() => saveCspPlanPrice(plan)} className="mt-3 rounded-lg bg-rose-800 px-3 py-2 text-[10px] font-bold text-white">Save price</button>
+                  <div className="text-2xl font-black text-white">₹{plan.plan_code === 'advanced' ? 199 : plan.plan_code === 'premium' ? 299 : 99}<span className="ml-1 text-[10px] font-semibold text-slate-400">/ 30 DAYS</span></div>
+                  <label className="mt-3 flex items-center gap-2 text-[10px] text-slate-300"><input type="checkbox" checked={Boolean(plan.is_active)} onChange={event => { const isActive = event.target.checked; setCspPlans(current => current.map(item => item.plan_code === plan.plan_code ? { ...item, is_active: isActive ? 1 : 0 } : item)); void saveCspPlanStatus({ ...plan, is_active: isActive }); }} /> Plan available to customers</label>
                 </div>)}
               </div>
             </section>
