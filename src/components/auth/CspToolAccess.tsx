@@ -25,14 +25,14 @@ const ringStyle: Record<string, string> = {
   premium: "before:bg-[conic-gradient(from_0deg,transparent_0_35%,#a21caf_48%,#fb7185_55%,transparent_68%_100%)]",
 };
 const popupPlanStyle: Record<string, string> = {
-  basic: 'border-amber-200 bg-gradient-to-b from-white via-amber-50 to-amber-100/90 text-amber-950 shadow-[0_18px_45px_-22px_rgba(217,119,6,0.55)] hover:shadow-[0_24px_55px_-18px_rgba(217,119,6,0.62)]',
-  advanced: 'border-sky-200 bg-gradient-to-b from-white via-sky-50 to-indigo-100/90 text-slate-950 shadow-[0_18px_45px_-22px_rgba(2,132,199,0.55)] hover:shadow-[0_24px_55px_-18px_rgba(2,132,199,0.62)]',
-  premium: 'border-violet-200 bg-gradient-to-b from-white via-violet-50 to-fuchsia-100/90 text-violet-950 shadow-[0_18px_45px_-22px_rgba(168,85,247,0.58)] hover:shadow-[0_24px_55px_-18px_rgba(168,85,247,0.68)]',
+  basic: 'border-emerald-700 bg-[#075B46] text-white shadow-[0_18px_45px_-22px_rgba(7,91,70,0.65)] hover:shadow-[0_24px_55px_-18px_rgba(7,91,70,0.78)]',
+  advanced: 'border-cyan-700 bg-[#086B83] text-white shadow-[0_18px_45px_-22px_rgba(8,107,131,0.65)] hover:shadow-[0_24px_55px_-18px_rgba(8,107,131,0.78)]',
+  premium: 'border-violet-800 bg-[#59358B] text-white shadow-[0_18px_45px_-22px_rgba(89,53,139,0.68)] hover:shadow-[0_24px_55px_-18px_rgba(89,53,139,0.8)]',
 };
 const popupRingStyle: Record<string, string> = {
-  basic: "before:bg-[conic-gradient(from_0deg,transparent_0_30%,#f59e0b_45%,#fcd34d_55%,transparent_70%_100%)]",
-  advanced: "before:bg-[conic-gradient(from_0deg,transparent_0_30%,#0284c7_45%,#818cf8_55%,transparent_70%_100%)]",
-  premium: "before:bg-[conic-gradient(from_0deg,transparent_0_30%,#a21caf_45%,#fb7185_55%,transparent_70%_100%)]",
+  basic: "before:bg-[conic-gradient(from_0deg,transparent_0_30%,#075B46_45%,#34D399_55%,transparent_70%_100%)]",
+  advanced: "before:bg-[conic-gradient(from_0deg,transparent_0_30%,#086B83_45%,#67E8F9_55%,transparent_70%_100%)]",
+  premium: "before:bg-[conic-gradient(from_0deg,transparent_0_30%,#59358B_45%,#C4B5FD_55%,transparent_70%_100%)]",
 };
 
 export const CspMembershipPlans: React.FC = () => {
