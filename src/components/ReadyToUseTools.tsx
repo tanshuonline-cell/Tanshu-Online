@@ -84,7 +84,7 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
             </div>
           </article>
           <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-sky-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-sky-400 hover:shadow-xl">
-            <div className="aspect-[4/3] overflow-hidden bg-slate-100"><img src={'https://raw.githubusercontent.com/tanshuonline-cell/Tanshu-Online/feature/csp-cashfree-live-ready-2026-11-19/public/images/instant-multi-customer-photo-maker.jpg'} alt="Instant Multi Customer Photo Maker" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></div>
+            <div className="aspect-[4/3] overflow-hidden bg-slate-100"><img src={getToolPreviewImage('instant-multi-customer-photo-maker', 'Instant Multi Customer Photo Maker', 'Photo Studio')} alt="Instant Multi Customer Photo Maker" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></div>
             <div className="flex flex-1 flex-col p-3.5">
               <div className="mb-2 flex items-center gap-2 text-sky-700"><Camera className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
               <h3 className="mb-1 text-sm font-extrabold leading-snug text-slate-900">INSTANT MULTI CUSTOMER PHOTO MAKER</h3>
