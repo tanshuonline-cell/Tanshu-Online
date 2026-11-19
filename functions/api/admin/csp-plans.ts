@@ -19,14 +19,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const admin = await adminName(request, env);
   if (!admin) return respond({ success: false, error: 'Unauthorized admin access.' }, 401);
   if (!env.DB) return respond({ success: false, error: 'Database unavailable.' }, 503);
-  const body = await request.json().catch(() => ({})) as { planCode?: string; amountInr?: number; durationDays?: number; isActive?: boolean };
+  const body = await request.json().catch(() => ({})) as { planCode?: string; isActive?: boolean };
   const code = String(body.planCode || '');
-  const amount = Math.floor(Number(body.amountInr));
-  const durationDays = Math.floor(Number(body.durationDays));
-  if (!['basic','advanced','premium'].includes(code) || !Number.isFinite(amount) || amount < 0 || amount > 100000 || !Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650) return respond({ success: false, error: 'Invalid plan, price or validity.' }, 400);
+  if (!['basic','advanced','premium'].includes(code) || typeof body.isActive !== 'boolean') return respond({ success: false, error: 'Invalid plan availability setting.' }, 400);
   try {
-    await env.DB.prepare('UPDATE csp_plan_prices SET amount_inr = ?, duration_days = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE plan_code = ?').bind(amount, durationDays, body.isActive === false ? 0 : 1, code).run();
-    await env.DB.prepare('INSERT INTO csp_admin_audit (id, admin_username, action, details_json) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), admin, 'update_csp_plan_price', JSON.stringify({ planCode: code, amountInr: amount, durationDays, isActive: body.isActive !== false })).run();
-    return respond({ success: true, message: 'Membership price updated.' });
-  } catch { return respond({ success: false, error: 'Could not update membership price. Apply migration 0012 first.' }, 500); }
+    const result = await env.DB.prepare('UPDATE csp_plan_prices SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE plan_code = ?').bind(body.isActive ? 1 : 0, code).run();
+    if (Number(result?.meta?.changes || 0) !== 1) return respond({ success: false, error: 'Membership plan was not found.' }, 404);
+    await env.DB.prepare('INSERT INTO csp_admin_audit (id, admin_username, action, details_json) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), admin, 'update_csp_plan_availability', JSON.stringify({ planCode: code, isActive: body.isActive })).run();
+    return respond({ success: true, message: 'Membership plan availability updated.' });
+  } catch { return respond({ success: false, error: 'Could not update plan availability. Check migration 0012.' }, 500); }
 }
