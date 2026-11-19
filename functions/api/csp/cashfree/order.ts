@@ -21,10 +21,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!/^[6-9]\d{9}$/.test(phone)) return json({ success: false, error: 'Enter a valid 10-digit Indian mobile number for Cashfree payment.' }, 400);
   try {
     const customer = await env.DB.prepare("SELECT id, email FROM csp_customers WHERE id = ? AND status = 'active'").bind(session.id).first();
-    const plan = await env.DB.prepare('SELECT amount_inr FROM csp_plan_prices WHERE plan_code = ? AND is_active = 1').bind(planCode).first();
+    const plan = await env.DB.prepare('SELECT plan_code FROM csp_plan_prices WHERE plan_code = ? AND is_active = 1').bind(planCode).first();
     if (!customer || !plan) return json({ success: false, error: 'Customer or selected plan is unavailable.' }, 404);
-    const amount = Number(plan.amount_inr);
-    if (![99,199,299].includes(amount)) return json({ success: false, error: 'This plan price is not configured for Cashfree checkout.' }, 409);
+    const fixedPrices: Record<string, number> = { basic: 99, advanced: 199, premium: 299 };
+    const amount = fixedPrices[planCode];
+    if (!amount) return json({ success: false, error: 'This plan price is not configured for Cashfree checkout.' }, 409);
 
     const url = new URL(request.url);
     const returnPath = String(body.returnPath || '/');
