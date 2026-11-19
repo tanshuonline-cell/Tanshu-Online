@@ -56,7 +56,7 @@ export const ReadyToUseTools: React.FC<Props> = ({ onOpenTool }) => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-rose-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-rose-400 hover:shadow-xl">
             <div className="aspect-[4/3] overflow-hidden bg-slate-100">
-              <img src={getToolPreviewImage('instant-passport-photo-studio', 'Instant Passport Photo Studio', 'Photo Studio')} alt="Instant Passport Photo Studio" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+              <img src={'data:image/jpeg;base64,PASTE'} alt="Instant Passport Photo Studio" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
             </div>
             <div className="flex flex-1 flex-col p-3.5">
               <div className="mb-2 flex items-center gap-2 text-rose-700"><Camera className="h-4 w-4" /><span className="text-[10px] font-bold uppercase tracking-wide">New Studio</span></div>
