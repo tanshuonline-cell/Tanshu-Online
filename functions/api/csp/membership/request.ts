@@ -10,8 +10,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: C
   try {
     const customer = await env.DB.prepare("SELECT id FROM csp_customers WHERE id = ? AND status = 'active'").bind(session.id).first();
     if (!customer) return json({ success: false, error: 'Customer account is unavailable.' }, 403);
-    const plan = await env.DB.prepare('SELECT amount_inr FROM csp_plan_prices WHERE plan_code = ? AND is_active = 1').bind(planCode).first();
+    const plan = await env.DB.prepare('SELECT plan_code FROM csp_plan_prices WHERE plan_code = ? AND is_active = 1').bind(planCode).first();
     if (!plan) return json({ success: false, error: 'This membership plan is currently unavailable.' }, 404);
+    const fixedPrices: Record<string, number> = { basic: 99, advanced: 199, premium: 299 };
+    const amount = fixedPrices[planCode];
     const pending = await env.DB.prepare("SELECT id FROM csp_payments WHERE customer_id = ? AND status = 'pending' AND reference = ? AND created_at >= datetime('now', '-30 minutes') ORDER BY created_at DESC LIMIT 1").bind(customer.id, 'Membership request: ' + planCode).first();
     if (pending) return json({ success: true, requestId: pending.id, message: 'Your membership request is already waiting for admin review.' });
     const id = crypto.randomUUID();
