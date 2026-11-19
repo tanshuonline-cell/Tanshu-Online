@@ -387,7 +387,8 @@ export const AdminDashboard: React.FC<Props> = ({ adminUser, onLogout, onBackToS
   const getCspPlanAdminLabel = (code: string) => {
     const plan = cspPlans.find(item => item.plan_code === code);
     const name = code === 'advanced' ? 'ADVANCED' : code === 'premium' ? 'PREMIUM' : 'BASIC';
-    return plan ? `${name} ₹${Number(plan.amount_inr)} · ${Number(plan.duration_days)} DAYS` : name;
+    const fixedPrice = code === 'advanced' ? 199 : code === 'premium' ? 299 : 99;
+    return plan ? `${name} ₹${fixedPrice} · 30 DAYS` : name;
   };
 
   return (
