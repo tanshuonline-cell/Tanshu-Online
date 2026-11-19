@@ -17,6 +17,7 @@ import govtIdPrintImg from '../assets/images/tool_govt_id_print_1793212217163.jp
 import pvcCoverImg from '../assets/images/tool_pvc_cover_print_1793212217270.jpg';
 import pincodeFinderImg from '../assets/images/tool_pincode_finder_1793212217614.jpg';
 import multipleIdImg from '../assets/images/tool_multiple_id_print_1793212218938.jpg';
+import multiCustomerPhotoMakerImg from '../assets/images/tool_multi_customer_photo_maker.jpg';
 import affidavitMakerImg from '../assets/images/tool_affidavit_maker_1793212220380.jpg';
 import pdfOrganizerImg from '../assets/images/tool_pdf_organizer_1793212220914.jpg';
 
@@ -1239,6 +1240,8 @@ export function getToolPreviewImage(toolId: string, toolName?: string, categoryL
       return pincodeFinderImg;
     case 'multiple-id-cards-print':
       return multipleIdImg;
+    case 'instant-multi-customer-photo-maker':
+      return multiCustomerPhotoMakerImg;
     case 'affidavit-print-maker':
       return affidavitMakerImg;
     case 'pdf-page-organizer':
